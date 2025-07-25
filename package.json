@@ -1,0 +1,19 @@
+{
+  "name": "structured-docs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "launch.bat",
+    "health-check": "curl http://localhost:5000/ping"
+  },
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "marked": "^16.1.1",
+    "vue-draggable-nested-tree": "^2.2.3"
+  }
+}

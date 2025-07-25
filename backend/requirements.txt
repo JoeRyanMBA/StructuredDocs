@@ -1,0 +1,3 @@
+pip install SQLAlchemy
+pip install Flask-SQLAlchemy
+pip install Flask-Migrate
