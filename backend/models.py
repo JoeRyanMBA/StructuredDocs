@@ -4,9 +4,99 @@ from datetime import datetime
 from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Enum, ForeignKey, func
 from sqlalchemy.orm import relationship
+from sqlalchemy import Table, Column, Integer
 
 db = SQLAlchemy()
 
+# Pivot table: tracks topic ordering within a collection
+collection_topic_tree = Table(
+    'collection_topic_tree',
+    db.Model.metadata,
+    Column('collection_id', Integer, ForeignKey('collections.id', ondelete='CASCADE')),
+    Column('topic_id', Integer, ForeignKey('topics.id', ondelete='CASCADE')),
+    Column('parent_topic_id', Integer, ForeignKey('topics.id', ondelete='CASCADE'), nullable=True),
+    Column('position', Integer, nullable=False, default=0)
+)
+
+class Collection(db.Model):
+    __tablename__ = 'collections'
+
+    id        = db.Column(db.Integer, primary_key=True)
+    name      = db.Column(db.String(200), nullable=False)
+    parent_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
+    position  = db.Column(db.Integer, nullable=False, default=0)
+
+    # Nested children collections
+    children = relationship(
+        'Collection',
+        backref=db.backref('parent', remote_side=[id]),
+        cascade='all, delete-orphan'
+    )
+
+    # Topics in this collection
+    topics = relationship(
+        'Topic',
+        secondary=collection_topic_tree,
+        backref='collections',
+        order_by=collection_topic_tree.c.position,
+        foreign_keys=[collection_topic_tree.c.collection_id, collection_topic_tree.c.topic_id]  # <-- add this line
+    )
+
+    # Hierarchical topics in this collection
+    hierarchical_topics = relationship(
+        'Topic',
+        secondary=collection_topic_tree,
+        primaryjoin=id == collection_topic_tree.c.collection_id,
+        secondaryjoin=lambda: Topic.id == collection_topic_tree.c.topic_id,
+        order_by=collection_topic_tree.c.position,
+        viewonly=True,
+        foreign_keys=[collection_topic_tree.c.collection_id, collection_topic_tree.c.topic_id]  # <-- add this line
+    )
+
+    def to_dict(self, include_children=True, include_topics=True):
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'position': self.position,
+            'parentId': self.parent_id
+        }
+        if include_topics:
+            data['topics'] = [
+                {'id': t.id, 'title': t.title}
+                for t in self.topics
+            ]
+        if include_children:
+            data['children'] = [
+                c.to_dict(include_children, include_topics)
+                for c in sorted(self.children, key=lambda x: x.position)
+            ]
+        return data
+
+    def to_tree(self):
+        # Build a tree of topics for this collection
+        from collections import defaultdict
+        rows = db.session.execute(
+            collection_topic_tree.select().where(
+                collection_topic_tree.c.collection_id == self.id
+            ).order_by(collection_topic_tree.c.position)
+        ).fetchall()
+        topics = {t.id: t for t in self.topics}
+        tree = defaultdict(list)
+        for row in rows:
+            topic = topics.get(row.topic_id)
+            if topic:
+                tree[row.parent_topic_id].append({
+                    'id': topic.id,
+                    'title': topic.title,
+                    'children': []
+                })
+        # Recursively build children
+        def build(parent_id):
+            nodes = tree[parent_id]
+            for node in nodes:
+                node['children'] = build(node['id'])
+            return nodes
+        return build(None)
 
 class Topic(db.Model):
     __tablename__ = 'topics'
@@ -44,7 +134,6 @@ class Topic(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
-
 
 class ImportDocument(db.Model):
     __tablename__ = 'import_documents'
@@ -97,7 +186,6 @@ class ImportDocument(db.Model):
             base["items"] = [item.to_dict() for item in self.items]
         return base
 
-
 class ImportItem(db.Model):
     __tablename__ = 'import_items'
 
@@ -129,7 +217,6 @@ class ImportItem(db.Model):
             "committed_topic": self.committed_topic
         }
 
-
 class Publication(db.Model):
     __tablename__ = 'publications'
 
@@ -158,7 +245,6 @@ class Publication(db.Model):
         if include_nodes:
             base["nodes"] = [n.to_dict() for n in self.nodes]
         return base
-
 
 class PublicationNode(db.Model):
     __tablename__ = 'publication_nodes'

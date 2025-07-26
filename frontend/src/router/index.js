@@ -1,45 +1,72 @@
 // src/router/index.js
 
 import { createRouter, createWebHistory } from 'vue-router'
-import PublicationsHome from '@/views/PublicationsHome.vue'
-import PublicationView   from '@/views/PublicationView.vue'
 
+// Direct imports for frequently used views
+import TopicsListView from '@/views/TopicsListView.vue'
+import EditTopicView from '@/views/EditTopicView.vue'
+import ImportView from '@/views/ImportView.vue'
+
+// All routes
 const routes = [
-  // Redirect root to topics list
+  // ▶️ Start / Home
   {
     path: '/',
-    redirect: '/topics'
+    name: 'Start',
+    component: () => import('@/views/StartPage.vue')
   },
 
-  // Topics
+  // ✏️ Authoring
+  {
+    path: '/author',
+    name: 'AuthorHome',
+    component: () => import('@/views/Author.vue')
+  },
   {
     path: '/topics',
     name: 'TopicsList',
-    component: () => import('@/views/TopicsListView.vue')
+    component: TopicsListView
   },
   {
     path: '/topics/new',
     name: 'NewTopic',
-    component: () => import('@/views/EditTopicView.vue')
+    component: EditTopicView,
+    props: route => ({ topicId: null })
   },
   {
-    path: '/topics/:id',
+    path: '/topics/:id/edit',
     name: 'EditTopic',
-    component: () => import('@/views/EditTopicView.vue'),
+    component: EditTopicView,
+    props: route => ({ topicId: parseInt(route.params.id, 10) })
+  },
+  {
+    path: '/author-history',
+    name: 'AuthorHistory',
+    component: () => import('@/views/AuthorHistory.vue')
+  },
+  {
+    path: '/collections',
+    name: 'Collections',
+    component: () => import('@/views/Collections.vue')
+  },
+  {
+    path: '/organize/:id',
+    name: 'Organize',
+    component: () => import('@/views/Organize.vue'),
     props: true
   },
 
-  // Import flow
+  // 📥 Import Section
   {
     path: '/import',
     name: 'ImportHome',
-    component: () => import('@/views/ImportView.vue')
+    component: ImportView
   },
   {
-    path: '/import/review/:id',
+    path: '/import/:id/review',
     name: 'ImportReview',
     component: () => import('@/views/ImportReviewView.vue'),
-    props: true
+    props: route => ({ id: route.params.id })
   },
   {
     path: '/import/history',
@@ -47,36 +74,72 @@ const routes = [
     component: () => import('@/views/ImportHistoryView.vue')
   },
 
-  // Publication
+  // 📤 Publish Section
   {
-    path: '/publications',
+    path: '/Publications',
     name: 'PublicationsHome',
-    component: PublicationsHome
+    component: () => import('@/views/PublicationsHome.vue')
   },
   {
     path: '/publications/:id',
     name: 'PublicationView',
-    component: PublicationView,
-    props: true
+    component: () => import('@/views/PublicationView.vue')
   },
-   
-  // 404 fallback
+
+  // 📝 Review Section
   {
-    path: '/:pathMatch(.*)*',
-    name: 'NotFound',
-    component: () => import('@/views/NotFoundView.vue')
+    path: '/reviews',
+    name: 'ReviewsHome',
+    component: () => import('@/views/Reviews.vue')
+  },
+  {
+    path: '/reviews/send',
+    name: 'SMEReviews',
+    component: () => import('@/views/SMEReviews.vue')
+  },
+  {
+    path: '/reviews/incorporate',
+    name: 'IncorporateFeedback',
+    component: () => import('@/views/IncorporateFeedback.vue')
+  },
+  {
+    path: '/reviews/history',
+    name: 'ReviewHistory',
+    component: () => import('@/views/ReviewHistory.vue')
+  },
+
+  // 🔒 Admin Section
+  {
+    path: '/admin',
+    name: 'AdminHome',
+    component: () => import('@/views/Admin.vue')
+  },
+  {
+    path: '/admin/authors',
+    name: 'ManageAuthors',
+    component: () => import('@/views/ManageAuthors.vue')
+  },
+  {
+    path: '/admin/users',
+    name: 'ManageUsers',
+    component: () => import('@/views/ManageUsers.vue')
+  },
+  {
+    path: '/admin/logs',
+    name: 'SystemLogs',
+    component: () => import('@/views/SystemLogs.vue')
+  },
+
+  // 🛠️ Catch-all fallback
+  {
+    path: '/:catchAll(.*)',
+    redirect: { name: 'TopicsList' }
   }
 ]
 
 const router = createRouter({
-  history: createWebHistory(import.meta.env.BASE_URL),
-  routes,
-  scrollBehavior(to, from, savedPosition) {
-    // if user used browser back/forward, restore scroll
-    if (savedPosition) return savedPosition
-    // otherwise scroll to top
-    return { top: 0 }
-  }
+  history: createWebHistory(),
+  routes
 })
 
 export default router

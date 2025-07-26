@@ -48,6 +48,7 @@ export default {
       isWideScreen: window.innerWidth >= 768,
       sections: {
         author: false,
+        organize: false,
         import: false,
         publish: false,
         reviews: false,
@@ -60,14 +61,21 @@ export default {
           links: [
             { name: 'NewTopic', text: '➕ New Topic' },
             { name: 'TopicsList', text: '📚 Browse Topics' }
-          ]
+                ]
         },
+      {
+        key: 'collections',
+        label: '🗂 Collections',
+        links: [
+            { name: 'Collections', text: 'Collections' }
+              ]
+      },
+
         {
           key: 'import',
           label: '📥 Import',
           links: [
             { name: 'ImportHome',    text: 'Import Home' },
-            { name: 'ImportHistory', text: 'Import History' }
           ]
         },
           {
