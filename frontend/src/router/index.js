@@ -6,21 +6,22 @@ import { createRouter, createWebHistory } from 'vue-router'
 import TopicsListView from '@/views/TopicsListView.vue'
 import EditTopicView from '@/views/EditTopicView.vue'
 import ImportView from '@/views/ImportView.vue'
+import StartPage from '@/views/StartPage.vue'
 
 // All routes
 const routes = [
-  // ▶️ Start / Home - Redirect to Projects
+  // ▶️ Dashboard / Home
   {
     path: '/',
-    name: 'Start',
-    redirect: '/projects'
+    name: 'Dashboard',
+    component: StartPage
   },
 
   // ✏️ Authoring
   {
     path: '/author',
     name: 'AuthorHome',
-    component: () => import('@/views/Author.vue')
+    component: () => import('@/views/AuthorDashboard.vue')
   },
   {
     path: '/topics',
@@ -47,7 +48,7 @@ const routes = [
   {
     path: '/collections',
     name: 'Collections',
-    component: () => import('@/views/Collections.vue')
+    component: () => import('@/views/CollectionsDashboard.vue')
   },
   {
     path: '/projects',
@@ -65,7 +66,7 @@ const routes = [
   {
     path: '/import',
     name: 'ImportTopics',
-    component: ImportView
+    component: () => import('@/views/ImportDashboard.vue')
   },
   {
     path: '/import/:id/review',
@@ -83,7 +84,7 @@ const routes = [
   {
     path: '/publications',
     name: 'PublicationsHome',
-    component: () => import('@/views/PublicationsHome.vue')
+    component: () => import('@/views/PublishDashboard.vue')
   },
   {
     path: '/publications/:id',
@@ -106,7 +107,7 @@ const routes = [
   {
     path: '/reviews',
     name: 'ReviewsHome',
-    component: () => import('@/views/Reviews.vue')
+    component: () => import('@/views/ReviewsDashboard.vue')
   },
   {
     path: '/reviews/send',
@@ -128,7 +129,7 @@ const routes = [
   {
     path: '/admin',
     name: 'AdminHome',
-    component: () => import('@/views/Admin.vue')
+    component: () => import('@/views/AdminDashboard.vue')
   },
   {
     path: '/admin/authors',

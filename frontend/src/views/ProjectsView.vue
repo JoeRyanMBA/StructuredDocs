@@ -1,77 +1,167 @@
 <template>
-  <div class="projects-view">
-    <Breadcrumbs />
-    <h1>🎯 Projects</h1>
-    <p>Manage projects, stakeholders, and review workflows.</p>
-    
-    <div class="actions-bar">
-      <button @click="showCreateModal = true" class="create-btn">
-        + New Project
-      </button>
+  <div class="projects-dashboard">
+    <!-- Dashboard Header -->
+     <div class="dashboard-header">
+        <h1>Projects Dashboard</h1>
+        <p class="welcome-text">Manage projects, stakeholders, and review workflows</p>
+  </div>
+
+    <!-- Metrics Overview -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon">📊</div>
+        <div class="metric-content">
+          <h3>Total Projects</h3>
+          <div class="metric-number">{{ projectMetrics.total }}</div>
+          <div class="metric-detail">+{{ projectMetrics.newThisMonth }} this month</div>
+        </div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-icon">🚀</div>
+        <div class="metric-content">
+          <h3>Active Projects</h3>
+          <div class="metric-number">{{ projectMetrics.active }}</div>
+          <div class="metric-detail">{{ projectMetrics.activePercentage }}% of total</div>
+        </div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-icon">👥</div>
+        <div class="metric-content">
+          <h3>Total Stakeholders</h3>
+          <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
+          <div class="metric-detail">Across all projects</div>
+        </div>
+      </div>
+      
+      <div class="metric-card">
+        <div class="metric-icon">✅</div>
+        <div class="metric-content">
+          <h3>Completed</h3>
+          <div class="metric-number">{{ projectMetrics.completed }}</div>
+          <div class="metric-detail">{{ projectMetrics.completionRate }}% completion rate</div>
+        </div>
+      </div>
     </div>
-    
-    <!-- Projects List -->
-    <div v-if="projects.length === 0" class="empty-projects">
-      <div class="empty-content">
-        <div class="empty-icon">🎯</div>
-        <h2>No Projects Yet</h2>
-        <p>Get started by creating your first project to organize topics, stakeholders, and review workflows.</p>
-        <button @click="showCreateModal = true" class="create-first-btn">
-          + Create Your First Project
+
+    <!-- Quick Actions -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">Quick Actions</h2>
+      </div>
+      <div class="quick-actions-grid">
+        <button @click="showCreateModal = true" class="action-card">
+          <div class="action-icon">📝</div>
+          <div class="action-content">
+            <h3>Create Project</h3>
+            <p>Start a new documentation project</p>
+          </div>
+        </button>
+        
+        <button @click="filterByStatus('active')" class="action-card">
+          <div class="action-icon">🎯</div>
+          <div class="action-content">
+            <h3>View Active</h3>
+            <p>See all currently active projects</p>
+          </div>
+        </button>
+        
+        <button @click="showTemplateModal = true" class="action-card">
+          <div class="action-icon">📋</div>
+          <div class="action-content">
+            <h3>Use Template</h3>
+            <p>Create from project template</p>
+          </div>
+        </button>
+        
+        <button @click="exportProjects" class="action-card">
+          <div class="action-icon">📤</div>
+          <div class="action-content">
+            <h3>Export Data</h3>
+            <p>Download project reports</p>
+          </div>
         </button>
       </div>
     </div>
 
-    <div v-else class="projects-grid">
-      <div
-        v-for="project in projects"
-        :key="project.id"
-        class="project-card"
-      >
-        <div class="project-header">
-          <h3>{{ project.name }}</h3>
-          <span class="status-badge" :class="project.status">
-            {{ formatStatus(project.status) }}
-          </span>
+    <!-- Projects List -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">All Projects</h2>
+        <div class="filter-controls">
+          <select v-model="statusFilter" @change="applyFilters" class="filter-select">
+            <option value="">All Statuses</option>
+            <option value="planning">Planning</option>
+            <option value="active">Active</option>
+            <option value="on_hold">On Hold</option>
+            <option value="completed">Completed</option>
+          </select>
         </div>
-        <p class="project-description">{{ project.description }}</p>
-        
-        <!-- Project Summary -->
-        <div class="project-summary">
-          <div class="summary-item" v-if="project.stakeholders && project.stakeholders.length > 0">
-            <span class="summary-icon">👥</span>
-            <span>{{ project.stakeholders.length }} Stakeholder{{ project.stakeholders.length > 1 ? 's' : '' }}</span>
-          </div>
-          <div class="summary-item" v-if="project.collections && project.collections.length > 0">
-            <span class="summary-icon">📁</span>
-            <span>{{ project.collections.length }} Collection{{ project.collections.length > 1 ? 's' : '' }}</span>
-          </div>
-          <div class="summary-item" v-if="project.publishedDocuments && project.publishedDocuments.length > 0">
-            <span class="summary-icon">📄</span>
-            <span>{{ project.publishedDocuments.length }} Document{{ project.publishedDocuments.length > 1 ? 's' : '' }}</span>
-          </div>
-        </div>
-
-        <!-- Milestone Dates -->
-        <div class="project-milestones" v-if="hasActiveMilestones(project)">
-          <div class="milestone-item" v-if="project.milestones?.projectedStart">
-            <strong>Start:</strong> {{ formatDate(project.milestones.projectedStart) }}
-          </div>
-          <div class="milestone-item" v-if="project.milestones?.projectedEnd">
-            <strong>End:</strong> {{ formatDate(project.milestones.projectedEnd) }}
-          </div>
-          <div class="milestone-item" v-if="project.milestones?.dryRunDate">
-            <strong>Dry Run:</strong> {{ formatDate(project.milestones.dryRunDate) }}
-          </div>
-        </div>
-
-        <div class="project-meta">
-          <small>Created: {{ formatDate(project.created_at) }}</small>
-        </div>
-        <div class="project-actions">
-          <button @click="editProject(project)" class="edit-btn">
-            ✏️ Edit
+      </div>
+      
+      <div v-if="filteredProjects.length === 0" class="empty-state">
+        <div class="empty-content">
+          <div class="empty-icon">🎯</div>
+          <h3>{{ projects.length === 0 ? 'No Projects Yet' : 'No Projects Match Filter' }}</h3>
+          <p>{{ projects.length === 0 ? 'Get started by creating your first project to organize topics, stakeholders, and review workflows.' : 'Try adjusting your filters or create a new project.' }}</p>
+          <button @click="showCreateModal = true" class="create-first-btn">
+            ➕ {{ projects.length === 0 ? 'Create Your First Project' : 'Create New Project' }}
           </button>
+        </div>
+      </div>
+
+      <div v-else class="projects-grid">
+        <div
+          v-for="project in filteredProjects"
+          :key="project.id"
+          class="project-card"
+        >
+          <div class="project-header">
+            <h3>{{ project.name }}</h3>
+            <span class="status-badge" :class="project.status">
+              {{ formatStatus(project.status) }}
+            </span>
+          </div>
+          <p class="project-description">{{ project.description }}</p>
+          
+          <!-- Project Summary -->
+          <div class="project-summary">
+            <div class="summary-item" v-if="project.stakeholders && project.stakeholders.length > 0">
+              <span class="summary-icon">👥</span>
+              <span>{{ project.stakeholders.length }} Stakeholder{{ project.stakeholders.length > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="summary-item" v-if="project.collections && project.collections.length > 0">
+              <span class="summary-icon">📁</span>
+              <span>{{ project.collections.length }} Collection{{ project.collections.length > 1 ? 's' : '' }}</span>
+            </div>
+            <div class="summary-item" v-if="project.publishedDocuments && project.publishedDocuments.length > 0">
+              <span class="summary-icon">📄</span>
+              <span>{{ project.publishedDocuments.length }} Document{{ project.publishedDocuments.length > 1 ? 's' : '' }}</span>
+            </div>
+          </div>
+
+          <!-- Milestone Dates -->
+          <div class="project-milestones" v-if="hasActiveMilestones(project)">
+            <div class="milestone-item" v-if="project.milestones?.projectedStart">
+              <strong>Start:</strong> {{ formatDate(project.milestones.projectedStart) }}
+            </div>
+            <div class="milestone-item" v-if="project.milestones?.projectedEnd">
+              <strong>End:</strong> {{ formatDate(project.milestones.projectedEnd) }}
+            </div>
+            <div class="milestone-item" v-if="project.milestones?.dryRunDate">
+              <strong>Dry Run:</strong> {{ formatDate(project.milestones.dryRunDate) }}
+            </div>
+          </div>
+
+          <div class="project-meta">
+            <small>Created: {{ formatDate(project.created_at) }}</small>
+          </div>
+          <div class="project-actions">
+            <button @click="editProject(project)" class="edit-btn">
+              ✏️ Edit
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -479,8 +569,10 @@ export default {
   data() {
     return {
       projects: [],
+      statusFilter: '',
       showCreateModal: false,
       showEditModal: false,
+      showTemplateModal: false,
       newProject: {
         name: '',
         description: '',
@@ -516,6 +608,30 @@ export default {
       }
     }
   },
+  computed: {
+    projectMetrics() {
+      const total = this.projects.length
+      const active = this.projects.filter(p => p.status === 'active').length
+      const completed = this.projects.filter(p => p.status === 'completed').length
+      const stakeholders = this.projects.reduce((sum, p) => sum + (p.stakeholders?.length || 0), 0)
+      
+      return {
+        total,
+        active,
+        completed,
+        stakeholders,
+        newThisMonth: Math.floor(total * 0.2), // Mock data
+        activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
+        completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
+      }
+    },
+    filteredProjects() {
+      if (!this.statusFilter) {
+        return this.projects
+      }
+      return this.projects.filter(project => project.status === this.statusFilter)
+    }
+  },
   methods: {
     async createProject() {
       try {
@@ -538,6 +654,20 @@ export default {
       } catch (error) {
         console.error('Failed to create project:', error)
       }
+    },
+
+    // Dashboard specific methods
+    filterByStatus(status) {
+      this.statusFilter = status
+    },
+
+    applyFilters() {
+      // Filters are automatically applied through computed property
+    },
+
+    exportProjects() {
+      // Mock export functionality
+      alert('Export functionality would be implemented here')
     },
     
     resetNewProject() {
@@ -695,155 +825,320 @@ export default {
 </script>
 
 <style scoped>
-.projects-view {
-  padding: 70px 20px 20px 20px;
+/* Dashboard Layout */
+.projects-dashboard {
+  padding: 0;
+  max-width: 1200px;
+  margin: 0 auto;
 }
 
-.actions-bar {
+.dashboard-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  color: #005a9c;
+  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+  font-weight: 300;
+}
+
+.welcome-text {
+  color: #6c757d;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.metric-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
   display: flex;
-  justify-content: flex-end;
-  margin-bottom: 30px;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.create-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 10px 20px;
+.metric-icon {
+  font-size: 2.5rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.metric-content h3 {
+  margin: 0 0 0.25rem 0;
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #005a9c;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.metric-detail {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Section Cards */
+.section-card {
+  background: white;
+  border-radius: 12px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 10px rgba(0, 0, 0, 0.08);
+}
+
+.section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  padding-bottom: 1rem;
+  border-bottom: 2px solid #f0f4f8;
+}
+
+.section-title {
+  margin: 0;
+  color: #112e51;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.filter-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.filter-select {
+  padding: 0.5rem 1rem;
+  border: 1px solid #d1d5db;
   border-radius: 6px;
+  background: white;
+  color: #374151;
+  font-size: 0.9rem;
   cursor: pointer;
 }
 
-.empty-projects {
+.filter-select:focus {
+  outline: none;
+  border-color: #005a9c;
+  box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
+}
+
+/* Quick Actions Grid */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+}
+
+.action-card {
   display: flex;
-  justify-content: center;
-  align-items: flex-start;
-  min-height: 300px;
-  margin: 20px 0;
-  padding-top: 40px;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.action-card:hover {
+  background: #005a9c;
+  border-color: #005a9c;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
+}
+
+.action-icon {
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+.action-content h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.action-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Empty State */
+.empty-state {
+  text-align: center;
+  padding: 3rem 1rem;
 }
 
 .empty-content {
-  text-align: center;
-  max-width: 500px;
+  max-width: 400px;
+  margin: 0 auto;
 }
 
 .empty-icon {
   font-size: 4rem;
-  margin-bottom: 20px;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.empty-content h3 {
+  margin: 0 0 1rem 0;
+  color: #112e51;
+  font-size: 1.5rem;
+}
+
+.empty-content p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  line-height: 1.6;
 }
 
 .create-first-btn {
-  background: #27ae60;
+  background: #005a9c;
   color: white;
   border: none;
-  padding: 15px 30px;
+  padding: 0.75rem 1.5rem;
   border-radius: 8px;
+  font-weight: 600;
   cursor: pointer;
-  margin: 0 auto;
+  transition: all 0.2s ease;
 }
 
+.create-first-btn:hover {
+  background: #004080;
+  transform: translateY(-1px);
+}
+
+/* Projects Grid */
 .projects-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 20px;
-  margin-bottom: 30px;
+  gap: 1.5rem;
 }
 
 .project-card {
-  border: 2px solid #e1e8ed;
-  border-radius: 8px;
-  padding: 20px;
   background: white;
-  transition: all 0.2s;
+  border: 2px solid #e2e8f0;
+  border-radius: 12px;
+  padding: 1.5rem;
+  transition: all 0.2s ease;
+  position: relative;
 }
 
 .project-card:hover {
-  border-color: #3498db;
-  box-shadow: 0 4px 12px rgba(52, 152, 219, 0.1);
+  border-color: #005a9c;
+  transform: translateY(-2px);
+  box-shadow: 0 8px 25px rgba(0, 90, 156, 0.15);
 }
 
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 10px;
+  margin-bottom: 1rem;
 }
 
 .project-header h3 {
   margin: 0;
-  color: #2c3e50;
+  color: #112e51;
+  font-size: 1.25rem;
+  font-weight: 600;
   line-height: 1.3;
 }
 
 .status-badge {
-  padding: 4px 12px;
+  padding: 0.25rem 0.75rem;
   border-radius: 20px;
-  font-size: 12px;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
 .status-badge.planning {
-  background: #f39c12;
-  color: white;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .status-badge.active {
-  background: #27ae60;
-  color: white;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .status-badge.completed {
-  background: #95a5a6;
-  color: white;
+  background: #e5e7eb;
+  color: #374151;
 }
 
 .status-badge.on_hold {
-  background: #e67e22;
-  color: white;
+  background: #fed7d7;
+  color: #c53030;
 }
 
 .project-description {
-  color: #7f8c8d;
-  margin-bottom: 15px;
-  line-height: 1.4;
+  color: #6b7280;
+  margin-bottom: 1rem;
+  line-height: 1.5;
 }
 
 .project-summary {
   display: flex;
   flex-wrap: wrap;
-  gap: 10px;
-  margin-bottom: 15px;
+  gap: 0.5rem;
+  margin-bottom: 1rem;
 }
 
 .summary-item {
   display: flex;
   align-items: center;
-  gap: 5px;
-  background: #f8f9fa;
-  padding: 4px 8px;
+  gap: 0.25rem;
+  background: #f1f5f9;
+  padding: 0.25rem 0.5rem;
   border-radius: 12px;
-  font-size: 12px;
-  color: #495057;
+  font-size: 0.8rem;
+  color: #475569;
 }
 
 .summary-icon {
-  font-size: 14px;
+  font-size: 0.9rem;
 }
 
 .project-milestones {
-  background: #fff3cd;
-  border: 1px solid #ffeaa7;
-  border-radius: 4px;
-  padding: 10px;
-  margin-bottom: 15px;
+  background: #fef7cd;
+  border: 1px solid #fde047;
+  border-radius: 6px;
+  padding: 0.75rem;
+  margin-bottom: 1rem;
 }
 
 .milestone-item {
-  font-size: 12px;
-  color: #856404;
-  margin-bottom: 5px;
+  font-size: 0.8rem;
+  color: #a16207;
+  margin-bottom: 0.25rem;
 }
 
 .milestone-item:last-child {
@@ -851,11 +1146,32 @@ export default {
 }
 
 .project-meta {
-  color: #95a5a6;
-  font-size: 12px;
+  color: #9ca3af;
+  font-size: 0.8rem;
+  margin-bottom: 1rem;
 }
 
-/* Modal Styles */
+.project-actions {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.edit-btn {
+  background: #005a9c;
+  color: white;
+  border: none;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.85rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.edit-btn:hover {
+  background: #004080;
+}
+
+/* Modal Styles - Keeping existing modal styles but with updated colors */
 .modal-overlay {
   position: fixed;
   top: 0;
@@ -871,88 +1187,100 @@ export default {
 
 .modal {
   background: white;
-  border-radius: 8px;
+  border-radius: 12px;
   min-width: 500px;
   max-width: 90vw;
   max-height: 90vh;
   overflow-y: auto;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
 }
 
 .modal-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  padding: 20px;
-  border-bottom: 1px solid #e1e8ed;
+  padding: 1.5rem;
+  border-bottom: 1px solid #e5e7eb;
 }
 
 .modal-header h2 {
   margin: 0;
-  color: #2c3e50;
+  color: #112e51;
+  font-size: 1.5rem;
+  font-weight: 600;
 }
 
 .close-btn {
   background: none;
   border: none;
-  font-size: 24px;
+  font-size: 1.5rem;
   cursor: pointer;
-  color: #95a5a6;
+  color: #9ca3af;
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
 }
 
 .close-btn:hover {
-  color: #2c3e50;
+  color: #112e51;
+  background: #f3f4f6;
 }
 
 .modal-body {
-  padding: 20px;
+  padding: 1.5rem;
 }
 
 .form-group {
-  margin-bottom: 15px;
+  margin-bottom: 1rem;
 }
 
 .form-group label {
   display: block;
-  margin-bottom: 5px;
+  margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #2c3e50;
+  color: #112e51;
+  font-size: 0.9rem;
 }
 
-.form-group input, .form-group textarea {
+.form-group input, .form-group textarea, .form-group select {
   width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  font-size: 0.9rem;
   box-sizing: border-box;
+  transition: border-color 0.2s ease;
 }
 
-.form-group input:focus, .form-group textarea:focus {
+.form-group input:focus, .form-group textarea:focus, .form-group select:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #005a9c;
+  box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
 .modal-actions {
   display: flex;
   justify-content: flex-end;
-  gap: 10px;
-  margin-top: 20px;
-  padding-top: 20px;
-  border-top: 1px solid #e1e8ed;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+  padding-top: 1.5rem;
+  border-top: 1px solid #e5e7eb;
 }
 
 .cancel-btn {
-  padding: 10px 20px;
-  border: 1px solid #95a5a6;
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #d1d5db;
   background: white;
-  color: #95a5a6;
-  border-radius: 4px;
+  color: #374151;
+  border-radius: 6px;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
 
 .cancel-btn:hover {
-  background: #95a5a6;
-  color: white;
+  background: #f9fafb;
+  border-color: #9ca3af;
 }
 
 /* Enhanced Modal Styles */
@@ -962,58 +1290,44 @@ export default {
 }
 
 .form-section {
-  margin-bottom: 30px;
-  padding: 20px;
-  border: 1px solid #e1e8ed;
-  border-radius: 6px;
-  background: #f8f9fa;
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f9fafb;
 }
 
 .form-section h3 {
-  margin: 0 0 20px 0;
-  color: #2c3e50;
-  font-size: 18px;
-  border-bottom: 2px solid #3498db;
-  padding-bottom: 8px;
+  margin: 0 0 1rem 0;
+  color: #112e51;
+  font-size: 1.1rem;
+  font-weight: 600;
+  border-bottom: 2px solid #005a9c;
+  padding-bottom: 0.5rem;
 }
 
 .form-row {
   display: grid;
   grid-template-columns: 1fr 1fr;
-  gap: 15px;
-  margin-bottom: 15px;
+  gap: 1rem;
+  margin-bottom: 1rem;
 }
 
-.form-group select {
-  width: 100%;
-  padding: 10px;
-  border: 1px solid #ddd;
-  border-radius: 4px;
-  font-size: 14px;
-  box-sizing: border-box;
-  background: white;
-}
-
-.form-group select:focus {
-  outline: none;
-  border-color: #3498db;
-}
-
-/* Stakeholder Styles */
+/* Stakeholder, Collection, Document Styles */
 .stakeholders-list, .collections-list, .documents-list {
   background: white;
   border-radius: 6px;
-  padding: 15px;
+  padding: 1rem;
 }
 
 .stakeholder-item, .collection-item, .document-item {
   display: grid;
-  gap: 10px;
-  margin-bottom: 15px;
-  padding: 15px;
-  border: 1px solid #e1e8ed;
-  border-radius: 4px;
-  background: #fafbfc;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
+  padding: 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  background: #fafafa;
 }
 
 .stakeholder-item {
@@ -1032,64 +1346,83 @@ export default {
 }
 
 .stakeholder-input, .collection-input, .document-input {
-  padding: 8px;
-  border: 1px solid #ddd;
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
   border-radius: 4px;
-  font-size: 14px;
+  font-size: 0.9rem;
   box-sizing: border-box;
 }
 
 .stakeholder-input:focus, .collection-input:focus, .document-input:focus {
   outline: none;
-  border-color: #3498db;
+  border-color: #005a9c;
+  box-shadow: 0 0 0 2px rgba(0, 90, 156, 0.1);
 }
 
 .add-btn {
-  background: #27ae60;
+  background: #059669;
   color: white;
   border: none;
-  padding: 10px 15px;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 14px;
-  margin-top: 10px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  transition: background 0.2s ease;
 }
 
 .add-btn:hover {
-  background: #229954;
+  background: #047857;
 }
 
 .remove-btn {
-  background: #e74c3c;
+  background: #dc2626;
   color: white;
   border: none;
-  padding: 6px 10px;
+  padding: 0.25rem 0.5rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 12px;
+  font-size: 0.8rem;
+  transition: background 0.2s ease;
 }
 
 .remove-btn:hover {
-  background: #c0392b;
+  background: #b91c1c;
 }
 
-.project-actions {
-  margin-top: 15px;
-  padding-top: 15px;
-  border-top: 1px solid #e1e8ed;
-}
-
-.edit-btn {
-  background: #3498db;
-  color: white;
-  border: none;
-  padding: 8px 15px;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 14px;
-}
-
-.edit-btn:hover {
-  background: #2980b9;
+/* Responsive Design */
+@media (max-width: 768px) {
+  .dashboard-header {
+    flex-direction: column;
+    gap: 1rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .projects-grid {
+    grid-template-columns: 1fr;
+  }
+  
+  .form-row {
+    grid-template-columns: 1fr;
+  }
+  
+  .stakeholder-item {
+    grid-template-columns: 1fr;
+  }
+  
+  .collection-item {
+    grid-template-columns: 1fr;
+  }
+  
+  .document-item {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

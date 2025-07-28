@@ -18,21 +18,33 @@
     >
       <ul>
         <li v-for="section in SECTIONS" :key="section.key">
-          <button
-            class="section-toggle"
-            @click="toggleSection(section.key)"
-            :aria-expanded="sections[section.key]"
+          <!-- Direct link sections (like Home) -->
+          <router-link 
+            v-if="section.directLink"
+            :to="{ name: section.directLink }"
+            class="section-direct-link"
           >
             {{ section.label }}
-          </button>
+          </router-link>
 
-          <ul v-show="sections[section.key]">
-            <li v-for="link in section.links" :key="link.name">
-              <router-link :to="{ name: link.name }">
-                {{ link.text }}
-              </router-link>
-            </li>
-          </ul>
+          <!-- Collapsible sections with sub-items -->
+          <template v-else>
+            <button
+              class="section-toggle"
+              @click="toggleSection(section.key)"
+              :aria-expanded="sections[section.key]"
+            >
+              {{ section.label }}
+            </button>
+
+            <ul v-show="sections[section.key]">
+              <li v-for="link in section.links" :key="link.name">
+                <router-link :to="{ name: link.name }">
+                  {{ link.text }}
+                </router-link>
+              </li>
+            </ul>
+          </template>
         </li>
       </ul>
     </nav>
@@ -47,6 +59,7 @@ export default {
       collapsed: window.innerWidth < 768,
       isWideScreen: window.innerWidth >= 768,
       sections: {
+        home: true,
         projects: true,
         author: false,
         collections: false,
@@ -58,63 +71,45 @@ export default {
       },
       SECTIONS: [
         {
+          key: 'home',
+          label: '🏠 Home',
+          directLink: 'Dashboard'
+        },
+        {
           key: 'projects',
           label: '🎯 Projects',
-          links: [
-            { name: 'Projects', text: 'Manage Projects' }
-          ]
+          directLink: 'Projects'
         },
         {
           key: 'author',
           label: '✏️ Author',
-          links: [
-            { name: 'NewTopic', text: '➕ New Topic' },
-            { name: 'TopicsList', text: '📚 Browse Topics' }
-                ]
+          directLink: 'AuthorHome'
         },
       {
         key: 'collections',
         label: '📑 Collections',
-        links: [
-            { name: 'Collections', text: 'Collections' }
-              ]
+        directLink: 'Collections'
       },
 
         {
           key: 'import',
           label: '📥 Import',
-          links: [
-            { name: 'ImportTopics',    text: 'Import Topics' },
-            { name: 'ImportHistory',   text: 'Import History' },
-          ]
+          directLink: 'ImportTopics'
         },
           {
             key: 'publish',
             label: '📤 Publish',
-            links: [
-            { name: 'PublicationsHome', text: 'Publication List' },
-            { name: 'PublishMobileKB', text: 'Mobile Knowledge Base' },
-            { name: 'PublishPDF', text: 'PDF Documents' }
-          ]
-  },
+            directLink: 'PublicationsHome'
+          },
         {
           key: 'reviews',
           label: '📝 Reviews',
-          links: [
-            { name: 'ReviewsHome', text: 'Review Dashboard' },
-            { name: 'SMEReviews', text: 'Send Topics for Review' },
-            { name: 'IncorporateFeedback', text: 'Incorporate Feedback' },
-            { name: 'ReviewHistory', text: 'View Review History' }
-          ]
+          directLink: 'ReviewsHome'
         },
         {
           key: 'admin',
           label: '🔒 Admin',
-          links: [
-            { name: 'ManageAuthors', text: 'Manage Authors' },
-            { name: 'ManageUsers',   text: 'Manage Reviewers' },
-            { name: 'SystemLogs',    text: 'System Logs' }
-          ]
+          directLink: 'AdminHome'
         }
       ]
     }
@@ -200,6 +195,26 @@ li > ul {
 
 .section-toggle:hover {
   font-weight: bold;
+}
+
+.section-direct-link {
+  display: block;
+  text-decoration: none;
+  color: #112e51;
+  font-size: 1rem;
+  cursor: pointer;
+  padding: 0;
+  margin-bottom: 0.25rem;
+  text-align: left;
+}
+
+.section-direct-link:hover {
+  font-weight: bold;
+}
+
+.section-direct-link.router-link-active {
+  font-weight: bold;
+  color: #005a9c;
 }
 
 a {

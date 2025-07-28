@@ -9,7 +9,7 @@
 
     <!-- New Topic Mode -->
     <div v-if="!hasId && !loading" class="new-mode">
-      <h3>📄 Creating a New Topic</h3>
+      <h3>📄 Create a New Topic</h3>
       <TopicEditor
         :topicId="null"
         :initialTitle="''"
@@ -114,7 +114,7 @@ export default {
 
 <style scoped>
 .edit-topic-view {
-  padding-top: 70px; /* Top padding to account for fixed header */
+  padding-top: 0px; /* Top padding to account for fixed header */
   padding-left: 2rem;
   padding-right: 2rem;
   padding-bottom: 2rem;

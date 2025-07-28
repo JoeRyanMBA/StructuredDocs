@@ -17,6 +17,6 @@ export default {
 
 <style scoped>
 .author-view {
-  padding-top: 70px; /* Top padding to account for fixed header */
+  padding-top: 0px; /* Top padding to account for fixed header */
 }
 </style>

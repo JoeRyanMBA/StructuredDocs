@@ -1,37 +1,35 @@
 <template>
   <HeaderBar />
-  <div class="layout">
-    <Sidebar />
-    <main class="content">
-<!--      <Breadcrumbs /> -->
-      <router-view />
-    </main>
-  </div>
+  <TabNavigation />
+  <main class="content">
+<!--    <Breadcrumbs /> -->
+    <router-view />
+  </main>
 </template>
 
 <script>
-import Sidebar from '@/components/Sidebar.vue'
+import TabNavigation from '@/components/TabNavigation.vue'
 import HeaderBar from '@/components/HeaderBar.vue'
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
-  components: { Sidebar, HeaderBar, Breadcrumbs }
+  components: { TabNavigation, HeaderBar, Breadcrumbs }
 }
 </script>
 
 <style scoped>
-.layout {
-  display: flex;
-}
-
 .content {
-  margin-left: 210px;     /* for sidebar */
+  margin-top: 120px; /* Space for header (60px) + tabs (60px) */
   padding: 2rem;
+  max-width: 1200px;
+  margin-left: auto;
+  margin-right: auto;
 }
 
 @media (max-width: 768px) {
   .content {
-    margin-left: 0; /* No sidebar margin on mobile */
+    margin-top: 110px; /* Slightly less space on mobile */
+    padding: 1rem;
   }
 }
 </style>

@@ -298,7 +298,7 @@ export default {
 
 <style scoped>
 .organize-view {
-  padding-top: 70px; /* Top padding to account for fixed header */
+  padding-top: 0px; /* Top padding to account for fixed header */
   padding-left: 2rem;
   padding-right: 2rem;
   padding-bottom: 2rem;

@@ -1,0 +1,956 @@
+<template>
+  <div class="admin-dashboard">
+    <div class="dashboard-header">
+      <h1>Admin Dashboard</h1>
+      <p class="welcome-text">System administration and user management</p>
+    </div>
+
+    <!-- Key Metrics Cards -->
+    <div class="metrics-grid">
+      <div class="metric-card">
+        <div class="metric-icon">👥</div>
+        <div class="metric-content">
+          <h3>Total Users</h3>
+          <div class="metric-number">{{ stats.totalUsers || 0 }}</div>
+          <div class="metric-detail">{{ stats.activeUsers || 0 }} Active</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon">✏️</div>
+        <div class="metric-content">
+          <h3>Authors</h3>
+          <div class="metric-number">{{ stats.authors || 0 }}</div>
+          <div class="metric-detail">Content creators</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon">📝</div>
+        <div class="metric-content">
+          <h3>Reviewers</h3>
+          <div class="metric-number">{{ stats.reviewers || 0 }}</div>
+          <div class="metric-detail">SME reviewers</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon">🔧</div>
+        <div class="metric-content">
+          <h3>System Health</h3>
+          <div class="metric-number">{{ stats.systemHealth || 'Good' }}</div>
+          <div class="metric-detail">{{ stats.uptime || '99.9%' }} Uptime</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Main Content Grid -->
+    <div class="content-grid">
+      
+      <!-- Quick Actions -->
+      <div class="dashboard-section">
+        <h2>Quick Actions</h2>
+        <div class="quick-actions-grid">
+          <button class="action-card" @click="navigateTo('/admin/users')">
+            <div class="action-icon">👥</div>
+            <div class="action-content">
+              <h3>Manage Users</h3>
+              <p>User accounts and permissions</p>
+            </div>
+          </button>
+          <button class="action-card" @click="navigateTo('/admin/authors')">
+            <div class="action-icon">✏️</div>
+            <div class="action-content">
+              <h3>Manage Authors</h3>
+              <p>Author roles and access</p>
+            </div>
+          </button>
+          <button class="action-card" @click="navigateTo('/admin/logs')">
+            <div class="action-icon">📊</div>
+            <div class="action-content">
+              <h3>System Logs</h3>
+              <p>Review system activity</p>
+            </div>
+          </button>
+        </div>
+
+        <div class="action-section">
+          <h3>System Tools</h3>
+          <div class="tool-buttons">
+            <button class="tool-btn" @click="performBackup">
+              <span class="tool-icon">💾</span>
+              <span>Backup Database</span>
+            </button>
+            <button class="tool-btn" @click="clearCache">
+              <span class="tool-icon">🔄</span>
+              <span>Clear Cache</span>
+            </button>
+            <button class="tool-btn" @click="viewMetrics">
+              <span class="tool-icon">📈</span>
+              <span>Performance Metrics</span>
+            </button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent Activity -->
+      <div class="dashboard-section">
+        <h2>Recent Admin Activity</h2>
+        <div class="activity-list">
+          <div v-if="recentActivity.length === 0" class="empty-state">
+            <p>No recent admin activity</p>
+          </div>
+          <div v-else>
+            <div 
+              v-for="activity in recentActivity" 
+              :key="activity.id"
+              class="activity-item"
+            >
+              <div class="activity-icon">{{ activity.icon }}</div>
+              <div class="activity-content">
+                <div class="activity-title">{{ activity.title }}</div>
+                <div class="activity-description">{{ activity.description }}</div>
+                <div class="activity-meta">{{ activity.user }} • {{ formatRelativeTime(activity.timestamp) }}</div>
+              </div>
+              <div class="activity-status" :class="activity.type">{{ formatActivityType(activity.type) }}</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- System Status -->
+      <div class="dashboard-section full-width">
+        <h2>System Overview</h2>
+        <div class="system-overview">
+          
+          <!-- User Management -->
+          <div class="system-section">
+            <h3>User Management</h3>
+            <div class="user-stats">
+              <div class="stat-item">
+                <span class="stat-label">Total Users:</span>
+                <span class="stat-value">{{ userStats.total || 0 }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">New This Week:</span>
+                <span class="stat-value">{{ userStats.newThisWeek || 0 }}</span>
+              </div>
+              <div class="stat-item">
+                <span class="stat-label">Active Today:</span>
+                <span class="stat-value">{{ userStats.activeToday || 0 }}</span>
+              </div>
+            </div>
+            <div class="user-actions">
+              <button @click="navigateTo('/admin/users')" class="section-btn">Manage Users</button>
+              <button @click="inviteUser" class="section-btn secondary">Invite User</button>
+            </div>
+          </div>
+
+          <!-- System Performance -->
+          <div class="system-section">
+            <h3>System Performance</h3>
+            <div class="performance-metrics">
+              <div class="metric-row">
+                <span class="metric-name">CPU Usage</span>
+                <div class="metric-bar">
+                  <div class="metric-fill" :style="{width: systemMetrics.cpu + '%'}"></div>
+                </div>
+                <span class="metric-value">{{ systemMetrics.cpu }}%</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Memory</span>
+                <div class="metric-bar">
+                  <div class="metric-fill" :style="{width: systemMetrics.memory + '%'}"></div>
+                </div>
+                <span class="metric-value">{{ systemMetrics.memory }}%</span>
+              </div>
+              <div class="metric-row">
+                <span class="metric-name">Storage</span>
+                <div class="metric-bar">
+                  <div class="metric-fill" :style="{width: systemMetrics.storage + '%'}"></div>
+                </div>
+                <span class="metric-value">{{ systemMetrics.storage }}%</span>
+              </div>
+            </div>
+          </div>
+
+          <!-- Recent System Logs -->
+          <div class="system-section">
+            <h3>Recent System Events</h3>
+            <div class="log-entries">
+              <div v-if="systemLogs.length === 0" class="empty-state">
+                <p>No recent system events</p>
+              </div>
+              <div v-else>
+                <div 
+                  v-for="log in systemLogs" 
+                  :key="log.id"
+                  class="log-entry"
+                  :class="log.level"
+                >
+                  <div class="log-time">{{ formatTime(log.timestamp) }}</div>
+                  <div class="log-message">{{ log.message }}</div>
+                  <div class="log-level">{{ log.level.toUpperCase() }}</div>
+                </div>
+              </div>
+            </div>
+            <div class="log-actions">
+              <button @click="navigateTo('/admin/logs')" class="section-btn">View All Logs</button>
+            </div>
+          </div>
+
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Loading State -->
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner">Loading admin data...</div>
+    </div>
+  </div>
+</template>
+
+<script>
+export default {
+  name: 'AdminDashboard',
+  
+  data() {
+    return {
+      loading: true,
+      stats: {
+        totalUsers: 0,
+        activeUsers: 0,
+        authors: 0,
+        reviewers: 0,
+        systemHealth: 'Good',
+        uptime: '99.9%'
+      },
+      userStats: {
+        total: 0,
+        newThisWeek: 0,
+        activeToday: 0
+      },
+      systemMetrics: {
+        cpu: 25,
+        memory: 45,
+        storage: 60
+      },
+      recentActivity: [],
+      systemLogs: []
+    }
+  },
+
+  async created() {
+    await this.loadDashboardData()
+  },
+
+  methods: {
+    async loadDashboardData() {
+      this.loading = true
+      try {
+        await Promise.all([
+          this.loadStats(),
+          this.loadActivity(),
+          this.loadSystemLogs()
+        ])
+      } catch (error) {
+        console.error('Failed to load admin dashboard:', error)
+      } finally {
+        this.loading = false
+      }
+    },
+
+    async loadStats() {
+      try {
+        // Create mock data for prototype - replace with real API calls
+        const mockStats = {
+          totalUsers: 45,
+          activeUsers: 32,
+          authors: 12,
+          reviewers: 8,
+          systemHealth: 'Good',
+          uptime: '99.9%'
+        }
+
+        const mockUserStats = {
+          total: 45,
+          newThisWeek: 3,
+          activeToday: 12
+        }
+
+        // Try to fetch real data, fall back to mock
+        this.stats = mockStats
+        this.userStats = mockUserStats
+
+        // Simulate random system metrics
+        this.systemMetrics = {
+          cpu: Math.floor(Math.random() * 40) + 10, // 10-50%
+          memory: Math.floor(Math.random() * 30) + 30, // 30-60%
+          storage: Math.floor(Math.random() * 20) + 50 // 50-70%
+        }
+        
+      } catch (error) {
+        console.error('Failed to load stats:', error)
+      }
+    },
+
+    async loadActivity() {
+      try {
+        // Create mock activity data
+        const mockActivity = [
+          {
+            id: 1,
+            icon: '👤',
+            title: 'New user registered',
+            description: 'Jane Smith joined as Content Reviewer',
+            user: 'System',
+            type: 'user',
+            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 2,
+            icon: '🔧',
+            title: 'System backup completed',
+            description: 'Automated database backup successful',
+            user: 'System',
+            type: 'system',
+            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
+          },
+          {
+            id: 3,
+            icon: '⚠️',
+            title: 'Permission updated',
+            description: 'User role changed from Author to Admin',
+            user: 'Admin User',
+            type: 'security',
+            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
+          }
+        ]
+
+        this.recentActivity = mockActivity
+        
+      } catch (error) {
+        console.error('Failed to load activity:', error)
+      }
+    },
+
+    async loadSystemLogs() {
+      try {
+        // Create mock system logs
+        const mockLogs = [
+          {
+            id: 1,
+            timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
+            level: 'info',
+            message: 'Database backup completed successfully'
+          },
+          {
+            id: 2,
+            timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
+            level: 'warning',
+            message: 'High memory usage detected (85%)'
+          },
+          {
+            id: 3,
+            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
+            level: 'info',
+            message: 'User authentication cache cleared'
+          },
+          {
+            id: 4,
+            timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
+            level: 'error',
+            message: 'Failed to send email notification (retry scheduled)'
+          }
+        ]
+
+        this.systemLogs = mockLogs.slice(0, 5) // Show last 5 logs
+        
+      } catch (error) {
+        console.error('Failed to load system logs:', error)
+      }
+    },
+
+    performBackup() {
+      alert('Database backup initiated. This may take a few minutes.')
+      // Implement backup functionality
+    },
+
+    clearCache() {
+      alert('Cache cleared successfully.')
+      // Implement cache clearing
+    },
+
+    viewMetrics() {
+      this.navigateTo('/admin/metrics')
+    },
+
+    inviteUser() {
+      this.navigateTo('/admin/users?action=invite')
+    },
+
+    navigateTo(path) {
+      this.$router.push(path)
+    },
+
+    formatActivityType(type) {
+      const typeMap = {
+        'user': 'User',
+        'system': 'System',
+        'security': 'Security',
+        'backup': 'Backup'
+      }
+      return typeMap[type] || type
+    },
+
+    formatRelativeTime(timestamp) {
+      if (!timestamp) return 'Unknown'
+      
+      const now = new Date()
+      const time = new Date(timestamp)
+      const diffMs = now - time
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMs / 3600000)
+      const diffDays = Math.floor(diffMs / 86400000)
+
+      if (diffMins < 1) return 'Just now'
+      if (diffMins < 60) return `${diffMins}m ago`
+      if (diffHours < 24) return `${diffHours}h ago`
+      if (diffDays < 7) return `${diffDays}d ago`
+      
+      return time.toLocaleDateString()
+    },
+
+    formatTime(timestamp) {
+      if (!timestamp) return 'Unknown'
+      
+      const time = new Date(timestamp)
+      return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
+    }
+  }
+}
+</script>
+
+<style scoped>
+.admin-dashboard {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.dashboard-header {
+  margin-bottom: 2rem;
+  text-align: center;
+}
+
+.dashboard-header h1 {
+  color: #005a9c;
+  margin-bottom: 0.5rem;
+  font-size: 2.5rem;
+  font-weight: 300;
+}
+
+.welcome-text {
+  color: #6c757d;
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Metrics Grid */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 3rem;
+}
+
+.metric-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.metric-content h3 {
+  margin: 0 0 0.25rem 0;
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
+}
+
+.metric-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #005a9c;
+  line-height: 1;
+  margin-bottom: 0.25rem;
+}
+
+.metric-detail {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+/* Main Content Grid */
+.content-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 2rem;
+  margin-bottom: 2rem;
+}
+
+.content-grid .full-width {
+  grid-column: 1 / -1;
+}
+
+/* Dashboard Sections */
+.dashboard-section {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.dashboard-section h2 {
+  margin: 0 0 1.5rem 0;
+  color: #495057;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 2px solid #f8f9fa;
+  padding-bottom: 0.5rem;
+}
+
+/* Quick Actions */
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
+  gap: 1rem;
+  margin-bottom: 2rem;
+}
+
+.action-card {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+}
+
+.action-card:hover {
+  background: #005a9c;
+  border-color: #005a9c;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
+}
+
+.action-icon {
+  font-size: 1.5rem;
+  opacity: 0.8;
+}
+
+.action-content h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.action-content p {
+  margin: 0;
+  font-size: 0.85rem;
+  opacity: 0.8;
+}
+
+/* Tool Section */
+.action-section {
+  border-top: 1px solid #f8f9fa;
+  padding-top: 1.5rem;
+}
+
+.action-section h3 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.tool-buttons {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.tool-btn {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e9ecef;
+  border-radius: 4px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-align: left;
+  font-size: 0.85rem;
+}
+
+.tool-btn:hover {
+  border-color: #005a9c;
+  background: #f8f9fa;
+}
+
+.tool-icon {
+  font-size: 1rem;
+}
+
+/* Activity List */
+.activity-list {
+  max-height: 400px;
+  overflow-y: auto;
+}
+
+.activity-item {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  border: 1px solid #f8f9fa;
+  border-radius: 6px;
+  margin-bottom: 0.75rem;
+}
+
+.activity-item:last-child {
+  margin-bottom: 0;
+}
+
+.activity-icon {
+  font-size: 1.5rem;
+  min-width: 30px;
+}
+
+.activity-content {
+  flex: 1;
+}
+
+.activity-title {
+  font-weight: 600;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.activity-description {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.activity-meta {
+  color: #adb5bd;
+  font-size: 0.75rem;
+}
+
+.activity-status {
+  padding: 0.25rem 0.5rem;
+  border-radius: 4px;
+  font-size: 0.7rem;
+  font-weight: 500;
+  text-transform: uppercase;
+}
+
+.activity-status.user {
+  background: #d4edda;
+  color: #155724;
+}
+
+.activity-status.system {
+  background: #cce5ff;
+  color: #004085;
+}
+
+.activity-status.security {
+  background: #fff3cd;
+  color: #856404;
+}
+
+/* System Overview */
+.system-overview {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 2rem;
+}
+
+.system-section {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  padding: 1.5rem;
+}
+
+.system-section h3 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+/* User Stats */
+.user-stats {
+  margin-bottom: 1.5rem;
+}
+
+.stat-item {
+  display: flex;
+  justify-content: space-between;
+  margin-bottom: 0.5rem;
+  padding: 0.5rem 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.stat-item:last-child {
+  border-bottom: none;
+}
+
+.stat-label {
+  color: #6c757d;
+  font-size: 0.875rem;
+}
+
+.stat-value {
+  color: #495057;
+  font-weight: 600;
+}
+
+.user-actions {
+  display: flex;
+  gap: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.section-btn {
+  padding: 0.5rem 1rem;
+  border: 1px solid #005a9c;
+  border-radius: 4px;
+  background: #005a9c;
+  color: white;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: all 0.2s ease;
+}
+
+.section-btn:hover {
+  background: #004080;
+}
+
+.section-btn.secondary {
+  background: white;
+  color: #005a9c;
+}
+
+.section-btn.secondary:hover {
+  background: #f8f9fa;
+}
+
+/* Performance Metrics */
+.performance-metrics {
+  margin-bottom: 1rem;
+}
+
+.metric-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin-bottom: 1rem;
+}
+
+.metric-row:last-child {
+  margin-bottom: 0;
+}
+
+.metric-name {
+  min-width: 80px;
+  font-size: 0.875rem;
+  color: #495057;
+}
+
+.metric-bar {
+  flex: 1;
+  height: 8px;
+  background: #e9ecef;
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #28a745, #ffc107, #dc3545);
+  transition: width 0.3s ease;
+}
+
+.metric-value {
+  min-width: 40px;
+  text-align: right;
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #495057;
+}
+
+/* System Logs */
+.log-entries {
+  margin-bottom: 1rem;
+}
+
+.log-entry {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  font-size: 0.875rem;
+}
+
+.log-entry:last-child {
+  margin-bottom: 0;
+}
+
+.log-entry.info {
+  background: #d1ecf1;
+  border-left: 3px solid #17a2b8;
+}
+
+.log-entry.warning {
+  background: #fff3cd;
+  border-left: 3px solid #ffc107;
+}
+
+.log-entry.error {
+  background: #f8d7da;
+  border-left: 3px solid #dc3545;
+}
+
+.log-time {
+  min-width: 60px;
+  color: #6c757d;
+  font-size: 0.75rem;
+}
+
+.log-message {
+  flex: 1;
+  color: #495057;
+}
+
+.log-level {
+  font-size: 0.7rem;
+  font-weight: 600;
+  padding: 0.25rem 0.5rem;
+  border-radius: 3px;
+  text-transform: uppercase;
+}
+
+.log-entry.info .log-level {
+  background: #17a2b8;
+  color: white;
+}
+
+.log-entry.warning .log-level {
+  background: #ffc107;
+  color: #212529;
+}
+
+.log-entry.error .log-level {
+  background: #dc3545;
+  color: white;
+}
+
+.log-actions {
+  text-align: center;
+}
+
+/* Empty States */
+.empty-state {
+  text-align: center;
+  padding: 2rem;
+  color: #6c757d;
+}
+
+.empty-state p {
+  margin: 0;
+}
+
+/* Loading */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.8);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-spinner {
+  color: #005a9c;
+  font-size: 1.1rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .admin-dashboard {
+    padding: 1rem;
+  }
+  
+  .metrics-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .content-grid {
+    grid-template-columns: 1fr;
+    gap: 1.5rem;
+  }
+  
+  .system-overview {
+    grid-template-columns: 1fr;
+  }
+  
+  .dashboard-header h1 {
+    font-size: 2rem;
+  }
+  
+  .metric-row {
+    flex-direction: column;
+    align-items: stretch;
+    gap: 0.5rem;
+  }
+  
+  .metric-name {
+    min-width: auto;
+  }
+  
+  .metric-value {
+    text-align: left;
+  }
+}
+</style>
