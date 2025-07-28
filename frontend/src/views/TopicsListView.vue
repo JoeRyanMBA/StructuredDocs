@@ -88,6 +88,12 @@
                 {{ stakeholder.name }} ({{ stakeholder.role || 'Stakeholder' }})
               </option>
             </select>
+            <small v-if="projectStakeholders.length === 0" class="text-muted">
+              Loading stakeholders...
+            </small>
+            <small v-else-if="projectStakeholders.filter(s => s.can_review !== false).length === 0" class="text-warning">
+              No stakeholders with review permissions found for this project.
+            </small>
           </div>
 
           <div class="form-group">
@@ -109,6 +115,17 @@
               rows="4" 
               placeholder="Add any specific instructions or context for the reviewer..."
             ></textarea>
+          </div>
+
+          <!-- Debug information (remove in production) -->
+          <div class="debug-info" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 1rem; font-size: 0.75rem;">
+            <strong>Form Status:</strong><br>
+            Project ID: {{ reviewData.project_id || 'Not selected' }}<br>
+            Stakeholder ID: {{ reviewData.assigned_stakeholder_id || 'Not selected' }}<br>
+            Due Date: {{ reviewData.due_date || 'Not set' }}<br>
+            Available Stakeholders: {{ projectStakeholders.length }}<br>
+            Reviewable Stakeholders: {{ projectStakeholders.filter(s => s.can_review !== false).length }}<br>
+            Form Valid: {{ !!(reviewData.project_id && reviewData.assigned_stakeholder_id && reviewData.due_date) }}
           </div>
         </div>
 
@@ -206,9 +223,11 @@ export default {
 
     async fetchProjectStakeholders(projectId) {
       try {
+        console.log('Fetching stakeholders for project:', projectId)
         const res = await fetch(`/api/projects/${projectId}/stakeholders`)
         if (!res.ok) throw new Error(`Status ${res.status}`)
         this.projectStakeholders = await res.json()
+        console.log('Loaded stakeholders:', this.projectStakeholders)
       } catch (err) {
         console.error('Failed to fetch project stakeholders:', err)
         this.projectStakeholders = []
@@ -216,6 +235,7 @@ export default {
     },
 
     async onProjectChange() {
+      console.log('Project changed to:', this.reviewData.project_id)
       if (this.reviewData.project_id) {
         await this.fetchProjectStakeholders(this.reviewData.project_id)
         // Reset stakeholder selection when project changes
@@ -223,6 +243,7 @@ export default {
       } else {
         this.projectStakeholders = []
       }
+      console.log('Project stakeholders after change:', this.projectStakeholders)
     },
 
     async publish(id) {
