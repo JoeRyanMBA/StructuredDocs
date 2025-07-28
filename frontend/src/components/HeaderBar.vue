@@ -1,37 +1,19 @@
 <template>
   <header class="header-bar">
-    <img
-      class="logo"
-      src="https://www.census.gov/etc.clientlibs/census/clientlibs/census-pattern-library/resources/images/USCENSUS_IDENTITY_SOLO_BLACK_1.5in_R_no_padding.svg"
-      alt="Census Bureau logo"
-    />
+    <router-link to="/projects" class="logo-link">
+      <img
+        class="logo"
+        src="https://www.census.gov/etc.clientlibs/census/clientlibs/census-pattern-library/resources/images/USCENSUS_IDENTITY_SOLO_BLACK_1.5in_R_no_padding.svg"
+        alt="Census Bureau logo"
+      />
+    </router-link>
 
-    <h1 class="title">SCCMB Knowledge Base</h1>
+    <router-link to="/projects" class="title-link">
+      <h1 class="title">SCCMB Documentation Project Hub</h1>
+    </router-link>
 
-    <nav class="nav-links">
-      <router-link
-        class="nav-btn"
-        :to="{ name: 'TopicsList' }"
-        active-class="is-active"
-      >
-        Topics
-      </router-link>
-      <router-link
-        class="nav-btn"
-        :to="{ name: 'ImportHome' }"
-        active-class="is-active"
-      >
-        Import
-      </router-link>
-      <router-link
-        class="nav-btn new-btn"
-        :to="{ name: 'NewTopic' }"
-      >
-        + New Topic
-      </router-link>
-    </nav>
+
   </header>
-  <hr class="header-divider" />
 </template>
 
 <script>
@@ -51,21 +33,38 @@ export default {
   color: #112e51;
   display: flex;
   align-items: center;
-  padding: 0 1rem;
+  justify-content: space-between;
+  padding: 0 0.25rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  z-index: 1000;
+  z-index: 1100;
 }
 
 .logo {
   height: 40px;
 }
 
+.logo-link, .title-link {
+  text-decoration: none;
+  color: inherit;
+}
+
+.title-link {
+  position: absolute;
+  left: 50%;
+  transform: translateX(-50%);
+}
+
+.title-link:hover .title {
+  color: #005a9c;
+}
+
 .title {
-  flex: 1;
-  text-align: center;
   margin: 0;
   font-size: 1.5rem;
   font-family: 'Roboto', sans-serif;
+  transition: color 0.2s;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .nav-links {
@@ -91,15 +90,5 @@ export default {
 .new-btn {
   background: #005a9c;
   color: white;
-}
-
-.header-divider {
-  position: fixed;
-  top: 60px;    /* same as header height */
-  left: 0;
-  right: 0;
-  border: none;
-  border-top: 1px solid #ddd;
-  z-index: 999;
 }
 </style>

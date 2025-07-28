@@ -10,7 +10,7 @@
         {{ element.name }}
 
         <!-- Render topics under this collection as a draggable list -->
-        <ul>
+        <div class="topics-container">
           <draggable
             :list="element.topics"
             group="topics"
@@ -18,20 +18,47 @@
             @change="onDrag"
           >
             <template #item="{ element: topic }">
-              <li>
+              <div class="topic-wrapper">
                 <TopicItem :topic="topic" />
-              </li>
+              </div>
             </template>
           </draggable>
-        </ul>
+        </div>
         
         <!-- Conditionally show Publish for this collection -->
-        <button
-          v-if="element.topics && element.topics.length"
-          @click="goPublish(element.id)"
-        >
-          Publish Document
-        </button>
+        <div v-if="element.topics && element.topics.length" class="publish-buttons">
+          <button
+            @click="goPublishHtml(element.id, $event)"
+            class="publish-btn publish-html"
+          >
+            🔗 Publish HTML
+          </button>
+          <button
+            @click="goPublishPdf(element.id, $event)"
+            class="publish-btn publish-pdf"
+          >
+            📋 Publish PDF
+          </button>
+        </div>
+        <div v-else-if="!element.topics || element.topics.length === 0" class="empty-collection">
+          <em>No topics in this collection</em>
+          <div class="publish-buttons">
+            <button
+              @click="goPublishHtml(element.id, $event)"
+              class="publish-btn-disabled"
+              title="This will create an empty HTML publication"
+            >
+              🔗 Publish Empty HTML
+            </button>
+            <button
+              @click="goPublishPdf(element.id, $event)"
+              class="publish-btn-disabled"
+              title="This will create an empty PDF publication"
+            >
+              📋 Publish Empty PDF
+            </button>
+          </div>
+        </div>
 
         <!-- Recurse into nested collections -->
         <collection-tree
@@ -71,34 +98,129 @@ export default {
     tree(newT) { this.localTree = JSON.parse(JSON.stringify(newT)) }
   },
 
-  async created() {
-    try {
-      this.recentCols = await getCollections({ limit: 3 })
-      this.recentDocs = await getDocuments({ limit: 3 })
-    } catch (err) {
-      console.error('Failed to load recent items', err)
-    }
+  created() {
+    this.fetchCollections()
+    this.fetchDocuments()
   },
+
   methods: {
     onDrag() {
-      console.log('localTree after drag:', JSON.stringify(this.localTree, null, 2));
-      this.$emit('update', this.localTree);
-    },
-    onChildUpdate(parentId, updatedChildren) {
-      const recurse = arr => {
-        for (const n of arr) {
-          if (n.id === parentId) {
-            n.children = updatedChildren
-            return true
-          }
-          if (n.children.length && recurse(n.children)) return true
-        }
-      }
-      recurse(this.localTree)
       this.$emit('update', this.localTree)
     },
-    goPublish(collectionId) {
-      this.$router.push({ name: 'PublicationView', params: { id: collectionId } })
+
+    onChildUpdate(parentId, children) {
+      const parent = this.findNodeById(this.localTree, parentId)
+      if (parent) {
+        parent.children = children
+        this.$emit('update', this.localTree)
+      }
+    },
+
+    findNodeById(tree, id) {
+      for (const node of tree) {
+        if (node.id === id) return node
+        if (node.children) {
+          const found = this.findNodeById(node.children, id)
+          if (found) return found
+        }
+      }
+      return null
+    },
+
+    async fetchCollections() {
+      try {
+        this.recentCols = await getCollections()
+      } catch (err) {
+        console.error('Failed to fetch collections:', err)
+      }
+    },
+
+    async fetchDocuments() {
+      try {
+        this.recentDocs = await getDocuments()
+      } catch (err) {
+        console.error('Failed to fetch documents:', err)
+      }
+    },
+
+    async goPublishHtml(collectionId, event) {
+      const button = event?.target
+      if (button) {
+        button.disabled = true
+        button.textContent = 'Publishing...'
+      }
+
+      try {
+        console.log(`Publishing HTML for collection ${collectionId}`)
+        
+        // First, publish the collection to create a publication
+        const response = await fetch(`/api/collections/${collectionId}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Failed to publish collection: ${response.status}`)
+        }
+        
+        const result = await response.json()
+        console.log('Publication created:', result)
+        
+        // Navigate to the Mobile KB page to show available publications
+        this.$router.push({ name: 'PublishMobileKB' })
+        
+      } catch (error) {
+        console.error('Error publishing collection:', error)
+        alert(`Error publishing collection: ${error.message}`)
+        
+        // Reset button state
+        if (button) {
+          button.disabled = false
+          button.textContent = button.classList.contains('publish-btn-disabled') 
+            ? '🔗 Publish Empty HTML' 
+            : '🔗 Publish HTML'
+        }
+      }
+    },
+
+    async goPublishPdf(collectionId, event) {
+      const button = event?.target
+      if (button) {
+        button.disabled = true
+        button.textContent = 'Publishing...'
+      }
+
+      try {
+        console.log(`Publishing PDF for collection ${collectionId}`)
+        
+        // First, publish the collection to create a publication
+        const response = await fetch(`/api/collections/${collectionId}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        
+        if (!response.ok) {
+          throw new Error(`Failed to publish collection: ${response.status}`)
+        }
+        
+        const result = await response.json()
+        console.log('Publication created:', result)
+        
+        // Navigate to the PDF page to show available publications
+        this.$router.push({ name: 'PublishPDF' })
+        
+      } catch (error) {
+        console.error('Error publishing collection:', error)
+        alert(`Error publishing collection: ${error.message}`)
+        
+        // Reset button state
+        if (button) {
+          button.disabled = false
+          button.textContent = button.classList.contains('publish-btn-disabled') 
+            ? '📋 Publish Empty PDF' 
+            : '📋 Publish PDF'
+        }
+      }
     }
   }
 }
@@ -106,10 +228,82 @@ export default {
 
 <style scoped>
 .node {
-  padding: 0.5rem;
-  border: 1px solid #ccc;
-  margin-bottom: 0.5rem;
-  background: #fff;
+  border: 1px solid #ddd;
+  padding: 8px;
+  margin: 4px 0;
+  background: #f9f9f9;
   border-radius: 4px;
+}
+
+.topics-container {
+  margin-left: 1rem;
+  margin-top: 0.5rem;
+}
+
+.topic-wrapper {
+  margin: 0.25rem 0;
+}
+
+.publish-buttons {
+  margin-top: 0.5rem;
+  display: flex;
+  gap: 0.5rem;
+}
+
+.publish-btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.875rem;
+  transition: background-color 0.2s;
+}
+
+.publish-btn.publish-html {
+  background-color: #007acc;
+  color: white;
+}
+
+.publish-btn.publish-html:hover {
+  background-color: #005a9c;
+}
+
+.publish-btn.publish-pdf {
+  background-color: #dc3545;
+  color: white;
+}
+
+.publish-btn.publish-pdf:hover {
+  background-color: #c82333;
+}
+
+.publish-btn-disabled {
+  padding: 0.5rem 1rem;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  background-color: #f8f9fa;
+  color: #6c757d;
+  cursor: not-allowed;
+  font-size: 0.875rem;
+}
+
+.empty-collection {
+  margin-top: 0.5rem;
+  color: #6c757d;
+  font-style: italic;
+}
+
+.empty-collection em {
+  display: block;
+  margin-bottom: 0.5rem;
+}
+
+/* Draggable styling */
+.sortable-ghost {
+  opacity: 0.5;
+}
+
+.sortable-chosen {
+  background-color: #e3f2fd;
 }
 </style>

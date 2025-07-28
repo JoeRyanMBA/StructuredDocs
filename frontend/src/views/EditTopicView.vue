@@ -12,6 +12,7 @@
       <h3>📄 Creating a New Topic</h3>
       <TopicEditor
         :topicId="null"
+        :initialTitle="''"
         :initialContent="''"
         :initialFrontmatter="''"
         @update:topicId="onTopicCreated"
@@ -26,6 +27,7 @@
     <div v-else>
       <TopicEditor
         :topicId="topicId"
+        :initialTitle="topic.title"
         :initialContent="topic.content"
         :initialFrontmatter="topic.frontmatter"
         @save="onTopicSaved"
@@ -47,7 +49,7 @@ export default {
       topicId: this.$route.params.id
         ? parseInt(this.$route.params.id)
         : null,
-      topic: { content: '', frontmatter: '' },
+      topic: { title: '', content: '', frontmatter: '' },
       loading: true,
       error: null,
       confirmation: null
@@ -72,6 +74,7 @@ export default {
         return res.json()
       })
       .then(data => {
+        this.topic.title = data.title || ''
         this.topic.content = data.content || ''
         this.topic.frontmatter = data.frontmatter || ''
       })
@@ -111,7 +114,10 @@ export default {
 
 <style scoped>
 .edit-topic-view {
-  padding: 2rem;
+  padding-top: 70px; /* Top padding to account for fixed header */
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
 }
 
 .loading {

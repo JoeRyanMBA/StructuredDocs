@@ -1,7 +1,19 @@
 export async function getCollections() {
-  const res = await fetch('/api/collections')
-  if (!res.ok) throw new Error(res.statusText)
-  return res.json()
+  try {
+    console.log('🔄 Fetching collections from /api/collections')
+    const res = await fetch('/api/collections')
+    console.log('📊 Response status:', res.status, res.statusText)
+    if (!res.ok) {
+      console.error('❌ Response not ok:', res.status, res.statusText)
+      throw new Error(res.statusText)
+    }
+    const data = await res.json()
+    console.log('✅ Collections data:', data)
+    return data
+  } catch (error) {
+    console.error('🚨 Error in getCollections:', error)
+    throw error
+  }
 }
 
 export async function saveCollections(tree) {

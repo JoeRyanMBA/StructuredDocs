@@ -26,7 +26,6 @@ export default {
 
 .content {
   margin-left: 210px;     /* for sidebar */
-  margin-top: 50px;       /* for header */
   padding: 2rem;
 }
 

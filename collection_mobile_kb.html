@@ -1,0 +1,973 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Mobile Knowledge Base">
+    <title>Mobile Knowledge Base</title>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            padding: 0;
+            margin: 0;
+        }
+        
+        /* Header */
+        .kb-header {
+            background: #005a9c;
+            color: white;
+            padding: 0.75rem 1rem;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            z-index: 1002;
+            height: 65px;
+            display: flex;
+            align-items: center;
+            justify-content: flex-start;
+        }
+        
+        .kb-title {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            margin: 0;
+        }
+        
+        .kb-title-text {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 0.05rem;
+            text-align: center;
+        }
+        
+        .kb-title-main {
+            font-size: 1.1rem;
+            font-weight: 600;
+        }
+        
+        .kb-title-sub {
+            font-size: 0.8rem;
+            opacity: 0.9;
+            font-weight: 400;
+        }
+        
+        .app-logo {
+            height: 28px;
+            width: auto;
+            filter: brightness(0) invert(1); /* Make the logo white on blue background */
+            margin-right: 1rem;
+        }
+        
+        /* Sidebar Toggle Button */
+        .sidebar-toggle {
+            position: fixed;
+            top: 75px;
+            left: 0;
+            background: #005a9c;
+            color: white;
+            border: none;
+            width: 40px;
+            height: 40px;
+            border-radius: 0 4px 4px 0;
+            cursor: pointer;
+            z-index: 1001;
+            box-shadow: 2px 0 5px rgba(0, 0, 0, 0.2);
+            font-size: 1.2rem;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        
+        /* Sidebar */
+        .sidebar {
+            position: fixed;
+            top: 65px;
+            left: 0;
+            width: 280px;
+            height: calc(100vh - 65px);
+            background: #f9f9f9;
+            box-shadow: 2px 0 10px rgba(0, 0, 0, 0.1);
+            padding: 1rem;
+            transition: transform 0.3s ease;
+            overflow-y: auto;
+            z-index: 1000;
+            transform: translateX(-100%); /* Hidden by default */
+        }
+        
+        .sidebar.open {
+            transform: translateX(0);
+        }
+        
+        .sidebar-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0, 0, 0, 0.5);
+            z-index: 999;
+            opacity: 0;
+            visibility: hidden;
+            transition: all 0.3s ease;
+        }
+        
+        .sidebar-overlay.active {
+            opacity: 1;
+            visibility: visible;
+        }
+        
+        /* Navigation Sections */
+        .nav-section {
+            margin-bottom: 1.5rem;
+        }
+        
+        .nav-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .nav-section-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.75rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+            padding: 0.5rem;
+            background: #e9ecef;
+            border-radius: 4px;
+        }
+        
+        .nav-link {
+            display: block;
+            padding: 0.75rem;
+            color: #005a9c;
+            text-decoration: none;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            border: none;
+            width: 100%;
+            text-align: left;
+            cursor: pointer;
+            font-size: 0.9rem;
+        }
+        
+        .nav-link:hover {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        .nav-link:active {
+            transform: translateY(0);
+        }
+        
+        .nav-link.active {
+            background: #005a9c;
+            color: white;
+        }
+        
+        .nav-parent {
+            position: relative;
+        }
+        
+        .nav-topic-group {
+            display: flex;
+            gap: 0.25rem;
+            margin-bottom: 0.5rem;
+        }
+        
+        .nav-topic-group .nav-link {
+            flex: 1;
+            margin-bottom: 0;
+            border-radius: 6px 0 0 6px;
+        }
+        
+        .nav-drill-btn {
+            display: block;
+            padding: 0.75rem 0.5rem;
+            color: #005a9c;
+            text-decoration: none;
+            background: white;
+            border-radius: 0 6px 6px 0;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+            border: none;
+            cursor: pointer;
+            font-size: 0.9rem;
+            min-width: 2rem;
+            text-align: center;
+        }
+        
+        .nav-drill-btn:hover {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        .nav-breadcrumb {
+            margin: 0.5rem 0;
+            padding: 0.5rem;
+            background: #e3f2fd;
+            border-radius: 4px;
+            border-left: 3px solid #005a9c;
+        }
+        
+        .nav-breadcrumb-item {
+            background: #005a9c !important;
+            color: white !important;
+            font-weight: 500;
+        }
+        
+        .nav-breadcrumb-item:hover {
+            background: #004080 !important;
+        }
+        
+        .nav-expandable {
+            position: relative;
+        }
+        
+        .nav-expandable.expanded {
+            background: #e3f2fd;
+            border-left: 3px solid #005a9c;
+        }
+        
+        .nav-subtopics {
+            margin-left: 1rem;
+            border-left: 2px solid #e0e0e0;
+            padding-left: 0.5rem;
+        }
+        
+        .nav-subtopics .nav-link {
+            margin-bottom: 0.25rem;
+            font-size: 0.85rem;
+        }
+        
+        .nav-subtopics .nav-subtopics {
+            margin-left: 0.75rem;
+        }
+        
+        .nav-back {
+            background: #6c757d !important;
+            color: white !important;
+            margin-bottom: 1rem;
+        }
+        
+        .nav-back:hover {
+            background: #5a6268 !important;
+        }
+        
+        /* Main Content */
+        .main-content {
+            margin-top: 65px;
+            padding: 1.5rem;
+            transition: margin-left 0.3s ease;
+            min-height: calc(100vh - 65px);
+            background: white;
+        }
+        
+        /* Breadcrumbs */
+        .breadcrumbs {
+            background: #f8f9fa;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1.5rem;
+            font-size: 0.875rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .breadcrumb-item {
+            display: inline;
+            color: #6c757d;
+        }
+        
+        .breadcrumb-item + .breadcrumb-item::before {
+            content: " > ";
+            color: #6c757d;
+            margin: 0 0.5rem;
+        }
+        
+        .breadcrumb-item.active {
+            color: #005a9c;
+            font-weight: 500;
+        }
+        
+        .breadcrumb-item button {
+            background: none;
+            border: none;
+            color: #005a9c;
+            text-decoration: none;
+            cursor: pointer;
+            padding: 0;
+            font-size: inherit;
+        }
+        
+        .breadcrumb-item button:hover {
+            text-decoration: underline;
+        }
+        
+        .content-section {
+            display: none;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        .welcome-section {
+            text-align: center;
+            padding: 2rem;
+            color: #6c757d;
+        }
+        
+        .welcome-section h2 {
+            color: #005a9c;
+            margin-bottom: 1rem;
+        }
+        
+        .welcome-section p {
+            font-size: 1.1rem;
+            margin-bottom: 1.5rem;
+        }
+        
+        .welcome-icon {
+            font-size: 3rem;
+            margin-bottom: 1rem;
+        }
+        
+        /* Content Styling */
+        .content-section h1,
+        .content-section h2,
+        .content-section h3,
+        .content-section h4,
+        .content-section h5,
+        .content-section h6 {
+            color: #212529;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+        
+        .content-section h1 {
+            font-size: 1.75rem;
+            border-bottom: 2px solid #005a9c;
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        
+        .content-section h2 {
+            font-size: 1.5rem;
+            color: #005a9c;
+        }
+        
+        .content-section h3 {
+            font-size: 1.25rem;
+        }
+        
+        .content-section p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+        
+        .content-section ul,
+        .content-section ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        .content-section li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .content-section code {
+            background: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+            color: #e83e8c;
+        }
+        
+        .content-section pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .content-section pre code {
+            background: none;
+            padding: 0;
+            color: inherit;
+        }
+        
+        .content-section blockquote {
+            border-left: 4px solid #005a9c;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+            color: #6c757d;
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 0 6px 6px 0;
+        }
+        
+        .content-section table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            border-radius: 6px;
+            overflow: hidden;
+        }
+        
+        .content-section th,
+        .content-section td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #e9ecef;
+        }
+        
+        .content-section th {
+            background: #005a9c;
+            color: white;
+            font-weight: 600;
+        }
+        
+        /* Footer */
+        .footer {
+            background: #e9ecef;
+            color: #6c757d;
+            text-align: center;
+            padding: 1rem;
+            font-size: 0.875rem;
+            border-top: 1px solid #dee2e6;
+        }
+        
+        /* Animations */
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Dark Mode Support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #212529;
+                color: #f8f9fa;
+            }
+            
+            .sidebar {
+                background: #343a40;
+                color: #f8f9fa;
+            }
+            
+            .nav-section-title {
+                background: #495057;
+                color: #f8f9fa;
+            }
+            
+            .nav-link {
+                background: #495057;
+                color: #87ceeb;
+            }
+            
+            .nav-link:hover {
+                background: #5a6268;
+            }
+            
+            .nav-link.active {
+                background: #005a9c;
+                color: white;
+            }
+            
+            .main-content {
+                background: #212529;
+            }
+            
+            .content-section h1,
+            .content-section h2,
+            .content-section h3,
+            .content-section h4,
+            .content-section h5,
+            .content-section h6 {
+                color: #f8f9fa;
+            }
+            
+            .content-section h2 {
+                color: #87ceeb;
+            }
+            
+            .content-section code,
+            .content-section pre {
+                background: #343a40;
+                color: #f8f9fa;
+            }
+            
+            .content-section blockquote {
+                background: #343a40;
+                color: #ced4da;
+            }
+            
+            .content-section th {
+                background: #495057;
+            }
+            
+            .footer {
+                background: #343a40;
+                color: #ced4da;
+            }
+        }
+        
+        /* Responsive Design */
+        @media (max-width: 768px) {
+            .sidebar {
+                width: 260px;
+            }
+            
+            .main-content {
+                padding: 1rem;
+            }
+            
+            .content-section h1 {
+                font-size: 1.5rem;
+            }
+            
+            .content-section h2 {
+                font-size: 1.25rem;
+            }
+        }
+        
+        @media (min-width: 768px) {
+            .sidebar-toggle {
+                display: none;
+            }
+            
+            .sidebar {
+                transform: translateX(0);
+                position: relative;
+                width: 280px;
+                height: auto;
+                box-shadow: none;
+                border-right: 1px solid #dee2e6;
+            }
+            
+            .main-content {
+                margin-left: 280px;
+                margin-top: 65px;
+            }
+            
+            .sidebar-overlay {
+                display: none;
+            }
+        }
+    </style>
+</head>
+<body>
+    <!-- Header -->
+    <header class="kb-header">
+        <img class="app-logo" src="https://www.census.gov/etc.clientlibs/census/clientlibs/census-pattern-library/resources/images/USCENSUS_IDENTITY_SOLO_BLACK_1.5in_R_no_padding.svg" alt="Census Bureau logo" />
+        <h1 class="kb-title">
+            <div class="kb-title-text">
+                <div class="kb-title-main">{{ publication_title }}</div>
+                <div class="kb-title-sub">Mobile Knowledge Base</div>
+            </div>
+        </h1>
+    </header>
+    
+    <!-- Sidebar Toggle Button (Mobile Only) -->
+    <button class="sidebar-toggle" onclick="toggleSidebar()" aria-label="Toggle navigation">
+        ☰
+    </button>
+    
+    <!-- Sidebar Overlay (Mobile Only) -->
+    <div class="sidebar-overlay" onclick="closeSidebar()"></div>
+    
+    <!-- Sidebar -->
+    <nav class="sidebar" id="sidebar">
+        <div class="nav-section">
+            <div class="nav-section-title">📚 Topics</div>
+            <button class="nav-link" onclick="showSection('welcome')">🏠 Home</button>
+            <!-- Dynamic content will be inserted here -->
+        </div>
+    </nav>
+    
+    <!-- Main Content -->
+    <main class="main-content">
+        <!-- Breadcrumbs -->
+        <nav class="breadcrumbs" id="breadcrumbs">
+            <span class="breadcrumb-item">
+                <button onclick="showSection('welcome')">Home</button>
+            </span>
+        </nav>
+        
+        <!-- Welcome Section -->
+        <div id="welcome" class="content-section active">
+            <div class="welcome-section">
+                <div class="welcome-icon">📱</div>
+                <h2>Welcome to Mobile Knowledge Base</h2>
+                <p>Select a topic from the sidebar to get started. This knowledge base is optimized for mobile devices and works offline.</p>
+                <p><strong>Use the ☰ menu button</strong> to open navigation on mobile devices.</p>
+            </div>
+        </div>
+        
+        <!-- Dynamic content sections will be inserted here -->
+    </main>
+    
+    <!-- Footer -->
+    <footer class="footer">
+        Generated on {{ date }}<br>
+        Optimized for mobile devices • Works offline
+    </footer>
+    
+    <script>
+        // Sidebar functionality
+        function toggleSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.toggle('open');
+            overlay.classList.toggle('active');
+        }
+        
+        function closeSidebar() {
+            const sidebar = document.getElementById('sidebar');
+            const overlay = document.querySelector('.sidebar-overlay');
+            
+            sidebar.classList.remove('open');
+            overlay.classList.remove('active');
+        }
+        
+        // New expandable topic functionality
+        function expandTopic(topicId, button) {
+            // Show the topic's content
+            showSection('section-' + topicId);
+            
+            // Toggle the subtopics visibility
+            const subtopicsDiv = document.getElementById('subtopics-' + topicId);
+            if (subtopicsDiv) {
+                const isVisible = subtopicsDiv.style.display !== 'none';
+                subtopicsDiv.style.display = isVisible ? 'none' : 'block';
+                
+                // Update button appearance to show expanded/collapsed state
+                if (isVisible) {
+                    button.classList.remove('expanded');
+                    button.innerHTML = button.innerHTML.replace('▼', '▶');
+                } else {
+                    button.classList.add('expanded');
+                    button.innerHTML = button.innerHTML.replace('▶', '▼');
+                }
+            }
+        }
+        
+        // Content section functionality
+        function showSection(sectionId) {
+            console.log('Showing section:', sectionId);
+            
+            // Hide all content sections first
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Remove active state from all nav links
+            const navLinks = document.querySelectorAll('.nav-link');
+            navLinks.forEach(link => {
+                link.classList.remove('active');
+            });
+            
+            // Show selected section
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                console.log('Found and activated section:', sectionId);
+                
+                // Find and activate the corresponding nav link
+                const activeLink = document.querySelector(`[onclick="showSection('${sectionId}')"]`);
+                if (activeLink) {
+                    activeLink.classList.add('active');
+                }
+                
+                // Update breadcrumbs to show navigation path
+                updateBreadcrumbs(sectionId);
+                
+                // Close sidebar on mobile after selection
+                if (window.innerWidth < 768) {
+                    closeSidebar();
+                }
+                
+                // Scroll to top of content
+                const mainContent = document.querySelector('main');
+                if (mainContent) {
+                    mainContent.scrollTop = 0;
+                }
+                window.scrollTo(0, 0);
+            } else {
+                console.log('Section not found:', sectionId);
+                // List all available sections for debugging
+                const allSections = document.querySelectorAll('.content-section');
+                console.log('Available sections:', Array.from(allSections).map(s => s.id));
+            }
+        }
+        
+        // Store current navigation path for breadcrumbs
+        let currentPath = [];
+        
+        // Modified showSubTopics to track navigation path
+        function showSubTopics(parentPath, parentTitle, children) {
+            const navSection = document.querySelector('.nav-section');
+            
+            // Add current topic to path if not already there
+            if (currentPath.length === 0 || currentPath[currentPath.length - 1].path !== parentPath) {
+                currentPath.push({ path: parentPath, title: parentTitle });
+            }
+            
+            // Build sub-navigation HTML with breadcrumb-style content access
+            let subNavHtml = `
+                <div class="nav-section-title">📚 ${parentTitle}</div>
+                <button class="nav-link nav-back" onclick="goBackInNavigation()">← Back to Topics</button>
+            `;
+            
+            // Add breadcrumb for current topic content
+            subNavHtml += `<div class="nav-breadcrumb">
+                <button class="nav-link nav-breadcrumb-item" onclick="showSection('section-${parentPath.split('.').pop()}')">${parentTitle} (View Content)</button>
+            </div>`;
+            
+            // Add children
+            children.forEach((child, index) => {
+                const icon = "📝";
+                if (child.children && child.children.length > 0) {
+                    // Has children - show content first, then allow drill-down
+                    const childPath = `${parentPath}.${child.id}`;
+                    const childrenJson = JSON.stringify(child.children);
+                    const childrenB64 = btoa(childrenJson);
+                    const childTitle = child.title.replace(/"/g, '&quot;');
+                    subNavHtml += `<div class="nav-topic-group">
+                        <button class="nav-link" onclick="showSection('section-${child.id}')">${icon} ${child.title}</button>
+                        <button class="nav-drill-btn" data-path="${childPath}" data-title="${childTitle}" data-children-b64="${childrenB64}" onclick="handleSubTopics(this)" title="Show subtopics">▶</button>
+                    </div>`;
+                } else {
+                    // No children - direct link to content
+                    subNavHtml += `<button class="nav-link" onclick="showSection('section-${child.id}')">${icon} ${child.title}</button>`;
+                }
+            });
+            
+            navSection.innerHTML = subNavHtml;
+        }
+        
+        function goBackInNavigation() {
+            // Remove last item from path
+            currentPath.pop();
+            
+            if (currentPath.length > 0) {
+                // Go back to previous level
+                const parent = currentPath[currentPath.length - 1];
+                // This would need the parent's children data - for now just reload
+                location.reload();
+            } else {
+                // Go back to main navigation
+                showMainTopics();
+            }
+        }
+        
+        // Load tree data for breadcrumb navigation
+        const treeDataB64 = '{{ tree_data }}';
+        let topicTree = [];
+        console.log('Tree data B64:', treeDataB64 ? treeDataB64.substring(0, 50) + '...' : 'empty');
+        console.log('Tree data length:', treeDataB64.length);
+        console.log('Is placeholder?', treeDataB64 === '{{ tree_data }}');
+        
+        if (treeDataB64 && treeDataB64.length > 20 && !treeDataB64.includes('{{')) {
+            try {
+                console.log('Attempting to decode base64...');
+                const treeJson = atob(treeDataB64);
+                console.log('Decoded JSON:', treeJson.substring(0, 200) + '...');
+                topicTree = JSON.parse(treeJson);
+                console.log('Parsed topic tree:', topicTree);
+            } catch (e) {
+                console.warn('Failed to parse tree data for breadcrumbs:', e);
+            }
+        } else {
+            console.warn('No tree data available for breadcrumbs - data:', treeDataB64.substring(0, 100));
+        }
+        
+        // Find topic path in tree for breadcrumbs
+        function findTopicPath(tree, targetId, currentPath = []) {
+            console.log('Searching for targetId:', targetId, 'type:', typeof targetId);
+            for (const node of tree) {
+                console.log('Checking node:', node.id, 'type:', typeof node.id, 'title:', node.title);
+                const newPath = [...currentPath, { id: node.id, title: node.title }];
+                
+                // Compare both as strings and numbers to handle type mismatches
+                if (node.id == targetId || node.id === targetId || 
+                    String(node.id) === String(targetId) || 
+                    Number(node.id) === Number(targetId)) {
+                    console.log('Found match!', node);
+                    return newPath;
+                }
+                if (node.children && node.children.length > 0) {
+                    console.log('Checking children of:', node.title);
+                    const result = findTopicPath(node.children, targetId, newPath);
+                    if (result) return result;
+                }
+            }
+            return null;
+        }
+        
+        // Update breadcrumbs based on current section
+        function updateBreadcrumbs(sectionId) {
+            const breadcrumbs = document.getElementById('breadcrumbs');
+            console.log('Updating breadcrumbs for section:', sectionId);
+            
+            if (sectionId === 'welcome') {
+                breadcrumbs.innerHTML = `
+                    <span class="breadcrumb-item active">Home</span>
+                `;
+            } else {
+                // Extract topic ID from section ID (remove 'section-' prefix)
+                const topicId = sectionId.replace('section-', '');
+                console.log('Looking for topic ID:', topicId, 'in tree:', topicTree);
+                
+                // Find the path to this topic
+                const path = findTopicPath(topicTree, topicId);
+                console.log('Found path:', path);
+                
+                if (path && path.length > 0) {
+                    // Build breadcrumbs showing full hierarchical path
+                    let breadcrumbHtml = `
+                        <span class="breadcrumb-item">
+                            <button onclick="showSection('welcome')">Home</button>
+                        </span>
+                    `;
+                    
+                    // Add each level in the path
+                    for (let i = 0; i < path.length; i++) {
+                        const topic = path[i];
+                        const isLast = (i === path.length - 1);
+                        
+                        if (isLast) {
+                            // Current topic - not clickable
+                            breadcrumbHtml += `<span class="breadcrumb-item active">${topic.title}</span>`;
+                        } else {
+                            // Parent topics - clickable
+                            breadcrumbHtml += `
+                                <span class="breadcrumb-item">
+                                    <button onclick="showSection('section-${topic.id}')">${topic.title}</button>
+                                </span>
+                            `;
+                        }
+                    }
+                    
+                    breadcrumbs.innerHTML = breadcrumbHtml;
+                    console.log('Set breadcrumb HTML:', breadcrumbHtml);
+                } else {
+                    console.log('Path not found, using fallback breadcrumb');
+                    // Fallback to simple breadcrumb if path not found
+                    const targetSection = document.getElementById(sectionId);
+                    const sectionTitle = targetSection ? targetSection.querySelector('h1')?.textContent || 'Topic' : 'Topic';
+                    
+                    breadcrumbs.innerHTML = `
+                        <span class="breadcrumb-item">
+                            <button onclick="showSection('welcome')">Home</button>
+                        </span>
+                        <span class="breadcrumb-item active">${sectionTitle}</span>
+                    `;
+                }
+            }
+        }
+        
+        // Handle navigation with data attributes (legacy - no longer used)
+        function handleSubTopics(button) {
+            // This function is no longer used with the new expand-in-place design
+            console.log('Legacy drill-down function called');
+        }
+        
+        // Drill-down navigation
+        function showSubTopics(parentPath, parentTitle, children) {
+            const navSection = document.querySelector('.nav-section');
+            
+            // Build sub-navigation HTML
+            let subNavHtml = `
+                <div class="nav-section-title">📚 ${parentTitle}</div>
+                <button class="nav-link nav-back" onclick="showMainTopics()">← Back to Topics</button>
+            `;
+            
+            // Add children
+            children.forEach((child, index) => {
+                const icon = "📝";
+                if (child.children && child.children.length > 0) {
+                    // Has children - show content first, then allow drill-down
+                    const childPath = `${parentPath}.${child.id}`;
+                    const childrenJson = JSON.stringify(child.children);
+                    const childrenB64 = btoa(childrenJson);
+                    const childTitle = child.title.replace(/"/g, '&quot;');
+                    subNavHtml += `<div class="nav-topic-group">
+                        <button class="nav-link" onclick="showSection('section-${child.id}')">${icon} ${child.title}</button>
+                        <button class="nav-drill-btn" data-path="${childPath}" data-title="${childTitle}" data-children-b64="${childrenB64}" onclick="handleSubTopics(this)" title="Show subtopics">▶</button>
+                    </div>`;
+                } else {
+                    // No children - direct link to content
+                    subNavHtml += `<button class="nav-link" onclick="showSection('section-${child.id}')">${icon} ${child.title}</button>`;
+                }
+            });
+            
+            navSection.innerHTML = subNavHtml;
+        }
+        
+        function showMainTopics() {
+            // Restore original navigation - this will be replaced by the backend
+            location.reload();
+        }
+        
+        // Handle window resize
+        window.addEventListener('resize', function() {
+            if (window.innerWidth >= 768) {
+                // Desktop view - always close mobile sidebar
+                closeSidebar();
+            }
+        });
+        
+        // Close sidebar when clicking outside on mobile
+        document.addEventListener('click', function(event) {
+            const sidebar = document.getElementById('sidebar');
+            const toggle = document.querySelector('.sidebar-toggle');
+            
+            if (window.innerWidth < 768 && 
+                sidebar.classList.contains('open') && 
+                !sidebar.contains(event.target) && 
+                !toggle.contains(event.target)) {
+                closeSidebar();
+            }
+        });
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show welcome section by default
+            showSection('welcome');
+        });
+    </script>
+</body>
+</html>

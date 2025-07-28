@@ -47,7 +47,9 @@ export default {
       collapsed: window.innerWidth < 768,
       isWideScreen: window.innerWidth >= 768,
       sections: {
+        projects: true,
         author: false,
+        collections: false,
         organize: false,
         import: false,
         publish: false,
@@ -55,6 +57,13 @@ export default {
         admin: false
       },
       SECTIONS: [
+        {
+          key: 'projects',
+          label: '🎯 Projects',
+          links: [
+            { name: 'Projects', text: 'Manage Projects' }
+          ]
+        },
         {
           key: 'author',
           label: '✏️ Author',
@@ -65,7 +74,7 @@ export default {
         },
       {
         key: 'collections',
-        label: '🗂 Collections',
+        label: '📑 Collections',
         links: [
             { name: 'Collections', text: 'Collections' }
               ]
@@ -75,23 +84,27 @@ export default {
           key: 'import',
           label: '📥 Import',
           links: [
-            { name: 'ImportHome',    text: 'Import Home' },
+            { name: 'ImportTopics',    text: 'Import Topics' },
+            { name: 'ImportHistory',   text: 'Import History' },
           ]
         },
           {
             key: 'publish',
             label: '📤 Publish',
             links: [
-            { name: 'PublicationsHome', text: 'Publication List' }
+            { name: 'PublicationsHome', text: 'Publication List' },
+            { name: 'PublishMobileKB', text: 'Mobile Knowledge Base' },
+            { name: 'PublishPDF', text: 'PDF Documents' }
           ]
   },
         {
           key: 'reviews',
           label: '📝 Reviews',
           links: [
-            { name: 'SMEReviews',       text: 'Send Topics for Review' },
+            { name: 'ReviewsHome', text: 'Review Dashboard' },
+            { name: 'SMEReviews', text: 'Send Topics for Review' },
             { name: 'IncorporateFeedback', text: 'Incorporate Feedback' },
-            { name: 'ReviewHistory',    text: 'View Review History' }
+            { name: 'ReviewHistory', text: 'View Review History' }
           ]
         },
         {

@@ -9,11 +9,11 @@ import ImportView from '@/views/ImportView.vue'
 
 // All routes
 const routes = [
-  // ▶️ Start / Home
+  // ▶️ Start / Home - Redirect to Projects
   {
     path: '/',
     name: 'Start',
-    component: () => import('@/views/StartPage.vue')
+    redirect: '/projects'
   },
 
   // ✏️ Authoring
@@ -50,6 +50,11 @@ const routes = [
     component: () => import('@/views/Collections.vue')
   },
   {
+    path: '/projects',
+    name: 'Projects',
+    component: () => import('@/views/ProjectsView.vue')
+  },
+  {
     path: '/organize/:id',
     name: 'Organize',
     component: () => import('@/views/Organize.vue'),
@@ -59,7 +64,7 @@ const routes = [
   // 📥 Import Section
   {
     path: '/import',
-    name: 'ImportHome',
+    name: 'ImportTopics',
     component: ImportView
   },
   {
@@ -76,14 +81,25 @@ const routes = [
 
   // 📤 Publish Section
   {
-    path: '/Publications',
+    path: '/publications',
     name: 'PublicationsHome',
     component: () => import('@/views/PublicationsHome.vue')
   },
   {
     path: '/publications/:id',
     name: 'PublicationView',
-    component: () => import('@/views/PublicationView.vue')
+    component: () => import('@/views/PublicationView.vue'),
+    props: route => ({ id: parseInt(route.params.id, 10) })
+  },
+  {
+    path: '/publish/mobile-kb',
+    name: 'PublishMobileKB',
+    component: () => import('@/views/PublishMobileKB.vue')
+  },
+  {
+    path: '/publish/pdf',
+    name: 'PublishPDF',
+    component: () => import('@/views/PublishPDFView.vue')
   },
 
   // 📝 Review Section

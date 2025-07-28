@@ -1,6 +1,11 @@
 <template>
   <div class="import-view">
+    <Breadcrumbs />
     <h2>Import Topics</h2>
+    
+    <p class="guidance-text">
+      Use this tool to import content from outside this app. You can import Markdown (.md) documents (preferred) or Word (.docx) documents.
+    </p>
 
     <label>
       Format
@@ -22,8 +27,11 @@
 </template>
 
 <script>
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
+
 export default {
   name: 'ImportView',
+  components: { Breadcrumbs },
 
   data() {
     return {
@@ -75,6 +83,8 @@ export default {
           throw new Error('Invalid response from import endpoint')
         }
 
+        console.log('Upload successful, import doc:', importDoc) // Debug log
+
         // Navigate to review, passing ID as param
         this.$router.push({
           name: 'ImportReview',
@@ -95,7 +105,20 @@ export default {
 
 <style scoped>
 .import-view {
-  padding: 2rem;
+  padding-top: 70px; /* Top padding to account for fixed header */
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
+}
+
+.guidance-text {
+  background: #f8f9fa;
+  border-left: 4px solid #007acc;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: #495057;
+  font-size: 0.95rem;
+  line-height: 1.5;
 }
 
 label {

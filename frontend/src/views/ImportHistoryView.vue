@@ -1,11 +1,16 @@
 <template>
   <div class="import-history">
+    <Breadcrumbs />
     <h2>Import History</h2>
+    
+    <p class="guidance-text">
+      This is a list of imported topics. Available actions appear in the Actions column.
+    </p>
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
     <div v-else>
-      <table class="history-table">
+      <table class="history-table" v-if="docs.length > 0">
         <thead>
           <tr>
             <th>ID</th>
@@ -35,13 +40,21 @@
           </tr>
         </tbody>
       </table>
+      
+      <div v-else class="no-imports" style="text-align: center; padding: 40px; color: #666;">
+        <h3>No Import Documents Found</h3>
+        <p>No import documents are currently in the system.</p>
+      </div>
     </div>
   </div>
 </template>
 
 <script>
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
+
 export default {
   name: 'ImportHistoryView',
+  components: { Breadcrumbs },
 
   data() {
     return {
@@ -58,16 +71,33 @@ export default {
     },
 
     async fetchHistory() {
+      console.log('📊 Fetching import history...')
+      console.log('🌐 Current URL:', window.location.href)
+      console.log('🔗 API URL will be:', `${window.location.origin}/api/import/history`)
+      
       this.loading = true
       this.error = null
 
       try {
+        console.log('📡 Making request to /api/import/history')
         const res = await fetch('/api/import/history')
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        this.docs = await res.json()
+        console.log('📋 Response status:', res.status, 'OK:', res.ok)
+        console.log('📋 Response headers:', Object.fromEntries(res.headers.entries()))
+        
+        if (!res.ok) {
+          const errorText = await res.text()
+          console.log('❌ Error response text:', errorText)
+          throw new Error(`HTTP ${res.status}: ${errorText}`)
+        }
+        
+        const data = await res.json()
+        console.log('📄 Received data:', data)
+        console.log('📊 Number of imports:', Array.isArray(data) ? data.length : 'Not an array')
+        
+        this.docs = Array.isArray(data) ? data : []
       } catch (e) {
-        console.error(e)
-        this.error = 'Failed to load import history'
+        console.error('❌ Error fetching import history:', e)
+        this.error = `Failed to load import history: ${e.message}`
       } finally {
         this.loading = false
       }
@@ -76,11 +106,41 @@ export default {
 
   created() {
     this.fetchHistory()
+  },
+
+  // Refresh data when entering this route
+  beforeRouteEnter(to, from, next) {
+    next(vm => {
+      vm.fetchHistory()
+    })
+  },
+
+  // Refresh data when route updates (same component)
+  beforeRouteUpdate(to, from, next) {
+    this.fetchHistory()
+    next()
   }
 }
 </script>
 
 <style scoped>
+.import-history {
+  padding-top: 70px; /* Top padding to account for fixed header */
+  padding-left: 2rem;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
+}
+
+.guidance-text {
+  background: #f8f9fa;
+  border-left: 4px solid #007acc;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+  color: #495057;
+  font-size: 0.95rem;
+  line-height: 1.5;
+}
+
 .history-table {
   width: 100%;
   border-collapse: collapse;

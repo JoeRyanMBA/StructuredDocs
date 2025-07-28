@@ -1,7 +1,7 @@
 # backend/routes/topics.py
 
 from flask import Blueprint, request, jsonify, current_app
-from backend.models import db, Topic
+from models import db, Topic
 
 topics = Blueprint('topics', __name__, url_prefix='/api/topics')
 

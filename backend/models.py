@@ -8,6 +8,35 @@ from sqlalchemy import Table, Column, Integer
 
 db = SQLAlchemy()
 
+class User(db.Model):
+    __tablename__ = 'users'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    role = db.Column(
+        Enum('author', 'reviewer', 'admin', name='user_role'),
+        nullable=False,
+        default='author',
+        server_default='author'
+    )
+    active = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "role": self.role,
+            "active": self.active,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
 # Pivot table: tracks topic ordering within a collection
 collection_topic_tree = Table(
     'collection_topic_tree',
@@ -61,10 +90,8 @@ class Collection(db.Model):
             'parentId': self.parent_id
         }
         if include_topics:
-            data['topics'] = [
-                {'id': t.id, 'title': t.title}
-                for t in self.topics
-            ]
+            # Use hierarchical topic structure instead of flat list
+            data['topics'] = self.to_tree()
         if include_children:
             data['children'] = [
                 c.to_dict(include_children, include_topics)
