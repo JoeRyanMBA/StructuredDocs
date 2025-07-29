@@ -96,6 +96,12 @@
         </div>
       </div>
 
+      <!-- Calendar Overview -->
+      <div class="dashboard-section">
+        <h2>Calendar Overview</h2>
+        <CalendarWidget :events="calendarEvents" :showLegend="false" />
+      </div>
+
       <!-- Project Status Overview -->
       <div class="dashboard-section full-width">
         <h2>Project Status Overview</h2>
@@ -144,8 +150,13 @@
 </template>
 
 <script>
+import CalendarWidget from '../components/CalendarWidget.vue'
+
 export default {
   name: 'Dashboard',
+  components: {
+    CalendarWidget
+  },
   
   data() {
     return {
@@ -159,6 +170,64 @@ export default {
       projects: [],
       pendingActions: [],
       recentActivity: []
+    }
+  },
+
+  computed: {
+    calendarEvents() {
+      const events = []
+      
+      // Generate events from projects with milestones
+      this.projects.forEach(project => {
+        // Add project milestones if they exist
+        if (project.milestones && Array.isArray(project.milestones)) {
+          project.milestones.forEach(milestone => {
+            if (milestone.date) {
+              events.push({
+                id: `${project.id}-${milestone.name}`,
+                title: `${project.name}: ${milestone.name}`,
+                date: milestone.date,
+                type: 'milestone',
+                project: project.name
+              })
+            }
+          })
+        }
+        
+        // Add project creation date
+        if (project.created_at) {
+          const createdDate = project.created_at.split('T')[0]
+          events.push({
+            id: `${project.id}-created`,
+            title: `Project Created: ${project.name}`,
+            date: createdDate,
+            type: 'meeting',
+            project: project.name
+          })
+        }
+      })
+      
+      // Add mock upcoming deadlines for demonstration
+      const today = new Date()
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
+      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
+      
+      events.push(
+        {
+          id: 'deadline-1',
+          title: 'Quarterly Review Deadline',
+          date: nextWeek.toISOString().split('T')[0],
+          type: 'deadline'
+        },
+        {
+          id: 'meeting-1',
+          title: 'Stakeholder Meeting',
+          date: nextMonth.toISOString().split('T')[0],
+          type: 'meeting'
+        }
+      )
+      
+      return events
     }
   },
 

@@ -7,9 +7,17 @@ import TopicsListView from '@/views/TopicsListView.vue'
 import EditTopicView from '@/views/EditTopicView.vue'
 import ImportView from '@/views/ImportView.vue'
 import StartPage from '@/views/StartPage.vue'
+import LoginView from '@/views/LoginView.vue'
 
 // All routes
 const routes = [
+  // 🔐 Authentication
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginView
+  },
+
   // ▶️ Dashboard / Home
   {
     path: '/',
@@ -157,6 +165,35 @@ const routes = [
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Authentication guard
+function isAuthenticated() {
+  return localStorage.getItem('isAuthenticated') === 'true'
+}
+
+// Navigation guard to protect routes
+router.beforeEach((to, from, next) => {
+  // Routes that don't require authentication
+  const publicRoutes = ['Login']
+  
+  if (publicRoutes.includes(to.name)) {
+    // If already logged in and trying to access login, redirect to dashboard
+    if (to.name === 'Login' && isAuthenticated()) {
+      next({ name: 'Dashboard' })
+      return
+    }
+    next()
+    return
+  }
+  
+  // Check if user is authenticated
+  if (!isAuthenticated()) {
+    next({ name: 'Login' })
+    return
+  }
+  
+  next()
 })
 
 export default router
