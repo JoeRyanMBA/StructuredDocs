@@ -1,9 +1,40 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from models import db, Topic, Collection, ImportDocument
+from backend.models import db, Topic, Collection, ImportDocument
 from sqlalchemy import or_
 
-reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews')
+reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews/')
+
+# Base GET endpoint for /api/reviews/
+@reviews_bp.route('/', methods=['GET'])
+def reviews_root():
+    """Base endpoint for reviews API - returns mock reviews list for dashboard"""
+    mock_reviews = [
+        {
+            'id': 1,
+            'topic_title': 'Data Collection Standards',
+            'reviewer_name': 'Dr. Smith',
+            'status': 'pending',
+            'sent_date': (datetime.utcnow()).isoformat(),
+            'due_date': (datetime.utcnow()).isoformat(),
+            'type': 'SME Review',
+            'created_at': (datetime.utcnow()).isoformat(),
+            'updated_at': (datetime.utcnow()).isoformat()
+        },
+        {
+            'id': 2,
+            'topic_title': 'Survey Methodology Guide',
+            'reviewer_name': 'Jane Wilson',
+            'status': 'completed',
+            'sent_date': (datetime.utcnow()).isoformat(),
+            'due_date': (datetime.utcnow()).isoformat(),
+            'type': 'Technical Review',
+            'feedback_count': 3,
+            'created_at': (datetime.utcnow()).isoformat(),
+            'updated_at': (datetime.utcnow()).isoformat()
+        }
+    ]
+    return jsonify(mock_reviews)
 
 @reviews_bp.route('/reviewers', methods=['GET'])
 def get_available_reviewers():

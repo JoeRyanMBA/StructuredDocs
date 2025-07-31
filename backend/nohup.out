@@ -1,0 +1,552 @@
+🏗️ Creating app instance...
+🚀 Creating Flask app...
+📱 Flask instance created
+🌐 CORS enabled
+💾 Connected DB URI: sqlite:////workspaces/StructuredDocs/backend/instance/structured_docs.db
+🗄️ Database initialized
+🔄 Migration setup complete
+📋 Registering blueprints...
+  ✅ Topics blueprint registered
+  ✅ Imports blueprint registered
+  ✅ Publications blueprint registered
+  ✅ Collections blueprint registered
+  ✅ Reviews blueprint registered
+  ✅ Projects blueprint registered
+  ✅ Users blueprint registered
+  ✅ Metrics blueprint registered
+  ✅ Notifications blueprint registered
+🎉 Flask app creation complete!
+✅ App instance created successfully!
+ * Debug mode: off
+[31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5050
+ * Running on http://10.0.10.251:5050
+[33mPress CTRL+C to quit[0m
+2025-07-31 19:58:15,668 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:15,670 INFO sqlalchemy.engine.Engine INSERT INTO publications (title, description) VALUES (?, ?) RETURNING id, created_at
+2025-07-31 19:58:15,670 INFO sqlalchemy.engine.Engine [generated in 0.00019s] ('Test Publication', 'A test publication for debugging.')
+2025-07-31 19:58:15,671 INFO sqlalchemy.engine.Engine COMMIT
+2025-07-31 19:58:15,712 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:15,714 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications 
+WHERE publications.id = ?
+2025-07-31 19:58:15,714 INFO sqlalchemy.engine.Engine [generated in 0.00014s] (1,)
+2025-07-31 19:58:15,715 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:15] "[35m[1mPOST /api/publications HTTP/1.1[0m" 201 -
+2025-07-31 19:58:32,218 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:32,220 INFO sqlalchemy.engine.Engine SELECT notifications.id AS notifications_id, notifications.user_id AS notifications_user_id, notifications.title AS notifications_title, notifications.message AS notifications_message, notifications.link AS notifications_link, notifications.type AS notifications_type, notifications.date AS notifications_date, notifications.read AS notifications_read 
+FROM notifications ORDER BY notifications.date DESC
+2025-07-31 19:58:32,220 INFO sqlalchemy.engine.Engine [generated in 0.00014s] ()
+2025-07-31 19:58:32,221 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/notifications HTTP/1.1" 200 -
+2025-07-31 19:58:32,239 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/projects/ HTTP/1.1" 200 -
+2025-07-31 19:58:32,241 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ? OR topics.status = ? ORDER BY topics.updated_at DESC
+2025-07-31 19:58:32,242 INFO sqlalchemy.engine.Engine [generated in 0.00131s] ('draft', 'pending_review')
+2025-07-31 19:58:32,245 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/reviews/topics/pending HTTP/1.1" 200 -
+2025-07-31 19:58:32,254 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:32,256 INFO sqlalchemy.engine.Engine SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents ORDER BY import_documents.created_at DESC
+2025-07-31 19:58:32,256 INFO sqlalchemy.engine.Engine [generated in 0.00017s] ()
+2025-07-31 19:58:32,257 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/projects/ HTTP/1.1" 200 -
+🔄 Collections GET request received
+2025-07-31 19:58:32,335 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:32,336 INFO sqlalchemy.engine.Engine SELECT collections.id AS collections_id, collections.name AS collections_name, collections.parent_id AS collections_parent_id, collections.position AS collections_position 
+FROM collections 
+WHERE collections.parent_id IS NULL ORDER BY collections.position
+2025-07-31 19:58:32,336 INFO sqlalchemy.engine.Engine [generated in 0.00015s] ()
+✅ Returning 0 collections
+2025-07-31 19:58:32,337 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/collections/ HTTP/1.1" 200 -
+2025-07-31 19:58:32,356 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:32,357 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics ORDER BY topics.created_at DESC
+2025-07-31 19:58:32,357 INFO sqlalchemy.engine.Engine [generated in 0.00012s] ()
+2025-07-31 19:58:32,358 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/topics/ HTTP/1.1" 200 -
+2025-07-31 19:58:32,374 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:32,377 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 19:58:32,377 INFO sqlalchemy.engine.Engine [generated in 0.00013s] ('pending_review',)
+2025-07-31 19:58:32,377 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 19:58:32,377 INFO sqlalchemy.engine.Engine [cached since 0.0008868s ago] ('draft',)
+2025-07-31 19:58:32,378 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 19:58:32,378 INFO sqlalchemy.engine.Engine [cached since 0.001588s ago] ('published',)
+2025-07-31 19:58:32,380 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 19:58:32,380 INFO sqlalchemy.engine.Engine [generated in 0.00012s] ('pending',)
+2025-07-31 19:58:32,380 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 19:58:32,380 INFO sqlalchemy.engine.Engine [cached since 0.000767s ago] ('sme_approved',)
+2025-07-31 19:58:32,381 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 19:58:32,381 INFO sqlalchemy.engine.Engine [cached since 0.001332s ago] ('final_approved',)
+2025-07-31 19:58:32,382 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.status = ?) AS anon_1
+2025-07-31 19:58:32,383 INFO sqlalchemy.engine.Engine [generated in 0.00014s] ('rejected',)
+2025-07-31 19:58:32,383 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:32] "GET /api/reviews/stats HTTP/1.1" 200 -
+2025-07-31 19:58:44,776 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 19:58:44,776 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 19:58:44,776 INFO sqlalchemy.engine.Engine [generated in 0.00013s] ()
+2025-07-31 19:58:44,777 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 19:58:44] "GET /api/publications HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 19:58:49] "[33mGET /api/publications/NaN HTTP/1.1[0m" 404 -
+2025-07-31 20:01:42,005 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:42,006 INFO sqlalchemy.engine.Engine SELECT notifications.id AS notifications_id, notifications.user_id AS notifications_user_id, notifications.title AS notifications_title, notifications.message AS notifications_message, notifications.link AS notifications_link, notifications.type AS notifications_type, notifications.date AS notifications_date, notifications.read AS notifications_read 
+FROM notifications ORDER BY notifications.date DESC
+2025-07-31 20:01:42,006 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ()
+2025-07-31 20:01:42,006 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/projects/ HTTP/1.1" 200 -
+2025-07-31 20:01:42,027 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:42,028 INFO sqlalchemy.engine.Engine SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents ORDER BY import_documents.created_at DESC
+2025-07-31 20:01:42,028 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ()
+2025-07-31 20:01:42,028 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/import/history HTTP/1.1" 200 -
+2025-07-31 20:01:42,034 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:42,034 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ? OR topics.status = ? ORDER BY topics.updated_at DESC
+2025-07-31 20:01:42,034 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('draft', 'pending_review')
+2025-07-31 20:01:42,035 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/reviews/topics/pending HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/projects/ HTTP/1.1" 200 -
+🔄 Collections GET request received
+2025-07-31 20:01:42,109 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:42,109 INFO sqlalchemy.engine.Engine SELECT collections.id AS collections_id, collections.name AS collections_name, collections.parent_id AS collections_parent_id, collections.position AS collections_position 
+FROM collections 
+WHERE collections.parent_id IS NULL ORDER BY collections.position
+2025-07-31 20:01:42,110 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ()
+✅ Returning 0 collections
+2025-07-31 20:01:42,110 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/collections/ HTTP/1.1" 200 -
+2025-07-31 20:01:42,135 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:42,136 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics ORDER BY topics.created_at DESC
+2025-07-31 20:01:42,136 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ()
+2025-07-31 20:01:42,136 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/topics/ HTTP/1.1" 200 -
+2025-07-31 20:01:42,154 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:42,154 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:01:42,154 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('pending_review',)
+2025-07-31 20:01:42,155 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:01:42,155 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('draft',)
+2025-07-31 20:01:42,155 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:01:42,155 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('published',)
+2025-07-31 20:01:42,156 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:01:42,156 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('pending',)
+2025-07-31 20:01:42,156 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:01:42,156 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('sme_approved',)
+2025-07-31 20:01:42,157 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:01:42,157 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('final_approved',)
+2025-07-31 20:01:42,157 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.status = ?) AS anon_1
+2025-07-31 20:01:42,157 INFO sqlalchemy.engine.Engine [cached since 189.8s ago] ('rejected',)
+2025-07-31 20:01:42,158 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:42] "GET /api/reviews/stats HTTP/1.1" 200 -
+2025-07-31 20:01:44,253 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:01:44,254 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:01:44,254 INFO sqlalchemy.engine.Engine [cached since 179.5s ago] ()
+2025-07-31 20:01:44,254 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:01:44] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:02:00,379 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:02:00,380 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:02:00,380 INFO sqlalchemy.engine.Engine [cached since 195.6s ago] ()
+2025-07-31 20:02:00,380 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:02:00] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:02:04,000 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:02:04,001 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications 
+WHERE publications.id = ?
+2025-07-31 20:02:04,001 INFO sqlalchemy.engine.Engine [generated in 0.00012s] (1,)
+2025-07-31 20:02:04,002 INFO sqlalchemy.engine.Engine SELECT publication_nodes.id AS publication_nodes_id, publication_nodes.publication_id AS publication_nodes_publication_id, publication_nodes.topic_id AS publication_nodes_topic_id, publication_nodes.parent_id AS publication_nodes_parent_id, publication_nodes.position AS publication_nodes_position 
+FROM publication_nodes 
+WHERE ? = publication_nodes.publication_id
+2025-07-31 20:02:04,002 INFO sqlalchemy.engine.Engine [generated in 0.00011s] (1,)
+2025-07-31 20:02:04,007 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:02:04] "GET /api/publications/1/export/mobile-kb HTTP/1.1" 200 -
+2025-07-31 20:02:48,350 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:02:48,350 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:02:48,351 INFO sqlalchemy.engine.Engine [cached since 243.6s ago] ()
+2025-07-31 20:02:48,351 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:02:48] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:04:55,036 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:04:55,036 INFO sqlalchemy.engine.Engine SELECT notifications.id AS notifications_id, notifications.user_id AS notifications_user_id, notifications.title AS notifications_title, notifications.message AS notifications_message, notifications.link AS notifications_link, notifications.type AS notifications_type, notifications.date AS notifications_date, notifications.read AS notifications_read 
+FROM notifications ORDER BY notifications.date DESC
+2025-07-31 20:04:55,036 INFO sqlalchemy.engine.Engine [cached since 382.8s ago] ()
+2025-07-31 20:04:55,037 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/notifications HTTP/1.1" 200 -
+2025-07-31 20:04:55,059 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:04:55,059 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ? OR topics.status = ? ORDER BY topics.updated_at DESC
+2025-07-31 20:04:55,059 INFO sqlalchemy.engine.Engine [cached since 382.8s ago] ('draft', 'pending_review')
+2025-07-31 20:04:55,060 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/reviews/topics/pending HTTP/1.1" 200 -
+2025-07-31 20:04:55,064 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:04:55,064 INFO sqlalchemy.engine.Engine SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents ORDER BY import_documents.created_at DESC
+2025-07-31 20:04:55,064 INFO sqlalchemy.engine.Engine [cached since 382.8s ago] ()
+2025-07-31 20:04:55,065 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/projects/ HTTP/1.1" 200 -
+🔄 Collections GET request received
+2025-07-31 20:04:55,207 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:04:55,207 INFO sqlalchemy.engine.Engine SELECT collections.id AS collections_id, collections.name AS collections_name, collections.parent_id AS collections_parent_id, collections.position AS collections_position 
+FROM collections 
+WHERE collections.parent_id IS NULL ORDER BY collections.position
+2025-07-31 20:04:55,207 INFO sqlalchemy.engine.Engine [cached since 382.9s ago] ()
+✅ Returning 0 collections
+2025-07-31 20:04:55,208 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/collections/ HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/projects/ HTTP/1.1" 200 -
+2025-07-31 20:04:55,362 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:04:55,363 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics ORDER BY topics.created_at DESC
+2025-07-31 20:04:55,363 INFO sqlalchemy.engine.Engine [cached since 383s ago] ()
+2025-07-31 20:04:55,364 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/topics/ HTTP/1.1" 200 -
+2025-07-31 20:04:55,499 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:04:55,499 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:04:55,499 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('pending_review',)
+2025-07-31 20:04:55,500 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:04:55,500 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('draft',)
+2025-07-31 20:04:55,500 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:04:55,500 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('published',)
+2025-07-31 20:04:55,501 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:04:55,501 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('pending',)
+2025-07-31 20:04:55,501 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:04:55,502 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('sme_approved',)
+2025-07-31 20:04:55,502 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:04:55,502 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('final_approved',)
+2025-07-31 20:04:55,502 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.status = ?) AS anon_1
+2025-07-31 20:04:55,503 INFO sqlalchemy.engine.Engine [cached since 383.1s ago] ('rejected',)
+2025-07-31 20:04:55,503 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:04:55] "GET /api/reviews/stats HTTP/1.1" 200 -
+2025-07-31 20:06:45,400 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:45,400 INFO sqlalchemy.engine.Engine SELECT notifications.id AS notifications_id, notifications.user_id AS notifications_user_id, notifications.title AS notifications_title, notifications.message AS notifications_message, notifications.link AS notifications_link, notifications.type AS notifications_type, notifications.date AS notifications_date, notifications.read AS notifications_read 
+FROM notifications ORDER BY notifications.date DESC
+2025-07-31 20:06:45,400 INFO sqlalchemy.engine.Engine [cached since 493.2s ago] ()
+2025-07-31 20:06:45,401 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/notifications HTTP/1.1" 200 -
+2025-07-31 20:06:45,418 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:45,419 INFO sqlalchemy.engine.Engine SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents ORDER BY import_documents.created_at DESC
+2025-07-31 20:06:45,419 INFO sqlalchemy.engine.Engine [cached since 493.2s ago] ()
+2025-07-31 20:06:45,419 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/import/history HTTP/1.1" 200 -
+2025-07-31 20:06:45,426 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:45,426 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ? OR topics.status = ? ORDER BY topics.updated_at DESC
+2025-07-31 20:06:45,426 INFO sqlalchemy.engine.Engine [cached since 493.2s ago] ('draft', 'pending_review')
+2025-07-31 20:06:45,427 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/reviews/topics/pending HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/projects/ HTTP/1.1" 200 -
+🔄 Collections GET request received
+2025-07-31 20:06:45,581 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:45,581 INFO sqlalchemy.engine.Engine SELECT collections.id AS collections_id, collections.name AS collections_name, collections.parent_id AS collections_parent_id, collections.position AS collections_position 
+FROM collections 
+WHERE collections.parent_id IS NULL ORDER BY collections.position
+2025-07-31 20:06:45,581 INFO sqlalchemy.engine.Engine [cached since 493.2s ago] ()
+✅ Returning 0 collections
+2025-07-31 20:06:45,581 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/collections/ HTTP/1.1" 200 -
+2025-07-31 20:06:45,718 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:45,718 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics ORDER BY topics.created_at DESC
+2025-07-31 20:06:45,718 INFO sqlalchemy.engine.Engine [cached since 493.4s ago] ()
+2025-07-31 20:06:45,719 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/topics/ HTTP/1.1" 200 -
+2025-07-31 20:06:45,880 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:45,881 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:06:45,881 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('pending_review',)
+2025-07-31 20:06:45,884 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:06:45,884 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('draft',)
+2025-07-31 20:06:45,885 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:06:45,886 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('published',)
+2025-07-31 20:06:45,887 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:06:45,889 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('pending',)
+2025-07-31 20:06:45,889 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:06:45,889 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('sme_approved',)
+2025-07-31 20:06:45,890 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:06:45,890 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('final_approved',)
+2025-07-31 20:06:45,891 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.status = ?) AS anon_1
+2025-07-31 20:06:45,892 INFO sqlalchemy.engine.Engine [cached since 493.5s ago] ('rejected',)
+2025-07-31 20:06:45,892 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:45] "GET /api/reviews/stats HTTP/1.1" 200 -
+2025-07-31 20:06:46,213 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:06:46,213 INFO sqlalchemy.engine.Engine SELECT notifications.id AS notifications_id, notifications.user_id AS notifications_user_id, notifications.title AS notifications_title, notifications.message AS notifications_message, notifications.link AS notifications_link, notifications.type AS notifications_type, notifications.date AS notifications_date, notifications.read AS notifications_read 
+FROM notifications ORDER BY notifications.date DESC
+2025-07-31 20:06:46,214 INFO sqlalchemy.engine.Engine [cached since 494s ago] ()
+2025-07-31 20:06:46,214 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:06:46] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:06:46] "[33mGET /api/publications/NaN HTTP/1.1[0m" 404 -
+2025-07-31 20:20:44,150 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:44,151 INFO sqlalchemy.engine.Engine SELECT notifications.id AS notifications_id, notifications.user_id AS notifications_user_id, notifications.title AS notifications_title, notifications.message AS notifications_message, notifications.link AS notifications_link, notifications.type AS notifications_type, notifications.date AS notifications_date, notifications.read AS notifications_read 
+FROM notifications ORDER BY notifications.date DESC
+2025-07-31 20:20:44,151 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ()
+2025-07-31 20:20:44,151 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/notifications HTTP/1.1" 200 -
+2025-07-31 20:20:44,161 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:44,161 INFO sqlalchemy.engine.Engine SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents ORDER BY import_documents.created_at DESC
+2025-07-31 20:20:44,161 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ()
+2025-07-31 20:20:44,161 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/import/history HTTP/1.1" 200 -
+2025-07-31 20:20:44,167 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:44,167 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ? OR topics.status = ? ORDER BY topics.updated_at DESC
+2025-07-31 20:20:44,167 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('draft', 'pending_review')
+2025-07-31 20:20:44,168 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/reviews/topics/pending HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/projects/ HTTP/1.1" 200 -
+🔄 Collections GET request received
+2025-07-31 20:20:44,306 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:44,307 INFO sqlalchemy.engine.Engine SELECT collections.id AS collections_id, collections.name AS collections_name, collections.parent_id AS collections_parent_id, collections.position AS collections_position 
+FROM collections 
+WHERE collections.parent_id IS NULL ORDER BY collections.position
+2025-07-31 20:20:44,307 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ()
+✅ Returning 0 collections
+2025-07-31 20:20:44,308 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/collections/ HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/projects/ HTTP/1.1" 200 -
+2025-07-31 20:20:44,442 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:44,443 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics ORDER BY topics.created_at DESC
+2025-07-31 20:20:44,443 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ()
+2025-07-31 20:20:44,443 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/topics/ HTTP/1.1" 200 -
+2025-07-31 20:20:44,583 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:44,583 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:20:44,583 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('pending_review',)
+2025-07-31 20:20:44,584 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:20:44,584 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('draft',)
+2025-07-31 20:20:44,584 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:20:44,585 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('published',)
+2025-07-31 20:20:44,585 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:20:44,585 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('pending',)
+2025-07-31 20:20:44,585 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:20:44,586 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('sme_approved',)
+2025-07-31 20:20:44,586 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:20:44,586 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('final_approved',)
+2025-07-31 20:20:44,586 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.status = ?) AS anon_1
+2025-07-31 20:20:44,587 INFO sqlalchemy.engine.Engine [cached since 1332s ago] ('rejected',)
+2025-07-31 20:20:44,587 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:44] "GET /api/reviews/stats HTTP/1.1" 200 -
+2025-07-31 20:20:49,340 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:49,341 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:20:49,341 INFO sqlalchemy.engine.Engine [cached since 1325s ago] ()
+2025-07-31 20:20:49,341 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:49] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:20:51,178 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:51,178 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:20:51,178 INFO sqlalchemy.engine.Engine [cached since 1326s ago] ()
+2025-07-31 20:20:51,179 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:51] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:20:54,575 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:20:54,575 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications 
+WHERE publications.id = ?
+2025-07-31 20:20:54,575 INFO sqlalchemy.engine.Engine [cached since 1131s ago] (1,)
+2025-07-31 20:20:54,576 INFO sqlalchemy.engine.Engine SELECT publication_nodes.id AS publication_nodes_id, publication_nodes.publication_id AS publication_nodes_publication_id, publication_nodes.topic_id AS publication_nodes_topic_id, publication_nodes.parent_id AS publication_nodes_parent_id, publication_nodes.position AS publication_nodes_position 
+FROM publication_nodes 
+WHERE ? = publication_nodes.publication_id
+2025-07-31 20:20:54,576 INFO sqlalchemy.engine.Engine [cached since 1131s ago] (1,)
+2025-07-31 20:20:54,576 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:20:54] "GET /api/publications/1 HTTP/1.1" 200 -
+2025-07-31 20:21:01,019 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:01,019 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:21:01,019 INFO sqlalchemy.engine.Engine [cached since 1336s ago] ()
+2025-07-31 20:21:01,019 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:01] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:21:04,834 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:04,834 INFO sqlalchemy.engine.Engine SELECT publications.id AS publications_id, publications.title AS publications_title, publications.description AS publications_description, publications.created_at AS publications_created_at 
+FROM publications ORDER BY publications.created_at DESC
+2025-07-31 20:21:04,834 INFO sqlalchemy.engine.Engine [cached since 1340s ago] ()
+2025-07-31 20:21:04,835 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:04] "GET /api/publications HTTP/1.1" 200 -
+2025-07-31 20:21:06,387 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:06,388 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ? OR topics.status = ? ORDER BY topics.updated_at DESC
+2025-07-31 20:21:06,388 INFO sqlalchemy.engine.Engine [cached since 1354s ago] ('draft', 'pending_review')
+2025-07-31 20:21:06,389 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:06] "GET /api/reviews/topics/pending HTTP/1.1" 200 -
+2025-07-31 20:21:06,390 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:06,391 INFO sqlalchemy.engine.Engine SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents ORDER BY import_documents.created_at DESC
+2025-07-31 20:21:06,391 INFO sqlalchemy.engine.Engine [cached since 1354s ago] ()
+2025-07-31 20:21:06,391 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:06] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:21:06] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [31/Jul/2025 20:21:06] "GET /api/projects/ HTTP/1.1" 200 -
+🔄 Collections GET request received
+2025-07-31 20:21:06,557 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:06,557 INFO sqlalchemy.engine.Engine SELECT collections.id AS collections_id, collections.name AS collections_name, collections.parent_id AS collections_parent_id, collections.position AS collections_position 
+FROM collections 
+WHERE collections.parent_id IS NULL ORDER BY collections.position
+2025-07-31 20:21:06,557 INFO sqlalchemy.engine.Engine [cached since 1354s ago] ()
+✅ Returning 0 collections
+2025-07-31 20:21:06,558 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:06] "GET /api/collections/ HTTP/1.1" 200 -
+2025-07-31 20:21:06,705 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:06,706 INFO sqlalchemy.engine.Engine SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics ORDER BY topics.created_at DESC
+2025-07-31 20:21:06,706 INFO sqlalchemy.engine.Engine [cached since 1354s ago] ()
+2025-07-31 20:21:06,706 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:06] "GET /api/topics/ HTTP/1.1" 200 -
+2025-07-31 20:21:08,340 INFO sqlalchemy.engine.Engine BEGIN (implicit)
+2025-07-31 20:21:08,340 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:21:08,340 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('pending_review',)
+2025-07-31 20:21:08,341 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:21:08,341 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('draft',)
+2025-07-31 20:21:08,341 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
+FROM topics 
+WHERE topics.status = ?) AS anon_1
+2025-07-31 20:21:08,342 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('published',)
+2025-07-31 20:21:08,342 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:21:08,342 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('pending',)
+2025-07-31 20:21:08,343 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:21:08,343 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('sme_approved',)
+2025-07-31 20:21:08,343 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.review_step = ?) AS anon_1
+2025-07-31 20:21:08,343 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('final_approved',)
+2025-07-31 20:21:08,344 INFO sqlalchemy.engine.Engine SELECT count(*) AS count_1 
+FROM (SELECT import_documents.id AS import_documents_id, import_documents.filename AS import_documents_filename, import_documents.source_type AS import_documents_source_type, import_documents.status AS import_documents_status, import_documents.review_step AS import_documents_review_step, import_documents.created_at AS import_documents_created_at, import_documents.reviewed_at AS import_documents_reviewed_at, import_documents.reviewer AS import_documents_reviewer 
+FROM import_documents 
+WHERE import_documents.status = ?) AS anon_1
+2025-07-31 20:21:08,344 INFO sqlalchemy.engine.Engine [cached since 1356s ago] ('rejected',)
+2025-07-31 20:21:08,344 INFO sqlalchemy.engine.Engine ROLLBACK
+127.0.0.1 - - [31/Jul/2025 20:21:08] "GET /api/reviews/stats HTTP/1.1" 200 -

@@ -185,7 +185,7 @@ li > ul {
 .section-toggle {
   background: none;
   border: none;
-  color: #112e51;
+  color: #205493;
   font-size: 1rem;
   cursor: pointer;
   padding: 0;
@@ -200,7 +200,7 @@ li > ul {
 .section-direct-link {
   display: block;
   text-decoration: none;
-  color: #112e51;
+  color: #205493;
   font-size: 1rem;
   cursor: pointer;
   padding: 0;
@@ -219,7 +219,7 @@ li > ul {
 
 a {
   text-decoration: none;
-  color: #112e51;
+  color: #205493;
 }
 
 a:hover {

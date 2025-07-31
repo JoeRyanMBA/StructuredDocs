@@ -5,3 +5,4 @@ Flask-CORS
 python-docx
 Flask
 reportlab
+psutil

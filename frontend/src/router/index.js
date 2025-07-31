@@ -1,15 +1,116 @@
-// src/router/index.js
-
 import { createRouter, createWebHistory } from 'vue-router'
-
-// Direct imports for frequently used views
 import TopicsListView from '@/views/TopicsListView.vue'
 import EditTopicView from '@/views/EditTopicView.vue'
 import ImportView from '@/views/ImportView.vue'
 import StartPage from '@/views/StartPage.vue'
+import LoginView from '@/views/LoginView.vue'
+import AdminDashboard from '../views/AdminDashboard.vue'
+import AdminUserManagement from '../views/AdminUserManagement.vue'
+import SystemLogs from '../views/SystemLogs.vue'
+import PerformanceMetrics from '../views/PerformanceMetrics.vue'
+import ProfileView from '../views/ProfileView.vue'
+import EditNotification from '../views/EditNotification.vue'
 
 // All routes
 const routes = [
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUserManagement,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/admin/logs',
+    name: 'SystemLogs',
+    component: SystemLogs,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/admin/metrics',
+    name: 'PerformanceMetrics',
+    component: PerformanceMetrics,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/notifications/new',
+    name: 'CreateNotification',
+    component: () => import('@/views/CreateNotificationView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/notifications/edit/:id',
+    name: 'EditNotification',
+    component: EditNotification,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
+  // 🔐 Authentication
+  {
+    path: '/login',
+    name: 'Login',
+    component: LoginView
+  },
+
   // ▶️ Dashboard / Home
   {
     path: '/',
@@ -87,6 +188,11 @@ const routes = [
     component: () => import('@/views/PublishDashboard.vue')
   },
   {
+    path: '/publications/list',
+    name: 'PublicationsList',
+    component: () => import('@/views/PublicationsListView.vue')
+  },
+  {
     path: '/publications/:id',
     name: 'PublicationView',
     component: () => import('@/views/PublicationView.vue'),
@@ -126,37 +232,48 @@ const routes = [
   },
 
   // 🔒 Admin Section
-  {
-    path: '/admin',
-    name: 'AdminHome',
-    component: () => import('@/views/AdminDashboard.vue')
-  },
-  {
-    path: '/admin/authors',
-    name: 'ManageAuthors',
-    component: () => import('@/views/ManageAuthors.vue')
-  },
-  {
-    path: '/admin/users',
-    name: 'ManageUsers',
-    component: () => import('@/views/ManageUsers.vue')
-  },
-  {
-    path: '/admin/logs',
-    name: 'SystemLogs',
-    component: () => import('@/views/SystemLogs.vue')
-  },
+  // Admin routes are defined above with proper authentication
 
   // 🛠️ Catch-all fallback
   {
     path: '/:catchAll(.*)',
-    redirect: { name: 'TopicsList' }
+    name: 'CatchAll',
+    component: StartPage
   }
 ]
 
 const router = createRouter({
   history: createWebHistory(),
   routes
+})
+
+// Authentication guard
+function isAuthenticated() {
+  return localStorage.getItem('isAuthenticated') === 'true'
+}
+
+// Navigation guard to protect routes
+router.beforeEach((to, from, next) => {
+  // Routes that don't require authentication
+  const publicRoutes = ['Login']
+  
+  if (publicRoutes.includes(to.name)) {
+    // If already logged in and trying to access login, redirect to dashboard
+    if (to.name === 'Login' && isAuthenticated()) {
+      next({ name: 'Dashboard' })
+      return
+    }
+    next()
+    return
+  }
+  
+  // Check if user is authenticated
+  if (!isAuthenticated()) {
+    next({ name: 'Login' })
+    return
+  }
+  
+  next()
 })
 
 export default router

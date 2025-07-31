@@ -1,10 +1,14 @@
 <template>
+  <NotificationTicker
+    :notifications="notifications"
+    contextType="publish"
+    @mark-read="markNotificationRead"
+  />
   <div class="publish-dashboard">
     <div class="dashboard-header">
       <h1>Publish Dashboard</h1>
       <p class="welcome-text">Create and manage your publications</p>
     </div>
-
     <!-- Key Metrics Cards -->
     <div class="metrics-grid">
       <div class="metric-card">
@@ -15,7 +19,6 @@
           <div class="metric-detail">{{ stats.activePublications || 0 }} Active</div>
         </div>
       </div>
-
       <div class="metric-card">
         <div class="metric-icon">📱</div>
         <div class="metric-content">
@@ -24,7 +27,6 @@
           <div class="metric-detail">Pages published</div>
         </div>
       </div>
-
       <div class="metric-card">
         <div class="metric-icon">📄</div>
         <div class="metric-content">
@@ -33,9 +35,8 @@
           <div class="metric-detail">Ready for download</div>
         </div>
       </div>
-
       <div class="metric-card">
-        <div class="metric-icon">📊</div>
+        <div class="metric-icon">🗓️</div>
         <div class="metric-content">
           <h3>This Month</h3>
           <div class="metric-number">{{ stats.publishedThisMonth || 0 }}</div>
@@ -43,16 +44,14 @@
         </div>
       </div>
     </div>
-
     <!-- Main Content Grid -->
     <div class="content-grid">
-      
       <!-- Quick Actions -->
       <div class="dashboard-section">
         <h2>Quick Actions</h2>
         <div class="quick-actions-grid">
-          <button class="action-card" @click="navigateTo('/publications')">
-            <div class="action-icon">📋</div>
+          <button class="action-card" @click="navigateTo('/publications/list')">
+            <div class="action-icon">📚</div>
             <div class="action-content">
               <h3>Manage Publications</h3>
               <p>View and organize publications</p>
@@ -73,7 +72,6 @@
             </div>
           </button>
         </div>
-
         <div class="action-section">
           <h3>Publication Templates</h3>
           <div class="template-buttons">
@@ -92,7 +90,6 @@
           </div>
         </div>
       </div>
-
       <!-- Recent Publications -->
       <div class="dashboard-section">
         <h2>Recent Publications</h2>
@@ -101,12 +98,7 @@
             <p>No publications yet. Create your first publication!</p>
           </div>
           <div v-else>
-            <div 
-              v-for="publication in recentPublications" 
-              :key="publication.id"
-              class="publication-item"
-              @click="viewPublication(publication)"
-            >
+            <div v-for="publication in recentPublications" :key="publication.id" class="publication-item" @click="viewPublication(publication)">
               <div class="publication-icon">{{ getPublicationIcon(publication.type) }}</div>
               <div class="publication-content">
                 <div class="publication-title">{{ publication.title }}</div>
@@ -118,7 +110,6 @@
           </div>
         </div>
       </div>
-
       <!-- Publication Analytics -->
       <div class="dashboard-section full-width">
         <h2>Publication Overview</h2>
@@ -127,12 +118,7 @@
             <p>No publications found. <button @click="navigateTo('/publications')" class="link-btn">Create your first publication</button></p>
           </div>
           <div v-else class="publications-grid">
-            <div 
-              v-for="publication in publications" 
-              :key="publication.id"
-              class="publication-card"
-              @click="viewPublication(publication)"
-            >
+            <div v-for="publication in publications" :key="publication.id" class="publication-card" @click="viewPublication(publication)">
               <div class="card-header">
                 <div class="card-title">
                   <h3>{{ publication.title }}</h3>
@@ -160,20 +146,8 @@
               <div class="card-footer">
                 <span class="card-date">Updated {{ formatRelativeTime(publication.updated_at || publication.created_at) }}</span>
                 <div class="card-actions">
-                  <button 
-                    v-if="publication.status === 'published'" 
-                    @click.stop="downloadPublication(publication)" 
-                    class="card-action-btn primary"
-                  >
-                    Download
-                  </button>
-                  <button 
-                    v-else-if="publication.status === 'draft'" 
-                    @click.stop="publishNow(publication)" 
-                    class="card-action-btn primary"
-                  >
-                    Publish
-                  </button>
+                  <button v-if="publication.status === 'published'" @click.stop="downloadPublication(publication)" class="card-action-btn primary">Download</button>
+                  <button v-else-if="publication.status === 'draft'" @click.stop="publishNow(publication)" class="card-action-btn primary">Publish</button>
                   <button @click.stop="editPublication(publication)" class="card-action-btn">Edit</button>
                 </div>
               </div>
@@ -181,20 +155,28 @@
           </div>
         </div>
       </div>
-
     </div>
-
     <!-- Loading State -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner">Loading publications...</div>
     </div>
   </div>
 </template>
-
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
 export default {
+  components: { NotificationTicker },
   name: 'PublishDashboard',
-  
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
   data() {
     return {
       loading: true,
@@ -209,11 +191,9 @@ export default {
       recentPublications: []
     }
   },
-
   async created() {
     await this.loadDashboardData()
   },
-
   methods: {
     async loadDashboardData() {
       this.loading = true
@@ -228,7 +208,6 @@ export default {
         this.loading = false
       }
     },
-
     async loadPublications() {
       try {
         // Create mock data for prototype - replace with real API call
@@ -270,10 +249,9 @@ export default {
             updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
           }
         ]
-
         // Try to fetch real data, fall back to mock
         try {
-          const res = await fetch('/api/publications/')
+          const res = await fetch('/api/publications')
           if (res.ok) {
             const realPublications = await res.json()
             this.publications = realPublications.length > 0 ? realPublications : mockPublications
@@ -283,17 +261,14 @@ export default {
         } catch {
           this.publications = mockPublications
         }
-
         // Get recent publications (last 5, sorted by updated_at)
         this.recentPublications = [...this.publications]
           .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
           .slice(0, 5)
-        
       } catch (error) {
         console.error('Failed to load publications:', error)
       }
     },
-
     async loadStats() {
       try {
         // Calculate stats from publications data
@@ -301,7 +276,6 @@ export default {
         const active = this.publications.filter(p => p.status === 'published').length
         const mobileKB = this.publications.filter(p => p.type === 'Mobile KB').reduce((sum, p) => sum + (p.pages_count || 0), 0)
         const pdfs = this.publications.filter(p => p.type === 'PDF').length
-        
         // Calculate published this month
         const oneMonthAgo = new Date()
         oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
@@ -310,7 +284,6 @@ export default {
           p.updated_at && 
           new Date(p.updated_at) > oneMonthAgo
         ).length
-
         this.stats = {
           totalPublications: total,
           activePublications: active,
@@ -322,7 +295,6 @@ export default {
         console.error('Failed to calculate stats:', error)
       }
     },
-
     createFromTemplate(type) {
       const templates = {
         'mobile': '/publish/mobile-kb?template=new',
@@ -331,29 +303,23 @@ export default {
       }
       this.navigateTo(templates[type])
     },
-
     viewPublication(publication) {
       this.$router.push(`/publications/${publication.id}`)
     },
-
     editPublication(publication) {
       this.$router.push(`/publications/${publication.id}/edit`)
     },
-
     publishNow(publication) {
       // Implement publish functionality
       console.log('Publishing:', publication.title)
     },
-
     downloadPublication(publication) {
       // Implement download functionality
       console.log('Downloading:', publication.title)
     },
-
     navigateTo(path) {
       this.$router.push(path)
     },
-
     getPublicationIcon(type) {
       const icons = {
         'Mobile KB': '📱',
@@ -362,7 +328,6 @@ export default {
       }
       return icons[type] || '📄'
     },
-
     formatStatus(status) {
       const statusMap = {
         'draft': 'Draft',
@@ -372,32 +337,25 @@ export default {
       }
       return statusMap[status] || status
     },
-
     formatFileSize(bytes) {
       if (!bytes) return 'Unknown'
-      
       const sizes = ['Bytes', 'KB', 'MB', 'GB']
       if (bytes === 0) return '0 Bytes'
-      
       const i = Math.floor(Math.log(bytes) / Math.log(1024))
       return Math.round(bytes / Math.pow(1024, i) * 100) / 100 + ' ' + sizes[i]
     },
-
     formatRelativeTime(timestamp) {
       if (!timestamp) return 'Unknown'
-      
       const now = new Date()
       const time = new Date(timestamp)
       const diffMs = now - time
       const diffMins = Math.floor(diffMs / 60000)
       const diffHours = Math.floor(diffMs / 3600000)
       const diffDays = Math.floor(diffMs / 86400000)
-
       if (diffMins < 1) return 'Just now'
       if (diffMins < 60) return `${diffMins}m ago`
       if (diffHours < 24) return `${diffHours}h ago`
       if (diffDays < 7) return `${diffDays}d ago`
-      
       return time.toLocaleDateString()
     }
   }
@@ -406,7 +364,10 @@ export default {
 
 <style scoped>
 .publish-dashboard {
-  padding: 2rem;
+  padding-top: 0;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
+  padding-left: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -626,34 +587,8 @@ export default {
   min-width: 30px;
 }
 
-.publication-content {
-  flex: 1;
-}
 
-.publication-title {
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.25rem;
-}
 
-.publication-description {
-  color: #6c757d;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.publication-meta {
-  color: #adb5bd;
-  font-size: 0.75rem;
-}
-
-.publication-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
 
 .publication-status.draft {
   background: #fff3cd;
@@ -702,32 +637,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1;
-}
-
-.card-title h3 {
-  margin: 0;
-  color: #495057;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.card-badge {
-  background: #e9ecef;
-  color: #495057;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.card-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+  }
 
 .card-status.draft {
   background: #fff3cd;

@@ -1,5 +1,5 @@
 from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response
-from models import db, Publication, PublicationNode, Topic
+from backend.models import db, Publication, PublicationNode, Topic
 import re
 from datetime import datetime
 from reportlab.lib.pagesizes import letter, A4

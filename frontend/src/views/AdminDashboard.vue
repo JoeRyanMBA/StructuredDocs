@@ -1,5 +1,13 @@
 <template>
   <div class="admin-dashboard">
+    <!-- NotificationTicker: Always visible at top -->
+    <div class="full-width" style="margin-bottom:1.5rem;">
+      <NotificationTicker
+        :notifications="mergedNotifications"
+        contextType="admin"
+        @mark-read="markNotificationRead"
+      />
+    </div>
     <div class="dashboard-header">
       <h1>Admin Dashboard</h1>
       <p class="welcome-text">System administration and user management</p>
@@ -48,75 +56,52 @@
     <div class="content-grid">
       
       <!-- Quick Actions -->
-      <div class="dashboard-section">
+ <!--     <div class="dashboard-section full-width">
         <h2>Quick Actions</h2>
         <div class="quick-actions-grid">
           <button class="action-card" @click="navigateTo('/admin/users')">
-            <div class="action-icon">👥</div>
-            <div class="action-content">
-              <h3>Manage Users</h3>
-              <p>User accounts and permissions</p>
-            </div>
-          </button>
-          <button class="action-card" @click="navigateTo('/admin/authors')">
-            <div class="action-icon">✏️</div>
-            <div class="action-content">
-              <h3>Manage Authors</h3>
-              <p>Author roles and access</p>
-            </div>
-          </button>
-          <button class="action-card" @click="navigateTo('/admin/logs')">
-            <div class="action-icon">📊</div>
-            <div class="action-content">
-              <h3>System Logs</h3>
-              <p>Review system activity</p>
-            </div>
-          </button>
+            <div class="action-icon">👥</div>Manage Users</button>-->
+      <div class="dashboard-grid">
+        <!--      <div class="dashboard-section full-width notification-management">
+        <h2>Notification Management</h2>
+        <div v-if="notifications.length === 0" class="empty-state">
+          <p>No notifications found.</p>
         </div>
-
-        <div class="action-section">
-          <h3>System Tools</h3>
-          <div class="tool-buttons">
-            <button class="tool-btn" @click="performBackup">
-              <span class="tool-icon">💾</span>
-              <span>Backup Database</span>
-            </button>
-            <button class="tool-btn" @click="clearCache">
-              <span class="tool-icon">🔄</span>
-              <span>Clear Cache</span>
-            </button>
-            <button class="tool-btn" @click="viewMetrics">
-              <span class="tool-icon">📈</span>
-              <span>Performance Metrics</span>
-            </button>
+        <div v-else class="notification-list">
+          <div v-for="notification in notifications" :key="notification.id" class="notification-item">
+            <div class="notification-content">
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-description">{{ notification.description }}</div>
+              <div class="notification-meta">{{ formatRelativeTime(notification.created_at) }}</div>
+            </div>
+            <div class="notification-actions">
+              <button @click="markNotificationRead(notification)">Mark Read</button>
+              <button @click="deleteNotification(notification)">Delete</button>
+            </div>
           </div>
         </div>
+        <div class="create-notification">
+          <input v-model="newNotification.title" placeholder="Title" />
+          <input v-model="newNotification.description" placeholder="Description" />
+          <button @click="createNotification">Create Notification</button>
+        </div>
       </div>
-
-      <!-- Recent Activity -->
       <div class="dashboard-section">
-        <h2>Recent Admin Activity</h2>
-        <div class="activity-list">
-          <div v-if="recentActivity.length === 0" class="empty-state">
-            <p>No recent admin activity</p>
-          </div>
-          <div v-else>
-            <div 
-              v-for="activity in recentActivity" 
-              :key="activity.id"
-              class="activity-item"
-            >
-              <div class="activity-icon">{{ activity.icon }}</div>
-              <div class="activity-content">
-                <div class="activity-title">{{ activity.title }}</div>
-                <div class="activity-description">{{ activity.description }}</div>
-                <div class="activity-meta">{{ activity.user }} • {{ formatRelativeTime(activity.timestamp) }}</div>
-              </div>
-              <div class="activity-status" :class="activity.type">{{ formatActivityType(activity.type) }}</div>
-            </div>
+        <h2>Recent System Events</h2>
+        <div v-if="systemEvents.length === 0" class="empty-state">
+          <p>No recent system events.</p>
+        </div>
+        <div v-else class="event-list">
+          <div v-for="event in systemEvents" :key="event.id" class="event-item">
+            <div class="event-title">{{ event.title }}</div>
+            <div class="event-description">{{ event.description }}</div>
+            <div class="event-meta">{{ formatRelativeTime(event.created_at) }}</div>
           </div>
         </div>
-      </div>
+      </div> -->
+    </div>
+    <!-- ...existing code... -->
+  
 
       <!-- System Status -->
       <div class="dashboard-section full-width">
@@ -174,31 +159,55 @@
             </div>
           </div>
 
-          <!-- Recent System Logs -->
-          <div class="system-section">
-            <h3>Recent System Events</h3>
-            <div class="log-entries">
-              <div v-if="systemLogs.length === 0" class="empty-state">
-                <p>No recent system events</p>
-              </div>
-              <div v-else>
-                <div 
-                  v-for="log in systemLogs" 
-                  :key="log.id"
-                  class="log-entry"
-                  :class="log.level"
-                >
-                  <div class="log-time">{{ formatTime(log.timestamp) }}</div>
-                  <div class="log-message">{{ log.message }}</div>
-                  <div class="log-level">{{ log.level.toUpperCase() }}</div>
-                </div>
-              </div>
-            </div>
-            <div class="log-actions">
-              <button @click="navigateTo('/admin/logs')" class="section-btn">View All Logs</button>
+
+      <!-- Recent System Logs -->
+      <div class="system-section">
+        <h3>Recent System Events</h3>
+        <div class="log-entries">
+          <div v-if="systemLogs.length === 0" class="empty-state">
+            <p>No recent system events</p>
+          </div>
+          <div v-else>
+            <div 
+              v-for="log in systemLogs" 
+              :key="log.id"
+              class="log-entry"
+              :class="log.level"
+            >
+              <div class="log-time">{{ formatTime(log.timestamp) }}</div>
+              <div class="log-message">{{ log.message }}</div>
+              <div class="log-level">{{ log.level.toUpperCase() }}</div>
             </div>
           </div>
-
+        </div>
+        <div class="log-actions">
+          <button @click="navigateTo('/admin/logs')" class="section-btn">View All Logs</button>
+        </div>
+      </div>
+      <!-- Notification Management: Full width, consistent font -->
+      <div class="dashboard-section full-width notification-management">
+        <h2>Notification Management</h2>
+        <div class="notification-list">
+          <div v-if="notifications.length === 0" class="empty-state">
+            <p>No notifications found.</p>
+          </div>
+          <div v-else>
+            <div v-for="notification in notifications" :key="notification.id" class="notification-item">
+              <div class="notification-title">{{ notification.title }}</div>
+              <div class="notification-message">{{ notification.message }}</div>
+              <div class="notification-meta">{{ formatRelativeTime(notification.created_at) }} • <span :class="{'read': notification.read}">{{ notification.read ? 'Read' : 'Unread' }}</span></div>
+              <div class="notification-actions">
+                <button @click="navigateTo('/notifications/new')" class="section-btn">Create Notification</button>
+                <button @click="deleteNotification(notification.id)" class="section-btn secondary" style="margin-top:.75rem; margin-bottom:.75rem;">Delete</button>
+              </div>
+            </div>
+          </div>
+        </div>
+        <br />
+        <div class="notification-actions" align="center">
+          <button @click="navigateTo('/notifications/new')" class="section-btn">Create Notification</button>
+        </div>
+      </div>
         </div>
       </div>
 
@@ -209,12 +218,29 @@
       <div class="loading-spinner">Loading admin data...</div>
     </div>
   </div>
+
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
+
 export default {
   name: 'AdminDashboard',
-  
+  components: { NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
   data() {
     return {
       loading: true,
@@ -237,15 +263,39 @@ export default {
         storage: 60
       },
       recentActivity: [],
-      systemLogs: []
+      systemLogs: [],
+      systemEvents: [],
+      newNotification: {
+        title: '',
+        description: ''
+      }
     }
   },
-
+  computed: {
+    mergedNotifications() {
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
+    // ...existing computed properties...
+  },
   async created() {
     await this.loadDashboardData()
   },
-
   methods: {
+    markNotificationRead(id) {
+      const notification = this.notifications.find(n => n.id === id)
+      if (notification) notification.read = true
+    },
+    deleteNotification(id) {
+      this.notifications = this.notifications.filter(n => n.id !== id)
+    },
+
     async loadDashboardData() {
       this.loading = true
       try {
@@ -433,6 +483,50 @@ export default {
 </script>
 
 <style scoped>
+/* Notification Management Font Consistency */
+.notification-management {
+  font-family: inherit;
+}
+.notification-management h2 {
+  color: #495057;
+  font-size: 1.25rem;
+  font-weight: 600;
+  border-bottom: 2px solid #f8f9fa;
+  padding-bottom: 0.5rem;
+  margin: 0 0 1.5rem 0;
+}
+.notification-management .notification-title {
+  font-weight: 600;
+  color: #495057;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+}
+.notification-management .notification-description {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+.notification-management .notification-meta {
+  color: #adb5bd;
+  font-size: 0.75rem;
+}
+.notification-meta {
+  color: #91989e;
+  font-size: 0.875rem;
+}
+.notification-message {
+  color: #6c757d;
+  font-size: 0.875rem;
+  margin-bottom: 0.25rem;
+}
+
+.notification-title {
+  font-weight: 300;
+  color: #333;
+  font-size: 1rem;
+  margin-bottom: 0.25rem;
+  margin-top:0.24rem;
+}
 .admin-dashboard {
   padding: 2rem;
   max-width: 1400px;

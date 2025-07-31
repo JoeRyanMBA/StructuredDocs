@@ -1,0 +1,12 @@
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 803 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+8:01:22 PM [vite] (client) hmr update /src/views/PublishDashboard.vue
+8:06:36 PM [vite] (client) page reload src/router/index.js
+8:06:36 PM [vite] (client) hmr update /src/views/PublishDashboard.vue

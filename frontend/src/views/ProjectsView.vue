@@ -1,4 +1,9 @@
 <template>
+  <NotificationTicker
+    :notifications="mergedNotifications"
+    contextType="global"
+    @mark-read="markNotificationRead"
+  />
   <div class="projects-dashboard">
     <!-- Dashboard Header -->
      <div class="dashboard-header">
@@ -85,6 +90,19 @@
       </div>
     </div>
 
+    <!-- Project Calendar -->
+    <div class="section-card">
+      <div class="section-header">
+        <h2 class="section-title">Project Calendar</h2>
+        <div class="calendar-controls">
+          <button @click="toggleCalendarView" class="filter-select">
+            {{ calendarView === 'milestones' ? 'Show All Events' : 'Milestones Only' }}
+          </button>
+        </div>
+      </div>
+      <CalendarWidget :events="calendarEvents" />
+    </div>
+
     <!-- Projects List -->
     <div class="section-card">
       <div class="section-header">
@@ -143,14 +161,15 @@
 
           <!-- Milestone Dates -->
           <div class="project-milestones" v-if="hasActiveMilestones(project)">
-            <div class="milestone-item" v-if="project.milestones?.projectedStart">
-              <strong>Start:</strong> {{ formatDate(project.milestones.projectedStart) }}
+            <div class="milestone-item" v-for="milestone in project.milestones.slice(0, 3)" :key="milestone.name">
+              <strong>{{ milestone.name }}:</strong> 
+              <span :class="['milestone-date', milestone.status]">
+                {{ formatDate(milestone.date) }}
+                <span class="milestone-status">({{ formatMilestoneStatus(milestone.status) }})</span>
+              </span>
             </div>
-            <div class="milestone-item" v-if="project.milestones?.projectedEnd">
-              <strong>End:</strong> {{ formatDate(project.milestones.projectedEnd) }}
-            </div>
-            <div class="milestone-item" v-if="project.milestones?.dryRunDate">
-              <strong>Dry Run:</strong> {{ formatDate(project.milestones.dryRunDate) }}
+            <div v-if="project.milestones.length > 3" class="milestone-more">
+              +{{ project.milestones.length - 3 }} more milestones
             </div>
           </div>
 
@@ -238,62 +257,35 @@
             </div>
           </div>
 
-          <!-- Milestone Dates -->
+          <!-- Milestones -->
           <div class="form-section">
-            <h3>Milestone Dates</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="projectedStart">Projected Start</label>
+            <h3>Milestones</h3>
+            <div class="milestones-list">
+              <div v-for="(milestone, index) in newProject.milestones" :key="index" class="milestone-item">
                 <input
-                  id="projectedStart"
-                  v-model="newProject.milestones.projectedStart"
-                  type="date"
+                  v-model="milestone.name"
+                  type="text"
+                  placeholder="Milestone name"
+                  class="milestone-input"
                 />
-              </div>
-              <div class="form-group">
-                <label for="projectedEnd">Projected End</label>
                 <input
-                  id="projectedEnd"
-                  v-model="newProject.milestones.projectedEnd"
+                  v-model="milestone.date"
                   type="date"
+                  class="milestone-input"
+                  placeholder="Target date"
                 />
+                <select
+                  v-model="milestone.status"
+                  class="milestone-input"
+                >
+                  <option value="planned">Planned</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+                <button type="button" @click="removeMilestone(index, 'new')" class="remove-btn">✕</button>
               </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="actualStart">Actual Start</label>
-                <input
-                  id="actualStart"
-                  v-model="newProject.milestones.actualStart"
-                  type="date"
-                />
-              </div>
-              <div class="form-group">
-                <label for="actualEnd">Actual End</label>
-                <input
-                  id="actualEnd"
-                  v-model="newProject.milestones.actualEnd"
-                  type="date"
-                />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="dryRunDate">Dry Run Date</label>
-                <input
-                  id="dryRunDate"
-                  v-model="newProject.milestones.dryRunDate"
-                  type="date"
-                />
-              </div>
-              <div class="form-group">
-                <label for="reviewDeadline">Review Deadline</label>
-                <input
-                  id="reviewDeadline"
-                  v-model="newProject.milestones.reviewDeadline"
-                  type="date"
-                />
-              </div>
+              <button type="button" @click="addMilestone('new')" class="add-btn">+ Add Milestone</button>
             </div>
           </div>
 
@@ -433,62 +425,35 @@
             </div>
           </div>
 
-          <!-- Milestone Dates -->
+          <!-- Milestones -->
           <div class="form-section">
-            <h3>Milestone Dates</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="editProjectedStart">Projected Start</label>
+            <h3>Milestones</h3>
+            <div class="milestones-list">
+              <div v-for="(milestone, index) in editingProject.milestones" :key="index" class="milestone-item">
                 <input
-                  id="editProjectedStart"
-                  v-model="editingProject.milestones.projectedStart"
-                  type="date"
+                  v-model="milestone.name"
+                  type="text"
+                  placeholder="Milestone name"
+                  class="milestone-input"
                 />
-              </div>
-              <div class="form-group">
-                <label for="editProjectedEnd">Projected End</label>
                 <input
-                  id="editProjectedEnd"
-                  v-model="editingProject.milestones.projectedEnd"
+                  v-model="milestone.date"
                   type="date"
+                  class="milestone-input"
+                  placeholder="Target date"
                 />
+                <select
+                  v-model="milestone.status"
+                  class="milestone-input"
+                >
+                  <option value="planned">Planned</option>
+                  <option value="in-progress">In Progress</option>
+                  <option value="completed">Completed</option>
+                  <option value="overdue">Overdue</option>
+                </select>
+                <button type="button" @click="removeMilestone(index, 'edit')" class="remove-btn">✕</button>
               </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="editActualStart">Actual Start</label>
-                <input
-                  id="editActualStart"
-                  v-model="editingProject.milestones.actualStart"
-                  type="date"
-                />
-              </div>
-              <div class="form-group">
-                <label for="editActualEnd">Actual End</label>
-                <input
-                  id="editActualEnd"
-                  v-model="editingProject.milestones.actualEnd"
-                  type="date"
-                />
-              </div>
-            </div>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="editDryRunDate">Dry Run Date</label>
-                <input
-                  id="editDryRunDate"
-                  v-model="editingProject.milestones.dryRunDate"
-                  type="date"
-                />
-              </div>
-              <div class="form-group">
-                <label for="editReviewDeadline">Review Deadline</label>
-                <input
-                  id="editReviewDeadline"
-                  v-model="editingProject.milestones.reviewDeadline"
-                  type="date"
-                />
-              </div>
+              <button type="button" @click="addMilestone('edit')" class="add-btn">+ Add Milestone</button>
             </div>
           </div>
 
@@ -560,32 +525,40 @@
 
 <script>
 import Breadcrumbs from '../components/Breadcrumbs.vue'
+import CalendarWidget from '../components/CalendarWidget.vue'
+import NotificationTicker from '../components/NotificationTicker.vue'
 
 export default {
-  name: 'ProjectsView',
-  components: {
-    Breadcrumbs
+  components: { Breadcrumbs, CalendarWidget, NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
   },
   data() {
     return {
+      // ...existing data properties...
       projects: [],
-      statusFilter: '',
-      showCreateModal: false,
       showEditModal: false,
+      statusFilter: '',
+      calendarView: '',
+      showCreateModal: false,
       showTemplateModal: false,
       newProject: {
         name: '',
         description: '',
         status: 'planning',
         stakeholders: [],
-        milestones: {
-          projectedStart: '',
-          projectedEnd: '',
-          actualStart: '',
-          actualEnd: '',
-          dryRunDate: '',
-          reviewDeadline: ''
-        },
+        milestones: [],
         collections: [],
         publishedDocuments: []
       },
@@ -595,32 +568,35 @@ export default {
         description: '',
         status: 'planning',
         stakeholders: [],
-        milestones: {
-          projectedStart: '',
-          projectedEnd: '',
-          actualStart: '',
-          actualEnd: '',
-          dryRunDate: '',
-          reviewDeadline: ''
-        },
+        milestones: [],
         collections: [],
         publishedDocuments: []
       }
     }
   },
   computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
     projectMetrics() {
       const total = this.projects.length
       const active = this.projects.filter(p => p.status === 'active').length
       const completed = this.projects.filter(p => p.status === 'completed').length
       const stakeholders = this.projects.reduce((sum, p) => sum + (p.stakeholders?.length || 0), 0)
-      
       return {
         total,
         active,
         completed,
         stakeholders,
-        newThisMonth: Math.floor(total * 0.2), // Mock data
+        newThisMonth: Math.floor(total * 0.2),
         activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
         completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
       }
@@ -630,24 +606,54 @@ export default {
         return this.projects
       }
       return this.projects.filter(project => project.status === this.statusFilter)
+    },
+    calendarEvents() {
+      const events = []
+      this.projects.forEach(project => {
+        if (project.milestones && Array.isArray(project.milestones)) {
+          project.milestones.forEach(milestone => {
+            if (milestone.date) {
+              events.push({
+                id: `${project.id}-${milestone.name}`,
+                title: `${project.name}: ${milestone.name} (${milestone.status})`,
+                date: milestone.date,
+                type: 'milestone',
+                project: project.name,
+                status: milestone.status
+              })
+            }
+          })
+        }
+        if (project.created_at) {
+          events.push({
+            id: `${project.id}-created`,
+            title: `Project Created: ${project.name}`,
+            date: project.created_at.split('T')[0],
+            type: 'meeting',
+            project: project.name
+          })
+        }
+      })
+      if (this.calendarView === 'milestones') {
+        return events.filter(event => event.type === 'milestone')
+      }
+      return events
     }
   },
   methods: {
     async createProject() {
       try {
-        // For now, just add to local array - later we'll connect to API
         const project = {
           id: Date.now(),
           name: this.newProject.name,
           description: this.newProject.description,
           status: this.newProject.status,
           stakeholders: [...this.newProject.stakeholders],
-          milestones: { ...this.newProject.milestones },
+          milestones: [...this.newProject.milestones],
           collections: [...this.newProject.collections],
           publishedDocuments: [...this.newProject.publishedDocuments],
           created_at: new Date().toISOString()
         }
-        
         this.projects.push(project)
         this.showCreateModal = false
         this.resetNewProject()
@@ -655,8 +661,6 @@ export default {
         console.error('Failed to create project:', error)
       }
     },
-
-    // Dashboard specific methods
     filterByStatus(status) {
       this.statusFilter = status
     },
@@ -669,6 +673,10 @@ export default {
       // Mock export functionality
       alert('Export functionality would be implemented here')
     },
+
+    toggleCalendarView() {
+      this.calendarView = this.calendarView === 'milestones' ? 'all' : 'milestones'
+    },
     
     resetNewProject() {
       this.newProject = {
@@ -676,14 +684,7 @@ export default {
         description: '',
         status: 'planning',
         stakeholders: [],
-        milestones: {
-          projectedStart: '',
-          projectedEnd: '',
-          actualStart: '',
-          actualEnd: '',
-          dryRunDate: '',
-          reviewDeadline: ''
-        },
+        milestones: [],
         collections: [],
         publishedDocuments: []
       }
@@ -704,6 +705,16 @@ export default {
       return new Date(dateString).toLocaleDateString()
     },
 
+    formatMilestoneStatus(status) {
+      const statusMap = {
+        'planned': 'Planned',
+        'in-progress': 'In Progress',
+        'completed': 'Completed',
+        'overdue': 'Overdue'
+      }
+      return statusMap[status] || status
+    },
+
     editProject(project) {
       this.editingProject = {
         id: project.id,
@@ -711,14 +722,7 @@ export default {
         description: project.description,
         status: project.status,
         stakeholders: project.stakeholders ? [...project.stakeholders] : [],
-        milestones: project.milestones ? { ...project.milestones } : {
-          projectedStart: '',
-          projectedEnd: '',
-          actualStart: '',
-          actualEnd: '',
-          dryRunDate: '',
-          reviewDeadline: ''
-        },
+        milestones: project.milestones ? [...project.milestones] : [],
         collections: project.collections ? [...project.collections] : [],
         publishedDocuments: project.publishedDocuments ? [...project.publishedDocuments] : []
       }
@@ -736,7 +740,7 @@ export default {
             description: this.editingProject.description,
             status: this.editingProject.status,
             stakeholders: [...this.editingProject.stakeholders],
-            milestones: { ...this.editingProject.milestones },
+            milestones: [...this.editingProject.milestones],
             collections: [...this.editingProject.collections],
             publishedDocuments: [...this.editingProject.publishedDocuments]
           }
@@ -756,14 +760,7 @@ export default {
         description: '',
         status: 'planning',
         stakeholders: [],
-        milestones: {
-          projectedStart: '',
-          projectedEnd: '',
-          actualStart: '',
-          actualEnd: '',
-          dryRunDate: '',
-          reviewDeadline: ''
-        },
+        milestones: [],
         collections: [],
         publishedDocuments: []
       }
@@ -813,13 +810,96 @@ export default {
       target.publishedDocuments.splice(index, 1)
     },
 
+    // Milestone management methods
+    addMilestone(type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      target.milestones.push({
+        name: '',
+        date: '',
+        status: 'planned'
+      })
+      this.sortMilestones(type)
+    },
+
+    removeMilestone(index, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      target.milestones.splice(index, 1)
+    },
+
+    sortMilestones(type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      target.milestones.sort((a, b) => {
+        const dateA = a.date || '9999-12-31'
+        const dateB = b.date || '9999-12-31'
+        return dateA.localeCompare(dateB)
+      })
+    },
+
     hasActiveMilestones(project) {
-      if (!project.milestones) return false
-      return project.milestones.projectedStart || 
-             project.milestones.projectedEnd || 
-             project.milestones.dryRunDate ||
-             project.milestones.reviewDeadline
+      if (!project.milestones || !Array.isArray(project.milestones)) return false
+      return project.milestones.some(milestone => milestone.date)
     }
+  },
+  mounted() {
+    // Initialize sample projects with milestones for demonstration
+    this.projects = [
+      {
+        id: 1,
+        name: 'Census Data Portal Redesign',
+        description: 'Modernizing the main census data access portal with improved user experience and performance.',
+        status: 'active',
+        created_at: '2025-06-15T10:00:00Z',
+        stakeholders: [
+          { name: 'Sarah Johnson', role: 'Project Manager', email: 'sarah.johnson@census.gov' },
+          { name: 'Mike Chen', role: 'Lead Developer', email: 'mike.chen@census.gov' }
+        ],
+        milestones: [
+          { name: 'User Research Complete', date: '2025-07-15', status: 'completed' },
+          { name: 'Design Mockups', date: '2025-08-01', status: 'in-progress' },
+          { name: 'Frontend Development', date: '2025-09-15', status: 'planned' },
+          { name: 'User Testing', date: '2025-10-01', status: 'planned' },
+          { name: 'Production Deployment', date: '2025-10-30', status: 'planned' }
+        ],
+        collections: [],
+        publishedDocuments: []
+      },
+      {
+        id: 2,
+        name: 'Economic Survey Documentation',
+        description: 'Creating comprehensive documentation for the new economic indicators survey methodology.',
+        status: 'planning',
+        created_at: '2025-07-01T14:30:00Z',
+        stakeholders: [
+          { name: 'Dr. Lisa Park', role: 'Senior Economist', email: 'lisa.park@census.gov' }
+        ],
+        milestones: [
+          { name: 'Methodology Review', date: '2025-08-10', status: 'planned' },
+          { name: 'Draft Documentation', date: '2025-09-05', status: 'planned' },
+          { name: 'Stakeholder Review', date: '2025-09-20', status: 'planned' },
+          { name: 'Final Publication', date: '2025-10-15', status: 'planned' }
+        ],
+        collections: [],
+        publishedDocuments: []
+      },
+      {
+        id: 3,
+        name: 'Mobile App API Documentation',
+        description: 'Complete API documentation for the new Census mobile application developers.',
+        status: 'completed',
+        created_at: '2025-05-20T09:15:00Z',
+        stakeholders: [
+          { name: 'Alex Rodriguez', role: 'API Lead', email: 'alex.rodriguez@census.gov' }
+        ],
+        milestones: [
+          { name: 'API Specification', date: '2025-06-01', status: 'completed' },
+          { name: 'Code Examples', date: '2025-06-15', status: 'completed' },
+          { name: 'Testing Guide', date: '2025-07-01', status: 'completed' },
+          { name: 'Publication', date: '2025-07-15', status: 'completed' }
+        ],
+        collections: [],
+        publishedDocuments: []
+      }
+    ]
   }
 }
 </script>
@@ -923,6 +1003,11 @@ export default {
 }
 
 .filter-controls {
+  display: flex;
+  gap: 1rem;
+}
+
+.calendar-controls {
   display: flex;
   gap: 1rem;
 }
@@ -1097,6 +1182,42 @@ export default {
 .status-badge.on_hold {
   background: #fed7d7;
   color: #c53030;
+}
+
+.project-milestones .milestone-item {
+  font-size: 0.8rem;
+  color: #6b7280;
+  margin-bottom: 0.25rem;
+}
+
+.milestone-date.completed {
+  color: #059669;
+  font-weight: 500;
+}
+
+.milestone-date.in-progress {
+  color: #0369a1;
+  font-weight: 500;
+}
+
+.milestone-date.overdue {
+  color: #dc2626;
+  font-weight: 500;
+}
+
+.milestone-date.planned {
+  color: #6b7280;
+}
+
+.milestone-status {
+  font-size: 0.75rem;
+  opacity: 0.8;
+}
+
+.project-milestones .milestone-more {
+  font-size: 0.75rem;
+  color: #9ca3af;
+  font-style: italic;
 }
 
 .project-description {
@@ -1313,14 +1434,14 @@ export default {
   margin-bottom: 1rem;
 }
 
-/* Stakeholder, Collection, Document Styles */
-.stakeholders-list, .collections-list, .documents-list {
+/* Stakeholder, Collection, Document, Milestone Styles */
+.stakeholders-list, .collections-list, .documents-list, .milestones-list {
   background: white;
   border-radius: 6px;
   padding: 1rem;
 }
 
-.stakeholder-item, .collection-item, .document-item {
+.stakeholder-item, .collection-item, .document-item, .milestone-item {
   display: grid;
   gap: 0.75rem;
   margin-bottom: 1rem;
@@ -1345,7 +1466,12 @@ export default {
   align-items: center;
 }
 
-.stakeholder-input, .collection-input, .document-input {
+.milestone-item {
+  grid-template-columns: 2fr 1fr 1fr auto;
+  align-items: center;
+}
+
+.stakeholder-input, .collection-input, .document-input, .milestone-input {
   padding: 0.5rem;
   border: 1px solid #d1d5db;
   border-radius: 4px;
@@ -1353,7 +1479,7 @@ export default {
   box-sizing: border-box;
 }
 
-.stakeholder-input:focus, .collection-input:focus, .document-input:focus {
+.stakeholder-input:focus, .collection-input:focus, .document-input:focus, .milestone-input:focus {
   outline: none;
   border-color: #005a9c;
   box-shadow: 0 0 0 2px rgba(0, 90, 156, 0.1);
