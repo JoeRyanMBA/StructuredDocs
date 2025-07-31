@@ -1,4 +1,9 @@
 <template>
+  <NotificationTicker
+    :notifications="mergedNotifications"
+    contextType="global"
+    @mark-read="markNotificationRead"
+  />
   <div class="projects-dashboard">
     <!-- Dashboard Header -->
      <div class="dashboard-header">
@@ -521,19 +526,32 @@
 <script>
 import Breadcrumbs from '../components/Breadcrumbs.vue'
 import CalendarWidget from '../components/CalendarWidget.vue'
+import NotificationTicker from '../components/NotificationTicker.vue'
 
 export default {
-  name: 'ProjectsView',
-  components: {
-    Breadcrumbs,
-    CalendarWidget
+  components: { Breadcrumbs, CalendarWidget, NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
   },
   data() {
     return {
+      // ...existing data properties...
       projects: [],
-      statusFilter: '',
-      showCreateModal: false,
       showEditModal: false,
+      statusFilter: '',
+      calendarView: '',
+      showCreateModal: false,
       showTemplateModal: false,
       newProject: {
         name: '',
@@ -553,23 +571,32 @@ export default {
         milestones: [],
         collections: [],
         publishedDocuments: []
-      },
-      calendarView: 'milestones' // 'milestones' or 'all'
+      }
     }
   },
   computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
     projectMetrics() {
       const total = this.projects.length
       const active = this.projects.filter(p => p.status === 'active').length
       const completed = this.projects.filter(p => p.status === 'completed').length
       const stakeholders = this.projects.reduce((sum, p) => sum + (p.stakeholders?.length || 0), 0)
-      
       return {
         total,
         active,
         completed,
         stakeholders,
-        newThisMonth: Math.floor(total * 0.2), // Mock data
+        newThisMonth: Math.floor(total * 0.2),
         activePercentage: total > 0 ? Math.round((active / total) * 100) : 0,
         completionRate: total > 0 ? Math.round((completed / total) * 100) : 0
       }
@@ -582,9 +609,7 @@ export default {
     },
     calendarEvents() {
       const events = []
-      
       this.projects.forEach(project => {
-        // Add milestone events
         if (project.milestones && Array.isArray(project.milestones)) {
           project.milestones.forEach(milestone => {
             if (milestone.date) {
@@ -599,8 +624,6 @@ export default {
             }
           })
         }
-        
-        // Add project creation date as an event
         if (project.created_at) {
           events.push({
             id: `${project.id}-created`,
@@ -611,19 +634,15 @@ export default {
           })
         }
       })
-      
-      // Filter events based on calendar view
       if (this.calendarView === 'milestones') {
         return events.filter(event => event.type === 'milestone')
       }
-      
       return events
     }
   },
   methods: {
     async createProject() {
       try {
-        // For now, just add to local array - later we'll connect to API
         const project = {
           id: Date.now(),
           name: this.newProject.name,
@@ -635,7 +654,6 @@ export default {
           publishedDocuments: [...this.newProject.publishedDocuments],
           created_at: new Date().toISOString()
         }
-        
         this.projects.push(project)
         this.showCreateModal = false
         this.resetNewProject()
@@ -643,8 +661,6 @@ export default {
         console.error('Failed to create project:', error)
       }
     },
-
-    // Dashboard specific methods
     filterByStatus(status) {
       this.statusFilter = status
     },
@@ -744,14 +760,7 @@ export default {
         description: '',
         status: 'planning',
         stakeholders: [],
-        milestones: {
-          projectedStart: '',
-          projectedEnd: '',
-          actualStart: '',
-          actualEnd: '',
-          dryRunDate: '',
-          reviewDeadline: ''
-        },
+        milestones: [],
         collections: [],
         publishedDocuments: []
       }

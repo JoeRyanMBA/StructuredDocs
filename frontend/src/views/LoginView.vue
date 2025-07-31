@@ -324,7 +324,7 @@ export default {
 }
 
 .login-header {
-  background: #112e51;
+  background: #205493;
   color: white;
   padding: 2rem;
   text-align: center;
@@ -353,7 +353,7 @@ export default {
 
 .login-form-container h2 {
   margin: 0 0 0.5rem 0;
-  color: #112e51;
+  color: #205493;
   font-size: 1.5rem;
   font-weight: 600;
 }
@@ -372,7 +372,7 @@ export default {
   display: block;
   margin-bottom: 0.5rem;
   font-weight: 600;
-  color: #112e51;
+  color: #205493;
   font-size: 0.9rem;
 }
 
@@ -507,7 +507,7 @@ export default {
 
 .modal-header h2 {
   margin: 0;
-  color: #112e51;
+  color: #205493;
   font-size: 1.5rem;
   font-weight: 600;
 }
@@ -524,7 +524,7 @@ export default {
 }
 
 .close-btn:hover {
-  color: #112e51;
+  color: #205493;
   background: #f3f4f6;
 }
 

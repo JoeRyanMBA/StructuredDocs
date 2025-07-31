@@ -120,7 +120,7 @@ export default {
   right: 0;
   height: 60px;
   background: #fff;
-  color: #112e51;
+  color: #205493;
   display: flex;
   align-items: center;
   justify-content: space-between;

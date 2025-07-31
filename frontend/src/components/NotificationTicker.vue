@@ -75,11 +75,12 @@ export default {
 
 <style scoped>
 .notification-ticker {
-  background: #f9fafb;
-  border-bottom: 1px solid #e5e7eb;
-  padding: 0.5rem 1rem;
+  margin-bottom: 1rem;
+  padding: 0.5rem;
+  background: #ff6f4336;
+  border-radius: 6px;
+  border-left: 6px solid #ff7043;
   display: flex;
-  align-items: center;
   position: relative;
   overflow: hidden;
   min-height: 48px;
@@ -93,13 +94,13 @@ export default {
 }
 .notification-item {
   padding: 0.25rem 0;
-  font-size: 1rem;
-  color: #374151;
+  font-size: .875rem;
+  color: #333333;
   transition: background 0.2s;
 }
-.notification-item.unread {
-  font-weight: 600;
-  background: #fffbe6;
+ .notification-item.unread {
+  font-weight: normal;
+
 }
 .notification-link {
   text-decoration: none;

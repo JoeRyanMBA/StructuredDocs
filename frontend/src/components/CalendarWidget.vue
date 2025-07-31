@@ -145,7 +145,7 @@ export default {
 
 .month-year {
   margin: 0;
-  color: #112e51;
+  color: #205493;
   font-size: 1.2rem;
   font-weight: 600;
 }

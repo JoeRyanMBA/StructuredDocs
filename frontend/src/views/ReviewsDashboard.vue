@@ -1,5 +1,12 @@
 <template>
   <div class="reviews-dashboard">
+    <div class="full-width" style="margin-bottom:1.5rem;">
+      <NotificationTicker
+        :notifications="mergedNotifications"
+        contextType="reviews"
+        @mark-read="markNotificationRead"
+      />
+    </div>
     <div class="dashboard-header">
       <h1>Reviews Dashboard</h1>
       <p class="welcome-text">Manage topic reviews and stakeholder feedback</p>
@@ -172,9 +179,25 @@
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
+
 export default {
   name: 'ReviewsDashboard',
-  
+  components: { NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
   data() {
     return {
       loading: true,
@@ -191,6 +214,19 @@ export default {
 
   async created() {
     await this.loadDashboardData()
+  },
+
+  computed: {
+    mergedNotifications() {
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
   },
 
   methods: {
@@ -385,10 +421,7 @@ export default {
 
 <style scoped>
 .reviews-dashboard {
-  padding-top: 0;
-  padding-right: 2rem;
-  padding-bottom: 2rem;
-  padding-left: 2rem;
+  padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }

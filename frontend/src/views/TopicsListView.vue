@@ -459,7 +459,7 @@ td {
 .modal-header h3 {
   margin: 0;
   font-size: 1.25rem;
-  color: #112e51;
+  color: #205493;
 }
 
 .close-button {

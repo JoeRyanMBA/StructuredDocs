@@ -9,6 +9,7 @@ import AdminUserManagement from '../views/AdminUserManagement.vue'
 import SystemLogs from '../views/SystemLogs.vue'
 import PerformanceMetrics from '../views/PerformanceMetrics.vue'
 import ProfileView from '../views/ProfileView.vue'
+import EditNotification from '../views/EditNotification.vue'
 
 // All routes
 const routes = [
@@ -68,6 +69,35 @@ const routes = [
       }
     }
   },
+  {
+    path: '/notifications/new',
+    name: 'CreateNotification',
+    component: () => import('@/views/CreateNotificationView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/notifications/edit/:id',
+    name: 'EditNotification',
+    component: EditNotification,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  
   {
     path: '/profile',
     name: 'Profile',
@@ -157,10 +187,10 @@ const routes = [
     name: 'PublicationsHome',
     component: () => import('@/views/PublishDashboard.vue')
   },
-    {
-    path: '/publications/all',
-    name: 'AllPublications',
-    component: () => import('@/views/PublicationsHome.vue')
+  {
+    path: '/publications/list',
+    name: 'PublicationsList',
+    component: () => import('@/views/PublicationsListView.vue')
   },
   {
     path: '/publications/:id',
@@ -207,7 +237,8 @@ const routes = [
   // 🛠️ Catch-all fallback
   {
     path: '/:catchAll(.*)',
-    redirect: { name: 'TopicsList' }
+    name: 'CatchAll',
+    component: StartPage
   }
 ]
 

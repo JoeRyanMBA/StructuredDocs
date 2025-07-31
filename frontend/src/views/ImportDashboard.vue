@@ -1,5 +1,12 @@
 <template>
   <div class="import-dashboard">
+    <div class="full-width" style="margin-bottom:1.5rem;">
+      <NotificationTicker
+        :notifications="mergedNotifications"
+        contextType="import"
+        @mark-read="markNotificationRead"
+      />
+    </div>
     <div class="dashboard-header">
       <h1>Import Dashboard</h1>
       <p class="welcome-text">Import and manage your document imports</p>
@@ -170,9 +177,25 @@
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
+
 export default {
   name: 'ImportDashboard',
-  
+  components: { NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
   data() {
     return {
       loading: true,
@@ -189,6 +212,19 @@ export default {
 
   async created() {
     await this.loadDashboardData()
+  },
+
+  computed: {
+    mergedNotifications() {
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
   },
 
   methods: {

@@ -1,12 +1,10 @@
 # backend/models.py
 
 from datetime import datetime
-from flask_sqlalchemy import SQLAlchemy
 from sqlalchemy import Enum, ForeignKey, func
 from sqlalchemy.orm import relationship
 from sqlalchemy import Table, Column, Integer
-
-db = SQLAlchemy()
+from backend import db
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -307,3 +305,26 @@ class PublicationNode(db.Model):
         remote_side=[id],
         back_populates='children'
     )
+
+class Notification(db.Model):
+    __tablename__ = 'notifications'
+    id = db.Column(db.Integer, primary_key=True)
+    user_id = db.Column(db.Integer, nullable=True)  # Null for global notifications
+    title = db.Column(db.String(128), nullable=False)
+    message = db.Column(db.String(256), nullable=False)
+    link = db.Column(db.String(256), nullable=True)
+    type = db.Column(db.String(32), nullable=False, default='global')
+    date = db.Column(db.DateTime, default=datetime.utcnow)
+    read = db.Column(db.Boolean, default=False)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'user_id': self.user_id,
+            'title': self.title,
+            'message': self.message,
+            'link': self.link,
+            'type': self.type,
+            'date': self.date.isoformat() if self.date else None,
+            'read': self.read
+        }

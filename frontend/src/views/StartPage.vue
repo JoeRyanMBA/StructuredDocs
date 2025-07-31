@@ -1,155 +1,112 @@
 <template>
-<NotificationTicker
-  :notifications="notifications"
-  contextType="global"
-  @mark-read="markNotificationRead"
-/>
+  <NotificationTicker
+    :notifications="allNotifications"
+    contextType="global"
+    @mark-read="markNotificationRead"
+  />
   <div class="dashboard">
+<!--    <div style="color: red; font-weight: bold; margin-bottom: 2rem;">
+      DEBUG: StartPage.vue rendered. loading={{ loading }} projects={{ projects.length }}
+    </div>-->
     <div class="dashboard-header">
-      <h1>Dashboard</h1>
-      <p class="welcome-text">Welcome to the SCCMB Documentation Project Hub.</p>
+      <h1>Documentation Project Hub Dashboard</h1>
+      <p class="welcome-text">Welcome, {{ $route?.meta?.user?.name || 'User' }}!</p>
     </div>
-
-    <!-- Key Metrics Cards -->
-    <div class="metrics-grid">
-      <div class="metric-card" @click="navigateTo('/projects')">
-        <div class="metric-icon">📊</div>
-        <div class="metric-content">
-          <h3>Projects</h3>
-          <div class="metric-number">{{ stats.projects?.total || 0 }}</div>
-          <div class="metric-detail">{{ stats.projects?.active || 0 }} Active</div>
-        </div>
-      </div>
-
-      <div class="metric-card" @click="navigateTo('/collections')">
-        <div class="metric-icon">📚</div>
-        <div class="metric-content">
-          <h3>Collections</h3>
-          <div class="metric-number">{{ stats.collections?.total || 0 }}</div>
-          <div class="metric-detail">{{ stats.collections?.new_today || 0 }} New Today</div>
-        </div>
-      </div>
-
-      <div class="metric-card" @click="navigateTo('/topics')">
-        <div class="metric-icon">📝</div>
-        <div class="metric-content">
-          <h3>Topics</h3>
-          <div class="metric-number">{{ stats.topics?.total || 0 }}</div>
-          <div class="metric-detail">{{ stats.topics?.drafts || 0 }} Drafts</div>
-        </div>
-      </div>
-
-      <div class="metric-card" @click="navigateTo('/reviews')">
-        <div class="metric-icon">✅</div>
-        <div class="metric-content">
-          <h3>Reviews</h3>
-          <div class="metric-number">{{ stats.reviews?.total || 0 }}</div>
-          <div class="metric-detail">{{ stats.reviews?.pending || 0 }} Pending</div>
-        </div>
-      </div>
+    <div v-if="loading" class="loading-overlay">
+      <span class="loading-spinner">Loading dashboard...</span>
     </div>
-
-    <!-- Main Content Grid -->
-    <div class="content-grid">
-      
-      <!-- Pending Actions -->
-      <div class="dashboard-section">
-        <h2>Pending Actions</h2>
-        <div class="action-list">
-          <div v-if="pendingActions.length === 0" class="empty-state">
-            <p>No pending actions - great work! 🎉</p>
+    <div v-else>
+      <div class="metrics-grid">
+        <div class="metric-card" @click="navigateTo('/projects')" style="cursor:pointer;">
+          <div class="metric-icon">📁</div>
+          <div class="metric-content">
+            <h3>Projects</h3>
+            <div class="metric-number">{{ stats.projects.total }}</div>
+            <div class="metric-detail">Active: {{ stats.projects.active }}</div>
           </div>
-          <div v-else>
-            <div 
-              v-for="action in pendingActions" 
-              :key="`${action.type}-${action.id}`"
-              class="action-item"
-              @click="handleActionClick(action)"
-            >
-              <div class="action-icon">{{ action.icon }}</div>
-              <div class="action-content">
-                <div class="action-title">{{ action.title }}</div>
-                <div class="action-description">{{ action.description }}</div>
-                <div class="action-meta">{{ action.meta }}</div>
-              </div>
-            </div>
+        </div>
+        <div class="metric-card" @click="navigateTo('/collections')" style="cursor:pointer;">
+          <div class="metric-icon">📚</div>
+          <div class="metric-content">
+            <h3>Collections</h3>
+            <div class="metric-number">{{ stats.collections.total }}</div>
+            <div class="metric-detail">New Today: {{ stats.collections.new_today }}</div>
+          </div>
+        </div>
+        <div class="metric-card" @click="navigateTo('/topics')" style="cursor:pointer;">
+          <div class="metric-icon">📝</div>
+          <div class="metric-content">
+            <h3>Topics</h3>
+            <div class="metric-number">{{ stats.topics.total }}</div>
+            <div class="metric-detail">Drafts: {{ stats.topics.drafts }}</div>
+          </div>
+        </div>
+        <div class="metric-card" @click="navigateTo('/reviews')" style="cursor:pointer;">
+          <div class="metric-icon">🔎</div>
+          <div class="metric-content">
+            <h3>Reviews</h3>
+            <div class="metric-number">{{ stats.reviews.total }}</div>
+            <div class="metric-detail">Pending: {{ stats.reviews.pending }}</div>
           </div>
         </div>
       </div>
-
-      <!-- Recent Activity -->
-      <div class="dashboard-section">
-        <h2>Recent Activity</h2>
-        <div class="activity-list">
-          <div v-if="recentActivity.length === 0" class="empty-state">
-            <p>No recent activity</p>
-          </div>
-          <div v-else>
-            <div 
-              v-for="activity in recentActivity" 
-              :key="`${activity.type}-${activity.id}-${activity.timestamp}`"
-              class="activity-item"
-            >
-              <div class="activity-icon">{{ activity.icon }}</div>
-              <div class="activity-content">
-                <div class="activity-title">{{ activity.title }}</div>
-                <div class="activity-description">{{ activity.description }}</div>
-                <div class="activity-time">{{ formatRelativeTime(activity.timestamp) }}</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-      <!-- Calendar Overview -->
-      <div class="dashboard-section">
-        <h2>Calendar Overview</h2>
-        <CalendarWidget :events="calendarEvents" :showLegend="false" />
-      </div>
-
-      <!-- Project Status Overview -->
-      <div class="dashboard-section full-width">
-        <h2>Project Status Overview</h2>
-        <div class="project-overview">
+      <div class="content-grid">
+        <div class="dashboard-section">
+          <h2>Projects Overview</h2>
           <div v-if="projects.length === 0" class="empty-state">
-            <p>No projects found. <router-link to="/projects">Create your first project</router-link></p>
+            <p>No projects found.</p>
           </div>
           <div v-else class="project-list">
-            <div 
-              v-for="project in projects" 
-              :key="project.id"
-              class="project-item"
-              @click="navigateTo(`/projects/${project.id}`)"
-            >
+            <div v-for="project in projects" :key="project.id" class="project-item">
               <div class="project-header">
                 <h4>{{ project.name }}</h4>
-                <span class="project-status" :class="project.status">{{ formatStatus(project.status) }}</span>
+                <span :class="['project-status', formatStatus(project.status)]">{{ formatStatus(project.status) }}</span>
               </div>
-              <p class="project-description">{{ project.description }}</p>
+              <div class="project-description">{{ project.description }}</div>
               <div class="project-metrics">
-                <span class="project-metric">
-                  <span class="metric-label">Collections:</span>
-                  {{ project.collections_count || 0 }}
-                </span>
-                <span class="project-metric">
-                  <span class="metric-label">Reviews:</span>
-                  {{ project.active_reviews_count || 0 }}
-                </span>
-                <span class="project-metric">
-                  <span class="metric-label">Stakeholders:</span>
-                  {{ project.stakeholders_count || 0 }}
-                </span>
+                <span class="project-metric"><span class="metric-label">Created:</span> {{ formatRelativeTime(project.created_at) }}</span>
+                <span v-if="project.milestones && project.milestones.length" class="project-metric"><span class="metric-label">Milestones:</span> {{ project.milestones.length }}</span>
               </div>
             </div>
           </div>
         </div>
+        <div class="dashboard-section">
+          <h2>Pending Actions</h2>
+          <div v-if="pendingActions.length === 0" class="empty-state">
+            <p>No pending actions.</p>
+          </div>
+          <div v-else class="action-list">
+            <div v-for="action in pendingActions" :key="action.id" class="action-item" @click="handleActionClick(action)">
+              <div class="action-icon">⚡</div>
+              <div class="action-content">
+                <div class="action-title">{{ action.title || action.name }}</div>
+                <div class="action-description">{{ action.description }}</div>
+                <div class="action-meta">{{ formatRelativeTime(action.created_at) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-section full-width">
+          <h2>Recent Activity</h2>
+          <div v-if="recentActivity.length === 0" class="empty-state">
+            <p>No recent activity.</p>
+          </div>
+          <div v-else class="activity-list">
+            <div v-for="activity in recentActivity" :key="activity.id" class="activity-item">
+              <div class="activity-icon">🔔</div>
+              <div class="activity-content">
+                <div class="activity-title">{{ activity.title || activity.name }}</div>
+                <div class="activity-description">{{ activity.description }}</div>
+                <div class="activity-time">{{ formatRelativeTime(activity.created_at) }}</div>
+              </div>
+            </div>
+          </div>
+        </div>
+        <div class="dashboard-section">
+          <h2>Calendar</h2>
+          <CalendarWidget :events="calendarEvents" />
+        </div>
       </div>
-
-    </div>
-
-    <!-- Loading State -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner">Loading dashboard...</div>
     </div>
   </div>
 </template>
@@ -159,60 +116,58 @@ import NotificationTicker from '../components/NotificationTicker.vue'
 import CalendarWidget from '../components/CalendarWidget.vue'
 
 export default {
-name: 'Dashboard',
-components: {
-  NotificationTicker,
-  CalendarWidget
-},
-data() {
-  return {
-    loading: true,
-    stats: {
-      projects: { total: 0, active: 0 },
-      collections: { total: 0, new_today: 0 },
-      topics: { total: 0, drafts: 0 },
-      reviews: { total: 0, pending: 0 }
+  name: 'StartPage',
+  components: { NotificationTicker, CalendarWidget },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
     },
-    projects: [],
-    pendingActions: [],
-    recentActivity: [],
-    notifications: []
-  }
-},
-async mounted() {
-  await this.fetchNotifications()
-},
-methods: {
-  async fetchNotifications() {
-    try {
-      const res = await fetch('/api/notifications', {
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
-      if (res.ok) {
-        this.notifications = await res.json()
-      }
-    } catch (err) {
-      console.error('Failed to fetch notifications:', err)
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    dashboardNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
     }
   },
-  async markNotificationRead(id) {
-    try {
-      await fetch(`/api/notifications/${id}`, {
-        method: 'PATCH',
-        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
-      })
-      this.notifications = this.notifications.map(n => n.id === id ? { ...n, read: true } : n)
-    } catch (err) {
-      console.error('Failed to mark notification as read:', err)
+  data() {
+    return {
+      loading: true,
+      stats: {
+        projects: { total: 0, active: 0 },
+        collections: { total: 0, new_today: 0 },
+        topics: { total: 0, drafts: 0 },
+        reviews: { total: 0, pending: 0 }
+      },
+      projects: [],
+      pendingActions: [],
+      recentActivity: []
     }
-  }
-},
-computed: {
-  calendarEvents() {
-    const events = []
-    // Generate events from projects with milestones
+  },
+  computed: {
+    allNotifications() {
+      const all = [
+        ...(this.globalNotifications || []),
+        ...(this.dashboardNotifications || []),
+        ...(this.notifications || [])
+      ]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
+    calendarEvents() {
+      const events = [];
       this.projects.forEach(project => {
-        // Add project milestones if they exist
         if (project.milestones && Array.isArray(project.milestones)) {
           project.milestones.forEach(milestone => {
             if (milestone.date) {
@@ -222,229 +177,136 @@ computed: {
                 date: milestone.date,
                 type: 'milestone',
                 project: project.name
-              })
+              });
             }
-          })
+          });
         }
-        
-        // Add project creation date
         if (project.created_at) {
-          const createdDate = project.created_at.split('T')[0]
+          const createdDate = project.created_at.split('T')[0];
           events.push({
             id: `${project.id}-created`,
             title: `Project Created: ${project.name}`,
             date: createdDate,
             type: 'meeting',
             project: project.name
-          })
+          });
         }
-      })
-      
-      // Add mock upcoming deadlines for demonstration
-      const today = new Date()
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000)
-      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000)
-      
-      events.push(
-        {
-          id: 'deadline-1',
-          title: 'Quarterly Review Deadline',
-          date: nextWeek.toISOString().split('T')[0],
-          type: 'deadline'
-        },
-        {
-          id: 'meeting-1',
-          title: 'Stakeholder Meeting',
-          date: nextMonth.toISOString().split('T')[0],
-          type: 'meeting'
-        }
-      )
-      
-      return events
+      });
+      const today = new Date();
+      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
+      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
+      events.push({
+        id: 'deadline-1',
+        title: 'Quarterly Review Deadline',
+        date: nextWeek.toISOString().split('T')[0],
+        type: 'deadline'
+      });
+      events.push({
+        id: 'meeting-1',
+        title: 'Stakeholder Meeting',
+        date: nextMonth.toISOString().split('T')[0],
+        type: 'meeting'
+      });
+      return events;
     }
   },
-
-  async created() {
-    await this.loadDashboardData()
+  created() {
+    this.loadDashboardData()
   },
-
   methods: {
-    async loadDashboardData() {
-      this.loading = true
-      try {
-        await Promise.all([
-          this.loadStats(),
-          this.loadProjects(),
-          this.loadPendingActions(),
-          this.loadRecentActivity()
-        ])
-      } catch (error) {
-        console.error('Failed to load dashboard data:', error)
-      } finally {
-        this.loading = false
-      }
+    loadDashboardData() {
+      this.loading = true;
+      Promise.all([
+        this.loadStats(),
+        this.loadProjects(),
+        this.loadPendingActions(),
+        this.loadRecentActivity()
+      ]).catch(error => {
+        console.error('Failed to load dashboard data:', error);
+      }).finally(() => {
+        this.loading = false;
+      });
     },
-
     async loadStats() {
       try {
-        // Load projects stats
-        const projectsRes = await fetch('/api/projects/')
+        const projectsRes = await fetch('/api/projects/');
         if (projectsRes.ok) {
-          const projects = await projectsRes.json()
+          const projects = await projectsRes.json();
           this.stats.projects = {
             total: projects.length,
             active: projects.filter(p => p.status === 'active').length
-          }
+          };
         }
-
-        // Load collections stats
-        const collectionsRes = await fetch('/api/collections/')
+        const collectionsRes = await fetch('/api/collections/');
         if (collectionsRes.ok) {
-          const collections = await collectionsRes.json()
-          const today = new Date().toDateString()
+          const collections = await collectionsRes.json();
           this.stats.collections = {
             total: collections.length,
-            new_today: collections.filter(c => 
-              c.created_at && new Date(c.created_at).toDateString() === today
-            ).length
-          }
+            new_today: collections.filter(c => {
+              const created = new Date(c.created_at);
+              const today = new Date();
+              return created.toDateString() === today.toDateString();
+            }).length
+          };
         }
-
-        // Load topics stats
-        const topicsRes = await fetch('/api/topics/')
+        const topicsRes = await fetch('/api/topics/');
         if (topicsRes.ok) {
-          const topics = await topicsRes.json()
+          const topics = await topicsRes.json();
           this.stats.topics = {
             total: topics.length,
             drafts: topics.filter(t => t.status === 'draft').length
-          }
+          };
         }
-
-        // Load reviews stats
-        const reviewsRes = await fetch('/api/reviews/stats')
+        const reviewsRes = await fetch('/api/reviews/stats');
         if (reviewsRes.ok) {
-          const reviewStats = await reviewsRes.json()
+          const reviews = await reviewsRes.json();
           this.stats.reviews = {
-            total: reviewStats.total_reviews || 0,
-            pending: reviewStats.pending_reviews || 0
-          }
+            total: reviews.topics.pending_review + reviews.topics.draft + reviews.topics.published,
+            pending: reviews.topics.pending_review
+          };
         }
       } catch (error) {
-        console.error('Failed to load stats:', error)
+        console.error('Failed to load stats:', error);
       }
     },
-
     async loadProjects() {
       try {
-        const res = await fetch('/api/projects/')
+        const res = await fetch('/api/projects/');
         if (res.ok) {
-          this.projects = await res.json()
+          this.projects = await res.json();
         }
       } catch (error) {
-        console.error('Failed to load projects:', error)
+        console.error('Failed to load projects:', error);
       }
     },
-
     async loadPendingActions() {
       try {
-        const actions = []
-
-        // Check for topics needing review
-        const topicsRes = await fetch('/api/reviews/topics/pending')
-        if (topicsRes.ok) {
-          const pendingTopics = await topicsRes.json()
-          pendingTopics.slice(0, 3).forEach(topic => {
-            actions.push({
-              type: 'topic_review',
-              id: topic.id,
-              icon: '📝',
-              title: `Review "${topic.title}"`,
-              description: 'Topic needs review',
-              meta: `Created ${this.formatRelativeTime(topic.created_at)}`,
-              link: `/topics/${topic.id}/review`
-            })
-          })
+        const res = await fetch('/api/reviews/topics/pending');
+        if (res.ok) {
+          this.pendingActions = await res.json();
         }
-
-        // Check for import documents needing approval
-        const importsRes = await fetch('/api/import/history')
-        if (importsRes.ok) {
-          const imports = await importsRes.json()
-          const pending = imports.filter(imp => imp.status === 'staging').slice(0, 3)
-          pending.forEach(imp => {
-            actions.push({
-              type: 'import_review',
-              id: imp.id,
-              icon: '📥',
-              title: `Review Import: ${imp.filename}`,
-              description: 'Import document needs approval',
-              meta: `Imported ${this.formatRelativeTime(imp.created_at)}`,
-              link: `/import/${imp.id}/review`
-            })
-          })
-        }
-
-        this.pendingActions = actions.slice(0, 5) // Limit to 5 items
       } catch (error) {
-        console.error('Failed to load pending actions:', error)
+        console.error('Failed to load pending actions:', error);
       }
     },
-
     async loadRecentActivity() {
       try {
-        const activities = []
-
-        // Get recent topics
-        const topicsRes = await fetch('/api/topics/')
-        if (topicsRes.ok) {
-          const topics = await topicsRes.json()
-          topics.slice(0, 3).forEach(topic => {
-            activities.push({
-              type: 'topic',
-              id: topic.id,
-              icon: '📝',
-              title: topic.title,
-              description: `Status: ${this.formatStatus(topic.status)}`,
-              timestamp: topic.updated_at || topic.created_at
-            })
-          })
+        const res = await fetch('/api/import/history');
+        if (res.ok) {
+          this.recentActivity = await res.json();
         }
-
-        // Get recent imports
-        const importsRes = await fetch('/api/import/history')
-        if (importsRes.ok) {
-          const imports = await importsRes.json()
-          imports.slice(0, 3).forEach(imp => {
-            activities.push({
-              type: 'import',
-              id: imp.id,
-              icon: '📥',
-              title: `Import: ${imp.filename}`,
-              description: `Status: ${this.formatStatus(imp.status)}`,
-              timestamp: imp.created_at
-            })
-          })
-        }
-
-        // Sort by timestamp and limit
-        this.recentActivity = activities
-          .sort((a, b) => new Date(b.timestamp) - new Date(a.timestamp))
-          .slice(0, 6)
       } catch (error) {
-        console.error('Failed to load recent activity:', error)
+        console.error('Failed to load recent activity:', error);
       }
     },
-
     navigateTo(path) {
       this.$router.push(path)
     },
-
     handleActionClick(action) {
       if (action.link) {
         this.navigateTo(action.link)
       }
     },
-
     formatStatus(status) {
       const statusMap = {
         'draft': 'Draft',
@@ -462,23 +324,24 @@ computed: {
       }
       return statusMap[status] || status
     },
-
     formatRelativeTime(timestamp) {
       if (!timestamp) return 'Unknown'
-      
       const now = new Date()
       const time = new Date(timestamp)
       const diffMs = now - time
       const diffMins = Math.floor(diffMs / 60000)
       const diffHours = Math.floor(diffMs / 3600000)
       const diffDays = Math.floor(diffMs / 86400000)
-
       if (diffMins < 1) return 'Just now'
       if (diffMins < 60) return `${diffMins}m ago`
       if (diffHours < 24) return `${diffHours}h ago`
       if (diffDays < 7) return `${diffDays}d ago`
-      
       return time.toLocaleDateString()
+    }
+  },
+  watch: {
+    '$route' (to, from) {
+      this.loadDashboardData()
     }
   }
 }

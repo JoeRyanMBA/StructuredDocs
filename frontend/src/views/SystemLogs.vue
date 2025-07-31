@@ -1,5 +1,6 @@
 <template>
   <div class="system-logs">
+    <breadcrumbs />
     <div class="header">
       <h2>System Logs</h2>
       <div class="controls">
@@ -147,9 +148,13 @@
 
 <script>
 import axios from 'axios'
+import Breadcrumbs from '../components/Breadcrumbs.vue'
 
 export default {
   name: 'SystemLogs',
+  components: {
+    Breadcrumbs
+  },
   data() {
     return {
       logs: [],

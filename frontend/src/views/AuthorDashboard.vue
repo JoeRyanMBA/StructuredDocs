@@ -1,5 +1,12 @@
 <template>
   <div class="author-dashboard">
+    <div class="full-width" style="margin-bottom:1.5rem;">
+      <NotificationTicker
+        :notifications="mergedNotifications"
+        contextType="author"
+        @mark-read="markNotificationRead"
+      />
+    </div>
     <div class="dashboard-header">
       <h1>Author Dashboard</h1>
       <p class="welcome-text">Create and manage your content</p>
@@ -326,7 +333,31 @@ export default {
       const templates = {
         'procedure': '/topics/new?template=procedure',
         'reference': '/topics/new?template=reference',
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
         'faq': '/topics/new?template=faq',
+    mergedNotifications() {
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
         'blank': '/topics/new'
       }
       this.navigateTo(templates[type])

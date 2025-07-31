@@ -36,17 +36,23 @@ export default {
           icon: '🎯',
           route: 'Projects'
         },
+                {
+          key: 'collections',
+          label: 'Collections',
+          icon: '📑',
+          route: 'Collections'
+        },
+                {
+          key: 'topics',
+          label: 'Topics',
+          icon: '📝',
+          route: 'TopicsList'
+        },
         {
           key: 'author',
           label: 'Author',
           icon: '✏️',
           route: 'AuthorHome'
-        },
-        {
-          key: 'collections',
-          label: 'Collections',
-          icon: '📑',
-          route: 'Collections'
         },
         {
           key: 'import',
@@ -60,12 +66,7 @@ export default {
           icon: '📤',
           route: 'PublicationsHome'
         },
-        {
-          key: 'topics',
-          label: 'Topics',
-          icon: '📝',
-          route: 'TopicsList'
-        },
+
         {
           key: 'reviews',
           label: 'Reviews',
