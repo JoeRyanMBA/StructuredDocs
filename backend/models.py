@@ -134,7 +134,7 @@ class Topic(db.Model):
 
     # Draft → Published → Archived
     status = db.Column(
-        Enum('draft', 'published', 'archived', name='topic_status'),
+        Enum('draft', 'pending_review', 'published', 'rejected', 'archived', name='topic_status'),
         nullable=False,
         default='draft',
         server_default='draft'

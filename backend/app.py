@@ -4,13 +4,16 @@ from flask import Flask, jsonify
 from flask_cors import CORS
 from flask_migrate import Migrate
 
-from models import db
-from routes.topics         import topics  as topics_bp
-from routes.import_handler import imports as imports_bp
-from routes.publications   import pubs_bp
-from routes.collections    import collections_bp
-from routes.reviews        import reviews_bp
-from routes.projects       import projects_bp
+from backend.models import db
+from backend.routes.topics         import topics  as topics_bp
+from backend.routes.import_handler import imports as imports_bp
+from backend.routes.publications   import pubs_bp
+from backend.routes.collections    import collections_bp
+from backend.routes.reviews        import reviews_bp
+from backend.routes.projects       import projects_bp
+from backend.routes.users          import users_bp
+from backend.routes.metrics        import metrics_bp
+from backend.routes.notifications import notifications_bp
 
 def create_app():
     print("🚀 Creating Flask app...")
@@ -22,7 +25,7 @@ def create_app():
     print("🌐 CORS enabled")
     
     app.config['DEBUG'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///structured_docs.db'
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:////workspaces/StructuredDocs/backend/instance/structured_docs.db'
     app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False
     app.config['SQLALCHEMY_ECHO'] = True
     print('💾 Connected DB URI:', app.config['SQLALCHEMY_DATABASE_URI'])
@@ -62,6 +65,15 @@ def create_app():
     
     app.register_blueprint(projects_bp)
     print("  ✅ Projects blueprint registered")
+    
+    app.register_blueprint(users_bp)
+    print("  ✅ Users blueprint registered")
+    
+    app.register_blueprint(metrics_bp)
+    print("  ✅ Metrics blueprint registered")
+
+    app.register_blueprint(notifications_bp)
+    print("  ✅ Notifications blueprint registered")
 
     print("🎉 Flask app creation complete!")
     return app

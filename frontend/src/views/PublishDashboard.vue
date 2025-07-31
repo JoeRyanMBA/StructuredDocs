@@ -1,4 +1,9 @@
 <template>
+<NotificationTicker
+  :notifications="notifications"
+  contextType="publish"
+  @mark-read="markNotificationRead"
+/>
   <div class="publish-dashboard">
     <div class="dashboard-header">
       <h1>Publish Dashboard</h1>
@@ -51,7 +56,7 @@
       <div class="dashboard-section">
         <h2>Quick Actions</h2>
         <div class="quick-actions-grid">
-          <button class="action-card" @click="navigateTo('/publications')">
+          <button class="action-card" @click="navigateTo('/publications/all')">
             <div class="action-icon">📋</div>
             <div class="action-content">
               <h3>Manage Publications</h3>
@@ -192,7 +197,42 @@
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
 export default {
+  components: { NotificationTicker },
+  data() {
+    return {
+      notifications: []
+    }
+  },
+  async mounted() {
+    await this.fetchNotifications()
+  },
+  methods: {
+    async fetchNotifications() {
+      try {
+        const res = await fetch('/api/notifications', {
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        })
+        if (res.ok) {
+          this.notifications = await res.json()
+        }
+      } catch (err) {
+        console.error('Failed to fetch notifications:', err)
+      }
+    },
+    async markNotificationRead(id) {
+      try {
+        await fetch(`/api/notifications/${id}`, {
+          method: 'PATCH',
+          headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+        })
+        this.notifications = this.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+      } catch (err) {
+        console.error('Failed to mark notification as read:', err)
+      }
+    }
+  },
   name: 'PublishDashboard',
   
   data() {
@@ -406,7 +446,10 @@ export default {
 
 <style scoped>
 .publish-dashboard {
-  padding: 2rem;
+  padding-top: 0;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
+  padding-left: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
@@ -627,33 +670,8 @@ export default {
 }
 
 .publication-content {
-  flex: 1;
-}
+  }
 
-.publication-title {
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.25rem;
-}
-
-.publication-description {
-  color: #6c757d;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.publication-meta {
-  color: #adb5bd;
-  font-size: 0.75rem;
-}
-
-.publication-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
 
 .publication-status.draft {
   background: #fff3cd;
@@ -702,32 +720,7 @@ export default {
   display: flex;
   align-items: center;
   gap: 0.75rem;
-  flex: 1;
-}
-
-.card-title h3 {
-  margin: 0;
-  color: #495057;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.card-badge {
-  background: #e9ecef;
-  color: #495057;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.card-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
+  }
 
 .card-status.draft {
   background: #fff3cd;

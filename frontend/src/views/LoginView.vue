@@ -196,20 +196,29 @@ export default {
       
       try {
         // Mock authentication - replace with real API call
-        await this.mockAuthentication()
+        const authenticatedUser = await this.mockAuthentication()
         
         // Store user session
         const userData = {
-          id: 1,
-          name: 'John Smith',
+          id: authenticatedUser.role === 'admin' ? 1 : 2,
+          name: authenticatedUser.name || 'John Smith',
           email: this.loginForm.email,
           department: 'Economic Indicators',
-          role: 'author',
+          role: authenticatedUser.role || 'author',
           loginTime: new Date().toISOString()
         }
         
+        console.log('🔍 Login - Storing user data:', userData)
+        console.log('🔍 Login - User role:', userData.role)
+        
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('user', JSON.stringify(userData))
+        
+        console.log('🔍 Login - Stored in localStorage:', JSON.parse(localStorage.getItem('user')))
+        
+        // Emit custom event to notify components of user update
+        window.dispatchEvent(new CustomEvent('userUpdated'))
+        console.log('🔍 Login - Dispatched userUpdated event')
         
         // Redirect to dashboard
         this.$router.push('/')
@@ -227,6 +236,7 @@ export default {
       
       // Mock valid credentials
       const validCredentials = [
+        { email: 'admin@example.com', password: 'admin123', role: 'admin', name: 'Admin User' },
         { email: 'john.smith@census.gov', password: 'demo123' },
         { email: 'sarah.johnson@census.gov', password: 'demo123' },
         { email: 'mike.chen@census.gov', password: 'demo123' },
@@ -234,13 +244,15 @@ export default {
         { email: 'alex.rodriguez@census.gov', password: 'demo123' }
       ]
       
-      const isValid = validCredentials.some(cred => 
+      const matchedUser = validCredentials.find(cred => 
         cred.email === this.loginForm.email && cred.password === this.loginForm.password
       )
       
-      if (!isValid) {
+      if (!matchedUser) {
         throw new Error('Invalid email or password')
       }
+      
+      return matchedUser
     },
     
     async submitAccessRequest() {

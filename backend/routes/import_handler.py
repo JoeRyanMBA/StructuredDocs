@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from models import db, ImportDocument, ImportItem, Topic
+from backend.models import db, ImportDocument, ImportItem, Topic
 import re
 
 imports = Blueprint('imports', __name__, url_prefix='/api/import')

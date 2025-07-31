@@ -3,7 +3,7 @@
     <div class="nav-content">
       <div class="tab-container">
         <router-link
-          v-for="tab in TABS"
+          v-for="tab in visibleTabs"
           :key="tab.key"
           :to="{ name: tab.route }"
           class="tab"
@@ -12,27 +12,6 @@
           <span class="tab-icon">{{ tab.icon }}</span>
           <span class="tab-label">{{ tab.label }}</span>
         </router-link>
-      </div>
-      
-      <div class="user-section">
-        <div class="user-info" @click="toggleUserMenu">
-          <span class="user-icon">👤</span>
-          <span class="user-name">{{ currentUser?.name || 'User' }}</span>
-          <span class="dropdown-arrow">▼</span>
-        </div>
-        
-        <div v-if="showUserMenu" class="user-menu">
-          <div class="user-details">
-            <div class="user-detail-name">{{ currentUser?.name }}</div>
-            <div class="user-detail-email">{{ currentUser?.email }}</div>
-            <div class="user-detail-dept">{{ currentUser?.department }}</div>
-          </div>
-          <div class="menu-divider"></div>
-          <button @click="logout" class="logout-btn">
-            <span class="logout-icon">🚪</span>
-            Logout
-          </button>
-        </div>
       </div>
     </div>
   </nav>
@@ -43,12 +22,11 @@ export default {
   name: 'TabNavigation',
   data() {
     return {
-      showUserMenu: false,
-      currentUser: null,
+      currentUser: {}, // Store user data reactively
       TABS: [
         {
           key: 'home',
-          label: 'Dashboard',
+          label: 'Home',
           icon: '🏠',
           route: 'Dashboard'
         },
@@ -98,48 +76,68 @@ export default {
           key: 'admin',
           label: 'Admin',
           icon: '⚙️',
-          route: 'AdminHome'
+          route: 'Admin',
+          adminOnly: true
         }
       ]
     }
   },
+  computed: {
+    visibleTabs() {
+      const tabs = this.TABS.filter(tab => {
+        if (tab.adminOnly) {
+          const isAdmin = this.currentUser.role === 'admin'
+          console.log(`🔍 TabNavigation - Tab ${tab.label} (adminOnly): visible = ${isAdmin}`)
+          console.log(`🔍 TabNavigation - Current user role: ${this.currentUser.role}`)
+          return isAdmin
+        }
+        return true
+      })
+      console.log('🔍 TabNavigation - Visible tabs:', tabs.map(t => t.label))
+      return tabs
+    }
+  },
   mounted() {
-    this.loadCurrentUser()
-    // Close user menu when clicking outside
-    document.addEventListener('click', this.handleClickOutside)
+    // Load current user info initially
+    this.updateCurrentUser()
+    
+    // Listen for storage changes to update tabs when user logs in/out
+    window.addEventListener('storage', this.handleStorageChange)
+    
+    // Listen for a custom event that we'll emit after login
+    window.addEventListener('userUpdated', this.handleUserUpdate)
+    
+    console.log('🔍 TabNavigation - Component mounted, initial user check')
   },
   beforeUnmount() {
-    document.removeEventListener('click', this.handleClickOutside)
+    window.removeEventListener('storage', this.handleStorageChange)
+    window.removeEventListener('userUpdated', this.handleUserUpdate)
   },
   methods: {
+    updateCurrentUser() {
+      try {
+        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        this.currentUser = user
+        console.log('🔍 TabNavigation - Updated current user:', user)
+        console.log('🔍 TabNavigation - User role:', user.role)
+        console.log('🔍 TabNavigation - Is admin:', user.role === 'admin')
+      } catch {
+        console.log('🔍 TabNavigation - Failed to parse user data')
+        this.currentUser = {}
+      }
+    },
     isActiveTab(routeName) {
       return this.$route.name === routeName
     },
-    
-    loadCurrentUser() {
-      const userStr = localStorage.getItem('user')
-      if (userStr) {
-        this.currentUser = JSON.parse(userStr)
-      }
+    handleStorageChange() {
+      // Force reactivity update when localStorage changes from another window
+      this.updateCurrentUser()
+      console.log('🔍 TabNavigation - Storage changed, triggering update')
     },
-    
-    toggleUserMenu() {
-      this.showUserMenu = !this.showUserMenu
-    },
-    
-    handleClickOutside(event) {
-      const userSection = event.target.closest('.user-section')
-      if (!userSection) {
-        this.showUserMenu = false
-      }
-    },
-    
-    logout() {
-      localStorage.removeItem('isAuthenticated')
-      localStorage.removeItem('user')
-      this.currentUser = null
-      this.showUserMenu = false
-      this.$router.push({ name: 'Login' })
+    handleUserUpdate() {
+      // Handle custom event when user logs in/out in same window
+      this.updateCurrentUser()
+      console.log('🔍 TabNavigation - User update event received')
     }
   }
 }
@@ -159,22 +157,25 @@ export default {
 
 .nav-content {
   display: flex;
-  justify-content: space-between;
+  justify-content: center;
   align-items: center;
-  max-width: 1200px;
+  max-width: 100%;
   margin: 0 auto;
   padding: 0 1rem;
-}
-
-.tab-container {
-  display: flex;
   overflow-x: auto;
   scrollbar-width: none; /* Firefox */
   -ms-overflow-style: none; /* IE/Edge */
 }
 
-.tab-container::-webkit-scrollbar {
+.nav-content::-webkit-scrollbar {
   display: none; /* Chrome/Safari */
+}
+
+.tab-container {
+  display: flex;
+  min-width: fit-content;
+  gap: 2px;
+  justify-content: center;
 }
 
 .tab {
@@ -189,7 +190,8 @@ export default {
   min-width: fit-content;
   background: transparent;
   border-radius: 8px 8px 0 0;
-  margin: 0 2px;
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .tab:hover {
@@ -215,113 +217,18 @@ export default {
   font-size: 0.95rem;
 }
 
-/* User Section Styles */
-.user-section {
-  position: relative;
-}
-
-.user-info {
-  display: flex;
-  align-items: center;
-  padding: 0.5rem 1rem;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
-}
-
-.user-info:hover {
-  background: #f8f9fa;
-  border-color: #005a9c;
-  box-shadow: 0 2px 8px rgba(0, 90, 156, 0.15);
-}
-
-.user-icon {
-  margin-right: 0.5rem;
-  font-size: 1.1rem;
-}
-
-.user-name {
-  margin-right: 0.5rem;
-  font-weight: 500;
-  color: #495057;
-}
-
-.dropdown-arrow {
-  font-size: 0.8rem;
-  color: #6c757d;
-  transition: transform 0.2s ease;
-}
-
-.user-info:hover .dropdown-arrow {
-  transform: rotate(180deg);
-}
-
-.user-menu {
-  position: absolute;
-  top: 100%;
-  right: 0;
-  margin-top: 0.5rem;
-  background: #fff;
-  border: 1px solid #dee2e6;
-  border-radius: 8px;
-  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-  min-width: 200px;
-  z-index: 1000;
-}
-
-.user-details {
-  padding: 1rem;
-}
-
-.user-detail-name {
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.25rem;
-}
-
-.user-detail-email {
-  font-size: 0.9rem;
-  color: #6c757d;
-  margin-bottom: 0.25rem;
-}
-
-.user-detail-dept {
-  font-size: 0.85rem;
-  color: #868e96;
-}
-
-.menu-divider {
-  height: 1px;
-  background: #dee2e6;
-  margin: 0.5rem 0;
-}
-
-.logout-btn {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  padding: 0.75rem 1rem;
-  background: none;
-  border: none;
-  color: #dc3545;
-  cursor: pointer;
-  transition: background-color 0.2s ease;
-  border-radius: 0 0 8px 8px;
-}
-
-.logout-btn:hover {
-  background: #f8f9fa;
-  color: #c82333;
-}
-
-.logout-icon {
-  margin-right: 0.5rem;
-}
-
 /* Responsive design */
+@media (max-width: 1024px) {
+  .tab {
+    padding: 0.6rem 1.2rem;
+    font-size: 0.9rem;
+  }
+  
+  .tab-label {
+    font-size: 0.9rem;
+  }
+}
+
 @media (max-width: 768px) {
   .tab {
     padding: 0.6rem 1rem;
@@ -336,20 +243,37 @@ export default {
   .tab-label {
     font-size: 0.85rem;
   }
+  
+  .nav-content {
+    padding: 0 0.5rem;
+  }
+}
+
+@media (max-width: 640px) {
+  .tab {
+    padding: 0.5rem 0.8rem;
+  }
+  
+  .tab-label {
+    font-size: 0.8rem;
+  }
 }
 
 @media (max-width: 480px) {
   .tab {
-    padding: 0.5rem 0.75rem;
+    padding: 0.5rem 0.6rem;
+    flex-direction: column;
+    min-width: 60px;
   }
   
   .tab-label {
-    display: none; /* Show only icons on very small screens */
+    font-size: 0.7rem;
+    margin-top: 0.2rem;
   }
   
   .tab-icon {
     margin-right: 0;
-    font-size: 1.2rem;
+    font-size: 1.1rem;
   }
 }
 </style>

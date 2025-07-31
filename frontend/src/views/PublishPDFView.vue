@@ -4,13 +4,9 @@
     <h2>Publish PDF Documents</h2>
     
     <p class="guidance-text">
-      Create professional PDF documents from your published collections. PDFs are ideal for formal documentation, printing, and sharing via email or document management systems.
-    </p>
+            Generate high-quality PDF documents with professional formatting, table of contents, and print-ready layouts.
+      Perfect for formal documentation, training materials, and distribution.</p>
     
-    <p class="description">
-      Generate high-quality PDF documents with professional formatting, table of contents, and print-ready layouts.
-      Perfect for formal documentation, training materials, and distribution.
-    </p>
 
     <div class="features-grid">
       <div class="feature-card">

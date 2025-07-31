@@ -1,16 +1,79 @@
-// src/router/index.js
-
 import { createRouter, createWebHistory } from 'vue-router'
-
-// Direct imports for frequently used views
 import TopicsListView from '@/views/TopicsListView.vue'
 import EditTopicView from '@/views/EditTopicView.vue'
 import ImportView from '@/views/ImportView.vue'
 import StartPage from '@/views/StartPage.vue'
 import LoginView from '@/views/LoginView.vue'
+import AdminDashboard from '../views/AdminDashboard.vue'
+import AdminUserManagement from '../views/AdminUserManagement.vue'
+import SystemLogs from '../views/SystemLogs.vue'
+import PerformanceMetrics from '../views/PerformanceMetrics.vue'
+import ProfileView from '../views/ProfileView.vue'
 
 // All routes
 const routes = [
+  {
+    path: '/admin',
+    name: 'Admin',
+    component: AdminDashboard,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/admin/users',
+    name: 'AdminUsers',
+    component: AdminUserManagement,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/admin/logs',
+    name: 'SystemLogs',
+    component: SystemLogs,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/admin/metrics',
+    name: 'PerformanceMetrics',
+    component: PerformanceMetrics,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
+    path: '/profile',
+    name: 'Profile',
+    component: ProfileView,
+    meta: { requiresAuth: true }
+  },
   // 🔐 Authentication
   {
     path: '/login',
@@ -94,6 +157,11 @@ const routes = [
     name: 'PublicationsHome',
     component: () => import('@/views/PublishDashboard.vue')
   },
+    {
+    path: '/publications/all',
+    name: 'AllPublications',
+    component: () => import('@/views/PublicationsHome.vue')
+  },
   {
     path: '/publications/:id',
     name: 'PublicationView',
@@ -134,26 +202,7 @@ const routes = [
   },
 
   // 🔒 Admin Section
-  {
-    path: '/admin',
-    name: 'AdminHome',
-    component: () => import('@/views/AdminDashboard.vue')
-  },
-  {
-    path: '/admin/authors',
-    name: 'ManageAuthors',
-    component: () => import('@/views/ManageAuthors.vue')
-  },
-  {
-    path: '/admin/users',
-    name: 'ManageUsers',
-    component: () => import('@/views/ManageUsers.vue')
-  },
-  {
-    path: '/admin/logs',
-    name: 'SystemLogs',
-    component: () => import('@/views/SystemLogs.vue')
-  },
+  // Admin routes are defined above with proper authentication
 
   // 🛠️ Catch-all fallback
   {

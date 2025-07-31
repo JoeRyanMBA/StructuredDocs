@@ -1,0 +1,880 @@
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 604 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+7:22:08 PM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:08 PM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:22:12 PM [vite] http proxy error: /api/reviews/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:10 PM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:10 PM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:10 PM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:10 PM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:10 PM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:10 PM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:11 PM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:11 PM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:11 PM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:14 PM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:16 PM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:27:17 PM [vite] http proxy error: /api/publications/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+7:38:25 PM [vite] http proxy error: /api/publications/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 1746 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 656 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+11:04:25 PM [vite] (client) hmr update /src/views/StartPage.vue?vue&type=style&index=0&scoped=d4be0ef9&lang.css
+11:08:43 PM [vite] (client) hmr update /src/components/TopicEditor.vue
+11:14:27 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:27:30 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:29:47 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 641 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+11:42:15 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
+11:44:26 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
+11:48:42 PM [vite] (client) hmr update /src/views/ProjectsView.vue, /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
+11:48:42 PM [vite] (client) Pre-transform error: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:573:1: Unexpected }
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:1507:1
+  1506|  }
+  1507|  
+  1508|  .collection-item {
+     |  ^
+  1509|    grid-template-columns: 1fr 2fr auto;
+  1510|    align-items: start;
+11:48:42 PM [vite] Internal server error: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:573:1: Unexpected }
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:1507:1
+  1506|  }
+  1507|  
+  1508|  .collection-item {
+     |  ^
+  1509|    grid-template-columns: 1fr 2fr auto;
+  1510|    align-items: start;
+      at Input.error (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/input.js:135:16)
+      at Parser.unexpectedClose (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:587:22)
+      at Parser.end (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:330:12)
+      at Parser.parse (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:456:16)
+      at parse (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parse.js:11:12)
+      at new LazyResult (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/lazy-result.js:165:16)
+      at Processor.process (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/processor.js:53:14)
+      at doCompileStyle (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19519:36)
+      at Object.compileStyleAsync (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19439:10)
+      at transformStyle (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:1863:40)
+11:50:38 PM [vite] Internal server error: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:573:1: Unexpected }
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:1507:1
+  1506|  }
+  1507|  
+  1508|  .collection-item {
+     |  ^
+  1509|    grid-template-columns: 1fr 2fr auto;
+  1510|    align-items: start;
+      at Input.error (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/input.js:135:16)
+      at Parser.unexpectedClose (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:587:22)
+      at Parser.end (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:330:12)
+      at Parser.parse (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:456:16)
+      at parse (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parse.js:11:12)
+      at new LazyResult (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/lazy-result.js:165:16)
+      at Processor.process (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/processor.js:53:14)
+      at doCompileStyle (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19519:36)
+      at Object.compileStyleAsync (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19439:10)
+      at transformStyle (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:1863:40)
+11:50:57 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:50:58 PM [vite] Internal server error: Invalid end tag.
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:514:3
+  512|        </div>
+  513|      </div>
+  514|    </div>
+     |     ^
+  515|  </template>
+  516|  
+      at createCompilerError (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:1364:17)
+      at emitError (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:2956:5)
+      at Object.onclosetag (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:2325:9)
+      at Tokenizer.stateInClosingTagName (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:785:16)
+      at Tokenizer.parse (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:1143:16)
+      at Object.baseParse (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:2995:13)
+      at Object.parse (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-dom/dist/compiler-dom.cjs.js:907:23)
+      at Object.parse$1 [as parse] (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:1801:24)
+      at createDescriptor (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:79:42)
+      at handleHotUpdate (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:1475:25)
+11:51:16 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:51:17 PM [vite] Internal server error: Invalid end tag.
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:513:3
+  511|        </div>
+  512|      </div>
+  513|    </div>
+     |     ^
+  514|  </template>
+  515|  
+      at createCompilerError (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:1364:17)
+      at emitError (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:2956:5)
+      at Object.onclosetag (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:2325:9)
+      at Tokenizer.stateInClosingTagName (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:785:16)
+      at Tokenizer.parse (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:1143:16)
+      at Object.baseParse (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-core/dist/compiler-core.cjs.js:2995:13)
+      at Object.parse (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-dom/dist/compiler-dom.cjs.js:907:23)
+      at Object.parse$1 [as parse] (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:1801:24)
+      at createDescriptor (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:79:42)
+      at handleHotUpdate (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:1475:25)
+11:51:41 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:51:41 PM [vite] (client) Pre-transform error: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:573:1: Unexpected }
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:1505:1
+  1504|  }
+  1505|  
+  1506|  .collection-item {
+     |  ^
+  1507|    grid-template-columns: 1fr 2fr auto;
+  1508|    align-items: start;
+11:51:41 PM [vite] Internal server error: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:573:1: Unexpected }
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:1505:1
+  1504|  }
+  1505|  
+  1506|  .collection-item {
+     |  ^
+  1507|    grid-template-columns: 1fr 2fr auto;
+  1508|    align-items: start;
+      at Input.error (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/input.js:135:16)
+      at Parser.unexpectedClose (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:587:22)
+      at Parser.end (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:330:12)
+      at Parser.parse (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parser.js:456:16)
+      at parse (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/parse.js:11:12)
+      at new LazyResult (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/lazy-result.js:165:16)
+      at Processor.process (/workspaces/StructuredDocs/frontend/node_modules/postcss/lib/processor.js:53:14)
+      at doCompileStyle (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19519:36)
+      at Object.compileStyleAsync (/workspaces/StructuredDocs/frontend/node_modules/@vue/compiler-sfc/dist/compiler-sfc.cjs.js:19439:10)
+      at transformStyle (file:///workspaces/StructuredDocs/frontend/node_modules/@vitejs/plugin-vue/dist/index.js:1863:40)
+11:52:29 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
+12:00:13 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:02:47 AM [vite] (client) hmr update /src/views/PublishPDFView.vue
+12:04:09 AM [vite] (client) hmr update /src/components/TabNavigation.vue
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 579 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 652 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 592 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 514 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 343 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+12:31:16 AM [vite] (client) Pre-transform error: Failed to resolve import "@/views/PublishHome.vue" from "src/router/index.js". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /workspaces/StructuredDocs/frontend/src/router/index.js:163:28
+  161|      path: '/publications/all',
+  162|      name: 'AllPublications',
+  163|      component: () => import('@/views/PublishHome.vue')
+     |                              ^
+  164|    },
+  165|    {
+12:31:17 AM [vite] Internal server error: Failed to resolve import "@/views/PublishHome.vue" from "src/router/index.js". Does the file exist?
+  Plugin: vite:import-analysis
+  File: /workspaces/StructuredDocs/frontend/src/router/index.js:163:28
+  161|      path: '/publications/all',
+  162|      name: 'AllPublications',
+  163|      component: () => import('@/views/PublishHome.vue')
+     |                              ^
+  164|    },
+  165|    {
+      at TransformPluginContext._formatLog (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:31460:43)
+      at TransformPluginContext.error (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:31457:14)
+      at normalizeUrl (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:29999:18)
+      at async file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:30057:32
+      at async Promise.all (index 20)
+      at async TransformPluginContext.transform (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:30025:4)
+      at async EnvironmentPluginContainer.transform (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:31274:14)
+      at async loadAndTransform (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:26451:26)
+      at async viteTransformMiddleware (file:///workspaces/StructuredDocs/frontend/node_modules/vite/dist/node/chunks/dep-BHkUv4Z8.js:27536:20)
+12:32:14 AM [vite] (client) page reload src/router/index.js
+12:57:15 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (45:2)
+
+/workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue
+588|      }
+589|    }
+590|    name: 'ProjectsView',
+   |    ^
+591|    components: {
+592|      Breadcrumbs,
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:45:2
+  35 |            <h3>Total Stakeholders</h3>
+  36 |            <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
+  37 |            <div class="metric-detail">Across all projects</div>
+     |       ^
+  38 |          </div>
+  39 |        </div>
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 700 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+12:58:42 AM [vite] (client) Pre-transform error: [vue/compiler-sfc] Unexpected token, expected "," (40:2)
+
+/workspaces/StructuredDocs/frontend/src/views/StartPage.vue
+194|      }
+195|    }
+196|    name: 'Dashboard',
+   |    ^
+197|    components: {
+198|      CalendarWidget
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/StartPage.vue:40:2
+  31 |        </div>
+  32 |  
+  33 |        <div class="metric-card" @click="navigateTo('/topics')">
+     |         ^
+  34 |          <div class="metric-icon">📝</div>
+  35 |          <div class="metric-content">
+12:58:42 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (40:2)
+
+/workspaces/StructuredDocs/frontend/src/views/StartPage.vue
+194|      }
+195|    }
+196|    name: 'Dashboard',
+   |    ^
+197|    components: {
+198|      CalendarWidget
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/StartPage.vue:40:2
+  31 |        </div>
+  32 |  
+  33 |        <div class="metric-card" @click="navigateTo('/topics')">
+     |         ^
+  34 |          <div class="metric-icon">📝</div>
+  35 |          <div class="metric-content">
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+1:01:02 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:02 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:09 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (45:2)
+
+/workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue
+588|      }
+589|    }
+590|    name: 'ProjectsView',
+   |    ^
+591|    components: {
+592|      Breadcrumbs,
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:45:2
+  35 |            <h3>Total Stakeholders</h3>
+  36 |            <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
+  37 |            <div class="metric-detail">Across all projects</div>
+     |       ^
+  38 |          </div>
+  39 |        </div>
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+1:01:14 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:16 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:17 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (38:2)
+
+/workspaces/StructuredDocs/frontend/src/views/PublishDashboard.vue
+234|      }
+235|    }
+236|    name: 'PublishDashboard',
+   |    ^
+237|    
+238|    data() {
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/PublishDashboard.vue:38:2
+  32 |  
+  33 |        <div class="metric-card">
+  34 |          <div class="metric-icon">📄</div>
+     |           ^
+  35 |          <div class="metric-content">
+  36 |            <h3>PDF Documents</h3>
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+1:01:24 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:24 AM [vite] http proxy error: /api/reviews/reviewers
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:24 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:26 AM [vite] http proxy error: /api/reviews/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:30 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:51 AM [vite] http proxy error: /api/reviews/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/reviews/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:54 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:55 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:55 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:55 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:01:55 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (45:2)
+
+/workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue
+588|      }
+589|    }
+590|    name: 'ProjectsView',
+   |    ^
+591|    components: {
+592|      Breadcrumbs,
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:45:2
+  35 |            <h3>Total Stakeholders</h3>
+  36 |            <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
+  37 |            <div class="metric-detail">Across all projects</div>
+     |       ^
+  38 |          </div>
+  39 |        </div>
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+1:04:37 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:04:39 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:04:40 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (38:2)
+
+/workspaces/StructuredDocs/frontend/src/views/PublishDashboard.vue
+234|      }
+235|    }
+236|    name: 'PublishDashboard',
+   |    ^
+237|    
+238|    data() {
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/PublishDashboard.vue:38:2
+  32 |  
+  33 |        <div class="metric-card">
+  34 |          <div class="metric-icon">📄</div>
+     |           ^
+  35 |          <div class="metric-content">
+  36 |            <h3>PDF Documents</h3>
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+1:06:52 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:52 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:52 AM [vite] http proxy error: /api/reviews/reviewers
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:53 AM [vite] http proxy error: /api/reviews/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:56 AM [vite] http proxy error: /api/reviews/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:58 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:06:59 AM [vite] Internal server error: [vue/compiler-sfc] Unexpected token, expected "," (45:2)
+
+/workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue
+588|      }
+589|    }
+590|    name: 'ProjectsView',
+   |    ^
+591|    components: {
+592|      Breadcrumbs,
+  Plugin: vite:vue
+  File: /workspaces/StructuredDocs/frontend/src/views/ProjectsView.vue:45:2
+  35 |            <h3>Total Stakeholders</h3>
+  36 |            <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
+  37 |            <div class="metric-detail">Across all projects</div>
+     |       ^
+  38 |          </div>
+  39 |        </div>
+      at constructor (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:367:19)
+      at Parser.raise (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6627:19)
+      at Parser.unexpected (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6647:16)
+      at Parser.expect (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:6927:12)
+      at Parser.parseObjectLike (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11821:14)
+      at Parser.parseExprAtom (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11334:23)
+      at Parser.parseExprSubscripts (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11076:23)
+      at Parser.parseUpdate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11061:21)
+      at Parser.parseMaybeUnary (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:11041:23)
+      at Parser.parseMaybeUnaryOrPrivate (/workspaces/StructuredDocs/frontend/node_modules/@babel/parser/lib/index.js:10894:61)
+1:16:05 AM [vite] (client) hmr update /src/components/TopicEditor.vue
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 570 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 447 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 297 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+1:25:39 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:25:39 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:27:37 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:27:38 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:27:39 AM [vite] http proxy error: /api/publications/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 445 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 513 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 567 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+1:31:06 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+1:31:06 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 462 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 3194 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+9:47:17 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:17 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:36 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:39 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:47:47 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:48:04 AM [vite] http proxy error: /api/publications/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 341 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+
+  VITE v7.0.6  ready in 458 ms
+
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: use --host to expose
+9:57:01 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/reviews/topics/pending
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/projects/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/collections/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/import/history
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/topics/
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+9:57:01 AM [vite] http proxy error: /api/reviews/stats
+Error: connect ECONNREFUSED 127.0.0.1:5000
+    at TCPConnectWrap.afterConnect [as oncomplete] (node:net:1637:16)
+
+> structured-docs-frontend@0.1.0 dev
+> vite
+
+Port 5173 is in use, trying another one...
+
+  VITE v7.0.6  ready in 748 ms
+
+  ➜  Local:   http://localhost:5174/
+  ➜  Network: use --host to expose

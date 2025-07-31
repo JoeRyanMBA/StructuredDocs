@@ -1,4 +1,9 @@
 <template>
+<NotificationTicker
+  :notifications="notifications"
+  contextType="global"
+  @mark-read="markNotificationRead"
+/>
   <div class="dashboard">
     <div class="dashboard-header">
       <h1>Dashboard</h1>
@@ -150,34 +155,62 @@
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
 import CalendarWidget from '../components/CalendarWidget.vue'
 
 export default {
-  name: 'Dashboard',
-  components: {
-    CalendarWidget
-  },
-  
-  data() {
-    return {
-      loading: true,
-      stats: {
-        projects: { total: 0, active: 0 },
-        collections: { total: 0, new_today: 0 },
-        topics: { total: 0, drafts: 0 },
-        reviews: { total: 0, pending: 0 }
-      },
-      projects: [],
-      pendingActions: [],
-      recentActivity: []
+name: 'Dashboard',
+components: {
+  NotificationTicker,
+  CalendarWidget
+},
+data() {
+  return {
+    loading: true,
+    stats: {
+      projects: { total: 0, active: 0 },
+      collections: { total: 0, new_today: 0 },
+      topics: { total: 0, drafts: 0 },
+      reviews: { total: 0, pending: 0 }
+    },
+    projects: [],
+    pendingActions: [],
+    recentActivity: [],
+    notifications: []
+  }
+},
+async mounted() {
+  await this.fetchNotifications()
+},
+methods: {
+  async fetchNotifications() {
+    try {
+      const res = await fetch('/api/notifications', {
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      if (res.ok) {
+        this.notifications = await res.json()
+      }
+    } catch (err) {
+      console.error('Failed to fetch notifications:', err)
     }
   },
-
-  computed: {
-    calendarEvents() {
-      const events = []
-      
-      // Generate events from projects with milestones
+  async markNotificationRead(id) {
+    try {
+      await fetch(`/api/notifications/${id}`, {
+        method: 'PATCH',
+        headers: { Authorization: `Bearer ${localStorage.getItem('token')}` }
+      })
+      this.notifications = this.notifications.map(n => n.id === id ? { ...n, read: true } : n)
+    } catch (err) {
+      console.error('Failed to mark notification as read:', err)
+    }
+  }
+},
+computed: {
+  calendarEvents() {
+    const events = []
+    // Generate events from projects with milestones
       this.projects.forEach(project => {
         // Add project milestones if they exist
         if (project.milestones && Array.isArray(project.milestones)) {
@@ -465,6 +498,7 @@ export default {
 
 .dashboard-header h1 {
   color: #005a9c;
+  margin-top:0;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;

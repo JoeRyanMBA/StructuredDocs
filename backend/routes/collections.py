@@ -1,9 +1,10 @@
 from flask import Blueprint, request, jsonify
-from models import db, Collection, collection_topic_tree, Publication, PublicationNode
+from backend.models import db, Collection, collection_topic_tree, Publication, PublicationNode
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
 
 @collections_bp.route('', methods=['GET'])
+@collections_bp.route('/', methods=['GET'])
 def list_collections():
     print(f"🔄 Collections GET request received")
     try:
@@ -17,6 +18,7 @@ def list_collections():
         return jsonify({"error": str(e)}), 500
 
 @collections_bp.route('', methods=['PUT'])
+@collections_bp.route('/', methods=['PUT'])
 def update_collections():
     """
     Expect payload: an array of nested nodes:

@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime
-from models import db, Topic, Collection, ImportDocument
+from backend.models import db, Topic, Collection, ImportDocument
 from sqlalchemy import or_
 
-reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews')
+reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews/')
 
 @reviews_bp.route('/reviewers', methods=['GET'])
 def get_available_reviewers():

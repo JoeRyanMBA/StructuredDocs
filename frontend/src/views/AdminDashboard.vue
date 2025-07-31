@@ -58,13 +58,6 @@
               <p>User accounts and permissions</p>
             </div>
           </button>
-          <button class="action-card" @click="navigateTo('/admin/authors')">
-            <div class="action-icon">✏️</div>
-            <div class="action-content">
-              <h3>Manage Authors</h3>
-              <p>Author roles and access</p>
-            </div>
-          </button>
           <button class="action-card" @click="navigateTo('/admin/logs')">
             <div class="action-icon">📊</div>
             <div class="action-content">
@@ -434,7 +427,10 @@ export default {
 
 <style scoped>
 .admin-dashboard {
-  padding: 2rem;
+  padding-top: 0;
+  padding-right: 2rem;
+  padding-bottom: 2rem;
+  padding-left: 2rem;
   max-width: 1400px;
   margin: 0 auto;
 }
