@@ -9,3 +9,6 @@ Port 5173 is in use, trying another one...
   ➜  Local:   http://localhost:5174/
   ➜  Network: use --host to expose
 4:28:42 PM [vite] (client) hmr update /src/views/ImportDashboard.vue
+4:30:30 PM [vite] vite.config.js changed, restarting server...
+4:30:30 PM [vite] (client) page reload src/router/index.js
+4:30:30 PM [vite] server restarted.
