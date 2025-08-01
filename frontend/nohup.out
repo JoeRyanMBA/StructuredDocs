@@ -2,11 +2,13 @@
 > structured-docs-frontend@0.1.0 dev
 > vite
 
+Port 5173 is in use, trying another one...
 
-  VITE v7.0.6  ready in 803 ms
+  VITE v7.0.6  ready in 473 ms
 
-  ➜  Local:   http://localhost:5173/
+  ➜  Local:   http://localhost:5174/
   ➜  Network: use --host to expose
-8:01:22 PM [vite] (client) hmr update /src/views/PublishDashboard.vue
-8:06:36 PM [vite] (client) page reload src/router/index.js
-8:06:36 PM [vite] (client) hmr update /src/views/PublishDashboard.vue
+4:28:42 PM [vite] (client) hmr update /src/views/ImportDashboard.vue
+4:30:30 PM [vite] vite.config.js changed, restarting server...
+4:30:30 PM [vite] (client) page reload src/router/index.js
+4:30:30 PM [vite] server restarted.

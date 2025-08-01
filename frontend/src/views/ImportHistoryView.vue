@@ -66,34 +66,49 @@ export default {
 
   methods: {
     formatDate(iso) {
-      // e.g. "7/23/2025, 11:30:44 PM"
-      return new Date(iso).toLocaleString()
+      if (!iso) return 'Unknown'
+      
+      try {
+        // Server sends timestamps like "2025-08-01T14:16:53.860038"
+        // These are in UTC time, so we need to parse them as UTC
+        const date = new Date(iso + 'Z') // Force UTC parsing
+        
+        // Check if the date is invalid
+        if (isNaN(date.getTime())) {
+          return 'Invalid Date'
+        }
+        
+        // Format to local timezone with more readable format
+        const options = {
+          year: 'numeric',
+          month: 'numeric', 
+          day: 'numeric',
+          hour: 'numeric',
+          minute: '2-digit',
+          second: '2-digit',
+          timeZoneName: 'short'
+        }
+        
+        return date.toLocaleString('en-US', options)
+      } catch (error) {
+        console.error('Error formatting date:', error, 'Input:', iso)
+        return 'Invalid Date'
+      }
     },
 
     async fetchHistory() {
-      console.log('📊 Fetching import history...')
-      console.log('🌐 Current URL:', window.location.href)
-      console.log('🔗 API URL will be:', `${window.location.origin}/api/import/history`)
-      
       this.loading = true
       this.error = null
 
       try {
-        console.log('📡 Making request to /api/import/history')
         const res = await fetch('/api/import/history')
-        console.log('📋 Response status:', res.status, 'OK:', res.ok)
-        console.log('📋 Response headers:', Object.fromEntries(res.headers.entries()))
         
         if (!res.ok) {
           const errorText = await res.text()
-          console.log('❌ Error response text:', errorText)
           throw new Error(`HTTP ${res.status}: ${errorText}`)
         }
         
         const data = await res.json()
-        console.log('📄 Received data:', data)
-        console.log('📊 Number of imports:', Array.isArray(data) ? data.length : 'Not an array')
-        
         this.docs = Array.isArray(data) ? data : []
       } catch (e) {
         console.error('❌ Error fetching import history:', e)

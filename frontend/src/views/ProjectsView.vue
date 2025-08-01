@@ -907,8 +907,6 @@ export default {
 <style scoped>
 /* Dashboard Layout */
 .projects-dashboard {
-  padding: 0;
-  max-width: 1200px;
   margin: 0 auto;
 }
 

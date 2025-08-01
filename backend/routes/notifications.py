@@ -1,8 +1,8 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required, get_jwt_identity
-from backend import db
-from backend.models import Notification
-from backend.models import User
+from .. import db
+from ..models import Notification
+from ..models import User
 
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/notifications')
 

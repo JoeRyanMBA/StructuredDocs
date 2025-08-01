@@ -167,6 +167,11 @@ const routes = [
   {
     path: '/import',
     name: 'ImportTopics',
+    component: () => import('@/views/ImportView.vue')
+  },
+  {
+    path: '/import/dashboard',
+    name: 'ImportDashboard',
     component: () => import('@/views/ImportDashboard.vue')
   },
   {

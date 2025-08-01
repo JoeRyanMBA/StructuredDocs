@@ -7,22 +7,35 @@
       Use this tool to import content from outside this app. You can import Markdown (.md) documents (preferred) or Word (.docx) documents.
     </p>
 
-    <label>
-      Format
-      <select v-model="source">
-        <option value="markdown">Markdown</option>
-        <option value="word">Word (.docx)</option>
-      </select>
-    </label>
+    <!-- Loading indicator -->
+    <div v-if="isUploading" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Processing Import...</h3>
+        <p>Parsing document and extracting content. Please wait...</p>
+      </div>
+    </div>
 
-    <input
-      ref="fileInput"
-      type="file"
-      @change="onFileSelected"
-      :accept="acceptedTypes"
-    />
+    <!-- Upload form (disabled during upload) -->
+    <div class="upload-form" :class="{ disabled: isUploading }">
+      <label>
+        Format
+        <select v-model="source" :disabled="isUploading">
+          <option value="markdown">Markdown</option>
+          <option value="word">Word (.docx)</option>
+        </select>
+      </label>
 
-    <div v-if="error" class="error">{{ error }}</div>
+      <input
+        ref="fileInput"
+        type="file"
+        @change="onFileSelected"
+        :accept="acceptedTypes"
+        :disabled="isUploading"
+      />
+
+      <div v-if="error" class="error">{{ error }}</div>
+    </div>
   </div>
 </template>
 
@@ -36,7 +49,8 @@ export default {
   data() {
     return {
       source: 'markdown',
-      error: null
+      error: null,
+      isUploading: false
     }
   },
 
@@ -49,8 +63,13 @@ export default {
   methods: {
     async onFileSelected(event) {
       this.error = null
+      this.isUploading = true
+      
       const file = event.target.files[0]
-      if (!file) return
+      if (!file) {
+        this.isUploading = false
+        return
+      }
 
       const form = new FormData()
       form.append('file', file)
@@ -95,6 +114,7 @@ export default {
         console.error('Import failed:', err)
         this.error = `Import failed: ${err.message}`
       } finally {
+        this.isUploading = false
         // Clear the file input so the same file can be re‐selected
         this.$refs.fileInput.value = null
       }
@@ -109,6 +129,7 @@ export default {
   padding-left: 2rem;
   padding-right: 2rem;
   padding-bottom: 2rem;
+  position: relative;
 }
 
 .guidance-text {
@@ -119,6 +140,15 @@ export default {
   color: #495057;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+.upload-form {
+  transition: opacity 0.3s ease;
+}
+
+.upload-form.disabled {
+  opacity: 0.5;
+  pointer-events: none;
 }
 
 label {
@@ -135,5 +165,55 @@ input[type="file"] {
   color: #c00;
   font-weight: bold;
   margin-top: 1rem;
+}
+
+/* Loading overlay */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.95);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+}
+
+.loading-content {
+  text-align: center;
+  padding: 2rem;
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 20px rgba(0, 0, 0, 0.1);
+  max-width: 400px;
+}
+
+.loading-content h3 {
+  margin: 1rem 0 0.5rem 0;
+  color: #333;
+}
+
+.loading-content p {
+  margin: 0;
+  color: #666;
+  font-size: 0.9rem;
+}
+
+/* Spinner animation */
+.spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid #f3f3f3;
+  border-top: 4px solid #007acc;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+  margin: 0 auto;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 </style>

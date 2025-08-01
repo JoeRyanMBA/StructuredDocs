@@ -13,9 +13,8 @@ echo "Activating Python virtual environment..."
 source .venv/bin/activate
 
 echo "Starting backend (Flask)..."
-cd backend
-nohup flask run --host=0.0.0.0 --port=5050 > nohup.out 2>&1 &
-cd ..
+export FLASK_APP=backend.app
+nohup flask run --host=0.0.0.0 --port=5050 > backend/nohup.out 2>&1 &
 
 echo "Starting frontend (Vite)..."
 cd frontend

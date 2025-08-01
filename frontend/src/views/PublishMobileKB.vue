@@ -184,8 +184,6 @@ export default {
 
 <style scoped>
 .publish-mobile-kb {
-  padding: 70px 2rem 2rem 2rem; /* Top padding to account for fixed header */
-  max-width: 1200px;
   margin: 0 auto;
 }
 

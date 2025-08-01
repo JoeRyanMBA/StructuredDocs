@@ -35,8 +35,8 @@
       </div>
     </div>
     
-    <!-- Login button when not logged in -->
-    <div v-else class="login-section">
+    <!-- Login button when not logged in and not on login page -->
+    <div v-else-if="!isOnLoginPage" class="login-section">
       <router-link to="/login" class="login-btn">
         <i class="fas fa-sign-in-alt"></i> Login
       </router-link>
@@ -61,6 +61,9 @@ export default {
     isAdmin() {
       const user = JSON.parse(localStorage.getItem('user') || '{}')
       return user.role === 'admin'
+    },
+    isOnLoginPage() {
+      return this.$route.name === 'Login'
     }
   },
   mounted() {
@@ -72,10 +75,14 @@ export default {
     
     // Listen for storage changes to update user info when login/logout occurs
     window.addEventListener('storage', this.handleStorageChange)
+    
+    // Listen for custom userUpdated event from login
+    window.addEventListener('userUpdated', this.handleUserUpdated)
   },
   beforeUnmount() {
     document.removeEventListener('click', this.handleClickOutside)
     window.removeEventListener('storage', this.handleStorageChange)
+    window.removeEventListener('userUpdated', this.handleUserUpdated)
   },
   methods: {
     updateCurrentUser() {
@@ -89,6 +96,12 @@ export default {
       if (!this.isLoggedIn) {
         this.showUserDropdown = false
       }
+    },
+    handleUserUpdated() {
+      // Handle the custom userUpdated event from login
+      console.log('🔍 HeaderBar - Received userUpdated event')
+      this.updateCurrentUser()
+      this.$forceUpdate() // Force Vue to re-render and check computed properties
     },
     toggleUserDropdown() {
       this.showUserDropdown = !this.showUserDropdown

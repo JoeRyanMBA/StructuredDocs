@@ -75,8 +75,8 @@
               <div class="notification-meta">{{ formatRelativeTime(notification.created_at) }}</div>
             </div>
             <div class="notification-actions">
-              <button @click="markNotificationRead(notification)">Mark Read</button>
-              <button @click="deleteNotification(notification)">Delete</button>
+              <button @click="markNotificationRead(notification.id)">Mark Read</button>
+              <button @click="deleteNotification(notification.id)">Delete</button>
             </div>
           </div>
         </div>
@@ -288,10 +288,6 @@ export default {
     await this.loadDashboardData()
   },
   methods: {
-    markNotificationRead(id) {
-      const notification = this.notifications.find(n => n.id === id)
-      if (notification) notification.read = true
-    },
     deleteNotification(id) {
       this.notifications = this.notifications.filter(n => n.id !== id)
     },
@@ -528,8 +524,6 @@ export default {
   margin-top:0.24rem;
 }
 .admin-dashboard {
-  padding: 2rem;
-  max-width: 1400px;
   margin: 0 auto;
 }
 

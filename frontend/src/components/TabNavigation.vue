@@ -58,7 +58,7 @@ export default {
           key: 'import',
           label: 'Import',
           icon: '📥',
-          route: 'ImportTopics'
+          route: 'ImportDashboard'
         },
         {
           key: 'publish',
