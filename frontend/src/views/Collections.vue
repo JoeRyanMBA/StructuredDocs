@@ -72,7 +72,7 @@ export default {
 
 <style scoped>
 .collections-view {
-  padding: 70px 2rem 2rem 2rem; /* Top padding to account for fixed header */
+  margin: 0 auto;
 }
 
 .guidance-text {

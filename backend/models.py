@@ -4,7 +4,7 @@ from datetime import datetime
 from sqlalchemy import Enum, ForeignKey, func
 from sqlalchemy.orm import relationship
 from sqlalchemy import Table, Column, Integer
-from backend import db
+from . import db
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -205,7 +205,8 @@ class ImportDocument(db.Model):
             "review_step": self.review_step,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "reviewed_at": self.reviewed_at and self.reviewed_at.isoformat(),
-            "reviewer": self.reviewer
+            "reviewer": self.reviewer,
+            "topics_count": len(self.items)  # Add count of import items
         }
         if include_items:
             base["items"] = [item.to_dict() for item in self.items]

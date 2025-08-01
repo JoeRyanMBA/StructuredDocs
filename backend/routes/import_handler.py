@@ -1,10 +1,209 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from backend.models import db, ImportDocument, ImportItem, Topic
+from ..models import db, ImportDocument, ImportItem, Topic
 import re
+from docx import Document
+import io
+import subprocess
+import tempfile
+import os
 
 imports = Blueprint('imports', __name__, url_prefix='/api/import')
 SOURCES = ('word', 'markdown')
+
+
+def _convert_word_to_markdown(file_content):
+    """Convert Word document to Markdown using pandoc"""
+    try:
+        # Create temporary files for input and output
+        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_input:
+            temp_input.write(file_content)
+            temp_input_path = temp_input.name
+        
+        with tempfile.NamedTemporaryFile(suffix='.md', delete=False) as temp_output:
+            temp_output_path = temp_output.name
+        
+        try:
+            # Use pandoc to convert Word to Markdown with better list handling
+            cmd = [
+                'pandoc',
+                '--from', 'docx',
+                '--to', 'markdown',
+                '--wrap', 'none',  # Don't wrap lines
+                '--extract-media', tempfile.gettempdir(),  # Extract images to temp dir
+                '--markdown-headings=atx',  # Use ATX-style headings (#)
+                '--list-tables',  # Use pipe tables for better compatibility
+                '--strip-comments',  # Remove HTML comments
+                temp_input_path,
+                '-o', temp_output_path
+            ]
+            
+            print(f"PANDOC: Running command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode != 0:
+                print(f"PANDOC ERROR: {result.stderr}")
+                raise Exception(f"Pandoc conversion failed: {result.stderr}")
+            
+            # Read the converted Markdown
+            with open(temp_output_path, 'r', encoding='utf-8') as f:
+                markdown_content = f.read()
+            
+            print(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
+            
+            # Post-process the markdown to fix issues
+            markdown_content = _post_process_markdown(markdown_content)
+            
+            # Additional cleaning for HTML comments and formatting issues
+            markdown_content = _clean_markdown_content(markdown_content)
+            
+            return markdown_content
+            
+        finally:
+            # Clean up temporary files
+            try:
+                os.unlink(temp_input_path)
+                os.unlink(temp_output_path)
+            except OSError:
+                pass  # Files might already be deleted
+                
+    except subprocess.TimeoutExpired:
+        print("PANDOC ERROR: Conversion timed out")
+        raise Exception("Word to Markdown conversion timed out")
+    except Exception as e:
+        print(f"PANDOC ERROR: {str(e)}")
+        raise Exception(f"Failed to convert Word to Markdown: {str(e)}")
+
+
+def _post_process_markdown(markdown_content):
+    """Post-process markdown to fix nested lists and handle margin notes"""
+    lines = markdown_content.split('\n')
+    processed_lines = []
+    
+    i = 0
+    while i < len(lines):
+        line = lines[i]
+        
+        # Handle HTML comment blocks that contain nested lists
+        if line.strip() == '```{=html}' and i + 1 < len(lines):
+            # Look for the closing block
+            j = i + 1
+            html_content = []
+            while j < len(lines) and lines[j].strip() != '```':
+                html_content.append(lines[j])
+                j += 1
+            
+            if j < len(lines):  # Found closing ```
+                # Process the HTML content to extract nested lists
+                html_text = '\n'.join(html_content)
+                converted_list = _convert_html_list_to_markdown(html_text)
+                if converted_list:
+                    processed_lines.extend(converted_list.split('\n'))
+                else:
+                    # If we can't convert, keep the original but clean it up
+                    processed_lines.extend(html_content)
+                i = j + 1  # Skip past the closing ```
+            else:
+                # No closing found, keep as is
+                processed_lines.append(line)
+                i += 1
+        
+        # Remove standalone HTML comments that appear between list items
+        elif line.strip() == '<!-- -->' or line.strip() == '<!---->':
+            # Skip this line entirely
+            i += 1
+        
+        # Handle margin notes (look for specific patterns that might indicate margin notes)
+        elif 'margin' in line.lower() or line.strip().startswith('> '):
+            # Convert margin note style to markdown note
+            content = line.strip()
+            if content.startswith('> '):
+                content = content[2:].strip()
+            elif 'margin' in content.lower():
+                # Remove any margin-related formatting
+                content = re.sub(r'\*\*?margin\s*note\*\*?:?\s*', '', content, flags=re.IGNORECASE)
+                content = content.strip()
+            
+            if content:
+                processed_lines.append(f"**Important:** {content}")
+            i += 1
+        
+        else:
+            processed_lines.append(line)
+            i += 1
+    
+    # Clean up any remaining HTML comments in the processed content
+    cleaned_content = '\n'.join(processed_lines)
+    cleaned_content = re.sub(r'<!--\s*-->', '', cleaned_content)
+    cleaned_content = re.sub(r'<!---->', '', cleaned_content)
+    
+    # Remove excessive blank lines (more than 2 consecutive)
+    cleaned_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_content)
+    
+    return cleaned_content
+
+
+def _convert_html_list_to_markdown(html_content):
+    """Convert HTML list content to proper markdown lists"""
+    # Remove HTML comments
+    html_content = re.sub(r'<!--.*?-->', '', html_content, flags=re.DOTALL)
+    
+    # Convert <ul> and <li> tags to markdown
+    # This is a simple conversion - for complex nested lists you might need a proper HTML parser
+    html_content = re.sub(r'<ul[^>]*>', '', html_content)
+    html_content = re.sub(r'</ul>', '', html_content)
+    html_content = re.sub(r'<ol[^>]*>', '', html_content)
+    html_content = re.sub(r'</ol>', '', html_content)
+    
+    lines = html_content.split('\n')
+    markdown_lines = []
+    
+    for line in lines:
+        line = line.strip()
+        if not line:
+            continue
+            
+        # Convert <li> tags to markdown list items
+        if line.startswith('<li>') and line.endswith('</li>'):
+            content = line[4:-5].strip()  # Remove <li> and </li>
+            # Determine nesting level based on leading whitespace in original
+            # For now, just use simple bullet points
+            markdown_lines.append(f"- {content}")
+        elif '<li>' in line:
+            # Handle multi-line or partial li tags
+            content = re.sub(r'</?li[^>]*>', '', line).strip()
+            if content:
+                markdown_lines.append(f"- {content}")
+    
+    return '\n'.join(markdown_lines) if markdown_lines else None
+
+
+def _clean_markdown_content(content):
+    """Additional cleaning for problematic patterns in converted markdown"""
+    # Remove HTML comments that appear as standalone lines or inline
+    content = re.sub(r'<!--\s*-->\s*\n?', '', content)
+    content = re.sub(r'<!---->\s*\n?', '', content)
+    
+    # Fix patterns where list items are separated by HTML comments
+    # Pattern: list item, HTML comment, list item -> continuous list
+    lines = content.split('\n')
+    cleaned_lines = []
+    
+    for i, line in enumerate(lines):
+        # Skip HTML comment lines entirely
+        if re.match(r'^\s*<!--.*?-->\s*$', line):
+            continue
+        
+        # Keep the line
+        cleaned_lines.append(line)
+    
+    # Join back and clean up excessive whitespace
+    cleaned_content = '\n'.join(cleaned_lines)
+    
+    # Remove excessive blank lines (more than 2 consecutive)
+    cleaned_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_content)
+    
+    return cleaned_content
 
 
 def _parse_and_store(file, imp_doc, source):
@@ -12,8 +211,35 @@ def _parse_and_store(file, imp_doc, source):
     file.stream.seek(0)
 
     if source == 'word':
-        # For Word documents, we'll skip this for now
-        return
+        # Convert Word document to Markdown using pandoc
+        print(f"PARSING WORD DOC: {imp_doc.filename}")
+        try:
+            # Read file content
+            file_content = file.read()
+            file.stream.seek(0)  # Reset stream for potential future reads
+            
+            # Convert to Markdown
+            markdown_content = _convert_word_to_markdown(file_content)
+            
+            # Now parse as if it were a Markdown file
+            lines = []
+            for line in markdown_content.splitlines():
+                if line.strip().startswith('#'):
+                    # Count the number of # characters
+                    hash_count = len(line) - len(line.lstrip('#'))
+                    if hash_count > 1:
+                        # Promote to H1: replace multiple # with single #
+                        content = line.lstrip('#').strip()
+                        line = f"# {content}"
+                        print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
+                lines.append(line)
+            
+            paras = [('md', line) for line in lines]
+            
+        except Exception as e:
+            print(f"ERROR converting Word document: {e}")
+            current_app.logger.error(f"Failed to convert Word document {imp_doc.filename}: {e}")
+            return
     else:
         raw = file.read().decode('utf-8')
         
@@ -33,31 +259,38 @@ def _parse_and_store(file, imp_doc, source):
         paras = [('md', line) for line in lines]
 
     items, buffer, order, current_title = [], [], 0, None
-    print(f"PARSING: source={source}, lines={len(paras)}")
+    print(f"PARSING: source={source}, paragraphs={len(paras)}")
 
     def commit_buffer():
         nonlocal order, current_title, buffer
         if current_title:
             content = '\n'.join(buffer).strip()
-            items.append((order, current_title, content))
-            print(f"COMMITTED: order={order}, title='{current_title}', content_len={len(content)}")
-            order += 1
+            # Only create an item if we have actual content (not just empty lines/whitespace)
+            if content:
+                items.append((order, current_title, content))
+                print(f"COMMITTED: order={order}, title='{current_title}', content_len={len(content)}")
+                order += 1
+            else:
+                print(f"SKIPPED EMPTY: title='{current_title}' (no substantive content)")
             buffer = []
 
     for style, text in paras:
-        is_h1 = (
-            source == 'word' and style.startswith('Heading 1')
-        ) or (
-            source == 'markdown' and text.strip().startswith('#') and not text.strip().startswith('##')
-        )
+        is_h1 = text.strip().startswith('#') and not text.strip().startswith('##')
         print(f"LINE: '{text}' -> H1={is_h1}")
+        
         if is_h1:
-            commit_buffer()
-            current_title = (
-                text.strip() if source == 'word'
-                else text.strip().lstrip('#').strip()
-            )
-            print(f"NEW_TITLE: '{current_title}'")
+            # Check if we have a current title but no substantive content yet
+            current_buffer_content = '\n'.join(buffer).strip()
+            if current_title and not current_buffer_content:
+                # Merge this heading into the content of the previous heading
+                heading_text = text.strip().lstrip('#').strip()
+                buffer.append(f"## {heading_text}")  # Add as H2 in content
+                print(f"MERGED_HEADING: '{heading_text}' added to content of '{current_title}'")
+            else:
+                # Normal case: commit previous section and start new one
+                commit_buffer()
+                current_title = text.strip().lstrip('#').strip()
+                print(f"NEW_TITLE: '{current_title}'")
         else:
             buffer.append(text)
 
@@ -152,6 +385,7 @@ def sme_approve(doc_id):
     try:
         doc = ImportDocument.query.get_or_404(doc_id)
         doc.status = 'approved'  # Changed from 'sme_approved' to 'approved'
+        doc.review_step = 'sme_approved'  # Set the review step for frontend
         db.session.commit()
         current_app.logger.info(f"Import document {doc_id} approved by SME")
         return jsonify({'message': 'Import approved successfully'}), 200
@@ -178,7 +412,8 @@ def commit_import(doc_id):
             )
             db.session.add(topic)
         
-        # Note: Keep status as 'approved' since 'committed' is not in the enum
+        # Update status and review step to show final approval
+        doc.review_step = 'final_approved'
         db.session.commit()
         current_app.logger.info(f"Import document {doc_id} committed successfully")
         return jsonify({'message': 'Import committed successfully'}), 200
@@ -186,6 +421,25 @@ def commit_import(doc_id):
         db.session.rollback()
         current_app.logger.error(f"Error committing import {doc_id}: {str(e)}")
         return jsonify({'error': 'Failed to commit import'}), 500
+
+
+@imports.route('/staging/<int:doc_id>/reprocess', methods=['POST'])
+def reprocess_document(doc_id):
+    """Reprocess an existing import document to extract items"""
+    try:
+        doc = ImportDocument.query.get_or_404(doc_id)
+        
+        # Delete existing items
+        ImportItem.query.filter_by(document_id=doc_id).delete()
+        
+        # Since we don't have the original file, we can't reprocess
+        # This would need to be enhanced to store the original file
+        return jsonify({'error': 'Reprocessing requires the original file to be stored'}), 400
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f"Error reprocessing document {doc_id}: {str(e)}")
+        return jsonify({'error': f'Failed to reprocess document: {str(e)}'}), 500
 
 
 @imports.route('/staging/<int:doc_id>/reject', methods=['POST'])

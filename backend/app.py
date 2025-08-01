@@ -15,7 +15,7 @@ def create_app():
     import os
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'structured_docs.db')
     # Initialize SQLAlchemy
-    from backend import db
+    from . import db
     db.init_app(app)
 
     # Register Flask-Migrate
@@ -33,15 +33,15 @@ def create_app():
         return jsonify({"message": "test successful"}), 200
 
     # Import blueprints before registration
-    from backend.routes.topics         import topics  as topics_bp
-    from backend.routes.import_handler import imports as imports_bp
-    from backend.routes.publications   import pubs_bp
-    from backend.routes.collections    import collections_bp
-    from backend.routes.reviews        import reviews_bp
-    from backend.routes.projects       import projects_bp
-    from backend.routes.users          import users_bp
-    from backend.routes.metrics        import metrics_bp
-    from backend.routes.notifications  import notifications_bp
+    from .routes.topics         import topics  as topics_bp
+    from .routes.import_handler import imports as imports_bp
+    from .routes.publications   import pubs_bp
+    from .routes.collections    import collections_bp
+    from .routes.reviews        import reviews_bp
+    from .routes.projects       import projects_bp
+    from .routes.users          import users_bp
+    from .routes.metrics        import metrics_bp
+    from .routes.notifications  import notifications_bp
 
     # Register all blueprints once
     print("📋 Registering blueprints...")

@@ -1,5 +1,6 @@
 <template>
   <div class="import-review-view">
+    <Breadcrumbs />
     <!-- Loading -->
     <div v-if="loading" class="loading">Loading…</div>
 
@@ -8,10 +9,10 @@
 
     <!-- Data Loaded -->
     <div v-else>
-      <h2>Review Import: {{ doc.items && doc.items.length > 0 ? doc.items[0].title : doc.filename }}</h2>
+      <h2>Review Import: {{ doc.filename }}</h2>
       <p>Status: {{ doc.status }}</p>
 
-      <table class="items-table">
+      <table class="items-table" v-if="doc.items && doc.items.length > 0">
         <thead>
           <tr>
             <th>#</th><th>Title</th><th>Content</th>
@@ -22,15 +23,27 @@
             <td>{{ item.heading_order + 1 }}</td>
             <td><input v-model="item.title" placeholder="Edit title" /></td>
             <td>
-              <textarea
-                v-model="item.content"
-                rows="4"
-                placeholder="Edit content"
-              ></textarea>
+              <div class="content-cell">
+                <textarea
+                  v-model="item.content"
+                  rows="8"
+                  placeholder="Edit content"
+                  class="content-textarea"
+                ></textarea>
+                <div class="content-info">
+                  {{ item.content ? item.content.length : 0 }} characters
+                </div>
+              </div>
             </td>
           </tr>
         </tbody>
       </table>
+      
+      <!-- Show message if no items -->
+      <div v-else class="no-items" style="background: #fff3cd; padding: 1rem; margin: 1rem 0; border-radius: 4px; color: #856404;">
+        <strong>No content items found for this import.</strong><br>
+        This document may need to be re-imported with proper parsing, or the original file may not have had recognizable headings.
+      </div>
 
       <!-- Review Step Information -->
       <div class="review-status">
@@ -79,8 +92,11 @@
 </template>
 
 <script>
+import Breadcrumbs from '@/components/Breadcrumbs.vue'
+
 export default {
   name: 'ImportReviewView',
+  components: { Breadcrumbs },
 
   props: {
     id: {
@@ -107,13 +123,16 @@ export default {
       this.error = null
       try {
         const res = await fetch(`/api/import/staging/${this.id}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        
+        if (!res.ok) {
+          const errorText = await res.text()
+          throw new Error(`HTTP ${res.status}: ${errorText}`)
+        }
+        
         this.doc = await res.json()
-        console.log('Import data received:', this.doc) // Debug log
-        console.log('Items array:', this.doc.items) // Debug log
       } catch (err) {
-        console.error(err)
-        this.error = 'Failed to load import data'
+        console.error('❌ Error fetching import:', err)
+        this.error = `Failed to load import data: ${err.message}`
       } finally {
         this.loading = false
       }
@@ -194,6 +213,25 @@ export default {
 .items-table th:nth-child(3), .items-table td:nth-child(3) { width: 70%; }
 .items-table input, .items-table textarea {
   width:100%; box-sizing:border-box; padding:0.25rem;
+}
+
+.content-textarea {
+  min-height: 120px;
+  resize: vertical;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif;
+  font-size: 14px;
+  line-height: 1.4;
+}
+
+.content-cell {
+  position: relative;
+}
+
+.content-info {
+  font-size: 12px;
+  color: #666;
+  text-align: right;
+  margin-top: 4px;
 }
 
 .actions {

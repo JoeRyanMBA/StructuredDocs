@@ -497,7 +497,6 @@ export default {
 <style scoped>
 .performance-metrics {
   padding: 20px;
-  max-width: 1400px;
   margin: 0 auto;
   position: relative;
 }

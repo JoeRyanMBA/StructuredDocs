@@ -73,7 +73,7 @@ export default {
 
 <style scoped>
 .content {
-  margin-top: 30px; /* Space for header (60px) + tabs (60px) */
+  margin-top: 40px; /* Space for header (60px) + tabs (60px) */
   padding: 2rem;
   max-width: 1200px;
   margin-left: auto;

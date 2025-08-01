@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from backend.models import db, Collection, collection_topic_tree, Publication, PublicationNode
+from ..models import db, Collection, collection_topic_tree, Publication, PublicationNode
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
 

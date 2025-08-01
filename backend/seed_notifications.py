@@ -6,15 +6,33 @@ from backend.app import app
 
 sample_notifications = [
     {
+        'title': 'Welcome!',
         'message': 'Welcome to StructuredDocs! Your account was created.',
+        'type': 'global',
         'read': False
     },
     {
+        'title': 'Milestone Due',
         'message': 'Project Alpha has a new milestone due next week.',
+        'type': 'admin',
         'read': False
     },
     {
+        'title': 'Review Pending',
         'message': 'Your review for Topic Beta is pending.',
+        'type': 'author',
+        'read': False
+    },
+    {
+        'title': 'System Update',
+        'message': 'System maintenance completed successfully.',
+        'type': 'global',
+        'read': True
+    },
+    {
+        'title': 'New Feature',
+        'message': 'Check out the new document collaboration feature!',
+        'type': 'global',
         'read': False
     }
 ]

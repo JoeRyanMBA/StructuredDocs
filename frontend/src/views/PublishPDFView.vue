@@ -130,10 +130,7 @@ export default {
 
 <style scoped>
 .publish-pdf {
-  padding-top: 0px; /* Top padding to account for fixed header */
-  padding-left: 2rem;
-  padding-right: 2rem;
-  padding-bottom: 2rem;
+ margin: 0 auto;
 }
 
 .guidance-text {

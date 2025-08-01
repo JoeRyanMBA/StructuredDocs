@@ -305,7 +305,8 @@ export default {
     },
 
     viewImport(importDoc) {
-      this.$router.push(`/import/${importDoc.id}`)
+      // For approved documents, also go to the review page to view the content
+      this.$router.push(`/import/${importDoc.id}/review`)
     },
 
     navigateTo(path) {
@@ -357,11 +358,6 @@ export default {
 
 <style scoped>
 .import-dashboard {
-  padding-top: 0;
-  padding-right: 2rem;
-  padding-bottom: 2rem;
-  padding-left: 2rem;
-  max-width: 1400px;
   margin: 0 auto;
 }
 

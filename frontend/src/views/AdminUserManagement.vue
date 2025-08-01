@@ -50,7 +50,6 @@ export default {
 
 .page-content {
   padding: 30px;
-  max-width: 1400px;
   margin: 0 auto;
 }
 

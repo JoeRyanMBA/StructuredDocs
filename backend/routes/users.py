@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from backend.models import db, User
+from ..models import db, User
 from sqlalchemy.exc import IntegrityError
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')

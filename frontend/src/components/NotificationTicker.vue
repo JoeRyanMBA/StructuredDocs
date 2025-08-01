@@ -77,9 +77,9 @@ export default {
 .notification-ticker {
   margin-bottom: 1rem;
   padding: 0.5rem;
-  background: #ff6f4336;
+  background: #0094a815;
   border-radius: 6px;
-  border-left: 6px solid #ff7043;
+  border-left: 6px solid #0095A8;
   display: flex;
   position: relative;
   overflow: hidden;

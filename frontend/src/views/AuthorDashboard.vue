@@ -427,11 +427,6 @@ export default {
 
 <style scoped>
 .author-dashboard {
-  padding-top: 0;
-  padding-right: 2rem;
-  padding-bottom: 2rem;
-  padding-left: 2rem;
-  max-width: 1400px;
   margin: 0 auto;
 }
 
