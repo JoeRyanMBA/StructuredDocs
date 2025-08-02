@@ -10,7 +10,10 @@ import shutil
 from pathlib import Path
 
 # Add backend to path
-sys.path.insert(0, '/workspaces/StructuredDocs/backend')
+backend_path = os.environ.get('BACKEND_PATH')
+if not backend_path:
+    backend_path = str((Path(__file__).parent / 'backend').resolve())
+sys.path.insert(0, backend_path)
 
 # Set Flask app module
 os.environ['FLASK_APP'] = 'backend.app'

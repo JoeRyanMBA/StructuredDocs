@@ -157,6 +157,11 @@ const routes = [
     component: () => import('@/views/ProjectsView.vue')
   },
   {
+    path: '/tasks',
+    name: 'Tasks',
+    component: () => import('@/views/TasksView.vue')
+  },
+  {
     path: '/organize/:id',
     name: 'Organize',
     component: () => import('@/views/Organize.vue'),

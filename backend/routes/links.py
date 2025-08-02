@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Link, Topic, TopicLink
-from sqlalchemy import or_, and_
+from models import db, Link, Topic, TopicLink
+from sqlalchemy import or_, and_, func
 import re
 
 links_bp = Blueprint('links', __name__, url_prefix='/api/links')
@@ -245,7 +245,7 @@ def add_link_to_topic(topic_id):
             return jsonify({'error': 'Link is already associated with this topic'}), 400
         
         # Get next position
-        max_position = db.session.query(db.func.max(TopicLink.position))\
+        max_position = db.session.query(func.max(TopicLink.position))\
                                 .filter_by(topic_id=topic_id)\
                                 .scalar() or 0
         

@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from ..models import db, ImportDocument, ImportItem, ImportImage, Topic
-from ..utils.image_handler import ImageHandler
+from models import db, ImportDocument, ImportItem, ImportImage, Topic
+from utils.image_handler import ImageHandler
 import re
 from docx import Document
 import io

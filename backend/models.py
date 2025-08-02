@@ -4,7 +4,10 @@ from datetime import datetime
 from sqlalchemy import Enum, ForeignKey, func
 from sqlalchemy.orm import relationship
 from sqlalchemy import Table, Column, Integer
-from . import db
+from flask_sqlalchemy import SQLAlchemy
+
+# Initialize SQLAlchemy
+db = SQLAlchemy()
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -653,4 +656,79 @@ class ProjectMilestone(db.Model):
             "status": self.status,
             "completion_date": self.completion_date.isoformat() if self.completion_date else None,
             "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class Task(db.Model):
+    """Task management model for projects, collections, and topics"""
+    __tablename__ = 'tasks'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(
+        Enum('todo', 'in_progress', 'review', 'completed', 'cancelled', name='task_status'),
+        nullable=False,
+        default='todo',
+        server_default='todo'
+    )
+    priority = db.Column(
+        Enum('low', 'medium', 'high', 'urgent', name='task_priority'),
+        nullable=False,
+        default='medium',
+        server_default='medium'
+    )
+    due_date = db.Column(db.Date, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Association fields - a task can be associated with one of these
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
+    collection_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
+    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=True)
+    
+    # Assignment
+    assigned_to = db.Column(db.String(100), nullable=True)  # Could be stakeholder name or email
+    created_by = db.Column(db.String(100), nullable=True)
+    
+    # Tags for categorization
+    tags = db.Column(db.Text, nullable=True)  # JSON string of tags
+    
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    # Relationships
+    project = relationship('Project', backref='tasks')
+    collection = relationship('Collection', backref='tasks')
+    topic = relationship('Topic', backref='tasks')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "title": self.title,
+            "description": self.description,
+            "status": self.status,
+            "priority": self.priority,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "project_id": self.project_id,
+            "collection_id": self.collection_id,
+            "topic_id": self.topic_id,
+            "assigned_to": self.assigned_to,
+            "created_by": self.created_by,
+            "tags": self.tags,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None,
+            # Include related object names for display
+            "project_name": self.project.name if self.project else None,
+            "collection_name": self.collection.name if self.collection else None,
+            "topic_name": self.topic.title if self.topic else None  # Topic uses 'title' not 'name'
         }

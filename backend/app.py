@@ -1,9 +1,13 @@
 # backend/app.py
 
+import sys
+import os
+# Add the backend directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
 from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
-import os
 
 def create_app():
 
@@ -14,13 +18,15 @@ def create_app():
     # enable CORS and debug mode
     # Configure SQLAlchemy database URI
     import os
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'structured_docs.db')
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(backend_dir, 'instance', 'structured_docs.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
     
     # Configure static files for image serving
     app.config['STATIC_FOLDER'] = os.path.join(app.root_path, 'static')
     
     # Initialize SQLAlchemy
-    from . import db
+    from models import db
     db.init_app(app)
 
     # Register Flask-Migrate
@@ -49,17 +55,18 @@ def create_app():
             return jsonify({'error': 'Image not found'}), 404
 
     # Import blueprints before registration
-    from .routes.topics         import topics  as topics_bp
-    from .routes.import_handler import imports as imports_bp
-    from .routes.publications   import pubs_bp
-    from .routes.collections    import collections_bp
-    from .routes.reviews        import reviews_bp
-    from .routes.projects       import projects_bp
-    from .routes.users          import users_bp
-    from .routes.metrics        import metrics_bp
-    from .routes.notifications  import notifications_bp
-    from .routes.links          import links_bp
-    from .routes.stakeholders   import stakeholders_bp
+    from routes.topics         import topics  as topics_bp
+    from routes.import_handler import imports as imports_bp
+    from routes.publications   import pubs_bp
+    from routes.collections    import collections_bp
+    from routes.reviews        import reviews_bp
+    from routes.projects       import projects_bp
+    from routes.users          import users_bp
+    from routes.metrics        import metrics_bp
+    from routes.notifications  import notifications_bp
+    from routes.links          import links_bp
+    from routes.stakeholders   import stakeholders_bp
+    from routes.tasks          import tasks_bp
 
     # Register all blueprints once
     print("📋 Registering blueprints...")
@@ -85,6 +92,8 @@ def create_app():
     print("  ✅ Links blueprint registered")
     app.register_blueprint(stakeholders_bp)
     print("  ✅ Stakeholders blueprint registered")
+    app.register_blueprint(tasks_bp)
+    print("  ✅ Tasks blueprint registered")
 
     print("🎉 Flask app creation complete!")
     # Error handler for JWT errors
@@ -108,4 +117,4 @@ print("✅ App instance created successfully!")
 
 if __name__ == '__main__':
     print("🚀 Starting Flask development server...")
-    app.run(host='0.0.0.0', port=5050, debug=True)
+    app.run(host='0.0.0.0', port=5000, debug=True)

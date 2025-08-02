@@ -7,8 +7,8 @@ Creates sample data for testing the review workflow and other features
 import os
 import sys
 from datetime import datetime, timedelta
-from backend.app import app
-from backend.models import db, Topic, Collection, ImportDocument, ImportItem, Publication, PublicationNode
+from app import create_app
+from models import db, Topic, Collection, ImportDocument, ImportItem, Publication, PublicationNode
 
 def seed_collections():
     """Create sample collections with hierarchical structure"""
@@ -296,7 +296,7 @@ Retained for historical reference only.''',
     db.session.flush()  # Get topic IDs
     
     # Associate topics with collections
-    from backend.models import collection_topic_tree
+    from models import collection_topic_tree
     for i, topic_data in enumerate(topics_data):
         collection = collections[topic_data['collection']]
         db.session.execute(
@@ -419,6 +419,8 @@ def seed_publications():
 def main():
     """Main seeding function"""
     print("🌱 Starting database seeding...")
+    
+    app = create_app()
     
     with app.app_context():
         try:

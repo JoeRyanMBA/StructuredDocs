@@ -4,7 +4,8 @@ Test script to demonstrate reusable link management in StructuredDocs
 """
 
 import sys
-sys.path.insert(0, '/workspaces/StructuredDocs/backend')
+import os
+sys.path.insert(0, os.path.abspath(os.path.join(os.path.dirname(__file__), 'backend')))
 
 from backend.app import create_app
 from backend.models import db, Link, Topic, TopicLink

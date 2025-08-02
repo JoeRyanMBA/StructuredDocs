@@ -5,4 +5,6 @@ Flask-CORS
 python-docx
 Flask
 reportlab
-psutilPillow>=10.0.0
+psutil
+Pillow>=10.0.0
+Pillow>=10.0.0
