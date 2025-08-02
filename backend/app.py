@@ -1,8 +1,9 @@
 # backend/app.py
 
-from flask import Flask, jsonify
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
+import os
 
 def create_app():
 
@@ -14,6 +15,10 @@ def create_app():
     # Configure SQLAlchemy database URI
     import os
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'structured_docs.db')
+    
+    # Configure static files for image serving
+    app.config['STATIC_FOLDER'] = os.path.join(app.root_path, 'static')
+    
     # Initialize SQLAlchemy
     from . import db
     db.init_app(app)
@@ -32,6 +37,17 @@ def create_app():
         print("🧪 Test endpoint called")
         return jsonify({"message": "test successful"}), 200
 
+    # Static file serving for imported images
+    @app.route('/images/<path:filename>')
+    def serve_image(filename):
+        """Serve imported images from static directory"""
+        try:
+            static_images_dir = os.path.join(app.config['STATIC_FOLDER'], 'images')
+            return send_from_directory(static_images_dir, filename)
+        except Exception as e:
+            app.logger.error(f"Error serving image {filename}: {str(e)}")
+            return jsonify({'error': 'Image not found'}), 404
+
     # Import blueprints before registration
     from .routes.topics         import topics  as topics_bp
     from .routes.import_handler import imports as imports_bp
@@ -42,6 +58,8 @@ def create_app():
     from .routes.users          import users_bp
     from .routes.metrics        import metrics_bp
     from .routes.notifications  import notifications_bp
+    from .routes.links          import links_bp
+    from .routes.stakeholders   import stakeholders_bp
 
     # Register all blueprints once
     print("📋 Registering blueprints...")
@@ -63,6 +81,10 @@ def create_app():
     print("  ✅ Metrics blueprint registered")
     app.register_blueprint(notifications_bp)
     print("  ✅ Notifications blueprint registered")
+    app.register_blueprint(links_bp)
+    print("  ✅ Links blueprint registered")
+    app.register_blueprint(stakeholders_bp)
+    print("  ✅ Stakeholders blueprint registered")
 
     print("🎉 Flask app creation complete!")
     # Error handler for JWT errors

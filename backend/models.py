@@ -51,6 +51,7 @@ class Collection(db.Model):
     id        = db.Column(db.Integer, primary_key=True)
     name      = db.Column(db.String(200), nullable=False)
     parent_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
+    project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
     position  = db.Column(db.Integer, nullable=False, default=0)
 
     # Nested children collections
@@ -59,6 +60,9 @@ class Collection(db.Model):
         backref=db.backref('parent', remote_side=[id]),
         cascade='all, delete-orphan'
     )
+
+    # Project relationship
+    project = relationship('Project', back_populates='collections')
 
     # Topics in this collection
     topics = relationship(
@@ -85,7 +89,8 @@ class Collection(db.Model):
             'id': self.id,
             'name': self.name,
             'position': self.position,
-            'parentId': self.parent_id
+            'parentId': self.parent_id,
+            'projectId': self.project_id
         }
         if include_topics:
             # Use hierarchical topic structure instead of flat list
@@ -150,8 +155,11 @@ class Topic(db.Model):
         nullable=False
     )
 
-    def to_dict(self):
-        return {
+    # Relationship to reusable links
+    topic_links = relationship('TopicLink', back_populates='topic', cascade='all, delete-orphan')
+
+    def to_dict(self, include_links=False):
+        base = {
             "id": self.id,
             "title": self.title,
             "content": self.content,
@@ -159,6 +167,10 @@ class Topic(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
         }
+        if include_links:
+            base["links"] = [tl.to_dict() for tl in self.topic_links]
+            base["links_count"] = len(self.topic_links)
+        return base
 
 class ImportDocument(db.Model):
     __tablename__ = 'import_documents'
@@ -328,4 +340,317 @@ class Notification(db.Model):
             'type': self.type,
             'date': self.date.isoformat() if self.date else None,
             'read': self.read
+        }
+
+class Link(db.Model):
+    """Reusable link objects that can be referenced across multiple topics"""
+    __tablename__ = 'links'
+
+    LINK_TYPES = ('form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other')
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(512), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    reference_code = db.Column(db.String(100), nullable=True, unique=True)  # e.g., "AB-123"
+    link_type = db.Column(
+        Enum(*LINK_TYPES, name='link_type_enum'),
+        nullable=False,
+        default='other'
+    )
+    is_internal = db.Column(db.Boolean, nullable=False, default=False)  # Internal vs external link
+    is_active = db.Column(db.Boolean, nullable=False, default=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+    updated_at = db.Column(db.DateTime, default=datetime.utcnow, onupdate=datetime.utcnow, nullable=False)
+    created_by = db.Column(db.String(100), nullable=True)  # User who created the link
+
+    # Relationship to track which topics use this link
+    topic_links = relationship('TopicLink', back_populates='link', cascade='all, delete-orphan')
+
+    def to_dict(self, include_usage=False):
+        base = {
+            'id': self.id,
+            'title': self.title,
+            'url': self.url,
+            'description': self.description,
+            'reference_code': self.reference_code,
+            'link_type': self.link_type,
+            'is_internal': self.is_internal,
+            'is_active': self.is_active,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+            'created_by': self.created_by
+        }
+        if include_usage:
+            base['usage_count'] = len(self.topic_links)
+            base['used_in_topics'] = [tl.topic.title for tl in self.topic_links if tl.topic]
+        return base
+
+class TopicLink(db.Model):
+    """Junction table linking topics to reusable links"""
+    __tablename__ = 'topic_links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    topic_id = db.Column(
+        db.Integer,
+        ForeignKey('topics.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    link_id = db.Column(
+        db.Integer,
+        ForeignKey('links.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    context = db.Column(db.String(200), nullable=True)  # Context where link appears in topic
+    position = db.Column(db.Integer, nullable=False, default=0)  # Order within topic
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationships
+    topic = relationship('Topic', back_populates='topic_links')
+    link = relationship('Link', back_populates='topic_links')
+
+    # Unique constraint to prevent duplicate links in same topic
+    __table_args__ = (db.UniqueConstraint('topic_id', 'link_id', name='unique_topic_link'),)
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'topic_id': self.topic_id,
+            'link_id': self.link_id,
+            'context': self.context,
+            'position': self.position,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'link': self.link.to_dict() if self.link else None
+        }
+
+class ImportImage(db.Model):
+    """Track images extracted from imported documents"""
+    __tablename__ = 'import_images'
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(
+        db.Integer,
+        ForeignKey('import_documents.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    filename = db.Column(db.String(256), nullable=False)
+    original_name = db.Column(db.String(256), nullable=False)
+    public_url = db.Column(db.String(512), nullable=False)
+    backend_path = db.Column(db.String(512), nullable=False)
+    frontend_path = db.Column(db.String(512), nullable=False)
+    width = db.Column(db.Integer, nullable=True)
+    height = db.Column(db.Integer, nullable=True)
+    format = db.Column(db.String(32), nullable=True)
+    file_size = db.Column(db.Integer, nullable=True)
+    mime_type = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationship
+    document = relationship('ImportDocument', backref='images')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'document_id': self.document_id,
+            'filename': self.filename,
+            'original_name': self.original_name,
+            'public_url': self.public_url,
+            'width': self.width,
+            'height': self.height,
+            'format': self.format,
+            'file_size': self.file_size,
+            'mime_type': self.mime_type,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class Stakeholder(db.Model):
+    """Reusable stakeholder model that can be associated with multiple projects"""
+    __tablename__ = 'stakeholders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False)
+    email = db.Column(db.String(120), nullable=False, unique=True)
+    title = db.Column(db.String(200), nullable=True)
+    organization = db.Column(db.String(200), nullable=True)
+    department = db.Column(db.String(200), nullable=True)
+    phone = db.Column(db.String(20), nullable=True)
+    expertise_areas = db.Column(db.Text, nullable=True)  # JSON string of expertise areas
+    bio = db.Column(db.Text, nullable=True)
+    active = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "email": self.email,
+            "title": self.title,
+            "organization": self.organization,
+            "department": self.department,
+            "phone": self.phone,
+            "expertise_areas": self.expertise_areas,
+            "bio": self.bio,
+            "active": self.active,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+
+
+class Project(db.Model):
+    """Project management model"""
+    __tablename__ = 'projects'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    status = db.Column(
+        Enum('planning', 'active', 'review', 'completed', 'on_hold', name='project_status'),
+        nullable=False,
+        default='planning',
+        server_default='planning'
+    )
+    start_date = db.Column(db.Date, nullable=True)
+    target_completion = db.Column(db.Date, nullable=True)
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    # Relationships
+    stakeholders = relationship('ProjectStakeholder', back_populates='project', cascade='all, delete-orphan')
+    milestones = relationship('ProjectMilestone', back_populates='project', cascade='all, delete-orphan')
+    collections = relationship('Collection', back_populates='project')
+
+    def to_dict(self, include_details=False):
+        data = {
+            "id": self.id,
+            "name": self.name,
+            "description": self.description,
+            "status": self.status,
+            "start_date": self.start_date.isoformat() if self.start_date else None,
+            "target_completion": self.target_completion.isoformat() if self.target_completion else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "updated_at": self.updated_at.isoformat() if self.updated_at else None
+        }
+        
+        if include_details:
+            data.update({
+                "stakeholders": [s.to_dict() for s in self.stakeholders],
+                "milestones": [m.to_dict() for m in sorted(self.milestones, key=lambda x: x.due_date or datetime.max.date())],
+                "collections": [c.to_dict(include_children=False, include_topics=False) for c in self.collections],
+                "publishedDocuments": []  # Placeholder for frontend compatibility
+            })
+        
+        return data
+
+
+class ProjectStakeholder(db.Model):
+    """Association between projects and stakeholders with project-specific roles"""
+    __tablename__ = 'project_stakeholders'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(
+        db.Integer,
+        db.ForeignKey('projects.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    stakeholder_id = db.Column(
+        db.Integer,
+        db.ForeignKey('stakeholders.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    role = db.Column(
+        Enum('project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor', name='stakeholder_role'),
+        nullable=False,
+        default='stakeholder',
+        server_default='stakeholder'
+    )
+    can_review = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
+    notes = db.Column(db.Text, nullable=True)
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+
+    # Relationships
+    project = relationship('Project', back_populates='stakeholders')
+    stakeholder = relationship('Stakeholder')
+
+    # Unique constraint to prevent duplicate stakeholder assignments to same project
+    __table_args__ = (db.UniqueConstraint('project_id', 'stakeholder_id', name='unique_project_stakeholder'),)
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "stakeholder_id": self.stakeholder_id,
+            "name": self.stakeholder.name if self.stakeholder else None,
+            "email": self.stakeholder.email if self.stakeholder else None,
+            "title": self.stakeholder.title if self.stakeholder else None,
+            "role": self.role,
+            "can_review": self.can_review,
+            "notes": self.notes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "stakeholder": self.stakeholder.to_dict() if self.stakeholder else None
+        }
+
+
+class ProjectMilestone(db.Model):
+    """Project milestones and deadlines"""
+    __tablename__ = 'project_milestones'
+
+    id = db.Column(db.Integer, primary_key=True)
+    project_id = db.Column(
+        db.Integer,
+        db.ForeignKey('projects.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    name = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    date = db.Column(db.Date, nullable=True)
+    status = db.Column(
+        Enum('planned', 'in-progress', 'completed', 'overdue', name='milestone_status'),
+        nullable=False,
+        default='planned',
+        server_default='planned'
+    )
+    completion_date = db.Column(db.Date, nullable=True)
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+
+    # Relationships
+    project = relationship('Project', back_populates='milestones')
+
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "project_id": self.project_id,
+            "name": self.name,
+            "description": self.description,
+            "date": self.date.isoformat() if self.date else None,
+            "status": self.status,
+            "completion_date": self.completion_date.isoformat() if self.completion_date else None,
+            "created_at": self.created_at.isoformat() if self.created_at else None
         }

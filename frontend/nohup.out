@@ -2,13 +2,28 @@
 > structured-docs-frontend@0.1.0 dev
 > vite
 
-Port 5173 is in use, trying another one...
 
-  VITE v7.0.6  ready in 473 ms
+  VITE v7.0.6  ready in 2638 ms
 
-  ➜  Local:   http://localhost:5174/
+  ➜  Local:   http://localhost:5173/
   ➜  Network: use --host to expose
-4:28:42 PM [vite] (client) hmr update /src/views/ImportDashboard.vue
-4:30:30 PM [vite] vite.config.js changed, restarting server...
-4:30:30 PM [vite] (client) page reload src/router/index.js
-4:30:30 PM [vite] server restarted.
+11:57:19 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:57:39 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:57:50 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:58:08 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:58:35 PM [vite] (client) hmr update /src/views/ProjectsView.vue
+11:59:10 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
+12:02:06 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:02:20 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:02:31 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:02:43 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:02:52 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:03:15 AM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
+12:03:30 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:18:14 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:18:51 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:19:18 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:19:26 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:19:49 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:20:40 AM [vite] (client) hmr update /src/views/ProjectsView.vue
+12:21:08 AM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
