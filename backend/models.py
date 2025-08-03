@@ -137,6 +137,7 @@ class Topic(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     title = db.Column(db.String(200), nullable=False)
     content = db.Column(db.Text, nullable=True)
+    frontmatter = db.Column(db.Text, nullable=True)  # YAML frontmatter
 
     # Draft → Published → Archived
     status = db.Column(
@@ -166,6 +167,7 @@ class Topic(db.Model):
             "id": self.id,
             "title": self.title,
             "content": self.content,
+            "frontmatter": self.frontmatter,
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None

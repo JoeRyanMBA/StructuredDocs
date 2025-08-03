@@ -24,90 +24,230 @@
  * Running on http://127.0.0.1:5050
  * Running on http://10.0.2.170:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [02/Aug/2025 23:29:49] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:49] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:49] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:49] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:29:55] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:30:57] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:30:57] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:00] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:41] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:41] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:44] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:44] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:44] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:44] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:44] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:45] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:45] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:31:47] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:32:04] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:46] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:46] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:45:48] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:46:18] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:52] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:52] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:48:54] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:11] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:11] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:23] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:39] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:50] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:49:58] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:30] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:30] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:50:33] "GET /api/import/staging/1/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:52:27] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:00] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/import/staging/3/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/import/staging/2/images HTTP/1.1" 200 -
-127.0.0.1 - - [02/Aug/2025 23:54:01] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:58] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:11:59] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:00] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:00] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:12:02] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:14:01] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:14:29] "[35m[1mPOST /api/notifications HTTP/1.1[0m" 201 -
+127.0.0.1 - - [03/Aug/2025 00:14:37] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:14:44] "[35m[1mPOST /api/notifications HTTP/1.1[0m" 201 -
+127.0.0.1 - - [03/Aug/2025 00:15:12] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:12] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:17] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:20] "GET /api/tasks/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:20] "GET /api/tasks/summary HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:20] "GET /api/tasks/associations HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:21] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:21] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:22] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:22] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:22] "GET /api/reviews/reviewers HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:23] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:24] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:25] "GET /api/publications HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:27] "GET /api/reviews/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:29] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:35] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:43] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:44] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:58] "[35m[1mPOST /api/topics HTTP/1.1[0m" 201 -
+127.0.0.1 - - [03/Aug/2025 00:15:58] "PUT /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:15:58] "GET /api/topics/9 HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:33] "PUT /api/topics/9 HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/topics HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔄 Collections GET request received
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔄 Collections GET request received
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔄 Collections GET request received
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 201
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 201
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔄 Collections GET request received
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔄 Collections GET request received
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔄 Collections GET request received
+🔍 Request from origin: None - Response: 200
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 201
+🔄 Updating collections with payload: [{'children': [{'children': [], 'id': 4, 'name': 'Sampling Techniques', 'parentId': 1, 'position': 1, 'projectId': None, 'topics': [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}]}, {'children': [], 'id': 5, 'name': 'Data Collection Methods', 'parentId': 1, 'position': 2, 'projectId': None, 'topics': [{'children': [], 'id': 2, 'title': 'Computer-Assisted Personal Interviewing (CAPI) Best Practices'}, {'children': [], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}]}, {'children': [], 'id': 6, 'name': 'Quality Control', 'parentId': 1, 'position': 3, 'projectId': None, 'topics': [{'children': [], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}]}], 'id': 1, 'name': 'Survey Methodology', 'parentId': None, 'position': 1, 'projectId': None, 'topics': []}, {'children': [{'children': [], 'id': 7, 'name': 'Census Data Analysis', 'parentId': 2, 'position': 1, 'projectId': None, 'topics': [{'children': [], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}]}, {'children': [], 'id': 8, 'name': 'Population Estimates', 'parentId': 2, 'position': 2, 'projectId': None, 'topics': [{'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}]}], 'id': 2, 'name': 'Demographics & Population', 'parentId': None, 'position': 2, 'projectId': None, 'topics': []}, {'children': [{'children': [], 'id': 9, 'name': 'Employment Statistics', 'parentId': 3, 'position': 1, 'projectId': None, 'topics': [{'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}]}, {'children': [], 'id': 10, 'name': 'Income & Poverty', 'parentId': 3, 'position': 2, 'projectId': None, 'topics': [{'children': [], 'id': 7, 'title': 'Income Distribution Analysis Methods'}]}], 'id': 3, 'name': 'Economic Statistics', 'parentId': None, 'position': 3, 'projectId': None, 'topics': [{'id': 9, 'title': 'New Topic'}]}]
+📋 Updating topics for collection 1: []
+📋 Updating topics for collection 4: [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}]
+➕ Adding topic 1 to collection 4 at position 0, parent: None
+📋 Updating topics for collection 5: [{'children': [], 'id': 2, 'title': 'Computer-Assisted Personal Interviewing (CAPI) Best Practices'}, {'children': [], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}]
+➕ Adding topic 2 to collection 5 at position 0, parent: None
+➕ Adding topic 8 to collection 5 at position 1, parent: None
+📋 Updating topics for collection 6: [{'children': [], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}]
+➕ Adding topic 4 to collection 6 at position 0, parent: None
+📋 Updating topics for collection 2: []
+📋 Updating topics for collection 7: [{'children': [], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}]
+➕ Adding topic 3 to collection 7 at position 0, parent: None
+📋 Updating topics for collection 8: [{'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}]
+➕ Adding topic 5 to collection 8 at position 0, parent: None
+📋 Updating topics for collection 3: [{'id': 9, 'title': 'New Topic'}]
+➕ Adding topic 9 to collection 3 at position 0, parent: None
+📋 Updating topics for collection 9: [{'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}]
+➕ Adding topic 6 to collection 9 at position 0, parent: None
+📋 Updating topics for collection 10: [{'children': [], 'id': 7, 'title': 'Income Distribution Analysis Methods'}]
+➕ Adding topic 7 to collection 10 at position 0, parent: None
+✅ Collections updated successfully
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: http://127.0.0.1:5173 - Response: 200
+🔄 Collections GET request received
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+✅ Returning 3 collections
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+🔍 Request from origin: None - Response: 200
+127.0.0.1 - - [03/Aug/2025 00:16:40] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:45] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:46] "GET /api/topics HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/topics HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:16:53] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:23] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:23] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:23] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:23] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/topics HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/links?include_usage=true HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/staging/3/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/staging/2/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:21:24] "GET /api/import/staging/1/images HTTP/1.1" 200 -
+127.0.0.1 - - [03/Aug/2025 00:24:02] "[35m[1mPOST /api/topics HTTP/1.1[0m" 201 -

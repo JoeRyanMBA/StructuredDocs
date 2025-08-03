@@ -708,12 +708,36 @@ export default {
         projectId: null
       }
     },
+
+    generateFrontmatter(title) {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const now = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      })
+      
+      return `---
+title: "${title}"
+author: "${user.name || user.username || 'Unknown User'}"
+created: "${now}"
+modified: "${now}"
+status: "draft"
+---`
+    },
     
     async addNewTopic() {
       try {
+        const title = 'New Topic'
+        const frontmatter = this.generateFrontmatter(title)
+        
         const topicData = {
-          title: 'New Topic',
-          content: '# New Topic\n\nStart writing your content here...',
+          title: title,
+          content: `# ${title}\n\nStart writing your content here...`,
+          frontmatter: frontmatter,
           status: 'draft'
         }
         

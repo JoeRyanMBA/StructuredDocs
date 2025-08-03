@@ -6,6 +6,7 @@ from models import db, Topic
 topics = Blueprint('topics', __name__, url_prefix='/api/topics')
 
 # GET /api/topics → List all topics
+@topics.route('', methods=['GET'])
 @topics.route('/', methods=['GET'])
 def list_topics():
     try:
@@ -16,6 +17,7 @@ def list_topics():
         return jsonify({'error': str(e)}), 500
 
 # POST /api/topics → Create a new topic (defaults to draft)
+@topics.route('', methods=['POST'])
 @topics.route('/', methods=['POST'])
 def create_topic():
     data = request.get_json() or {}
@@ -23,6 +25,7 @@ def create_topic():
         topic = Topic(
             title=data.get('title'),
             content=data.get('content'),
+            frontmatter=data.get('frontmatter'),
             status=data.get('status', 'draft')
         )
         db.session.add(topic)
@@ -52,6 +55,7 @@ def update_topic(topic_id):
     try:
         topic.title   = data.get('title', topic.title)
         topic.content = data.get('content', topic.content)
+        topic.frontmatter = data.get('frontmatter', topic.frontmatter)
         if 'status' in data:
             topic.status = data['status']
         db.session.commit()
