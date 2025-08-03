@@ -93,7 +93,8 @@ class Collection(db.Model):
             'name': self.name,
             'position': self.position,
             'parentId': self.parent_id,
-            'projectId': self.project_id
+            'projectId': self.project_id,
+            'topics_count': len(self.topics)  # Add topic count
         }
         if include_topics:
             # Use hierarchical topic structure instead of flat list

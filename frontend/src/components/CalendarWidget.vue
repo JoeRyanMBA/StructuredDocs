@@ -82,7 +82,7 @@ export default {
       currentDate: new Date(),
       dayHeaders: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
       workWeekHeaders: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
-      showWorkWeekOnly: false
+      showWorkWeekOnly: true
     }
   },
   computed: {

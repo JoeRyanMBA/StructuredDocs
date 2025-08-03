@@ -226,6 +226,7 @@
 
 <script>
 import NotificationTicker from '../components/NotificationTicker.vue'
+import { getCollections, saveCollections } from '@/api/collections.js'
 
 export default {
   name: 'CollectionsDashboard',
@@ -302,66 +303,13 @@ export default {
 
     async loadCollections() {
       try {
-        // Mock collections data including some from projects
-        const mockCollections = [
-          {
-            id: 1,
-            name: 'Census Portal User Documentation',
-            description: 'User guides and tutorials for the new Census data portal interface',
-            status: 'active',
-            topics_count: 12,
-            projectId: 1,
-            projectName: 'Census Data Portal Redesign',
-            created_at: '2025-07-01T10:00:00Z',
-            updated_at: '2025-07-25T14:30:00Z'
-          },
-          {
-            id: 2,
-            name: 'API Documentation Collection',
-            description: 'Complete API reference and integration guides for developers',
-            status: 'active',
-            topics_count: 8,
-            projectId: 3,
-            projectName: 'Mobile App API Documentation',
-            created_at: '2025-06-15T09:00:00Z',
-            updated_at: '2025-07-20T11:45:00Z'
-          },
-          {
-            id: 3,
-            name: 'Economic Survey Methodology',
-            description: 'Detailed documentation of survey processes and statistical methods',
-            status: 'draft',
-            topics_count: 6,
-            projectId: 2,
-            projectName: 'Economic Survey Documentation',
-            created_at: '2025-07-10T16:00:00Z',
-            updated_at: '2025-07-22T10:15:00Z'
-          },
-          {
-            id: 4,
-            name: 'Mobile App User Guide',
-            description: 'Step-by-step guide for using the Census mobile application',
-            status: 'active',
-            topics_count: 15,
-            projectId: 3,
-            projectName: 'Mobile App API Documentation',
-            created_at: '2025-06-01T08:00:00Z',
-            updated_at: '2025-07-18T13:20:00Z'
-          },
-          {
-            id: 5,
-            name: 'Data Visualization Toolkit',
-            description: 'Templates and guidelines for creating Census data visualizations',
-            status: 'archived',
-            topics_count: 9,
-            projectId: 1,
-            projectName: 'Census Data Portal Redesign',
-            created_at: '2025-05-20T12:00:00Z',
-            updated_at: '2025-06-30T15:45:00Z'
-          }
-        ]
-
-        this.collections = mockCollections
+        const response = await fetch('/api/collections')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        
+        const data = await response.json()
+        this.collections = data
         
         // Get recent collections (last 5, sorted by updated_at)
         this.recentCollections = [...this.collections]
@@ -445,17 +393,36 @@ export default {
         // Find the selected project
         const selectedProject = this.projects.find(p => p.id === parseInt(this.newCollection.projectId))
         
-        // Create new collection object
-        const collection = {
-          id: Date.now(),
+        // Create collection data for API
+        const collectionData = {
           name: this.newCollection.name,
           description: this.newCollection.description,
           status: this.newCollection.status,
-          projectId: this.newCollection.projectId,
-          projectName: selectedProject ? selectedProject.name : 'Unknown Project',
-          topics_count: 0,
-          created_at: new Date().toISOString(),
-          updated_at: new Date().toISOString()
+          projectId: this.newCollection.projectId
+        }
+        
+        // Add project name if available
+        if (selectedProject) {
+          collectionData.projectName = selectedProject.name
+        }
+        
+        // Save to backend via API
+        const response = await fetch('/api/collections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(collectionData)
+        })
+        
+        if (!response.ok) {
+          throw new Error('Failed to create collection')
+        }
+        
+        const collection = await response.json()
+        
+        // Add project information for display
+        if (selectedProject) {
+          collection.projectName = selectedProject.name
+          collection.projectId = this.newCollection.projectId
         }
         
         // Add to collections array
@@ -473,8 +440,12 @@ export default {
         this.resetNewCollection()
         this.showCreateModal = false
         
+        // Redirect to organize page for the new collection
+        this.$router.push({ name: 'Organize', params: { id: String(collection.id) } })
+        
       } catch (error) {
         console.error('Failed to create collection:', error)
+        alert('Failed to create collection. Please try again.')
       }
     },
 
@@ -488,7 +459,7 @@ export default {
     },
 
     viewCollection(collection) {
-      this.$router.push(`/collections/${collection.id}`)
+      this.$router.push(`/organize/${collection.id}`)
     },
 
     editCollection(collection) {

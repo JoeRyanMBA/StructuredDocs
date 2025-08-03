@@ -2,8 +2,10 @@
   <div class="tasks-page">
     <!-- Page Header -->
     <div class="page-header">
-      <h1>Task Management</h1>
-      <p class="page-description">Organize and track tasks across projects, collections, and topics</p>
+      <div class="page-header-content">
+        <h1>Task Management</h1>
+        <p class="page-description">Organize and track tasks across projects, collections, and topics</p>
+      </div>
       <div class="header-actions">
         <button @click="showCreateModal = true" class="primary-btn">
           ➕ Create Task
@@ -605,7 +607,7 @@ export default {
           priority: this.taskForm.priority,
           due_date: this.taskForm.due_date,
           assigned_to: this.taskForm.assigned_to,
-          tags: this.taskForm.tags
+          tags: JSON.stringify(this.taskForm.tags) // Convert tags array to JSON string
         }
         
         // Set association based on type
@@ -620,6 +622,13 @@ export default {
         const url = this.showCreateModal ? '/api/tasks/' : `/api/tasks/${this.taskForm.id}`
         const method = this.showCreateModal ? 'POST' : 'PUT'
         
+        console.log('Saving task:', {
+          url,
+          method,
+          taskData,
+          formData: this.taskForm
+        })
+        
         const response = await fetch(url, {
           method: method,
           headers: {
@@ -629,8 +638,13 @@ export default {
         })
         
         if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
+          const errorData = await response.json().catch(() => ({}))
+          console.error('API Error Response:', errorData)
+          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`)
         }
+        
+        const result = await response.json()
+        console.log('Task saved successfully:', result)
         
         // Refresh tasks
         await this.fetchTasks()
@@ -848,8 +862,12 @@ export default {
   border-bottom: 2px solid #f0f4f8;
 }
 
+.page-header-content {
+  flex: 1;
+}
+
 .page-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -867,7 +885,7 @@ export default {
 }
 
 .primary-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -878,7 +896,7 @@ export default {
 }
 
 .primary-btn:hover {
-  background: #004080;
+  background: #112e51;
   transform: translateY(-1px);
 }
 
@@ -902,19 +920,19 @@ export default {
 }
 
 .summary-card.todo {
-  border-left: 4px solid #fbbf24;
+  border-left: 4px solid #FF7043;
 }
 
 .summary-card.in-progress {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #205493;
 }
 
 .summary-card.completed {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid #009964;
 }
 
 .summary-card.overdue {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid #9B2743;
 }
 
 .summary-icon {
@@ -1050,25 +1068,39 @@ export default {
 }
 
 .task-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   transform: translateY(-2px);
   box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
 }
-
+.task-card.high:hover {
+  border-color: #FF7043;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
+}
+.task-card.urgent:hover {
+  border-color: #9B2743;
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
+}
+.task-card.low:hover {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
+  border-color: #009964;
+}
 .task-card.urgent {
-  border-left: 4px solid #ef4444;
+  border-left: 4px solid #9B2743;
 }
 
 .task-card.high {
-  border-left: 4px solid #f59e0b;
+  border-left: 4px solid #FF7043;
 }
 
 .task-card.medium {
-  border-left: 4px solid #3b82f6;
+  border-left: 4px solid #205493;
 }
 
 .task-card.low {
-  border-left: 4px solid #10b981;
+  border-left: 4px solid #009964;
 }
 
 .task-header {
@@ -1492,7 +1524,36 @@ export default {
   
   .page-header {
     flex-direction: column;
+    align-items: stretch;
     gap: 1rem;
+  }
+  
+  .page-header-content {
+    text-align: left;
+  }
+  
+  .header-actions {
+    align-self: flex-start;
+    width: 100%;
+  }
+  
+  .primary-btn {
+    width: 100%;
+    justify-content: center;
+    display: flex;
+    align-items: center;
+    padding: 0.5rem 1rem;
+    font-size: 0.9rem;
+    background: #f8f9fa;
+    color: #205493;
+    border: 1px solid #dee2e6;
+    box-shadow: none;
+  }
+  
+  .primary-btn:hover {
+    background: #e9ecef;
+    transform: none;
+    color: #112e51;
   }
   
   .summary-grid {
@@ -1514,6 +1575,85 @@ export default {
   
   .modal {
     min-width: 95vw;
+  }
+}
+
+/* Extra small screens */
+@media (max-width: 480px) {
+  .page-header {
+    margin-bottom: 1.5rem;
+  }
+  
+  .page-header h1 {
+    font-size: 2rem;
+  }
+  
+  .page-description {
+    font-size: 1rem;
+  }
+  
+  .primary-btn {
+    padding: 0.4rem 0.8rem;
+    font-size: 0.85rem;
+    border-radius: 4px;
+    background: #f1f3f4;
+    color: #495057;
+    border: 1px solid #ced4da;
+    font-weight: 500;
+  }
+  
+  .primary-btn:hover {
+    background: #e9ecef;
+    color: #205493;
+  }
+  
+  .summary-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .summary-card {
+    padding: 1rem;
+  }
+  
+  .summary-number {
+    font-size: 1.5rem;
+  }
+}
+
+/* Very small screens - compact drawer style */
+@media (max-width: 360px) {
+  .page-header {
+    margin-bottom: 1rem;
+  }
+  
+  .page-header h1 {
+    font-size: 1.75rem;
+  }
+  
+  .page-description {
+    font-size: 0.9rem;
+    margin-bottom: 0.5rem;
+  }
+  
+  .header-actions {
+    margin-top: 0.5rem;
+  }
+  
+  .primary-btn {
+    padding: 0.35rem 0.7rem;
+    font-size: 0.8rem;
+    border-radius: 3px;
+    background: #f8f9fa;
+    color: #6c757d;
+    border: 1px solid #e9ecef;
+    font-weight: 400;
+    letter-spacing: 0.25px;
+  }
+  
+  .primary-btn:hover {
+    background: #e9ecef;
+    color: #495057;
   }
 }
 </style>

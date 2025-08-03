@@ -283,7 +283,7 @@ def get_task(task_id):
 def update_task(task_id):
     """Update a task"""
     try:
-        # task = Task.query.get_or_404(task_id)
+        task = Task.query.get_or_404(task_id)
         data = request.get_json()
 
         # Validate that only one association is provided
@@ -292,49 +292,34 @@ def update_task(task_id):
             return jsonify({"error": "Task can only be associated with one project, collection, or topic"}), 400
 
         # Parse due_date if provided
-        # if data.get('due_date'):
-        #     try:
-        #         task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
-        #     except ValueError:
-        #         return jsonify({"error": "Invalid due_date format. Use YYYY-MM-DD"}), 400
+        if data.get('due_date'):
+            try:
+                task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
+            except ValueError:
+                return jsonify({"error": "Invalid due_date format. Use YYYY-MM-DD"}), 400
 
-        # # Update fields
-        # task.title = data.get('title', task.title)
-        # task.description = data.get('description', task.description)
-        # task.status = data.get('status', task.status)
-        # task.priority = data.get('priority', task.priority)
-        # task.project_id = data.get('project_id', task.project_id)
-        # task.collection_id = data.get('collection_id', task.collection_id)
-        # task.topic_id = data.get('topic_id', task.topic_id)
-        # task.assigned_to = data.get('assigned_to', task.assigned_to)
-        # task.created_by = data.get('created_by', task.created_by)
+        # Update fields
+        task.title = data.get('title', task.title)
+        task.description = data.get('description', task.description)
+        task.status = data.get('status', task.status)
+        task.priority = data.get('priority', task.priority)
+        task.project_id = data.get('project_id', task.project_id)
+        task.collection_id = data.get('collection_id', task.collection_id)
+        task.topic_id = data.get('topic_id', task.topic_id)
+        task.assigned_to = data.get('assigned_to', task.assigned_to)
+        task.created_by = data.get('created_by', task.created_by)
 
-        # if 'tags' in data:
-        #     task.tags = json.dumps(data['tags'])
+        if 'tags' in data:
+            task.tags = data['tags'] if isinstance(data['tags'], str) else json.dumps(data['tags'])
 
-        # # Mark as completed if status changed to completed
-        # if data.get('status') == 'completed' and task.status != 'completed':
-        #     task.completed_at = datetime.utcnow()
-        # elif data.get('status') != 'completed':
-        #     task.completed_at = None
+        # Mark as completed if status changed to completed
+        if data.get('status') == 'completed' and task.status != 'completed':
+            task.completed_at = datetime.utcnow()
+        elif data.get('status') != 'completed':
+            task.completed_at = None
 
-        # db.session.commit()
-        # return jsonify(task.to_dict())
-
-        # Placeholder response
-        return jsonify({
-            "id": task_id,
-            "title": data.get('title', "Review Census Methodology Document"),
-            "description": data.get('description', "Complete review of the updated census methodology documentation."),
-            "status": data.get('status', "in_progress"),
-            "priority": data.get('priority', "high"),
-            "due_date": data.get('due_date', "2025-08-15"),
-            "project_id": data.get('project_id', 1),
-            "collection_id": data.get('collection_id'),
-            "topic_id": data.get('topic_id'),
-            "assigned_to": data.get('assigned_to', "sarah.johnson@census.gov"),
-            "updated_at": datetime.now().isoformat()
-        })
+        db.session.commit()
+        return jsonify(task.to_dict())
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
@@ -343,12 +328,9 @@ def update_task(task_id):
 def delete_task(task_id):
     """Delete a task"""
     try:
-        # task = Task.query.get_or_404(task_id)
-        # db.session.delete(task)
-        # db.session.commit()
-        # return jsonify({"message": "Task deleted successfully"})
-
-        # Placeholder response
+        task = Task.query.get_or_404(task_id)
+        db.session.delete(task)
+        db.session.commit()
         return jsonify({"message": "Task deleted successfully"})
 
     except Exception as e:

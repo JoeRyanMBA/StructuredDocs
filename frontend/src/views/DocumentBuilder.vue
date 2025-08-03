@@ -237,9 +237,9 @@
               ></textarea>
             </div>
             <div class="form-group">
-              <label>Project</label>
-              <select v-model="newCollection.projectId">
-                <option value="">Select a project (optional)</option>
+              <label>Project *</label>
+              <select v-model="newCollection.projectId" required>
+                <option value="">Select a project...</option>
                 <option v-for="project in allProjects" :key="project.id" :value="project.id">
                   {{ project.name }}
                 </option>

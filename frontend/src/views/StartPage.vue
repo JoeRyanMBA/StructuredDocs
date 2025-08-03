@@ -54,7 +54,13 @@
             <p>No projects found.</p>
           </div>
           <div v-else class="project-list">
-            <div v-for="project in projects" :key="project.id" class="project-item">
+            <div 
+              v-for="project in projects" 
+              :key="project.id" 
+              class="project-item"
+              @click="navigateTo('/projects')"
+              style="cursor: pointer;"
+            >
               <div class="project-header">
                 <h4>{{ project.name }}</h4>
                 <span :class="['project-status', formatStatus(project.status)]">{{ formatStatus(project.status) }}</span>
@@ -205,30 +211,16 @@ export default {
     
     async loadProjects() {
       try {
-        // Mock data for demonstration
-        this.projects = [
-          {
-            id: 1,
-            name: 'Economic Survey Documentation',
-            description: 'Creating comprehensive documentation for the new economic indicators survey.',
-            status: 'active',
-            created_at: '2025-07-15T10:00:00Z',
-            milestones: [
-              { name: 'Research Phase', date: '2025-08-01' },
-              { name: 'Draft Creation', date: '2025-08-15' }
-            ]
-          },
-          {
-            id: 2,
-            name: 'Census Quality Guidelines',
-            description: 'Updating quality control procedures for census operations.',
-            status: 'planning',
-            created_at: '2025-07-20T14:30:00Z',
-            milestones: []
-          }
-        ]
+        const response = await fetch('/api/projects/')
+        if (response.ok) {
+          this.projects = await response.json()
+        } else {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
       } catch (error) {
         console.error('Failed to load projects:', error)
+        // Fallback to empty array
+        this.projects = []
       }
     },
     

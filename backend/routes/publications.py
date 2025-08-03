@@ -174,16 +174,8 @@ def generate_mobile_kb_html(publication, tree):
             # Clean and process content
             content = node.get('content', '')
             if content:
-                # Convert markdown-style content to HTML if needed
-                content = content.replace('\\n', '\n')
-                # Simple markdown processing
-                import re
-                content = re.sub(r'\*\*(.*?)\*\*', r'<strong>\1</strong>', content)
-                content = re.sub(r'\*(.*?)\*', r'<em>\1</em>', content)
-                content = re.sub(r'`(.*?)`', r'<code>\1</code>', content)
-                # Convert line breaks to paragraphs
-                paragraphs = content.split('\n\n')
-                content = ''.join(f'<p>{p.strip()}</p>' for p in paragraphs if p.strip())
+                # Convert markdown content to HTML using proper function
+                content = convert_markdown_to_html(content)
             else:
                 content = '<p>No content available.</p>'
             
