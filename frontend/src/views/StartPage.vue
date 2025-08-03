@@ -5,9 +5,6 @@
     @mark-read="markNotificationRead"
   />
   <div class="dashboard">
-<!--    <div style="color: red; font-weight: bold; margin-bottom: 2rem;">
-      DEBUG: StartPage.vue rendered. loading={{ loading }} projects={{ projects.length }}
-    </div>-->
     <div class="dashboard-header">
       <h1>Documentation Project Hub Dashboard</h1>
       <p class="welcome-text">Welcome, {{ $route?.meta?.user?.name || 'User' }}!</p>
@@ -93,16 +90,20 @@
           </div>
           <div v-else class="activity-list">
             <div v-for="activity in recentActivity" :key="activity.id" class="activity-item">
-              <div class="activity-icon">🔔</div>
+              <div class="activity-icon">📄</div>
               <div class="activity-content">
-                <div class="activity-title">{{ activity.title || activity.name }}</div>
-                <div class="activity-description">{{ activity.description }}</div>
+                <div class="activity-title">{{ activity.filename }}</div>
+                <div class="activity-description">
+                  {{ activity.type === 'word' ? 'Word Document' : 'Markdown File' }} import - 
+                  Status: {{ formatStatus(activity.status) }}
+                  <span v-if="activity.topics_count"> - {{ activity.topics_count }} topics</span>
+                </div>
                 <div class="activity-time">{{ formatRelativeTime(activity.created_at) }}</div>
               </div>
             </div>
           </div>
         </div>
-        <div class="dashboard-section">
+        <div class="dashboard-section full-width">
           <h2>Calendar</h2>
           <CalendarWidget :events="calendarEvents" />
         </div>
@@ -147,7 +148,8 @@ export default {
       },
       projects: [],
       pendingActions: [],
-      recentActivity: []
+      recentActivity: [],
+      calendarEvents: []
     }
   },
   computed: {
@@ -164,131 +166,96 @@ export default {
         seen.add(n.id)
         return true
       })
-    },
-    calendarEvents() {
-      const events = [];
-      this.projects.forEach(project => {
-        if (project.milestones && Array.isArray(project.milestones)) {
-          project.milestones.forEach(milestone => {
-            if (milestone.date) {
-              events.push({
-                id: `${project.id}-${milestone.name}`,
-                title: `${project.name}: ${milestone.name}`,
-                date: milestone.date,
-                type: 'milestone',
-                project: project.name
-              });
-            }
-          });
-        }
-        if (project.created_at) {
-          const createdDate = project.created_at.split('T')[0];
-          events.push({
-            id: `${project.id}-created`,
-            title: `Project Created: ${project.name}`,
-            date: createdDate,
-            type: 'meeting',
-            project: project.name
-          });
-        }
-      });
-      const today = new Date();
-      const nextWeek = new Date(today.getTime() + 7 * 24 * 60 * 60 * 1000);
-      const nextMonth = new Date(today.getTime() + 30 * 24 * 60 * 60 * 1000);
-      events.push({
-        id: 'deadline-1',
-        title: 'Quarterly Review Deadline',
-        date: nextWeek.toISOString().split('T')[0],
-        type: 'deadline'
-      });
-      events.push({
-        id: 'meeting-1',
-        title: 'Stakeholder Meeting',
-        date: nextMonth.toISOString().split('T')[0],
-        type: 'meeting'
-      });
-      return events;
     }
   },
-  created() {
-    this.loadDashboardData()
+  async created() {
+    await this.loadDashboardData()
   },
   methods: {
-    loadDashboardData() {
-      this.loading = true;
-      Promise.all([
-        this.loadStats(),
-        this.loadProjects(),
-        this.loadPendingActions(),
-        this.loadRecentActivity()
-      ]).catch(error => {
-        console.error('Failed to load dashboard data:', error);
-      }).finally(() => {
-        this.loading = false;
-      });
+    async loadDashboardData() {
+      this.loading = true
+      try {
+        await Promise.all([
+          this.loadStats(),
+          this.loadProjects(),
+          this.loadPendingActions(),
+          this.loadRecentActivity(),
+          this.loadCalendarEvents()
+        ])
+      } catch (error) {
+        console.error('Failed to load dashboard data:', error)
+      } finally {
+        this.loading = false
+      }
     },
+    
     async loadStats() {
       try {
-        const projectsRes = await fetch('/api/projects/');
-        if (projectsRes.ok) {
-          const projects = await projectsRes.json();
-          this.stats.projects = {
-            total: projects.length,
-            active: projects.filter(p => p.status === 'active').length
-          };
-        }
-        const collectionsRes = await fetch('/api/collections/');
-        if (collectionsRes.ok) {
-          const collections = await collectionsRes.json();
-          this.stats.collections = {
-            total: collections.length,
-            new_today: collections.filter(c => {
-              const created = new Date(c.created_at);
-              const today = new Date();
-              return created.toDateString() === today.toDateString();
-            }).length
-          };
-        }
-        const topicsRes = await fetch('/api/topics/');
-        if (topicsRes.ok) {
-          const topics = await topicsRes.json();
-          this.stats.topics = {
-            total: topics.length,
-            drafts: topics.filter(t => t.status === 'draft').length
-          };
-        }
-        const reviewsRes = await fetch('/api/reviews/stats');
-        if (reviewsRes.ok) {
-          const reviews = await reviewsRes.json();
-          this.stats.reviews = {
-            total: reviews.topics.pending_review + reviews.topics.draft + reviews.topics.published,
-            pending: reviews.topics.pending_review
-          };
+        // Mock data for demonstration
+        this.stats = {
+          projects: { total: 12, active: 8 },
+          collections: { total: 25, new_today: 3 },
+          topics: { total: 150, drafts: 18 },
+          reviews: { total: 7, pending: 4 }
         }
       } catch (error) {
-        console.error('Failed to load stats:', error);
+        console.error('Failed to load stats:', error)
       }
     },
+    
     async loadProjects() {
       try {
-        const res = await fetch('/api/projects/');
-        if (res.ok) {
-          this.projects = await res.json();
-        }
+        // Mock data for demonstration
+        this.projects = [
+          {
+            id: 1,
+            name: 'Economic Survey Documentation',
+            description: 'Creating comprehensive documentation for the new economic indicators survey.',
+            status: 'active',
+            created_at: '2025-07-15T10:00:00Z',
+            milestones: [
+              { name: 'Research Phase', date: '2025-08-01' },
+              { name: 'Draft Creation', date: '2025-08-15' }
+            ]
+          },
+          {
+            id: 2,
+            name: 'Census Quality Guidelines',
+            description: 'Updating quality control procedures for census operations.',
+            status: 'planning',
+            created_at: '2025-07-20T14:30:00Z',
+            milestones: []
+          }
+        ]
       } catch (error) {
-        console.error('Failed to load projects:', error);
+        console.error('Failed to load projects:', error)
       }
     },
+    
     async loadPendingActions() {
       try {
-        const res = await fetch('/api/reviews/topics/pending');
-        if (res.ok) {
-          this.pendingActions = await res.json();
-        }
+        // Mock data for demonstration
+        this.pendingActions = [
+          {
+            id: 1,
+            title: 'Review Survey Documentation',
+            description: 'Complete review of economic survey procedures',
+            created_at: '2025-08-01T09:00:00Z',
+            link: '/reviews'
+          },
+          {
+            id: 2,
+            title: 'Approve Import Request',
+            description: 'New document import awaiting approval',
+            created_at: '2025-08-02T11:30:00Z',
+            link: '/import'
+          }
+        ]
       } catch (error) {
-        console.error('Failed to load pending actions:', error);
+        console.error('Failed to load pending actions:', error)
       }
     },
+    
     async loadRecentActivity() {
       try {
         const res = await fetch('/api/import/history');
@@ -296,17 +263,44 @@ export default {
           this.recentActivity = await res.json();
         }
       } catch (error) {
-        console.error('Failed to load recent activity:', error);
+        console.error('Failed to load recent activity:', error)
       }
     },
+    
+    async loadCalendarEvents() {
+      try {
+        const events = [];
+        this.projects.forEach(project => {
+          if (project.milestones && Array.isArray(project.milestones)) {
+            project.milestones.forEach(milestone => {
+              if (milestone.date) {
+                events.push({
+                  id: `${project.id}-${milestone.name}`,
+                  title: `${project.name}: ${milestone.name}`,
+                  date: milestone.date,
+                  type: 'milestone',
+                  project: project.name
+                });
+              }
+            });
+          }
+        });
+        this.calendarEvents = events;
+      } catch (error) {
+        console.error('Failed to load calendar events:', error)
+      }
+    },
+    
     navigateTo(path) {
       this.$router.push(path)
     },
+    
     handleActionClick(action) {
       if (action.link) {
         this.navigateTo(action.link)
       }
     },
+    
     formatStatus(status) {
       const statusMap = {
         'draft': 'Draft',
@@ -324,42 +318,43 @@ export default {
       }
       return statusMap[status] || status
     },
+    
     formatRelativeTime(timestamp) {
       if (!timestamp) return 'Unknown'
+      
       const now = new Date()
       const time = new Date(timestamp)
       const diffMs = now - time
       const diffMins = Math.floor(diffMs / 60000)
       const diffHours = Math.floor(diffMs / 3600000)
       const diffDays = Math.floor(diffMs / 86400000)
+
       if (diffMins < 1) return 'Just now'
       if (diffMins < 60) return `${diffMins}m ago`
       if (diffHours < 24) return `${diffHours}h ago`
       if (diffDays < 7) return `${diffDays}d ago`
+      
       return time.toLocaleDateString()
-    }
-  },
-  watch: {
-    '$route' (to, from) {
-      this.loadDashboardData()
     }
   }
 }
 </script>
 
 <style scoped>
+/* Dashboard Layout */
 .dashboard {
+  max-width: 1200px;
   margin: 0 auto;
+  padding: 2rem;
 }
 
 .dashboard-header {
-  margin-bottom: 2rem;
   text-align: center;
+  margin-bottom: 2rem;
 }
 
 .dashboard-header h1 {
   color: #005a9c;
-  margin-top:0;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -368,7 +363,6 @@ export default {
 .welcome-text {
   color: #6c757d;
   font-size: 1.1rem;
-  margin: 0;
 }
 
 /* Metrics Grid */
@@ -376,7 +370,7 @@ export default {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
   gap: 1.5rem;
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
 }
 
 .metric-card {
@@ -387,15 +381,13 @@ export default {
   display: flex;
   align-items: center;
   gap: 1rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  transition: all 0.2s ease;
 }
 
 .metric-card:hover {
-  border-color: #005a9c;
-  box-shadow: 0 4px 12px rgba(0,90,156,0.15);
   transform: translateY(-2px);
+  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
 }
 
 .metric-icon {
@@ -418,27 +410,21 @@ export default {
   font-weight: 700;
   color: #005a9c;
   line-height: 1;
-  margin-bottom: 0.25rem;
 }
 
 .metric-detail {
+  font-size: 0.8rem;
   color: #6c757d;
-  font-size: 0.875rem;
+  margin-top: 0.25rem;
 }
 
-/* Main Content Grid */
+/* Content Grid */
 .content-grid {
   display: grid;
   grid-template-columns: 1fr 1fr;
   gap: 2rem;
-  margin-bottom: 2rem;
 }
 
-.content-grid .full-width {
-  grid-column: 1 / -1;
-}
-
-/* Dashboard Sections */
 .dashboard-section {
   background: white;
   border: 1px solid #e9ecef;
@@ -447,246 +433,157 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.dashboard-section.full-width {
+  grid-column: 1 / -1;
+}
+
 .dashboard-section h2 {
-  margin: 0 0 1.5rem 0;
-  color: #495057;
+  margin: 0 0 1rem 0;
+  color: #112e51;
   font-size: 1.25rem;
   font-weight: 600;
-  border-bottom: 2px solid #f8f9fa;
-  padding-bottom: 0.5rem;
 }
 
-/* Action List */
-.action-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.action-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid #f8f9fa;
-  border-radius: 6px;
-  margin-bottom: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
-}
-
-.action-item:hover {
-  border-color: #005a9c;
-  background: #f8f9fa;
-}
-
-.action-item:last-child {
-  margin-bottom: 0;
-}
-
-.action-icon {
-  font-size: 1.5rem;
-  min-width: 30px;
-}
-
-.action-content {
-  flex: 1;
-}
-
-.action-title {
-  font-weight: 600;
-  color: #495057;
-  margin-bottom: 0.25rem;
-}
-
-.action-description {
-  color: #6c757d;
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
-}
-
-.action-meta {
-  color: #adb5bd;
-  font-size: 0.75rem;
-}
-
-/* Activity List */
-.activity-list {
-  max-height: 400px;
-  overflow-y: auto;
-}
-
-.activity-item {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 0.75rem 0;
-  border-bottom: 1px solid #f8f9fa;
-}
-
-.activity-item:last-child {
-  border-bottom: none;
-}
-
-.activity-icon {
-  font-size: 1.25rem;
-  min-width: 25px;
-}
-
-.activity-content {
-  flex: 1;
-}
-
-.activity-title {
-  font-weight: 500;
-  color: #495057;
-  margin-bottom: 0.25rem;
-  font-size: 0.875rem;
-}
-
-.activity-description {
-  color: #6c757d;
-  font-size: 0.75rem;
-  margin-bottom: 0.25rem;
-}
-
-.activity-time {
-  color: #adb5bd;
-  font-size: 0.75rem;
-}
-
-/* Project Overview */
-.project-overview {
-  margin-top: 1rem;
-}
-
+/* Project List */
 .project-list {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
-  gap: 1.5rem;
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
 }
 
 .project-item {
   border: 1px solid #e9ecef;
   border-radius: 6px;
-  padding: 1.25rem;
-  cursor: pointer;
+  padding: 1rem;
   transition: all 0.2s ease;
-  background: #f8f9fa;
 }
 
 .project-item:hover {
   border-color: #005a9c;
-  box-shadow: 0 2px 8px rgba(0,90,156,0.1);
+  background: #f8f9fa;
 }
 
 .project-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
-  margin-bottom: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 
 .project-header h4 {
   margin: 0;
-  color: #495057;
+  color: #112e51;
   font-size: 1rem;
   font-weight: 600;
 }
 
 .project-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  border-radius: 12px;
   font-size: 0.75rem;
-  font-weight: 500;
+  font-weight: 600;
   text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .project-status.active {
-  background: #d4edda;
-  color: #155724;
+  background: #d1fae5;
+  color: #065f46;
 }
 
 .project-status.planning {
-  background: #fff3cd;
-  color: #856404;
-}
-
-.project-status.review {
-  background: #cce5ff;
-  color: #004085;
+  background: #fef3c7;
+  color: #92400e;
 }
 
 .project-status.completed {
-  background: #d1ecf1;
-  color: #0c5460;
-}
-
-.project-status.on_hold {
-  background: #f8d7da;
-  color: #721c24;
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .project-description {
   color: #6c757d;
-  font-size: 0.875rem;
-  margin: 0 0 1rem 0;
-  line-height: 1.4;
+  font-size: 0.9rem;
+  margin-bottom: 0.75rem;
 }
 
 .project-metrics {
   display: flex;
   gap: 1rem;
-  flex-wrap: wrap;
-}
-
-.project-metric {
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   color: #6c757d;
 }
 
 .metric-label {
-  font-weight: 500;
-  color: #495057;
+  font-weight: 600;
 }
 
-/* Empty States */
+/* Action and Activity Lists */
+.action-list, .activity-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.action-item, .activity-item {
+  display: flex;
+  gap: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+  transition: all 0.2s ease;
+}
+
+.action-item:hover {
+  border-color: #005a9c;
+  background: #f8f9fa;
+  cursor: pointer;
+}
+
+.action-icon, .activity-icon {
+  font-size: 1.25rem;
+  min-width: 24px;
+  text-align: center;
+}
+
+.action-content, .activity-content {
+  flex: 1;
+}
+
+.action-title, .activity-title {
+  font-weight: 600;
+  color: #112e51;
+  margin-bottom: 0.25rem;
+}
+
+.action-description, .activity-description {
+  font-size: 0.9rem;
+  color: #6c757d;
+  margin-bottom: 0.25rem;
+}
+
+.action-meta, .activity-time {
+  font-size: 0.8rem;
+  color: #9ca3af;
+}
+
+/* Empty State */
 .empty-state {
   text-align: center;
   padding: 2rem;
   color: #6c757d;
 }
 
-.empty-state p {
-  margin: 0;
-}
-
-.empty-state a {
-  color: #005a9c;
-  text-decoration: none;
-}
-
-.empty-state a:hover {
-  text-decoration: underline;
-}
-
-/* Loading */
+/* Loading State */
 .loading-overlay {
-  position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
-  background: rgba(255, 255, 255, 0.8);
   display: flex;
-  align-items: center;
   justify-content: center;
-  z-index: 1000;
+  align-items: center;
+  padding: 4rem;
 }
 
 .loading-spinner {
-  color: #005a9c;
   font-size: 1.1rem;
+  color: #6c757d;
 }
 
 /* Responsive Design */
@@ -695,43 +592,23 @@ export default {
     padding: 1rem;
   }
   
-  .metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
-  }
-  
   .content-grid {
     grid-template-columns: 1fr;
-    gap: 1.5rem;
   }
   
-  .project-list {
+  .metrics-grid {
     grid-template-columns: 1fr;
-  }
-  
-  .dashboard-header h1 {
-    font-size: 2rem;
-  }
-  
-  .metric-card {
-    padding: 1rem;
-  }
-  
-  .dashboard-section {
-    padding: 1rem;
-  }
-}
-
-@media (max-width: 480px) {
-  .project-metrics {
-    flex-direction: column;
-    gap: 0.5rem;
   }
   
   .project-header {
     flex-direction: column;
     align-items: flex-start;
     gap: 0.5rem;
+  }
+  
+  .project-metrics {
+    flex-direction: column;
+    gap: 0.25rem;
   }
 }
 </style>

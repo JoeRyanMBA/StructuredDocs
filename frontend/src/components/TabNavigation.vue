@@ -48,6 +48,12 @@ export default {
           icon: '📑',
           route: 'Collections'
         },
+        {
+          key: 'document-builder',
+          label: 'Builder',
+          icon: '🔨',
+          route: 'DocumentBuilder'
+        },
                 {
           key: 'topics',
           label: 'Topics',

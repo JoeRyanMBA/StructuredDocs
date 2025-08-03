@@ -125,6 +125,11 @@ const routes = [
     component: () => import('@/views/AuthorDashboard.vue')
   },
   {
+    path: '/document-builder',
+    name: 'DocumentBuilder',
+    component: () => import('@/views/DocumentBuilder.vue')
+  },
+  {
     path: '/topics',
     name: 'TopicsList',
     component: TopicsListView

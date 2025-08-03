@@ -3,9 +3,7 @@
 > vite
 
 
-  VITE v7.0.6  ready in 591 ms
+  VITE v7.0.6  ready in 469 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: use --host to expose
-8:06:01 PM [vite] (client) hmr update /src/views/TasksView.vue?vue&type=style&index=0&scoped=05e17456&lang.css
-8:07:30 PM [vite] (client) hmr update /src/views/TasksView.vue?vue&type=style&index=0&scoped=05e17456&lang.css
+  ➜  Network: http://10.0.2.170:5173/

@@ -1,16 +1,32 @@
 <template>
-  <div class="calendar-widget">
+  <div class="calendar-widget" :data-work-week="showWorkWeekOnly">
     <div class="calendar-header">
       <button @click="previousMonth" class="nav-btn">‹</button>
       <h3 class="month-year">{{ currentMonthYear }}</h3>
       <button @click="nextMonth" class="nav-btn">›</button>
     </div>
     
+    <div class="calendar-controls">
+      <label class="work-week-toggle">
+        <input 
+          type="checkbox" 
+          v-model="showWorkWeekOnly" 
+          @change="toggleWorkWeek"
+        />
+        <span class="toggle-slider"></span>
+        <span class="toggle-label">Work Week Only</span>
+      </label>
+    </div>
+    
     <div class="calendar-grid">
-      <div class="calendar-day-header" v-for="day in dayHeaders" :key="day">{{ day }}</div>
+      <div 
+        class="calendar-day-header" 
+        v-for="day in displayDayHeaders" 
+        :key="day"
+      >{{ day }}</div>
       
       <div 
-        v-for="date in calendarDates" 
+        v-for="date in displayCalendarDates" 
         :key="date.fullDate"
         :class="['calendar-date', {
           'other-month': !date.isCurrentMonth,
@@ -64,7 +80,9 @@ export default {
   data() {
     return {
       currentDate: new Date(),
-      dayHeaders: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat']
+      dayHeaders: ['Sun', 'Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat'],
+      workWeekHeaders: ['Mon', 'Tue', 'Wed', 'Thu', 'Fri'],
+      showWorkWeekOnly: false
     }
   },
   computed: {
@@ -73,6 +91,14 @@ export default {
         month: 'long', 
         year: 'numeric' 
       })
+    },
+    
+    displayDayHeaders() {
+      return this.showWorkWeekOnly ? this.workWeekHeaders : this.dayHeaders
+    },
+    
+    displayCalendarDates() {
+      return this.showWorkWeekOnly ? this.workWeekCalendarDates : this.calendarDates
     },
     
     calendarDates() {
@@ -105,8 +131,58 @@ export default {
           fullDate: dateStr,
           isCurrentMonth: date.getMonth() === month,
           isToday: date.toDateString() === today.toDateString(),
-          events: dayEvents
+          events: dayEvents,
+          dayOfWeek: date.getDay()
         })
+      }
+      
+      return dates
+    },
+    
+    workWeekCalendarDates() {
+      const year = this.currentDate.getFullYear()
+      const month = this.currentDate.getMonth()
+      const today = new Date()
+      
+      // First day of the month
+      const firstDay = new Date(year, month, 1)
+      
+      // Find first Monday of the calendar view
+      const startDate = new Date(firstDay)
+      const dayOfWeek = firstDay.getDay()
+      // If first day is Sunday (0), go back 6 days to Monday
+      // If first day is Monday (1), stay
+      // If first day is Tuesday (2), go back 1 day to Monday, etc.
+      const daysToSubtract = dayOfWeek === 0 ? 6 : dayOfWeek - 1
+      startDate.setDate(startDate.getDate() - daysToSubtract)
+      
+      // Generate work week dates (Monday-Friday only)
+      const dates = []
+      let currentWeekStart = new Date(startDate)
+      
+      // Generate 6 weeks worth of work days
+      for (let week = 0; week < 6; week++) {
+        for (let day = 0; day < 5; day++) { // Monday to Friday
+          const date = new Date(currentWeekStart)
+          date.setDate(currentWeekStart.getDate() + day)
+          
+          const dateStr = date.toISOString().split('T')[0]
+          const dayEvents = this.events.filter(event => 
+            event.date === dateStr || 
+            (event.startDate && event.startDate <= dateStr && event.endDate && event.endDate >= dateStr)
+          )
+          
+          dates.push({
+            day: date.getDate(),
+            fullDate: dateStr,
+            isCurrentMonth: date.getMonth() === month,
+            isToday: date.toDateString() === today.toDateString(),
+            events: dayEvents,
+            dayOfWeek: date.getDay()
+          })
+        }
+        // Move to next week
+        currentWeekStart.setDate(currentWeekStart.getDate() + 7)
       }
       
       return dates
@@ -123,6 +199,11 @@ export default {
     
     goToToday() {
       this.currentDate = new Date()
+    },
+    
+    toggleWorkWeek() {
+      // Method to handle work week toggle if needed for additional logic
+      this.$emit('work-week-changed', this.showWorkWeekOnly)
     }
   }
 }
@@ -141,6 +222,60 @@ export default {
   justify-content: space-between;
   align-items: center;
   margin-bottom: 1rem;
+}
+
+.calendar-controls {
+  display: flex;
+  justify-content: center;
+  margin-bottom: 1rem;
+}
+
+.work-week-toggle {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  cursor: pointer;
+  user-select: none;
+}
+
+.work-week-toggle input[type="checkbox"] {
+  display: none;
+}
+
+.toggle-slider {
+  position: relative;
+  width: 50px;
+  height: 24px;
+  background: #e2e8f0;
+  border-radius: 12px;
+  transition: background-color 0.3s ease;
+}
+
+.toggle-slider::before {
+  content: '';
+  position: absolute;
+  top: 2px;
+  left: 2px;
+  width: 20px;
+  height: 20px;
+  background: white;
+  border-radius: 50%;
+  transition: transform 0.3s ease;
+  box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+}
+
+.work-week-toggle input[type="checkbox"]:checked + .toggle-slider {
+  background: #005a9c;
+}
+
+.work-week-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+  transform: translateX(26px);
+}
+
+.toggle-label {
+  font-size: 0.9rem;
+  color: #64748b;
+  font-weight: 500;
 }
 
 .month-year {
@@ -169,12 +304,16 @@ export default {
 
 .calendar-grid {
   display: grid;
-  grid-template-columns: repeat(7, 1fr);
+  grid-template-columns: repeat(var(--calendar-columns, 7), 1fr);
   gap: 1px;
   background: #e2e8f0;
   border-radius: 4px;
   overflow: hidden;
   margin-bottom: 1rem;
+}
+
+.calendar-widget[data-work-week="true"] .calendar-grid {
+  --calendar-columns: 5;
 }
 
 .calendar-day-header {
@@ -290,6 +429,28 @@ export default {
   
   .month-year {
     font-size: 1rem;
+  }
+  
+  .calendar-controls {
+    margin-bottom: 0.75rem;
+  }
+  
+  .toggle-label {
+    font-size: 0.8rem;
+  }
+  
+  .toggle-slider {
+    width: 44px;
+    height: 20px;
+  }
+  
+  .toggle-slider::before {
+    width: 16px;
+    height: 16px;
+  }
+  
+  .work-week-toggle input[type="checkbox"]:checked + .toggle-slider::before {
+    transform: translateX(24px);
   }
 }
 </style>

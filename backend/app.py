@@ -15,7 +15,15 @@ def create_app():
     print("🚀 Creating Flask app...")
     app = Flask(__name__)
     print("📱 Flask instance created")
-    # enable CORS and debug mode
+    # enable CORS and debug mode with comprehensive settings
+    CORS(app, 
+         origins="*", 
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"], 
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"], 
+         supports_credentials=False,
+         send_wildcard=True,
+         vary_header=False)
+    
     # Configure SQLAlchemy database URI
     import os
     backend_dir = os.path.dirname(os.path.abspath(__file__))
@@ -32,6 +40,27 @@ def create_app():
     # Register Flask-Migrate
     from flask_migrate import Migrate
     migrate = Migrate(app, db)
+
+    # Add explicit CORS handling middleware
+    @app.before_request
+    def handle_preflight():
+        from flask import request
+        if request.method == "OPTIONS":
+            print(f"🔍 OPTIONS request from origin: {request.headers.get('Origin')}")
+            response = jsonify({})
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            response.headers.add('Access-Control-Allow-Headers', "*")
+            response.headers.add('Access-Control-Allow-Methods', "*")
+            return response
+
+    @app.after_request
+    def after_request(response):
+        from flask import request
+        print(f"🔍 Request from origin: {request.headers.get('Origin')} - Response: {response.status_code}")
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', '*')
+        response.headers.add('Access-Control-Allow-Methods', '*')
+        return response
 
     @app.route('/ping', methods=['GET'])
     def ping():
@@ -117,4 +146,4 @@ print("✅ App instance created successfully!")
 
 if __name__ == '__main__':
     print("🚀 Starting Flask development server...")
-    app.run(host='0.0.0.0', port=5000, debug=True)
+    app.run(host='0.0.0.0', port=5050, debug=True)
