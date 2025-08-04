@@ -255,35 +255,55 @@
         }
         
         .nav-link {
-            display: block;
-            padding: 0.75rem;
-            color: #005a9c;
+            display: flex;
+            align-items: center;
+            padding: 0.75rem 1rem;
+            color: #495057;
             text-decoration: none;
-            background: white;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
-            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
-            transition: all 0.2s ease;
+            background: none;
             border: none;
+            border-bottom: 1px solid #e9ecef;
+            margin-bottom: 0;
+            transition: all 0.2s ease;
             width: 100%;
             text-align: left;
             cursor: pointer;
             font-size: 0.9rem;
+            font-weight: 500;
         }
         
         .nav-link:hover {
-            background: #f8f9fa;
-            transform: translateY(-1px);
-            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+            background-color: #e9ecef;
+            color: #205493;
         }
         
         .nav-link:active {
-            transform: translateY(0);
+            background-color: #dee2e6;
         }
         
         .nav-link.active {
-            background: #005a9c;
+            background-color: #205493;
             color: white;
+        }
+        
+        .nav-link.active:hover {
+            background-color: #004080;
+        }
+        
+        /* Navigation expand icon */
+        .nav-expand-icon {
+            margin-left: auto;
+            transition: transform 0.2s ease;
+            opacity: 0.6;
+            font-size: 0.7rem;
+        }
+        
+        .nav-expand-icon.expanded {
+            transform: rotate(90deg);
+        }
+        
+        .nav-link:hover .nav-expand-icon {
+            opacity: 1;
         }
         
         /* Main Content */
@@ -497,17 +517,23 @@
             }
             
             .nav-link {
-                background: #495057;
+                background: none;
                 color: #87ceeb;
+                border-bottom-color: #495057;
             }
             
             .nav-link:hover {
-                background: #5a6268;
+                background: #495057;
+                color: #b3d9ff;
             }
             
             .nav-link.active {
                 background: #005a9c;
                 color: white;
+            }
+            
+            .nav-link.active:hover {
+                background: #004080;
             }
             
             .main-content {

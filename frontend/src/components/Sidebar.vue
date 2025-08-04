@@ -16,30 +16,37 @@
       :class="{ collapsed }"
       aria-label="Sidebar navigation"
     >
-      <ul>
-        <li v-for="section in SECTIONS" :key="section.key">
+      <ul class="nav-list">
+        <li v-for="section in SECTIONS" :key="section.key" class="nav-item">
           <!-- Direct link sections (like Home) -->
           <router-link 
             v-if="section.directLink"
             :to="{ name: section.directLink }"
-            class="section-direct-link"
+            class="nav-link direct-link"
           >
-            {{ section.label }}
+            <span class="nav-icon">{{ section.icon }}</span>
+            <span class="nav-text">{{ section.text }}</span>
           </router-link>
 
           <!-- Collapsible sections with sub-items -->
           <template v-else>
             <button
-              class="section-toggle"
+              class="nav-link collapsible-link"
               @click="toggleSection(section.key)"
               :aria-expanded="sections[section.key]"
             >
-              {{ section.label }}
+              <span class="nav-icon">{{ section.icon }}</span>
+              <span class="nav-text">{{ section.text }}</span>
+              <span class="expand-icon" :class="{ 'expanded': sections[section.key] }">
+                <svg width="12" height="12" viewBox="0 0 12 12" fill="currentColor">
+                  <path d="M4 2l4 4-4 4V2z"/>
+                </svg>
+              </span>
             </button>
 
-            <ul v-show="sections[section.key]">
-              <li v-for="link in section.links" :key="link.name">
-                <router-link :to="{ name: link.name }">
+            <ul v-show="sections[section.key]" class="sub-nav">
+              <li v-for="link in section.links" :key="link.name" class="sub-nav-item">
+                <router-link :to="{ name: link.name }" class="sub-nav-link">
                   {{ link.text }}
                 </router-link>
               </li>
@@ -72,44 +79,71 @@ export default {
       SECTIONS: [
         {
           key: 'home',
-          label: '🏠 Home',
+          icon: '🏠',
+          text: 'Home',
           directLink: 'Dashboard'
         },
         {
           key: 'projects',
-          label: '🎯 Projects',
+          icon: '🎯',
+          text: 'Projects',
           directLink: 'Projects'
         },
         {
           key: 'author',
-          label: '✏️ Author',
+          icon: '✏️',
+          text: 'Author',
           directLink: 'AuthorHome'
         },
-      {
-        key: 'collections',
-        label: '📑 Collections',
-        directLink: 'Collections'
-      },
-
+        {
+          key: 'collections',
+          icon: '📑',
+          text: 'Collections',
+          directLink: 'Collections'
+        },
         {
           key: 'import',
-          label: '📥 Import',
-          directLink: 'ImportTopics'
+          icon: '📥',
+          text: 'Import',
+          links: [
+            { name: 'ImportTopics', text: 'New Import' },
+            { name: 'ImportDashboard', text: 'Dashboard' },
+            { name: 'ImportHistory', text: 'History' }
+          ]
         },
-          {
-            key: 'publish',
-            label: '📤 Publish',
-            directLink: 'PublicationsHome'
-          },
+        {
+          key: 'publish',
+          icon: '📤',
+          text: 'Publish',
+          links: [
+            { name: 'PublicationsHome', text: 'Dashboard' },
+            { name: 'PublicationsList', text: 'All Publications' },
+            { name: 'PublishMobileKB', text: 'Mobile KB' },
+            { name: 'PublishPDF', text: 'PDF Export' }
+          ]
+        },
         {
           key: 'reviews',
-          label: '📝 Reviews',
-          directLink: 'ReviewsHome'
+          icon: '📝',
+          text: 'Reviews',
+          links: [
+            { name: 'ReviewsHome', text: 'Dashboard' },
+            { name: 'SMEReviews', text: 'Send Reviews' },
+            { name: 'IncorporateFeedback', text: 'Incorporate Feedback' },
+            { name: 'ReviewHistory', text: 'History' }
+          ]
         },
         {
           key: 'admin',
-          label: '🔒 Admin',
-          directLink: 'AdminHome'
+          icon: '🔒',
+          text: 'Admin',
+          links: [
+            { name: 'Admin', text: 'Dashboard' },
+            { name: 'AdminUsers', text: 'User Management' },
+            { name: 'SystemLogs', text: 'System Logs' },
+            { name: 'PerformanceMetrics', text: 'Performance' },
+            { name: 'CreateNotification', text: 'Create Notification' }
+          ]
         }
       ]
     }
@@ -157,7 +191,7 @@ export default {
   min-height: calc(100vh - 60px);
   background: #f9f9f9;
   box-shadow: 2px 0 10px rgba(0, 0, 0, 0.05);
-  padding: 1rem;
+  padding: 0.5rem 0;
   transition: transform 0.3s ease;
   overflow-y: auto;
   z-index: 1000;
@@ -167,62 +201,132 @@ export default {
   transform: translateX(-100%);
 }
 
-ul {
+.nav-list {
   list-style: none;
   padding: 0;
   margin: 0;
 }
 
-li {
-  margin: 0.5rem 0;
+.nav-item {
+  margin: 0;
+  border-bottom: 1px solid #e9ecef;
 }
 
-li > ul {
-  margin-left: 1.5rem;
-  font-size: 0.9rem;
+.nav-item:last-child {
+  border-bottom: none;
 }
 
-.section-toggle {
+.nav-link {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  padding: 0.75rem 1rem;
+  text-decoration: none;
+  color: #495057;
   background: none;
   border: none;
-  color: #205493;
-  font-size: 1rem;
   cursor: pointer;
-  padding: 0;
-  margin-bottom: 0.25rem;
+  transition: all 0.2s ease;
+  font-size: 0.9rem;
   text-align: left;
 }
 
-.section-toggle:hover {
-  font-weight: bold;
+.nav-link:hover {
+  background-color: #e9ecef;
+  color: #205493;
 }
 
-.section-direct-link {
+.direct-link.router-link-active {
+  background-color: #205493;
+  color: white;
+}
+
+.direct-link.router-link-active .nav-icon {
+  opacity: 1;
+}
+
+.nav-icon {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 20px;
+  margin-right: 0.75rem;
+  opacity: 0.7;
+  transition: opacity 0.2s ease;
+}
+
+.nav-text {
+  flex: 1;
+  font-weight: 500;
+}
+
+.expand-icon {
+  margin-left: auto;
+  transition: transform 0.2s ease;
+  display: flex;
+  align-items: center;
+  opacity: 0.6;
+}
+
+.expand-icon.expanded {
+  transform: rotate(90deg);
+}
+
+.expand-icon svg {
+  transition: transform 0.2s ease;
+}
+
+.collapsible-link:hover .expand-icon {
+  opacity: 1;
+}
+
+.sub-nav {
+  list-style: none;
+  padding: 0;
+  margin: 0;
+  background-color: #f1f3f4;
+}
+
+.sub-nav-item {
+  margin: 0;
+}
+
+.sub-nav-link {
   display: block;
+  padding: 0.5rem 1rem 0.5rem 3rem;
   text-decoration: none;
-  color: #205493;
-  font-size: 1rem;
-  cursor: pointer;
-  padding: 0;
-  margin-bottom: 0.25rem;
-  text-align: left;
+  color: #6c757d;
+  font-size: 0.85rem;
+  transition: all 0.2s ease;
+  border-left: 3px solid transparent;
 }
 
-.section-direct-link:hover {
-  font-weight: bold;
+.sub-nav-link:hover {
+  background-color: #e9ecef;
+  color: #495057;
+  border-left-color: #205493;
 }
 
-.section-direct-link.router-link-active {
-  font-weight: bold;
-  color: #005a9c;
+.sub-nav-link.router-link-active {
+  background-color: #d4edda;
+  color: #155724;
+  border-left-color: #28a745;
+  font-weight: 500;
 }
 
-a {
-  text-decoration: none;
-  color: #205493;
-}
-
-a:hover {
-  font-weight: bold;
+/* Responsive adjustments */
+@media (max-width: 768px) {
+  .sidebar {
+    width: 250px;
+  }
+  
+  .nav-link {
+    padding: 1rem;
+  }
+  
+  .nav-icon {
+    width: 24px;
+    margin-right: 1rem;
+  }
 }
 </style>

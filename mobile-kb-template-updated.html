@@ -940,7 +940,7 @@
         <img class="app-logo" src="https://www.census.gov/etc.clientlibs/census/clientlibs/census-pattern-library/resources/images/USCENSUS_IDENTITY_SOLO_BLACK_1.5in_R_no_padding.svg" alt="Census Bureau logo" />
         <h1 class="kb-title">
             <div class="kb-title-text">
-                <div class="kb-title-main">{{ publication_title }}</div>
+                <div class="kb-title-main">Test Collection 1</div>
                 <div class="kb-title-sub">Mobile Knowledge Base</div>
             </div>
         </h1>
@@ -964,10 +964,27 @@
         <!-- Sidebar -->
         <nav class="sidebar" id="sidebar">
             <div class="nav-section">
-                <div class="nav-section-title">📚 Topics</div>
-                <button class="nav-link" onclick="showSection('welcome')">🏠 Home</button>
-                <!-- Dynamic content will be inserted here -->
+            <div class="nav-section-title">📚 Topics</div>
+            <button class="nav-link" onclick="showSection('welcome')">🏠 Home</button>
+            <button class="nav-link nav-expandable" onclick="expandTopic('102', this)">📂 Income Distribution Analysis Methods<span class="nav-expand-icon">▶</span></button>
+            <div class="nav-subtopics" id="subtopics-102" style="display: none;">
+                <button class="nav-link nav-expandable" onclick="expandTopic('103', this)">📂 Legacy Survey Processing Methods (Archived)<span class="nav-expand-icon">▶</span></button>
+                <div class="nav-subtopics" id="subtopics-103" style="display: none;">
+                    <button class="nav-link nav-expandable" onclick="expandTopic('104', this)">📂 Population Estimation Methodology<span class="nav-expand-icon">▶</span></button>
+                    <div class="nav-subtopics" id="subtopics-104" style="display: none;">
+                        <button class="nav-link" onclick="showSection('section-105')">📝 Quality Control Procedures for Survey Data</button>
+                    </div>
+                </div>
             </div>
+            <button class="nav-link nav-expandable" onclick="expandTopic('106', this)">📂 Test Frontmatter Topic<span class="nav-expand-icon">▶</span></button>
+            <div class="nav-subtopics" id="subtopics-106" style="display: none;">
+                <button class="nav-link" onclick="showSection('section-107')">📝 Test Topic 1</button>
+            </div>
+            <button class="nav-link nav-expandable" onclick="expandTopic('108', this)">📂 Random Sampling Methodology for Large Scale Surveys<span class="nav-expand-icon">▶</span></button>
+            <div class="nav-subtopics" id="subtopics-108" style="display: none;">
+                <button class="nav-link" onclick="showSection('section-109')">📝 Labor Force Participation Rate Calculation</button>
+            </div>
+        </div>
         </nav>
         
         <!-- Main Content -->
@@ -997,13 +1014,251 @@
                 </div>
             </div>
             
-            <!-- Dynamic content sections will be inserted here -->
+            
+        <div id="section-102" class="content-section">
+            <h1>Income Distribution Analysis Methods</h1>
+            <p><h2>Income Distribution Analysis</h2></p>
+<br>
+<p><h2>Overview</h2></p>
+<p>Methods for analyzing income distribution patterns in survey data.</p>
+<br>
+<p><h2>Key Metrics</h2></p>
+<ul>
+<li>Median household income</li>
+<li>Income percentiles</li>
+<li>Gini coefficient</li>
+<li>Income inequality measures</li>
+</ul>
+<br>
+<p><h2>Data Sources</h2></p>
+<ul>
+<li>American Community Survey</li>
+<li>Current Population Survey</li>
+<li>Survey of Income and Program Participation</li>
+</ul>
+<br>
+<p><h2>Methodology</h2></p>
+<ul>
+<li>Data collection procedures</li>
+<li>Sample weighting</li>
+<li>Missing data imputation</li>
+<li>Variance estimation</li>
+</ul>
+<div class="in-this-section">
+<h2>In this section</h2>
+<ul class="section-links">
+<li><a href="#" onclick="showSection('section-103'); return false;" class="section-link">📝 Legacy Survey Processing Methods (Archived)</a></li>
+</ul>
+</div>
+
+        </div>
+
+        <div id="section-103" class="content-section">
+            <h1>Legacy Survey Processing Methods (Archived)</h1>
+            <p><h2>Legacy Survey Processing</h2></p>
+<br>
+<p><h2>Historical Context</h2></p>
+<p>This document describes survey processing methods used prior to 2020.</p>
+<br>
+<p><h2>Paper-Based Systems</h2></p>
+<ul>
+<li>Manual data entry</li>
+<li>Physical questionnaire storage</li>
+<li>Batch processing procedures</li>
+</ul>
+<br>
+<p><h2>Note</h2></p>
+<p>This methodology has been superseded by digital processing systems.</p>
+<p>Retained for historical reference only.</p>
+<div class="in-this-section">
+<h2>In this section</h2>
+<ul class="section-links">
+<li><a href="#" onclick="showSection('section-104'); return false;" class="section-link">📝 Population Estimation Methodology</a></li>
+</ul>
+</div>
+
+        </div>
+
+        <div id="section-104" class="content-section">
+            <h1>Population Estimation Methodology</h1>
+            <p><h2>Population Estimation Methodology</h2></p>
+<br>
+<p><h2>Cohort-Component Method</h2></p>
+<p>The primary method for producing population estimates.</p>
+<br>
+<p><h2>Data Sources</h2></p>
+<ul>
+<li>Birth certificates</li>
+<li>Death certificates</li>
+<li>Immigration records</li>
+<li>Emigration estimates</li>
+<li>Internal migration data</li>
+</ul>
+<br>
+<p><h2>Calculation Process</h2></p>
+<ol>
+<li>Start with base population (Census)</li>
+<li>Add births</li>
+<li>Subtract deaths</li>
+<li>Add net international migration</li>
+<li>Add net domestic migration</li>
+</ul>
+<br>
+<p><h2>Validation</h2></p>
+<ul>
+<li>Compare with administrative records</li>
+<li>Analyze age-sex distributions</li>
+<li>Review historical trends</li>
+</ul>
+<div class="in-this-section">
+<h2>In this section</h2>
+<ul class="section-links">
+<li><a href="#" onclick="showSection('section-105'); return false;" class="section-link">📝 Quality Control Procedures for Survey Data</a></li>
+</ul>
+</div>
+
+        </div>
+
+        <div id="section-105" class="content-section">
+            <h1>Quality Control Procedures for Survey Data</h1>
+            <p><h2>Quality Control Procedures</h2></p>
+<br>
+<p><h2>Data Validation Framework</h2></p>
+<p>Comprehensive procedures for ensuring data quality throughout the survey lifecycle.</p>
+<br>
+<p><h2>Pre-Collection Validation</h2></p>
+<ul>
+<li>Questionnaire testing</li>
+<li>System validation</li>
+<li>Interviewer certification</li>
+</ul>
+<br>
+<p><h2>During Collection</h2></p>
+<ul>
+<li>Real-time monitoring</li>
+<li>Progress tracking</li>
+<li>Quality indicators</li>
+</ul>
+<br>
+<p><h2>Post-Collection</h2></p>
+<ul>
+<li>Data cleaning procedures</li>
+<li>Outlier detection</li>
+<li>Consistency checks</li>
+<li>Final validation</li>
+</ul>
+        </div>
+
+        <div id="section-106" class="content-section">
+            <h1>Test Frontmatter Topic</h1>
+            <p><h2>Test Topic Content</h2></p>
+<br>
+<p>This is a test topic with frontmatter.</p>
+<div class="in-this-section">
+<h2>In this section</h2>
+<ul class="section-links">
+<li><a href="#" onclick="showSection('section-107'); return false;" class="section-link">📝 Test Topic 1</a></li>
+</ul>
+</div>
+
+        </div>
+
+        <div id="section-107" class="content-section">
+            <h1>Test Topic 1</h1>
+            <p><h2>Test Topic 1</h2></p>
+<br>
+<p>This is Test Topic 1.</p>
+        </div>
+
+        <div id="section-108" class="content-section">
+            <h1>Random Sampling Methodology for Large Scale Surveys</h1>
+            <p><h2>Random Sampling Methodology</h2></p>
+<br>
+<p><h2>Overview</h2></p>
+<p>This document outlines the standard procedures for implementing random sampling in large-scale demographic surveys.</p>
+<br>
+<p><h2>Key Principles</h2></p>
+<ul>
+<li><strong>Simple Random Sampling</strong>: Every member of the population has an equal chance of selection</li>
+<li><strong>Stratified Sampling</strong>: Population is divided into strata before sampling</li>
+<li><strong>Cluster Sampling</strong>: Natural groupings are used as sampling units</li>
+</ul>
+<br>
+<p><h2>Implementation Steps</h2></p>
+<ol>
+<li>Define the target population</li>
+<li>Create a sampling frame</li>
+<li>Determine sample size using power analysis</li>
+<li>Execute randomization procedure</li>
+<li>Document selection process</li>
+</ul>
+<br>
+<p><h2>Quality Assurance</h2></p>
+<ul>
+<li>Verify randomization algorithms</li>
+<li>Check for selection bias</li>
+<li>Monitor response rates</li>
+<li>Validate sample representativeness</li>
+</ul>
+<br>
+<p><h2>References</h2></p>
+<ul>
+<li>Cochran, W.G. (1977). Sampling Techniques</li>
+<li>Lohr, S.L. (2019). Sampling: Design and Analysis</li>
+</ul>
+<div class="in-this-section">
+<h2>In this section</h2>
+<ul class="section-links">
+<li><a href="#" onclick="showSection('section-109'); return false;" class="section-link">📝 Labor Force Participation Rate Calculation</a></li>
+</ul>
+</div>
+
+        </div>
+
+        <div id="section-109" class="content-section">
+            <h1>Labor Force Participation Rate Calculation</h1>
+            <p><h2>Labor Force Participation Rate</h2></p>
+<br>
+<p><h2>Definition</h2></p>
+<p>The labor force participation rate represents the proportion of the working-age population that is economically active.</p>
+<br>
+<p><h2>Formula</h2></p>
+<p>LFPR = (Labor Force / Working-Age Population) × 100</p>
+<br>
+<p>Where:</p>
+<ul>
+<li>Labor Force = Employed + Unemployed</li>
+<li>Working-Age Population = Population aged 16+</li>
+</ul>
+<br>
+<p><h2>Data Collection</h2></p>
+<ul>
+<li>Current Population Survey (CPS)</li>
+<li>Monthly collection</li>
+<li>Sample size: ~60,000 households</li>
+</ul>
+<br>
+<p><h2>Seasonal Adjustment</h2></p>
+<ul>
+<li>X-13ARIMA-SEATS method</li>
+<li>Holiday adjustments</li>
+<li>Extreme value detection</li>
+</ul>
+<br>
+<p><h2>Publication Schedule</h2></p>
+<ul>
+<li>Monthly release</li>
+<li>First Friday of each month</li>
+<li>Preliminary and revised estimates</li>
+</ul>
+        </div>
+
         </main>
     </div>
     
     <!-- Footer -->
     <footer class="footer">
-        Generated on {{ date }}<br>
+        Generated on August 04, 2025<br>
         Optimized for mobile devices • Works offline
     </footer>
     
@@ -1379,11 +1634,11 @@
         }
         
         // Load tree data for breadcrumb navigation
-        const treeDataB64 = '{{ tree_data }}';
+        const treeDataB64 = 'W3siaWQiOiAxMDIsICJ0b3BpY19pZCI6IDcsICJ0aXRsZSI6ICJJbmNvbWUgRGlzdHJpYnV0aW9uIEFuYWx5c2lzIE1ldGhvZHMiLCAiY29udGVudCI6ICIjIEluY29tZSBEaXN0cmlidXRpb24gQW5hbHlzaXNcblxuIyMgT3ZlcnZpZXdcbk1ldGhvZHMgZm9yIGFuYWx5emluZyBpbmNvbWUgZGlzdHJpYnV0aW9uIHBhdHRlcm5zIGluIHN1cnZleSBkYXRhLlxuXG4jIyBLZXkgTWV0cmljc1xuLSBNZWRpYW4gaG91c2Vob2xkIGluY29tZVxuLSBJbmNvbWUgcGVyY2VudGlsZXNcbi0gR2luaSBjb2VmZmljaWVudFxuLSBJbmNvbWUgaW5lcXVhbGl0eSBtZWFzdXJlc1xuXG4jIyBEYXRhIFNvdXJjZXNcbi0gQW1lcmljYW4gQ29tbXVuaXR5IFN1cnZleVxuLSBDdXJyZW50IFBvcHVsYXRpb24gU3VydmV5XG4tIFN1cnZleSBvZiBJbmNvbWUgYW5kIFByb2dyYW0gUGFydGljaXBhdGlvblxuXG4jIyBNZXRob2RvbG9neVxuLSBEYXRhIGNvbGxlY3Rpb24gcHJvY2VkdXJlc1xuLSBTYW1wbGUgd2VpZ2h0aW5nXG4tIE1pc3NpbmcgZGF0YSBpbXB1dGF0aW9uXG4tIFZhcmlhbmNlIGVzdGltYXRpb24iLCAicG9zaXRpb24iOiAwLCAiY2hpbGRyZW4iOiBbeyJpZCI6IDEwMywgInRvcGljX2lkIjogOCwgInRpdGxlIjogIkxlZ2FjeSBTdXJ2ZXkgUHJvY2Vzc2luZyBNZXRob2RzIChBcmNoaXZlZCkiLCAiY29udGVudCI6ICIjIExlZ2FjeSBTdXJ2ZXkgUHJvY2Vzc2luZ1xuXG4jIyBIaXN0b3JpY2FsIENvbnRleHRcblRoaXMgZG9jdW1lbnQgZGVzY3JpYmVzIHN1cnZleSBwcm9jZXNzaW5nIG1ldGhvZHMgdXNlZCBwcmlvciB0byAyMDIwLlxuXG4jIyBQYXBlci1CYXNlZCBTeXN0ZW1zXG4tIE1hbnVhbCBkYXRhIGVudHJ5XG4tIFBoeXNpY2FsIHF1ZXN0aW9ubmFpcmUgc3RvcmFnZVxuLSBCYXRjaCBwcm9jZXNzaW5nIHByb2NlZHVyZXNcblxuIyMgTm90ZVxuVGhpcyBtZXRob2RvbG9neSBoYXMgYmVlbiBzdXBlcnNlZGVkIGJ5IGRpZ2l0YWwgcHJvY2Vzc2luZyBzeXN0ZW1zLlxuUmV0YWluZWQgZm9yIGhpc3RvcmljYWwgcmVmZXJlbmNlIG9ubHkuIiwgInBvc2l0aW9uIjogMCwgImNoaWxkcmVuIjogW3siaWQiOiAxMDQsICJ0b3BpY19pZCI6IDUsICJ0aXRsZSI6ICJQb3B1bGF0aW9uIEVzdGltYXRpb24gTWV0aG9kb2xvZ3kiLCAiY29udGVudCI6ICIjIFBvcHVsYXRpb24gRXN0aW1hdGlvbiBNZXRob2RvbG9neVxuXG4jIyBDb2hvcnQtQ29tcG9uZW50IE1ldGhvZFxuVGhlIHByaW1hcnkgbWV0aG9kIGZvciBwcm9kdWNpbmcgcG9wdWxhdGlvbiBlc3RpbWF0ZXMuXG5cbiMjIERhdGEgU291cmNlc1xuLSBCaXJ0aCBjZXJ0aWZpY2F0ZXNcbi0gRGVhdGggY2VydGlmaWNhdGVzICBcbi0gSW1taWdyYXRpb24gcmVjb3Jkc1xuLSBFbWlncmF0aW9uIGVzdGltYXRlc1xuLSBJbnRlcm5hbCBtaWdyYXRpb24gZGF0YVxuXG4jIyBDYWxjdWxhdGlvbiBQcm9jZXNzXG4xLiBTdGFydCB3aXRoIGJhc2UgcG9wdWxhdGlvbiAoQ2Vuc3VzKVxuMi4gQWRkIGJpcnRoc1xuMy4gU3VidHJhY3QgZGVhdGhzXG40LiBBZGQgbmV0IGludGVybmF0aW9uYWwgbWlncmF0aW9uXG41LiBBZGQgbmV0IGRvbWVzdGljIG1pZ3JhdGlvblxuXG4jIyBWYWxpZGF0aW9uXG4tIENvbXBhcmUgd2l0aCBhZG1pbmlzdHJhdGl2ZSByZWNvcmRzXG4tIEFuYWx5emUgYWdlLXNleCBkaXN0cmlidXRpb25zXG4tIFJldmlldyBoaXN0b3JpY2FsIHRyZW5kcyIsICJwb3NpdGlvbiI6IDAsICJjaGlsZHJlbiI6IFt7ImlkIjogMTA1LCAidG9waWNfaWQiOiA0LCAidGl0bGUiOiAiUXVhbGl0eSBDb250cm9sIFByb2NlZHVyZXMgZm9yIFN1cnZleSBEYXRhIiwgImNvbnRlbnQiOiAiIyBRdWFsaXR5IENvbnRyb2wgUHJvY2VkdXJlc1xuXG4jIyBEYXRhIFZhbGlkYXRpb24gRnJhbWV3b3JrXG5Db21wcmVoZW5zaXZlIHByb2NlZHVyZXMgZm9yIGVuc3VyaW5nIGRhdGEgcXVhbGl0eSB0aHJvdWdob3V0IHRoZSBzdXJ2ZXkgbGlmZWN5Y2xlLlxuXG4jIyBQcmUtQ29sbGVjdGlvbiBWYWxpZGF0aW9uXG4tIFF1ZXN0aW9ubmFpcmUgdGVzdGluZ1xuLSBTeXN0ZW0gdmFsaWRhdGlvblxuLSBJbnRlcnZpZXdlciBjZXJ0aWZpY2F0aW9uXG5cbiMjIER1cmluZyBDb2xsZWN0aW9uXG4tIFJlYWwtdGltZSBtb25pdG9yaW5nXG4tIFByb2dyZXNzIHRyYWNraW5nXG4tIFF1YWxpdHkgaW5kaWNhdG9yc1xuXG4jIyBQb3N0LUNvbGxlY3Rpb25cbi0gRGF0YSBjbGVhbmluZyBwcm9jZWR1cmVzXG4tIE91dGxpZXIgZGV0ZWN0aW9uXG4tIENvbnNpc3RlbmN5IGNoZWNrc1xuLSBGaW5hbCB2YWxpZGF0aW9uIiwgInBvc2l0aW9uIjogMCwgImNoaWxkcmVuIjogW119XX1dfV19LCB7ImlkIjogMTA2LCAidG9waWNfaWQiOiAxMSwgInRpdGxlIjogIlRlc3QgRnJvbnRtYXR0ZXIgVG9waWMiLCAiY29udGVudCI6ICIjIFRlc3QgVG9waWMgQ29udGVudFxuXG5UaGlzIGlzIGEgdGVzdCB0b3BpYyB3aXRoIGZyb250bWF0dGVyLiIsICJwb3NpdGlvbiI6IDEsICJjaGlsZHJlbiI6IFt7ImlkIjogMTA3LCAidG9waWNfaWQiOiAxMywgInRpdGxlIjogIlRlc3QgVG9waWMgMSIsICJjb250ZW50IjogIiMgVGVzdCBUb3BpYyAxXG5cblRoaXMgaXMgVGVzdCBUb3BpYyAxLiIsICJwb3NpdGlvbiI6IDAsICJjaGlsZHJlbiI6IFtdfV19LCB7ImlkIjogMTA4LCAidG9waWNfaWQiOiAxLCAidGl0bGUiOiAiUmFuZG9tIFNhbXBsaW5nIE1ldGhvZG9sb2d5IGZvciBMYXJnZSBTY2FsZSBTdXJ2ZXlzIiwgImNvbnRlbnQiOiAiIyBSYW5kb20gU2FtcGxpbmcgTWV0aG9kb2xvZ3lcblxuIyMgT3ZlcnZpZXdcblRoaXMgZG9jdW1lbnQgb3V0bGluZXMgdGhlIHN0YW5kYXJkIHByb2NlZHVyZXMgZm9yIGltcGxlbWVudGluZyByYW5kb20gc2FtcGxpbmcgaW4gbGFyZ2Utc2NhbGUgZGVtb2dyYXBoaWMgc3VydmV5cy5cblxuIyMgS2V5IFByaW5jaXBsZXNcbi0gKipTaW1wbGUgUmFuZG9tIFNhbXBsaW5nKio6IEV2ZXJ5IG1lbWJlciBvZiB0aGUgcG9wdWxhdGlvbiBoYXMgYW4gZXF1YWwgY2hhbmNlIG9mIHNlbGVjdGlvblxuLSAqKlN0cmF0aWZpZWQgU2FtcGxpbmcqKjogUG9wdWxhdGlvbiBpcyBkaXZpZGVkIGludG8gc3RyYXRhIGJlZm9yZSBzYW1wbGluZ1xuLSAqKkNsdXN0ZXIgU2FtcGxpbmcqKjogTmF0dXJhbCBncm91cGluZ3MgYXJlIHVzZWQgYXMgc2FtcGxpbmcgdW5pdHNcblxuIyMgSW1wbGVtZW50YXRpb24gU3RlcHNcbjEuIERlZmluZSB0aGUgdGFyZ2V0IHBvcHVsYXRpb25cbjIuIENyZWF0ZSBhIHNhbXBsaW5nIGZyYW1lXG4zLiBEZXRlcm1pbmUgc2FtcGxlIHNpemUgdXNpbmcgcG93ZXIgYW5hbHlzaXNcbjQuIEV4ZWN1dGUgcmFuZG9taXphdGlvbiBwcm9jZWR1cmVcbjUuIERvY3VtZW50IHNlbGVjdGlvbiBwcm9jZXNzXG5cbiMjIFF1YWxpdHkgQXNzdXJhbmNlXG4tIFZlcmlmeSByYW5kb21pemF0aW9uIGFsZ29yaXRobXNcbi0gQ2hlY2sgZm9yIHNlbGVjdGlvbiBiaWFzXG4tIE1vbml0b3IgcmVzcG9uc2UgcmF0ZXNcbi0gVmFsaWRhdGUgc2FtcGxlIHJlcHJlc2VudGF0aXZlbmVzc1xuXG4jIyBSZWZlcmVuY2VzXG4tIENvY2hyYW4sIFcuRy4gKDE5NzcpLiBTYW1wbGluZyBUZWNobmlxdWVzXG4tIExvaHIsIFMuTC4gKDIwMTkpLiBTYW1wbGluZzogRGVzaWduIGFuZCBBbmFseXNpcyIsICJwb3NpdGlvbiI6IDIsICJjaGlsZHJlbiI6IFt7ImlkIjogMTA5LCAidG9waWNfaWQiOiA2LCAidGl0bGUiOiAiTGFib3IgRm9yY2UgUGFydGljaXBhdGlvbiBSYXRlIENhbGN1bGF0aW9uIiwgImNvbnRlbnQiOiAiIyBMYWJvciBGb3JjZSBQYXJ0aWNpcGF0aW9uIFJhdGVcblxuIyMgRGVmaW5pdGlvblxuVGhlIGxhYm9yIGZvcmNlIHBhcnRpY2lwYXRpb24gcmF0ZSByZXByZXNlbnRzIHRoZSBwcm9wb3J0aW9uIG9mIHRoZSB3b3JraW5nLWFnZSBwb3B1bGF0aW9uIHRoYXQgaXMgZWNvbm9taWNhbGx5IGFjdGl2ZS5cblxuIyMgRm9ybXVsYVxuTEZQUiA9IChMYWJvciBGb3JjZSAvIFdvcmtpbmctQWdlIFBvcHVsYXRpb24pIFx1MDBkNyAxMDBcblxuV2hlcmU6XG4tIExhYm9yIEZvcmNlID0gRW1wbG95ZWQgKyBVbmVtcGxveWVkXG4tIFdvcmtpbmctQWdlIFBvcHVsYXRpb24gPSBQb3B1bGF0aW9uIGFnZWQgMTYrXG5cbiMjIERhdGEgQ29sbGVjdGlvblxuLSBDdXJyZW50IFBvcHVsYXRpb24gU3VydmV5IChDUFMpXG4tIE1vbnRobHkgY29sbGVjdGlvblxuLSBTYW1wbGUgc2l6ZTogfjYwLDAwMCBob3VzZWhvbGRzXG5cbiMjIFNlYXNvbmFsIEFkanVzdG1lbnRcbi0gWC0xM0FSSU1BLVNFQVRTIG1ldGhvZFxuLSBIb2xpZGF5IGFkanVzdG1lbnRzXG4tIEV4dHJlbWUgdmFsdWUgZGV0ZWN0aW9uXG5cbiMjIFB1YmxpY2F0aW9uIFNjaGVkdWxlXG4tIE1vbnRobHkgcmVsZWFzZVxuLSBGaXJzdCBGcmlkYXkgb2YgZWFjaCBtb250aFxuLSBQcmVsaW1pbmFyeSBhbmQgcmV2aXNlZCBlc3RpbWF0ZXMiLCAicG9zaXRpb24iOiAwLCAiY2hpbGRyZW4iOiBbXX1dfV0=';
         let topicTree = [];
         console.log('Tree data B64:', treeDataB64 ? treeDataB64.substring(0, 50) + '...' : 'empty');
         console.log('Tree data length:', treeDataB64.length);
-        console.log('Is placeholder?', treeDataB64 === '{{ tree_data }}');
+        console.log('Is placeholder?', treeDataB64 === 'W3siaWQiOiAxMDIsICJ0b3BpY19pZCI6IDcsICJ0aXRsZSI6ICJJbmNvbWUgRGlzdHJpYnV0aW9uIEFuYWx5c2lzIE1ldGhvZHMiLCAiY29udGVudCI6ICIjIEluY29tZSBEaXN0cmlidXRpb24gQW5hbHlzaXNcblxuIyMgT3ZlcnZpZXdcbk1ldGhvZHMgZm9yIGFuYWx5emluZyBpbmNvbWUgZGlzdHJpYnV0aW9uIHBhdHRlcm5zIGluIHN1cnZleSBkYXRhLlxuXG4jIyBLZXkgTWV0cmljc1xuLSBNZWRpYW4gaG91c2Vob2xkIGluY29tZVxuLSBJbmNvbWUgcGVyY2VudGlsZXNcbi0gR2luaSBjb2VmZmljaWVudFxuLSBJbmNvbWUgaW5lcXVhbGl0eSBtZWFzdXJlc1xuXG4jIyBEYXRhIFNvdXJjZXNcbi0gQW1lcmljYW4gQ29tbXVuaXR5IFN1cnZleVxuLSBDdXJyZW50IFBvcHVsYXRpb24gU3VydmV5XG4tIFN1cnZleSBvZiBJbmNvbWUgYW5kIFByb2dyYW0gUGFydGljaXBhdGlvblxuXG4jIyBNZXRob2RvbG9neVxuLSBEYXRhIGNvbGxlY3Rpb24gcHJvY2VkdXJlc1xuLSBTYW1wbGUgd2VpZ2h0aW5nXG4tIE1pc3NpbmcgZGF0YSBpbXB1dGF0aW9uXG4tIFZhcmlhbmNlIGVzdGltYXRpb24iLCAicG9zaXRpb24iOiAwLCAiY2hpbGRyZW4iOiBbeyJpZCI6IDEwMywgInRvcGljX2lkIjogOCwgInRpdGxlIjogIkxlZ2FjeSBTdXJ2ZXkgUHJvY2Vzc2luZyBNZXRob2RzIChBcmNoaXZlZCkiLCAiY29udGVudCI6ICIjIExlZ2FjeSBTdXJ2ZXkgUHJvY2Vzc2luZ1xuXG4jIyBIaXN0b3JpY2FsIENvbnRleHRcblRoaXMgZG9jdW1lbnQgZGVzY3JpYmVzIHN1cnZleSBwcm9jZXNzaW5nIG1ldGhvZHMgdXNlZCBwcmlvciB0byAyMDIwLlxuXG4jIyBQYXBlci1CYXNlZCBTeXN0ZW1zXG4tIE1hbnVhbCBkYXRhIGVudHJ5XG4tIFBoeXNpY2FsIHF1ZXN0aW9ubmFpcmUgc3RvcmFnZVxuLSBCYXRjaCBwcm9jZXNzaW5nIHByb2NlZHVyZXNcblxuIyMgTm90ZVxuVGhpcyBtZXRob2RvbG9neSBoYXMgYmVlbiBzdXBlcnNlZGVkIGJ5IGRpZ2l0YWwgcHJvY2Vzc2luZyBzeXN0ZW1zLlxuUmV0YWluZWQgZm9yIGhpc3RvcmljYWwgcmVmZXJlbmNlIG9ubHkuIiwgInBvc2l0aW9uIjogMCwgImNoaWxkcmVuIjogW3siaWQiOiAxMDQsICJ0b3BpY19pZCI6IDUsICJ0aXRsZSI6ICJQb3B1bGF0aW9uIEVzdGltYXRpb24gTWV0aG9kb2xvZ3kiLCAiY29udGVudCI6ICIjIFBvcHVsYXRpb24gRXN0aW1hdGlvbiBNZXRob2RvbG9neVxuXG4jIyBDb2hvcnQtQ29tcG9uZW50IE1ldGhvZFxuVGhlIHByaW1hcnkgbWV0aG9kIGZvciBwcm9kdWNpbmcgcG9wdWxhdGlvbiBlc3RpbWF0ZXMuXG5cbiMjIERhdGEgU291cmNlc1xuLSBCaXJ0aCBjZXJ0aWZpY2F0ZXNcbi0gRGVhdGggY2VydGlmaWNhdGVzICBcbi0gSW1taWdyYXRpb24gcmVjb3Jkc1xuLSBFbWlncmF0aW9uIGVzdGltYXRlc1xuLSBJbnRlcm5hbCBtaWdyYXRpb24gZGF0YVxuXG4jIyBDYWxjdWxhdGlvbiBQcm9jZXNzXG4xLiBTdGFydCB3aXRoIGJhc2UgcG9wdWxhdGlvbiAoQ2Vuc3VzKVxuMi4gQWRkIGJpcnRoc1xuMy4gU3VidHJhY3QgZGVhdGhzXG40LiBBZGQgbmV0IGludGVybmF0aW9uYWwgbWlncmF0aW9uXG41LiBBZGQgbmV0IGRvbWVzdGljIG1pZ3JhdGlvblxuXG4jIyBWYWxpZGF0aW9uXG4tIENvbXBhcmUgd2l0aCBhZG1pbmlzdHJhdGl2ZSByZWNvcmRzXG4tIEFuYWx5emUgYWdlLXNleCBkaXN0cmlidXRpb25zXG4tIFJldmlldyBoaXN0b3JpY2FsIHRyZW5kcyIsICJwb3NpdGlvbiI6IDAsICJjaGlsZHJlbiI6IFt7ImlkIjogMTA1LCAidG9waWNfaWQiOiA0LCAidGl0bGUiOiAiUXVhbGl0eSBDb250cm9sIFByb2NlZHVyZXMgZm9yIFN1cnZleSBEYXRhIiwgImNvbnRlbnQiOiAiIyBRdWFsaXR5IENvbnRyb2wgUHJvY2VkdXJlc1xuXG4jIyBEYXRhIFZhbGlkYXRpb24gRnJhbWV3b3JrXG5Db21wcmVoZW5zaXZlIHByb2NlZHVyZXMgZm9yIGVuc3VyaW5nIGRhdGEgcXVhbGl0eSB0aHJvdWdob3V0IHRoZSBzdXJ2ZXkgbGlmZWN5Y2xlLlxuXG4jIyBQcmUtQ29sbGVjdGlvbiBWYWxpZGF0aW9uXG4tIFF1ZXN0aW9ubmFpcmUgdGVzdGluZ1xuLSBTeXN0ZW0gdmFsaWRhdGlvblxuLSBJbnRlcnZpZXdlciBjZXJ0aWZpY2F0aW9uXG5cbiMjIER1cmluZyBDb2xsZWN0aW9uXG4tIFJlYWwtdGltZSBtb25pdG9yaW5nXG4tIFByb2dyZXNzIHRyYWNraW5nXG4tIFF1YWxpdHkgaW5kaWNhdG9yc1xuXG4jIyBQb3N0LUNvbGxlY3Rpb25cbi0gRGF0YSBjbGVhbmluZyBwcm9jZWR1cmVzXG4tIE91dGxpZXIgZGV0ZWN0aW9uXG4tIENvbnNpc3RlbmN5IGNoZWNrc1xuLSBGaW5hbCB2YWxpZGF0aW9uIiwgInBvc2l0aW9uIjogMCwgImNoaWxkcmVuIjogW119XX1dfV19LCB7ImlkIjogMTA2LCAidG9waWNfaWQiOiAxMSwgInRpdGxlIjogIlRlc3QgRnJvbnRtYXR0ZXIgVG9waWMiLCAiY29udGVudCI6ICIjIFRlc3QgVG9waWMgQ29udGVudFxuXG5UaGlzIGlzIGEgdGVzdCB0b3BpYyB3aXRoIGZyb250bWF0dGVyLiIsICJwb3NpdGlvbiI6IDEsICJjaGlsZHJlbiI6IFt7ImlkIjogMTA3LCAidG9waWNfaWQiOiAxMywgInRpdGxlIjogIlRlc3QgVG9waWMgMSIsICJjb250ZW50IjogIiMgVGVzdCBUb3BpYyAxXG5cblRoaXMgaXMgVGVzdCBUb3BpYyAxLiIsICJwb3NpdGlvbiI6IDAsICJjaGlsZHJlbiI6IFtdfV19LCB7ImlkIjogMTA4LCAidG9waWNfaWQiOiAxLCAidGl0bGUiOiAiUmFuZG9tIFNhbXBsaW5nIE1ldGhvZG9sb2d5IGZvciBMYXJnZSBTY2FsZSBTdXJ2ZXlzIiwgImNvbnRlbnQiOiAiIyBSYW5kb20gU2FtcGxpbmcgTWV0aG9kb2xvZ3lcblxuIyMgT3ZlcnZpZXdcblRoaXMgZG9jdW1lbnQgb3V0bGluZXMgdGhlIHN0YW5kYXJkIHByb2NlZHVyZXMgZm9yIGltcGxlbWVudGluZyByYW5kb20gc2FtcGxpbmcgaW4gbGFyZ2Utc2NhbGUgZGVtb2dyYXBoaWMgc3VydmV5cy5cblxuIyMgS2V5IFByaW5jaXBsZXNcbi0gKipTaW1wbGUgUmFuZG9tIFNhbXBsaW5nKio6IEV2ZXJ5IG1lbWJlciBvZiB0aGUgcG9wdWxhdGlvbiBoYXMgYW4gZXF1YWwgY2hhbmNlIG9mIHNlbGVjdGlvblxuLSAqKlN0cmF0aWZpZWQgU2FtcGxpbmcqKjogUG9wdWxhdGlvbiBpcyBkaXZpZGVkIGludG8gc3RyYXRhIGJlZm9yZSBzYW1wbGluZ1xuLSAqKkNsdXN0ZXIgU2FtcGxpbmcqKjogTmF0dXJhbCBncm91cGluZ3MgYXJlIHVzZWQgYXMgc2FtcGxpbmcgdW5pdHNcblxuIyMgSW1wbGVtZW50YXRpb24gU3RlcHNcbjEuIERlZmluZSB0aGUgdGFyZ2V0IHBvcHVsYXRpb25cbjIuIENyZWF0ZSBhIHNhbXBsaW5nIGZyYW1lXG4zLiBEZXRlcm1pbmUgc2FtcGxlIHNpemUgdXNpbmcgcG93ZXIgYW5hbHlzaXNcbjQuIEV4ZWN1dGUgcmFuZG9taXphdGlvbiBwcm9jZWR1cmVcbjUuIERvY3VtZW50IHNlbGVjdGlvbiBwcm9jZXNzXG5cbiMjIFF1YWxpdHkgQXNzdXJhbmNlXG4tIFZlcmlmeSByYW5kb21pemF0aW9uIGFsZ29yaXRobXNcbi0gQ2hlY2sgZm9yIHNlbGVjdGlvbiBiaWFzXG4tIE1vbml0b3IgcmVzcG9uc2UgcmF0ZXNcbi0gVmFsaWRhdGUgc2FtcGxlIHJlcHJlc2VudGF0aXZlbmVzc1xuXG4jIyBSZWZlcmVuY2VzXG4tIENvY2hyYW4sIFcuRy4gKDE5NzcpLiBTYW1wbGluZyBUZWNobmlxdWVzXG4tIExvaHIsIFMuTC4gKDIwMTkpLiBTYW1wbGluZzogRGVzaWduIGFuZCBBbmFseXNpcyIsICJwb3NpdGlvbiI6IDIsICJjaGlsZHJlbiI6IFt7ImlkIjogMTA5LCAidG9waWNfaWQiOiA2LCAidGl0bGUiOiAiTGFib3IgRm9yY2UgUGFydGljaXBhdGlvbiBSYXRlIENhbGN1bGF0aW9uIiwgImNvbnRlbnQiOiAiIyBMYWJvciBGb3JjZSBQYXJ0aWNpcGF0aW9uIFJhdGVcblxuIyMgRGVmaW5pdGlvblxuVGhlIGxhYm9yIGZvcmNlIHBhcnRpY2lwYXRpb24gcmF0ZSByZXByZXNlbnRzIHRoZSBwcm9wb3J0aW9uIG9mIHRoZSB3b3JraW5nLWFnZSBwb3B1bGF0aW9uIHRoYXQgaXMgZWNvbm9taWNhbGx5IGFjdGl2ZS5cblxuIyMgRm9ybXVsYVxuTEZQUiA9IChMYWJvciBGb3JjZSAvIFdvcmtpbmctQWdlIFBvcHVsYXRpb24pIFx1MDBkNyAxMDBcblxuV2hlcmU6XG4tIExhYm9yIEZvcmNlID0gRW1wbG95ZWQgKyBVbmVtcGxveWVkXG4tIFdvcmtpbmctQWdlIFBvcHVsYXRpb24gPSBQb3B1bGF0aW9uIGFnZWQgMTYrXG5cbiMjIERhdGEgQ29sbGVjdGlvblxuLSBDdXJyZW50IFBvcHVsYXRpb24gU3VydmV5IChDUFMpXG4tIE1vbnRobHkgY29sbGVjdGlvblxuLSBTYW1wbGUgc2l6ZTogfjYwLDAwMCBob3VzZWhvbGRzXG5cbiMjIFNlYXNvbmFsIEFkanVzdG1lbnRcbi0gWC0xM0FSSU1BLVNFQVRTIG1ldGhvZFxuLSBIb2xpZGF5IGFkanVzdG1lbnRzXG4tIEV4dHJlbWUgdmFsdWUgZGV0ZWN0aW9uXG5cbiMjIFB1YmxpY2F0aW9uIFNjaGVkdWxlXG4tIE1vbnRobHkgcmVsZWFzZVxuLSBGaXJzdCBGcmlkYXkgb2YgZWFjaCBtb250aFxuLSBQcmVsaW1pbmFyeSBhbmQgcmV2aXNlZCBlc3RpbWF0ZXMiLCAicG9zaXRpb24iOiAwLCAiY2hpbGRyZW4iOiBbXX1dfV0=');
         
         if (treeDataB64 && treeDataB64.length > 20 && !treeDataB64.includes('{{')) {
             try {

@@ -236,6 +236,30 @@ def _clean_markdown_content(content):
         if re.match(r'^\s*<!--.*?-->\s*$', line):
             continue
         
+        # Skip empty paragraphs (lines with only whitespace)
+        if line.strip() == '':
+            # Keep one blank line but skip excessive ones
+            if cleaned_lines and cleaned_lines[-1].strip() != '':
+                cleaned_lines.append('')
+            continue
+        
+        # Skip lines that are just paragraph tags or whitespace
+        if re.match(r'^\s*</?p>\s*$', line):
+            continue
+            
+        # Clean up lines that contain only HTML paragraph tags with whitespace
+        line = re.sub(r'^\s*<p>\s*</p>\s*$', '', line)
+        if line.strip() == '':
+            continue
+        
+        # Remove empty markdown paragraph indicators
+        if re.match(r'^\s*&nbsp;\s*$', line):
+            continue
+            
+        # Remove lines with only whitespace characters and HTML entities
+        if re.match(r'^\s*(&nbsp;|\s|&\w+;)*\s*$', line):
+            continue
+        
         # Keep the line
         cleaned_lines.append(line)
     
@@ -244,6 +268,86 @@ def _clean_markdown_content(content):
     
     # Remove excessive blank lines (more than 2 consecutive)
     cleaned_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_content)
+    
+    # Remove blank lines at the beginning and end
+    cleaned_content = cleaned_content.strip()
+    
+    # Remove empty list items that might have been created
+    cleaned_content = re.sub(r'^[\s]*[-*+]\s*$', '', cleaned_content, flags=re.MULTILINE)
+    
+    # Clean up any remaining empty paragraph patterns
+    cleaned_content = re.sub(r'\n\s*<p>\s*</p>\s*\n', '\n', cleaned_content)
+    cleaned_content = re.sub(r'<p>\s*</p>', '', cleaned_content)
+    
+    return cleaned_content
+
+
+def _clean_topic_content(content):
+    """Clean up topic content by removing empty paragraphs and excessive whitespace"""
+    if not content or not content.strip():
+        return ''
+    
+    lines = content.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        # Skip completely empty lines, but preserve intentional spacing
+        if line.strip() == '':
+            # Only add blank line if the previous line wasn't blank
+            if cleaned_lines and cleaned_lines[-1].strip() != '':
+                cleaned_lines.append('')
+            continue
+        
+        # Remove lines that are just HTML paragraph tags
+        if re.match(r'^\s*</?p>\s*$', line):
+            continue
+        
+        # Remove lines with only non-breaking spaces or similar
+        if re.match(r'^\s*(&nbsp;|\s|&\w+;)*\s*$', line):
+            continue
+            
+        # Remove empty list items
+        if re.match(r'^\s*[-*+]\s*$', line):
+            continue
+            
+        # Remove empty numbered list items
+        if re.match(r'^\s*\d+\.\s*$', line):
+            continue
+        
+        # Remove Word document artifacts
+        if re.match(r'^\s*\[\s*\]\s*$', line):  # Empty checkboxes
+            continue
+            
+        if re.match(r'^\s*\\\s*$', line):  # Stray backslashes
+            continue
+            
+        # Remove lines with only formatting marks or tabs
+        if re.match(r'^\s*[\t\r\f\v]+\s*$', line):
+            continue
+            
+        # Remove Word table artifacts like empty table cells
+        if re.match(r'^\s*\|\s*\|\s*$', line):
+            continue
+        
+        cleaned_lines.append(line)
+    
+    # Join and clean up
+    cleaned_content = '\n'.join(cleaned_lines)
+    
+    # Remove excessive blank lines (more than 1 consecutive)
+    cleaned_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_content)
+    
+    # Clean up common Word artifacts in the content
+    cleaned_content = re.sub(r'\s*\n\s*\n\s*\n+', '\n\n', cleaned_content)  # Multiple newlines
+    cleaned_content = re.sub(r'(?<!\n)\n(?!\n)', ' ', cleaned_content)  # Single newlines (join wrapped lines)
+    cleaned_content = re.sub(r'\n\n+', '\n\n', cleaned_content)  # Excessive double newlines
+    
+    # Remove leading/trailing whitespace
+    cleaned_content = cleaned_content.strip()
+    
+    # If content is now just whitespace or empty, return empty string
+    if not cleaned_content or not cleaned_content.strip():
+        return ''
     
     return cleaned_content
 
@@ -316,6 +420,10 @@ def _parse_and_store(file, imp_doc, source):
         nonlocal order, current_title, buffer
         if current_title:
             content = '\n'.join(buffer).strip()
+            
+            # Apply additional content cleaning
+            content = _clean_topic_content(content)
+            
             # Only create an item if we have actual content (not just empty lines/whitespace)
             if content:
                 items.append((order, current_title, content))

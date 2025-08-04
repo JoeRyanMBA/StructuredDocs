@@ -145,12 +145,12 @@ def generate_mobile_kb_html(publication, tree):
             # Show all levels with proper indentation
             indent = "    " * level
             # Use different icons for topics with and without children
-            if node.get('children') and len(node.get('children', [])) > 0:
-                icon = "📂"  # Folder icon for topics with subtopics
+            if node.get('children'):
+                icon = "�"  # Folder icon for topics with subtopics
             else:
-                icon = "📝"  # Document icon for individual topics
+                icon = "�📝"  # Document icon for individual topics
                 
-            if node.get('children') and len(node.get('children', [])) > 0:
+            if node.get('children'):
                 # Has children - clicking shows content and expands subtopics
                 html_content += f'{indent}            <button class="nav-link nav-expandable" onclick="expandTopic(\'{node["id"]}\', this)">{icon} {node["title"]}<span class="nav-expand-icon">▶</span></button>\n'
                 # Add hidden subtopics container
