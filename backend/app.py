@@ -1,6 +1,11 @@
 # backend/app.py
 
-from flask import Flask, jsonify
+import sys
+import os
+# Add the backend directory to Python path
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+
+from flask import Flask, jsonify, send_from_directory
 from flask_cors import CORS
 from flask_migrate import Migrate
 
@@ -10,17 +15,52 @@ def create_app():
     print("🚀 Creating Flask app...")
     app = Flask(__name__)
     print("📱 Flask instance created")
-    # enable CORS and debug mode
+    # enable CORS and debug mode with comprehensive settings
+    CORS(app, 
+         origins="*", 
+         allow_headers=["Content-Type", "Authorization", "X-Requested-With", "Accept", "Origin"], 
+         methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "HEAD"], 
+         supports_credentials=False,
+         send_wildcard=True,
+         vary_header=False)
+    
     # Configure SQLAlchemy database URI
     import os
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + os.path.join(app.instance_path, 'structured_docs.db')
+    backend_dir = os.path.dirname(os.path.abspath(__file__))
+    db_path = os.path.join(backend_dir, 'instance', 'structured_docs.db')
+    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+    
+    # Configure static files for image serving
+    app.config['STATIC_FOLDER'] = os.path.join(app.root_path, 'static')
+    
     # Initialize SQLAlchemy
-    from . import db
+    from models import db
     db.init_app(app)
 
     # Register Flask-Migrate
     from flask_migrate import Migrate
     migrate = Migrate(app, db)
+
+    # Add explicit CORS handling middleware
+    @app.before_request
+    def handle_preflight():
+        from flask import request
+        if request.method == "OPTIONS":
+            print(f"🔍 OPTIONS request from origin: {request.headers.get('Origin')}")
+            response = jsonify({})
+            response.headers.add("Access-Control-Allow-Origin", "*")
+            response.headers.add('Access-Control-Allow-Headers', "*")
+            response.headers.add('Access-Control-Allow-Methods', "*")
+            return response
+
+    @app.after_request
+    def after_request(response):
+        from flask import request
+        print(f"🔍 Request from origin: {request.headers.get('Origin')} - Response: {response.status_code}")
+        response.headers.add('Access-Control-Allow-Origin', '*')
+        response.headers.add('Access-Control-Allow-Headers', '*')
+        response.headers.add('Access-Control-Allow-Methods', '*')
+        return response
 
     @app.route('/ping', methods=['GET'])
     def ping():
@@ -32,16 +72,30 @@ def create_app():
         print("🧪 Test endpoint called")
         return jsonify({"message": "test successful"}), 200
 
+    # Static file serving for imported images
+    @app.route('/images/<path:filename>')
+    def serve_image(filename):
+        """Serve imported images from static directory"""
+        try:
+            static_images_dir = os.path.join(app.config['STATIC_FOLDER'], 'images')
+            return send_from_directory(static_images_dir, filename)
+        except Exception as e:
+            app.logger.error(f"Error serving image {filename}: {str(e)}")
+            return jsonify({'error': 'Image not found'}), 404
+
     # Import blueprints before registration
-    from .routes.topics         import topics  as topics_bp
-    from .routes.import_handler import imports as imports_bp
-    from .routes.publications   import pubs_bp
-    from .routes.collections    import collections_bp
-    from .routes.reviews        import reviews_bp
-    from .routes.projects       import projects_bp
-    from .routes.users          import users_bp
-    from .routes.metrics        import metrics_bp
-    from .routes.notifications  import notifications_bp
+    from routes.topics         import topics  as topics_bp
+    from routes.import_handler import imports as imports_bp
+    from routes.publications   import pubs_bp
+    from routes.collections    import collections_bp
+    from routes.reviews        import reviews_bp
+    from routes.projects       import projects_bp
+    from routes.users          import users_bp
+    from routes.metrics        import metrics_bp
+    from routes.notifications  import notifications_bp
+    from routes.links          import links_bp
+    from routes.stakeholders   import stakeholders_bp
+    from routes.tasks          import tasks_bp
 
     # Register all blueprints once
     print("📋 Registering blueprints...")
@@ -63,6 +117,12 @@ def create_app():
     print("  ✅ Metrics blueprint registered")
     app.register_blueprint(notifications_bp)
     print("  ✅ Notifications blueprint registered")
+    app.register_blueprint(links_bp)
+    print("  ✅ Links blueprint registered")
+    app.register_blueprint(stakeholders_bp)
+    print("  ✅ Stakeholders blueprint registered")
+    app.register_blueprint(tasks_bp)
+    print("  ✅ Tasks blueprint registered")
 
     print("🎉 Flask app creation complete!")
     # Error handler for JWT errors

@@ -2,13 +2,78 @@
 > structured-docs-frontend@0.1.0 dev
 > vite
 
-Port 5173 is in use, trying another one...
 
-  VITE v7.0.6  ready in 473 ms
+  VITE v7.0.6  ready in 5110 ms
 
-  ➜  Local:   http://localhost:5174/
-  ➜  Network: use --host to expose
-4:28:42 PM [vite] (client) hmr update /src/views/ImportDashboard.vue
-4:30:30 PM [vite] vite.config.js changed, restarting server...
-4:30:30 PM [vite] (client) page reload src/router/index.js
-4:30:30 PM [vite] server restarted.
+  ➜  Local:   http://localhost:5173/
+  ➜  Network: http://10.0.1.54:5173/
+Sending Request to the Target: GET /api/notifications
+Sending Request to the Target: GET /api/projects/
+Sending Request to the Target: GET /api/import/history
+Received Response from the Target: 200 /api/projects/
+Received Response from the Target: 200 /api/notifications
+Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/notifications
+Received Response from the Target: 200 /api/notifications
+Sending Request to the Target: GET /api/import/history
+Sending Request to the Target: GET /api/projects/
+Received Response from the Target: 200 /api/projects/
+Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/collections
+Sending Request to the Target: GET /api/projects/
+Sending Request to the Target: GET /api/topics
+Received Response from the Target: 200 /api/projects/
+Received Response from the Target: 200 /api/collections
+Received Response from the Target: 200 /api/topics
+Sending Request to the Target: GET /api/links?include_usage=true
+Received Response from the Target: 200 /api/links?include_usage=true
+Sending Request to the Target: GET /api/import/history
+Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/import/staging/3/images
+Received Response from the Target: 200 /api/import/staging/3/images
+Sending Request to the Target: GET /api/import/staging/2/images
+Received Response from the Target: 200 /api/import/staging/2/images
+Sending Request to the Target: GET /api/import/staging/1/images
+Received Response from the Target: 200 /api/import/staging/1/images
+Sending Request to the Target: GET /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: GET /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: GET /api/topics
+Received Response from the Target: 200 /api/topics
+Sending Request to the Target: PUT /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: PUT /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: POST /api/collections/11/publish
+Received Response from the Target: 200 /api/collections/11/publish
+Sending Request to the Target: GET /api/publications
+Received Response from the Target: 200 /api/publications
+Sending Request to the Target: GET /api/publications/3/export/mobile-kb
+Received Response from the Target: 200 /api/publications/3/export/mobile-kb
+Sending Request to the Target: GET /api/notifications
+Received Response from the Target: 200 /api/notifications
+Sending Request to the Target: GET /api/publications
+Received Response from the Target: 200 /api/publications
+Sending Request to the Target: GET /api/publications/3/export/mobile-kb
+Received Response from the Target: 200 /api/publications/3/export/mobile-kb
+Sending Request to the Target: GET /api/projects/
+Received Response from the Target: 200 /api/projects/
+Sending Request to the Target: GET /api/import/history
+Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: GET /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: GET /api/topics
+Received Response from the Target: 200 /api/topics
+Sending Request to the Target: PUT /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: PUT /api/collections
+Received Response from the Target: 200 /api/collections
+Sending Request to the Target: POST /api/collections/11/publish
+Received Response from the Target: 200 /api/collections/11/publish
+Sending Request to the Target: GET /api/publications
+Received Response from the Target: 200 /api/publications
+Sending Request to the Target: GET /api/publications/3/export/mobile-kb
+Received Response from the Target: 200 /api/publications/3/export/mobile-kb

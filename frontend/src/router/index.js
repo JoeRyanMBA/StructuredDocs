@@ -125,6 +125,11 @@ const routes = [
     component: () => import('@/views/AuthorDashboard.vue')
   },
   {
+    path: '/document-builder',
+    name: 'DocumentBuilder',
+    component: () => import('@/views/DocumentBuilder.vue')
+  },
+  {
     path: '/topics',
     name: 'TopicsList',
     component: TopicsListView
@@ -155,6 +160,11 @@ const routes = [
     path: '/projects',
     name: 'Projects',
     component: () => import('@/views/ProjectsView.vue')
+  },
+  {
+    path: '/tasks',
+    name: 'Tasks',
+    component: () => import('@/views/TasksView.vue')
   },
   {
     path: '/organize/:id',

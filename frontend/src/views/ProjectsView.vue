@@ -104,9 +104,13 @@
     </div>
 
     <!-- Projects List -->
-    <div class="section-card">
+    <!-- Projects List -->
+    <div class="section-card" ref="projectsSection">
       <div class="section-header">
-        <h2 class="section-title">All Projects</h2>
+        <h2 class="section-title">
+          {{ statusFilter ? `${formatStatus(statusFilter)} Projects` : 'All Projects' }}
+          <span v-if="statusFilter" class="filter-badge">{{ filteredProjects.length }}</span>
+        </h2>
         <div class="filter-controls">
           <select v-model="statusFilter" @change="applyFilters" class="filter-select">
             <option value="">All Statuses</option>
@@ -115,10 +119,38 @@
             <option value="on_hold">On Hold</option>
             <option value="completed">Completed</option>
           </select>
+          <button 
+            v-if="statusFilter" 
+            @click="clearFilter" 
+            class="clear-filter-btn"
+            title="Clear filter"
+          >
+            ✕ Clear Filter
+          </button>
         </div>
       </div>
       
-      <div v-if="filteredProjects.length === 0" class="empty-state">
+      <!-- Loading State -->
+      <div v-if="loading" class="loading-state">
+        <div class="loading-content">
+          <div class="loading-icon">⏳</div>
+          <h3>Loading Projects...</h3>
+          <p>Please wait while we fetch your projects.</p>
+        </div>
+      </div>
+      
+      <!-- Error State -->
+      <div v-else-if="error" class="error-state">
+        <div class="error-content">
+          <div class="error-icon">⚠️</div>
+          <h3>Error Loading Projects</h3>
+          <p>{{ error }}</p>
+          <button @click="fetchProjects" class="retry-btn">🔄 Retry</button>
+        </div>
+      </div>
+      
+      <!-- Empty State -->
+      <div v-else-if="filteredProjects.length === 0" class="empty-state">
         <div class="empty-content">
           <div class="empty-icon">🎯</div>
           <h3>{{ projects.length === 0 ? 'No Projects Yet' : 'No Projects Match Filter' }}</h3>
@@ -127,9 +159,7 @@
             ➕ {{ projects.length === 0 ? 'Create Your First Project' : 'Create New Project' }}
           </button>
         </div>
-      </div>
-
-      <div v-else class="projects-grid">
+      </div>      <div v-else class="projects-grid">
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -231,29 +261,113 @@
           <!-- Stakeholders -->
           <div class="form-section">
             <h3>Stakeholders</h3>
+            
+            <!-- Add from existing stakeholders -->
+            <div class="stakeholder-selector">
+              <h4>Add Existing Stakeholder</h4>
+              <div class="selector-row">
+                <select v-model="selectedStakeholderId" class="stakeholder-select">
+                  <option value="">Select a stakeholder...</option>
+                  <option 
+                    v-for="stakeholder in availableStakeholders" 
+                    :key="stakeholder.id" 
+                    :value="stakeholder.id"
+                  >
+                    {{ stakeholder.name }} ({{ stakeholder.organization }})
+                  </option>
+                </select>
+                <select v-model="selectedStakeholderRole" class="role-select">
+                  <option value="">Select role...</option>
+                  <option value="project_manager">Project Manager</option>
+                  <option value="subject_matter_expert">Subject Matter Expert</option>
+                  <option value="reviewer">Reviewer</option>
+                  <option value="stakeholder">Stakeholder</option>
+                  <option value="sponsor">Sponsor</option>
+                </select>
+                <button 
+                  type="button" 
+                  @click="addExistingStakeholder('new')" 
+                  :disabled="!selectedStakeholderId || !selectedStakeholderRole"
+                  class="add-btn"
+                >
+                  + Add Selected
+                </button>
+              </div>
+            </div>
+
+            <!-- Current project stakeholders -->
             <div class="stakeholders-list">
+              <h4>Project Stakeholders</h4>
               <div v-for="(stakeholder, index) in newProject.stakeholders" :key="index" class="stakeholder-item">
-                <input
-                  v-model="stakeholder.name"
-                  type="text"
-                  placeholder="Stakeholder name"
-                  class="stakeholder-input"
-                />
-                <input
+                <div class="stakeholder-info">
+                  <strong>{{ stakeholder.name }}</strong>
+                  <span class="stakeholder-details">{{ stakeholder.email }} | {{ stakeholder.organization }}</span>
+                </div>
+                <select
                   v-model="stakeholder.role"
-                  type="text"
-                  placeholder="Role/Title"
-                  class="stakeholder-input"
-                />
+                  class="stakeholder-role-input"
+                >
+                  <option value="project_manager">Project Manager</option>
+                  <option value="subject_matter_expert">Subject Matter Expert</option>
+                  <option value="reviewer">Reviewer</option>
+                  <option value="stakeholder">Stakeholder</option>
+                  <option value="sponsor">Sponsor</option>
+                </select>
                 <input
-                  v-model="stakeholder.email"
-                  type="email"
-                  placeholder="Email"
+                  v-model="stakeholder.notes"
+                  type="text"
+                  placeholder="Notes (optional)"
                   class="stakeholder-input"
                 />
                 <button type="button" @click="removeStakeholder(index, 'new')" class="remove-btn">✕</button>
               </div>
-              <button type="button" @click="addStakeholder('new')" class="add-btn">+ Add Stakeholder</button>
+              
+              <!-- Add new stakeholder manually -->
+              <div class="add-new-stakeholder">
+                <h4>Or Add New Stakeholder</h4>
+                <div class="new-stakeholder-form">
+                  <input
+                    v-model="newStakeholderName"
+                    type="text"
+                    placeholder="Full name"
+                    class="stakeholder-input"
+                  />
+                  <input
+                    v-model="newStakeholderEmail"
+                    type="email"
+                    placeholder="Email address"
+                    class="stakeholder-input"
+                  />
+                  <input
+                    v-model="newStakeholderTitle"
+                    type="text"
+                    placeholder="Title"
+                    class="stakeholder-input"
+                  />
+                  <input
+                    v-model="newStakeholderOrganization"
+                    type="text"
+                    placeholder="Organization"
+                    class="stakeholder-input"
+                  />
+                  <select v-model="newStakeholderRole" class="stakeholder-input">
+                    <option value="">Select role...</option>
+                    <option value="project_manager">Project Manager</option>
+                    <option value="subject_matter_expert">Subject Matter Expert</option>
+                    <option value="reviewer">Reviewer</option>
+                    <option value="stakeholder">Stakeholder</option>
+                    <option value="sponsor">Sponsor</option>
+                  </select>
+                  <button 
+                    type="button" 
+                    @click="addNewStakeholder('new')"
+                    :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
+                    class="add-btn"
+                  >
+                    + Add New Stakeholder
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
@@ -548,11 +662,29 @@ export default {
     return {
       // ...existing data properties...
       projects: [],
+      loading: false,
+      error: null,
       showEditModal: false,
       statusFilter: '',
       calendarView: '',
       showCreateModal: false,
       showTemplateModal: false,
+      
+      // Available stakeholders from API
+      availableStakeholders: [],
+      loadingStakeholders: false,
+      
+      // Stakeholder selection
+      selectedStakeholderId: '',
+      selectedStakeholderRole: '',
+      
+      // New stakeholder form
+      newStakeholderName: '',
+      newStakeholderEmail: '',
+      newStakeholderTitle: '',
+      newStakeholderOrganization: '',
+      newStakeholderRole: '',
+      
       newProject: {
         name: '',
         description: '',
@@ -641,6 +773,139 @@ export default {
     }
   },
   methods: {
+    async fetchProjects() {
+      this.loading = true
+      this.error = null
+      try {
+        const response = await fetch('/api/projects/')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const projects = await response.json()
+        
+        // Transform API data to match frontend expectations
+        this.projects = projects.map(project => ({
+          ...project,
+          stakeholders: project.stakeholders || [],
+          milestones: project.milestones || [],
+          collections: project.collections || [],
+          publishedDocuments: project.publishedDocuments || []
+        }))
+        
+        console.log('Loaded projects:', this.projects)
+      } catch (error) {
+        console.error('Failed to fetch projects:', error)
+        this.error = 'Failed to load projects. Please try again.'
+        
+        // Fallback to sample data for demo purposes
+        this.projects = this.getSampleProjects()
+      } finally {
+        this.loading = false
+      }
+    },
+
+    getSampleProjects() {
+      return [
+        {
+          id: 1,
+          name: 'Census Data Portal Redesign',
+          description: 'Modernizing the main census data access portal with improved user experience and performance.',
+          status: 'active',
+          created_at: '2025-06-15T10:00:00Z',
+          stakeholders: [
+            { name: 'Sarah Johnson', role: 'Project Manager', email: 'sarah.johnson@census.gov' },
+            { name: 'Mike Chen', role: 'Lead Developer', email: 'mike.chen@census.gov' }
+          ],
+          milestones: [
+            { name: 'User Research Complete', date: '2025-07-15', status: 'completed' },
+            { name: 'Design Mockups', date: '2025-08-01', status: 'in-progress' },
+            { name: 'Frontend Development', date: '2025-09-15', status: 'planned' },
+            { name: 'User Testing', date: '2025-10-01', status: 'planned' },
+            { name: 'Production Deployment', date: '2025-10-30', status: 'planned' }
+          ],
+          collections: [],
+          publishedDocuments: []
+        },
+        {
+          id: 2,
+          name: 'Economic Survey Documentation',
+          description: 'Creating comprehensive documentation for the new economic indicators survey methodology.',
+          status: 'planning',
+          created_at: '2025-07-01T14:30:00Z',
+          stakeholders: [
+            { name: 'Dr. Lisa Park', role: 'Senior Economist', email: 'lisa.park@census.gov' }
+          ],
+          milestones: [
+            { name: 'Methodology Review', date: '2025-08-10', status: 'planned' },
+            { name: 'Draft Documentation', date: '2025-09-05', status: 'planned' },
+            { name: 'Stakeholder Review', date: '2025-09-20', status: 'planned' },
+            { name: 'Final Publication', date: '2025-10-15', status: 'planned' }
+          ],
+          collections: [],
+          publishedDocuments: []
+        },
+        {
+          id: 3,
+          name: 'Mobile App API Documentation',
+          description: 'Complete API documentation for the new Census mobile application developers.',
+          status: 'completed',
+          created_at: '2025-05-20T09:15:00Z',
+          stakeholders: [
+            { name: 'Alex Rodriguez', role: 'API Lead', email: 'alex.rodriguez@census.gov' }
+          ],
+          milestones: [
+            { name: 'API Specification', date: '2025-06-01', status: 'completed' },
+            { name: 'Code Examples', date: '2025-06-15', status: 'completed' },
+            { name: 'Testing Guide', date: '2025-07-01', status: 'completed' },
+            { name: 'Publication', date: '2025-07-15', status: 'completed' }
+          ],
+          collections: [],
+          publishedDocuments: []
+        }
+      ]
+    },
+
+    async fetchStakeholders() {
+      this.loadingStakeholders = true
+      try {
+        const response = await fetch('/api/stakeholders/')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        const stakeholders = await response.json()
+        this.availableStakeholders = stakeholders
+        console.log('Loaded stakeholders:', this.availableStakeholders)
+      } catch (error) {
+        console.error('Failed to fetch stakeholders:', error)
+        // Fallback data if API fails
+        this.availableStakeholders = [
+          {
+            id: 1,
+            name: "Dr. Sarah Johnson",
+            email: "sarah.johnson@census.gov",
+            title: "Senior Project Manager",
+            organization: "U.S. Census Bureau"
+          },
+          {
+            id: 2,
+            name: "Prof. Michael Chen",
+            email: "michael.chen@statistics.gov",
+            title: "Chief Statistician",
+            organization: "Bureau of Labor Statistics"
+          },
+          {
+            id: 3,
+            name: "Dr. Amanda Rodriguez",
+            email: "amanda.rodriguez@census.gov",
+            title: "Quality Assurance Specialist",
+            organization: "U.S. Census Bureau"
+          }
+        ]
+      } finally {
+        this.loadingStakeholders = false
+      }
+    },
+
     async createProject() {
       try {
         const project = {
@@ -662,7 +927,32 @@ export default {
       }
     },
     filterByStatus(status) {
+      console.log('Filtering by status:', status)
+      console.log('Available projects:', this.projects.map(p => ({ id: p.id, name: p.name, status: p.status })))
       this.statusFilter = status
+      console.log('Status filter set to:', this.statusFilter)
+      console.log('Filtered projects:', this.filteredProjects.map(p => ({ id: p.id, name: p.name, status: p.status })))
+      
+      // Scroll to the projects section with a small delay for better UX
+      this.$nextTick(() => {
+        setTimeout(() => {
+          this.scrollToProjects()
+        }, 150) // Small delay to let the filter animation complete
+      })
+    },
+
+    scrollToProjects() {
+      if (this.$refs.projectsSection) {
+        this.$refs.projectsSection.scrollIntoView({ 
+          behavior: 'smooth',
+          block: 'start'
+        })
+      }
+    },
+
+    clearFilter() {
+      this.statusFilter = ''
+      console.log('Filter cleared - showing all projects')
     },
 
     applyFilters() {
@@ -781,6 +1071,66 @@ export default {
       target.stakeholders.splice(index, 1)
     },
 
+    addExistingStakeholder(type) {
+      if (!this.selectedStakeholderId || !this.selectedStakeholderRole) return
+
+      const selectedStakeholder = this.availableStakeholders.find(s => s.id === this.selectedStakeholderId)
+      if (!selectedStakeholder) return
+
+      const target = type === 'new' ? this.newProject : this.editingProject
+      
+      // Check if stakeholder is already added
+      const alreadyAdded = target.stakeholders.some(s => s.stakeholder_id === selectedStakeholder.id)
+      if (alreadyAdded) {
+        alert('This stakeholder is already added to the project.')
+        return
+      }
+
+      target.stakeholders.push({
+        stakeholder_id: selectedStakeholder.id,
+        name: selectedStakeholder.name,
+        email: selectedStakeholder.email,
+        title: selectedStakeholder.title,
+        organization: selectedStakeholder.organization,
+        role: this.selectedStakeholderRole,
+        notes: ''
+      })
+
+      // Reset selection
+      this.selectedStakeholderId = ''
+      this.selectedStakeholderRole = ''
+    },
+
+    addNewStakeholder(type) {
+      if (!this.newStakeholderName || !this.newStakeholderEmail || !this.newStakeholderRole) return
+
+      const target = type === 'new' ? this.newProject : this.editingProject
+      
+      // Check if email is already used
+      const emailExists = target.stakeholders.some(s => s.email === this.newStakeholderEmail)
+      if (emailExists) {
+        alert('A stakeholder with this email is already added to the project.')
+        return
+      }
+
+      target.stakeholders.push({
+        name: this.newStakeholderName,
+        email: this.newStakeholderEmail,
+        title: this.newStakeholderTitle,
+        organization: this.newStakeholderOrganization,
+        role: this.newStakeholderRole,
+        notes: '',
+        isNew: true // Flag to indicate this is a new stakeholder
+      })
+
+      // Reset form
+      this.newStakeholderName = ''
+      this.newStakeholderEmail = ''
+      this.newStakeholderTitle = ''
+      this.newStakeholderOrganization = ''
+      this.newStakeholderRole = ''
+    },
+
     // Collection management methods
     addCollection(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
@@ -841,65 +1191,9 @@ export default {
     }
   },
   mounted() {
-    // Initialize sample projects with milestones for demonstration
-    this.projects = [
-      {
-        id: 1,
-        name: 'Census Data Portal Redesign',
-        description: 'Modernizing the main census data access portal with improved user experience and performance.',
-        status: 'active',
-        created_at: '2025-06-15T10:00:00Z',
-        stakeholders: [
-          { name: 'Sarah Johnson', role: 'Project Manager', email: 'sarah.johnson@census.gov' },
-          { name: 'Mike Chen', role: 'Lead Developer', email: 'mike.chen@census.gov' }
-        ],
-        milestones: [
-          { name: 'User Research Complete', date: '2025-07-15', status: 'completed' },
-          { name: 'Design Mockups', date: '2025-08-01', status: 'in-progress' },
-          { name: 'Frontend Development', date: '2025-09-15', status: 'planned' },
-          { name: 'User Testing', date: '2025-10-01', status: 'planned' },
-          { name: 'Production Deployment', date: '2025-10-30', status: 'planned' }
-        ],
-        collections: [],
-        publishedDocuments: []
-      },
-      {
-        id: 2,
-        name: 'Economic Survey Documentation',
-        description: 'Creating comprehensive documentation for the new economic indicators survey methodology.',
-        status: 'planning',
-        created_at: '2025-07-01T14:30:00Z',
-        stakeholders: [
-          { name: 'Dr. Lisa Park', role: 'Senior Economist', email: 'lisa.park@census.gov' }
-        ],
-        milestones: [
-          { name: 'Methodology Review', date: '2025-08-10', status: 'planned' },
-          { name: 'Draft Documentation', date: '2025-09-05', status: 'planned' },
-          { name: 'Stakeholder Review', date: '2025-09-20', status: 'planned' },
-          { name: 'Final Publication', date: '2025-10-15', status: 'planned' }
-        ],
-        collections: [],
-        publishedDocuments: []
-      },
-      {
-        id: 3,
-        name: 'Mobile App API Documentation',
-        description: 'Complete API documentation for the new Census mobile application developers.',
-        status: 'completed',
-        created_at: '2025-05-20T09:15:00Z',
-        stakeholders: [
-          { name: 'Alex Rodriguez', role: 'API Lead', email: 'alex.rodriguez@census.gov' }
-        ],
-        milestones: [
-          { name: 'API Specification', date: '2025-06-01', status: 'completed' },
-          { name: 'Code Examples', date: '2025-06-15', status: 'completed' },
-          { name: 'Testing Guide', date: '2025-07-01', status: 'completed' },
-          { name: 'Publication', date: '2025-07-15', status: 'completed' }
-        ],
-        collections: [],
-        publishedDocuments: []
-      }
-    ]
+    // Fetch projects and stakeholders from API
+    this.fetchProjects()
+    this.fetchStakeholders()
   }
 }
 </script>
@@ -1026,6 +1320,40 @@ export default {
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
+.filter-controls {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.filter-badge {
+  background: #005a9c;
+  color: white;
+  font-size: 0.75rem;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  margin-left: 0.5rem;
+  font-weight: 600;
+}
+
+.clear-filter-btn {
+  background: #f3f4f6;
+  color: #6b7280;
+  border: 1px solid #d1d5db;
+  padding: 0.5rem 1rem;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  white-space: nowrap;
+}
+
+.clear-filter-btn:hover {
+  background: #e5e7eb;
+  color: #374151;
+  border-color: #9ca3af;
+}
+
 /* Quick Actions Grid */
 .quick-actions-grid {
   display: grid;
@@ -1112,6 +1440,87 @@ export default {
 }
 
 .create-first-btn:hover {
+  background: #004080;
+  transform: translateY(-1px);
+}
+
+/* Loading State */
+.loading-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.loading-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.loading-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+  animation: pulse 2s infinite;
+}
+
+@keyframes pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.3; }
+  100% { opacity: 0.6; }
+}
+
+.loading-content h3 {
+  margin: 0 0 1rem 0;
+  color: #112e51;
+  font-size: 1.5rem;
+}
+
+.loading-content p {
+  margin: 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+/* Error State */
+.error-state {
+  text-align: center;
+  padding: 3rem 1rem;
+}
+
+.error-content {
+  max-width: 400px;
+  margin: 0 auto;
+}
+
+.error-icon {
+  font-size: 4rem;
+  margin-bottom: 1rem;
+  opacity: 0.6;
+}
+
+.error-content h3 {
+  margin: 0 0 1rem 0;
+  color: #b91c1c;
+  font-size: 1.5rem;
+}
+
+.error-content p {
+  margin: 0 0 1.5rem 0;
+  color: #666;
+  line-height: 1.6;
+}
+
+.retry-btn {
+  background: #005a9c;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 8px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.retry-btn:hover {
   background: #004080;
   transform: translateY(-1px);
 }
@@ -1450,8 +1859,79 @@ export default {
 }
 
 .stakeholder-item {
-  grid-template-columns: 1fr 1fr 1fr auto;
+  grid-template-columns: 1fr auto 1fr auto;
   align-items: center;
+}
+
+/* New stakeholder selector styles */
+.stakeholder-selector {
+  background: #f8fafc;
+  border: 2px solid #e2e8f0;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1.5rem;
+}
+
+.stakeholder-selector h4 {
+  margin: 0 0 1rem 0;
+  color: #1e40af;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.selector-row {
+  display: grid;
+  grid-template-columns: 2fr 1fr auto;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.stakeholder-select, .role-select {
+  padding: 0.75rem;
+  border: 1px solid #d1d5db;
+  border-radius: 6px;
+  background: white;
+  font-size: 0.9rem;
+}
+
+.stakeholder-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.stakeholder-details {
+  font-size: 0.8rem;
+  color: #6b7280;
+}
+
+.stakeholder-role-input {
+  padding: 0.5rem;
+  border: 1px solid #d1d5db;
+  border-radius: 4px;
+  font-size: 0.9rem;
+}
+
+.add-new-stakeholder {
+  margin-top: 1.5rem;
+  padding: 1rem;
+  background: #fef7cd;
+  border: 1px solid #fde047;
+  border-radius: 6px;
+}
+
+.add-new-stakeholder h4 {
+  margin: 0 0 1rem 0;
+  color: #a16207;
+  font-size: 1rem;
+  font-weight: 600;
+}
+
+.new-stakeholder-form {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 0.75rem;
+  align-items: end;
 }
 
 .collection-item {

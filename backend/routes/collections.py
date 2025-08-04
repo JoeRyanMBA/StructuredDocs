@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
-from ..models import db, Collection, collection_topic_tree, Publication, PublicationNode
+from datetime import datetime, timezone
+from models import db, Collection, collection_topic_tree, Publication, PublicationNode
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
 
@@ -120,6 +121,9 @@ def publish_collection(collection_id):
         if existing_pub:
             # Update the description to reflect current topic count
             existing_pub.description = f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
+            
+            # Update the created_at timestamp to reflect the latest publication time
+            existing_pub.created_at = datetime.now(timezone.utc)
             
             # Clear existing publication nodes and recreate them
             PublicationNode.query.filter_by(publication_id=existing_pub.id).delete()

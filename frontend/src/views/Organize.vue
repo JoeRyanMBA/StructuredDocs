@@ -24,10 +24,12 @@
                 item-key="id"
                 @change="onTopicDrop"
                 class="collection-topics-list"
+                :fallback-tolerance="5"
+                :force-fallback="true"
               >
                 <template #item="{ element: topic }">
                   <div class="topic-wrapper">
-                    <TopicItem :topic="topic" />
+                    <TopicItem :topic="topic" @update="onTopicUpdate" />
                   </div>
                 </template>
               </draggable>
@@ -147,6 +149,11 @@ export default {
       return
     }
     
+    // Ensure all topics have proper structure for nesting
+    if (this.currentCollection.topics) {
+      this.currentCollection.topics = this.currentCollection.topics.map(topic => this.ensureTopicStructure(topic))
+    }
+    
     this.unassignedTopics = this.getUnassignedTopics()
   },
   methods: {
@@ -171,7 +178,9 @@ export default {
       
       // Return all topics that are NOT in the current collection
       // This allows topics to be reused across different collections
-      return this.topics.filter(topic => !currentCollectionTopicIds.has(topic.id))
+      return this.topics
+        .filter(topic => !currentCollectionTopicIds.has(topic.id))
+        .map(topic => this.ensureTopicStructure(topic))
     },
     
     walkTopics(topics, topicIds) {
@@ -208,6 +217,20 @@ export default {
       await saveCollections(this.allCollections)
       this.confirmation = 'Topics updated!'
       setTimeout(() => { this.confirmation = '' }, 1500)
+    },
+
+    onTopicUpdate(updatedTopic) {
+      // Handle updates to nested topic structure
+      console.log('Topic updated:', updatedTopic)
+      this.saveChanges()
+    },
+
+    ensureTopicStructure(topic) {
+      // Ensure each topic has a children array for nesting
+      if (!topic.children) {
+        topic.children = []
+      }
+      return topic
     },
 
     async saveChanges() {

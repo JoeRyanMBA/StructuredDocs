@@ -72,7 +72,8 @@ export default {
   },
   emits: ['update'],
   methods: {
-    onNestedChange() {
+    onNestedChange(event) {
+      console.log('Nested change detected:', event)
       // Ensure topic has children array
       if (!this.topic.children) {
         this.topic.children = []
@@ -80,6 +81,7 @@ export default {
       this.$emit('update', this.topic)
     },
     onNestedUpdate(updatedTopic) {
+      console.log('Nested topic updated:', updatedTopic)
       this.$emit('update', updatedTopic)
     }
   },

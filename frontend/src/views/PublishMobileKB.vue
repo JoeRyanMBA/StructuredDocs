@@ -116,7 +116,8 @@ export default {
         if (!res.ok) throw new Error(`Status ${res.status}`)
         
         const data = await res.json()
-        this.publications = data
+        // Ensure publications are sorted by most recent first
+        this.publications = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       } catch (err) {
         console.error('Failed to fetch publications:', err)
         this.error = 'Failed to load publications'

@@ -1,26 +1,32 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from ..models import db, ImportDocument, ImportItem, Topic
+from models import db, ImportDocument, ImportItem, ImportImage, Topic
+from utils.image_handler import ImageHandler
 import re
 from docx import Document
 import io
 import subprocess
 import tempfile
 import os
+import uuid
 
 imports = Blueprint('imports', __name__, url_prefix='/api/import')
 SOURCES = ('word', 'markdown')
 
 
-def _convert_word_to_markdown(file_content):
-    """Convert Word document to Markdown using pandoc"""
+def _convert_word_to_markdown(file_content, import_doc_id):
+    """Convert Word document to Markdown using pandoc with proper image handling"""
     try:
+        # Create unique temporary directory for this import
+        temp_base_dir = tempfile.mkdtemp(prefix=f'import_{import_doc_id}_')
+        temp_media_dir = os.path.join(temp_base_dir, 'media')
+        
         # Create temporary files for input and output
-        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False) as temp_input:
+        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False, dir=temp_base_dir) as temp_input:
             temp_input.write(file_content)
             temp_input_path = temp_input.name
         
-        with tempfile.NamedTemporaryFile(suffix='.md', delete=False) as temp_output:
+        with tempfile.NamedTemporaryFile(suffix='.md', delete=False, dir=temp_base_dir) as temp_output:
             temp_output_path = temp_output.name
         
         try:
@@ -30,7 +36,7 @@ def _convert_word_to_markdown(file_content):
                 '--from', 'docx',
                 '--to', 'markdown',
                 '--wrap', 'none',  # Don't wrap lines
-                '--extract-media', tempfile.gettempdir(),  # Extract images to temp dir
+                '--extract-media', temp_media_dir,  # Extract images to our temp media dir
                 '--markdown-headings=atx',  # Use ATX-style headings (#)
                 '--list-tables',  # Use pipe tables for better compatibility
                 '--strip-comments',  # Remove HTML comments
@@ -51,13 +57,49 @@ def _convert_word_to_markdown(file_content):
             
             print(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             
+            # Initialize image handler
+            image_handler = ImageHandler(import_doc_id)
+            
+            # Extract and store images permanently
+            updated_markdown, stored_images = image_handler.extract_and_store_images(
+                temp_media_dir, markdown_content
+            )
+            
+            # Store image metadata in database
+            for image_info in stored_images:
+                import_image = ImportImage(
+                    document_id=import_doc_id,
+                    filename=image_info['filename'],
+                    original_name=image_info['original_name'],
+                    public_url=image_info['public_url'],
+                    backend_path=image_info['backend_path'],
+                    frontend_path=image_info['frontend_path'],
+                    width=image_info['width'],
+                    height=image_info['height'],
+                    format=image_info['format'],
+                    file_size=image_info['file_size'],
+                    mime_type=image_info['mime_type']
+                )
+                db.session.add(import_image)
+            
+            print(f"IMAGE PROCESSING: Stored {len(stored_images)} images")
+            
             # Post-process the markdown to fix issues
-            markdown_content = _post_process_markdown(markdown_content)
+            updated_markdown = _post_process_markdown(updated_markdown)
             
             # Additional cleaning for HTML comments and formatting issues
-            markdown_content = _clean_markdown_content(markdown_content)
+            updated_markdown = _clean_markdown_content(updated_markdown)
             
-            return markdown_content
+            # Validate image references
+            validation_issues = image_handler.validate_markdown_images(updated_markdown)
+            if validation_issues:
+                for issue in validation_issues:
+                    print(f"IMAGE VALIDATION: {issue['message']}")
+            
+            # Clean up temporary directory
+            image_handler.cleanup_temp_images(temp_base_dir)
+            
+            return updated_markdown
             
         finally:
             # Clean up temporary files
@@ -218,8 +260,8 @@ def _parse_and_store(file, imp_doc, source):
             file_content = file.read()
             file.stream.seek(0)  # Reset stream for potential future reads
             
-            # Convert to Markdown
-            markdown_content = _convert_word_to_markdown(file_content)
+            # Convert to Markdown with image handling
+            markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
             
             # Now parse as if it were a Markdown file
             lines = []
@@ -241,7 +283,16 @@ def _parse_and_store(file, imp_doc, source):
             current_app.logger.error(f"Failed to convert Word document {imp_doc.filename}: {e}")
             return
     else:
+        # Markdown file processing with image validation
         raw = file.read().decode('utf-8')
+        
+        # For markdown files, validate existing image references
+        if imp_doc.id:  # Only if document is already saved
+            image_handler = ImageHandler(imp_doc.id)
+            validation_issues = image_handler.validate_markdown_images(raw)
+            if validation_issues:
+                for issue in validation_issues:
+                    print(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
         
         # Promote headers: convert H2, H3, etc. to H1
         lines = []
@@ -373,10 +424,45 @@ def get_import_history():
         return jsonify({'error': f'Failed to fetch import history: {str(e)}'}), 500
 
 
+@imports.route('/staging/<int:doc_id>/images', methods=['GET'])
+def get_import_images(doc_id):
+    """Get all images associated with an import document"""
+    try:
+        doc = ImportDocument.query.get_or_404(doc_id)
+        
+        # Get images from database
+        db_images = ImportImage.query.filter_by(document_id=doc_id).all()
+        images_data = [img.to_dict() for img in db_images]
+        
+        # Also get images from filesystem (in case of sync issues)
+        image_handler = ImageHandler(doc_id)
+        fs_images = image_handler.get_import_images()
+        
+        # Merge the data (database is authoritative, filesystem for verification)
+        return jsonify({
+            'document_id': doc_id,
+            'document_filename': doc.filename,
+            'images': images_data,
+            'filesystem_images': fs_images,
+            'total_count': len(images_data)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching images for import {doc_id}: {str(e)}")
+        return jsonify({'error': f'Failed to fetch images: {str(e)}'}), 500
+
+
 @imports.route('/staging/<int:doc_id>', methods=['GET'])
 def get_staging(doc_id):
     doc = ImportDocument.query.get_or_404(doc_id)
-    return jsonify(doc.to_dict(include_items=True)), 200
+    result = doc.to_dict(include_items=True)
+    
+    # Include image information
+    images = ImportImage.query.filter_by(document_id=doc_id).all()
+    result['images'] = [img.to_dict() for img in images]
+    result['images_count'] = len(images)
+    
+    return jsonify(result), 200
 
 
 @imports.route('/staging/<int:doc_id>/sme_approve', methods=['POST'])

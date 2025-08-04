@@ -80,12 +80,21 @@ export default {
 .breadcrumbs {
   font-size: 0.9rem;
   margin-bottom: 1rem;
+  padding: 8px 12px;
+  background-color: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-weight: 500;
 }
 .breadcrumbs a {
   text-decoration: none;
   color: #005a9c;
 }
+.breadcrumbs a:hover {
+  text-decoration: underline;
+}
 .breadcrumbs span {
   margin-left: 0.5rem;
+  color: #6c757d;
 }
 </style>

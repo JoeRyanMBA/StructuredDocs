@@ -36,11 +36,23 @@ export default {
           icon: '🎯',
           route: 'Projects'
         },
+        {
+          key: 'tasks',
+          label: 'Tasks',
+          icon: '✅',
+          route: 'Tasks'
+        },
                 {
           key: 'collections',
           label: 'Collections',
           icon: '📑',
           route: 'Collections'
+        },
+        {
+          key: 'document-builder',
+          label: 'Builder',
+          icon: '🔨',
+          route: 'DocumentBuilder'
         },
                 {
           key: 'topics',

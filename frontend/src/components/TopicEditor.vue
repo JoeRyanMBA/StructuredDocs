@@ -136,8 +136,63 @@ export default {
   },
 
   methods: {
+    updateFrontmatterModified() {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      const now = new Date().toLocaleString('en-US', {
+        year: 'numeric',
+        month: 'long',
+        day: 'numeric',
+        hour: '2-digit',
+        minute: '2-digit',
+        timeZoneName: 'short'
+      })
+      
+      // If there's no frontmatter, create it
+      if (!this.frontmatter.trim()) {
+        this.frontmatter = `---
+title: "${this.title}"
+author: "${user.name || user.username || 'Unknown User'}"
+created: "${now}"
+modified: "${now}"
+status: "draft"
+---`
+        return
+      }
+      
+      // Update existing frontmatter
+      let frontmatter = this.frontmatter
+      
+      // Update title if it exists in frontmatter
+      if (frontmatter.includes('title:')) {
+        frontmatter = frontmatter.replace(/^title:\s*.*$/m, `title: "${this.title}"`)
+      }
+      
+      // Update or add modified field
+      if (frontmatter.includes('modified:')) {
+        frontmatter = frontmatter.replace(/^modified:\s*.*$/m, `modified: "${now}"`)
+      } else {
+        // Add modified field after created if it exists, otherwise before the closing ---
+        if (frontmatter.includes('created:')) {
+          frontmatter = frontmatter.replace(/^(created:\s*.*$)/m, `$1\nmodified: "${now}"`)
+        } else {
+          // Add before the closing --- or at the end if no closing ---
+          if (frontmatter.includes('---') && frontmatter.lastIndexOf('---') > 0) {
+            const lastDashIndex = frontmatter.lastIndexOf('---')
+            frontmatter = frontmatter.substring(0, lastDashIndex) + `modified: "${now}"\n` + frontmatter.substring(lastDashIndex)
+          } else {
+            frontmatter += `\nmodified: "${now}"`
+          }
+        }
+      }
+      
+      this.frontmatter = frontmatter
+    },
+
     async save() {
       this.isSaving = true
+
+      // Update frontmatter before saving
+      this.updateFrontmatterModified()
 
       const payload = {
         title: this.title,
