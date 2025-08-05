@@ -9,6 +9,7 @@ from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, 
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
 import io
+from pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
 
 
 # Pass strict_slashes here so both /api/publications and /api/publications/ match
@@ -680,10 +681,18 @@ def generate_mobile_kb_html_inline(publication, tree):
 
 @pubs_bp.route('/<int:pub_id>/export/pdf', methods=['GET'])
 def export_pdf(pub_id):
-    """Export publication as PDF"""
+    """Export publication as PDF with optional formatting configuration"""
     pub = Publication.query.get_or_404(pub_id)
     
     try:
+        # Get format configuration from query parameter
+        config_type = request.args.get('format', 'default')
+        
+        # Validate config type
+        valid_configs = ['default', 'corporate', 'academic', 'compact']
+        if config_type not in valid_configs:
+            config_type = 'default'
+        
         # Build the hierarchical structure
         def serialize_node(node):
             topic_data = node.topic.to_dict() if node.topic else {'title': 'Unknown', 'content': ''}
@@ -701,12 +710,12 @@ def export_pdf(pub_id):
         tree = sorted([serialize_node(n) for n in top_nodes],
                       key=lambda x: x['position'])
         
-        # Generate PDF
-        pdf_buffer = generate_pdf(pub, tree)
+        # Generate PDF with specified configuration
+        pdf_buffer = generate_pdf(pub, tree, config_type)
         
         response = make_response(pdf_buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
-        response.headers['Content-Disposition'] = f'attachment; filename="{pub.title}.pdf"'
+        response.headers['Content-Disposition'] = f'attachment; filename="{pub.title}_{config_type}.pdf"'
         
         pdf_buffer.close()
         return response
@@ -720,15 +729,26 @@ def export_pdf(pub_id):
             <style>
                 body {{ font-family: Arial, sans-serif; padding: 20px; }}
                 .error {{ background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px; color: #721c24; }}
+                .config-info {{ background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px; color: #0c5460; margin: 15px 0; }}
                 .button {{ display: inline-block; margin-top: 15px; padding: 10px 20px; background: #007bff; color: white; text-decoration: none; border-radius: 3px; }}
             </style>
         </head>
         <body>
             <div class="error">
                 <h2>PDF Export Error</h2>
-                <p>Unable to generate PDF for "<strong>{pub.title}</strong>".</p>
+                <p>Unable to generate PDF for "<strong>{pub.title}</strong>" with format "<strong>{config_type}</strong>".</p>
                 <p>Error: {str(e)}</p>
-                <p>Please try the Mobile Knowledge Base export instead:</p>
+            </div>
+            <div class="config-info">
+                <h3>Available PDF Formats:</h3>
+                <ul>
+                    <li><strong>default</strong> - Standard formatting</li>
+                    <li><strong>corporate</strong> - Formal business document style</li>
+                    <li><strong>academic</strong> - Academic paper formatting</li>
+                    <li><strong>compact</strong> - Condensed layout for dense content</li>
+                </ul>
+                <p>Usage: Add <code>?format=corporate</code> to the URL</p>
+                <p>Example: <code>/api/publications/{pub_id}/export/pdf?format=corporate</code></p>
                 <a href="/api/publications/{pub_id}/export/mobile-kb" class="button">Export as Mobile Knowledge Base</a>
             </div>
         </body>
@@ -739,59 +759,39 @@ def export_pdf(pub_id):
         response.headers['Content-Type'] = 'text/html; charset=utf-8'
         return response
 
-def generate_pdf(publication, tree):
-    """Generate PDF document from publication tree"""
+def generate_pdf(publication, tree, config_type='default'):
+    """Generate PDF document from publication tree with configurable formatting"""
     buffer = io.BytesIO()
     
-    # Create PDF document
+    # Select configuration based on type
+    if config_type == 'corporate':
+        config = CorporateConfig
+    elif config_type == 'academic':
+        config = AcademicConfig
+    elif config_type == 'compact':
+        config = CompactConfig
+    elif config_type == 'organization':
+        config = OrganizationConfig
+    else:
+        config = PDFConfig
+    
+    # Create PDF document with configurable layout
     doc = SimpleDocTemplate(
         buffer,
-        pagesize=A4,
-        rightMargin=72,
-        leftMargin=72,
-        topMargin=72,
-        bottomMargin=18
+        pagesize=config.PAGE_SIZE,
+        rightMargin=config.MARGINS['right'],
+        leftMargin=config.MARGINS['left'],
+        topMargin=config.MARGINS['top'],
+        bottomMargin=config.MARGINS['bottom']
     )
     
     # Build content
     story = []
-    styles = getSampleStyleSheet()
+    base_styles = config.get_base_styles()
     
-    # Custom styles
-    title_style = ParagraphStyle(
-        'CustomTitle',
-        parent=styles['Heading1'],
-        fontSize=24,
-        spaceAfter=30,
-        alignment=TA_CENTER
-    )
-    
-    subtitle_style = ParagraphStyle(
-        'CustomSubtitle',
-        parent=styles['Normal'],
-        fontSize=12,
-        spaceAfter=20,
-        alignment=TA_CENTER,
-        textColor=colors.grey
-    )
-    
-    heading_style = ParagraphStyle(
-        'CustomHeading',
-        parent=styles['Heading2'],
-        fontSize=16,
-        spaceAfter=12,
-        spaceBefore=20
-    )
-    
-    content_style = ParagraphStyle(
-        'CustomContent',
-        parent=styles['Normal'],
-        fontSize=11,
-        spaceAfter=12,
-        alignment=TA_JUSTIFY,
-        leftIndent=0,
-        rightIndent=0
-    )
+    # Create styles using configuration
+    title_style = config.create_title_style(base_styles)
+    subtitle_style = config.create_subtitle_style(base_styles)
     
     # Title page
     story.append(Paragraph(publication.title, title_style))
@@ -803,32 +803,105 @@ def generate_pdf(publication, tree):
     story.append(PageBreak())
     
     # Table of contents
-    story.append(Paragraph("Table of Contents", heading_style))
+    # Create completely independent TOC heading style with zero margins
+    toc_heading_style = ParagraphStyle(
+        'TOCHeading',
+        fontName=config.FONTS['heading'],
+        fontSize=config.FONT_SIZES['h1'],
+        textColor=config.COLORS['heading'],
+        leftIndent=0,
+        rightIndent=0,
+        firstLineIndent=0,
+        spaceBefore=0,
+        spaceAfter=12,
+        alignment=TA_LEFT,
+        # Explicitly override any default margins
+        bulletIndent=0,
+        listIndent=0
+    )
+    story.append(Paragraph("Table of Contents", toc_heading_style))
     story.append(Spacer(1, 12))
     
-    def add_toc_entries(nodes, level=0):
+    # Build TOC with perfect alignment using consistent table approach
+    def add_toc_entries(nodes, level=0, page_counter={'value': 1}):
+        # Calculate page dimensions once for all entries
+        page_width, page_height = config.PAGE_SIZE
+        total_margins = config.MARGINS['left'] + config.MARGINS['right']
+        usable_width = page_width - total_margins
+        page_num_width = 50  # Fixed width for page numbers
+        title_width = usable_width - page_num_width  # Remaining width for titles
+        
         for node in nodes:
-            # Create proper indentation and numbering for TOC
-            indent = "    " * level
-            # Use different bullet styles for different levels
-            if level == 0:
-                bullet = "•"
-            elif level == 1:
-                bullet = "◦"
-            else:
-                bullet = "▪"
+            # Estimate page number (simplified - in real implementation would need actual page tracking)
+            page_num = page_counter['value']
+            page_counter['value'] += max(1, len(node.get('content', '')) // 2000)  # Rough page estimation
             
-            toc_style = ParagraphStyle(
-                f'TOCLevel{level}',
-                parent=content_style,
-                leftIndent=level * 20,
-                fontSize=11 - (level * 0.5),
-                spaceAfter=6
-            )
-            story.append(Paragraph(f"{indent}{bullet} {node['title']}", toc_style))
+            title_text = node['title']
+            font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
+            
+            if level == 0:
+                # Level 0: Simple title and page number, bold styling
+                toc_data = [[title_text, str(page_num)]]
+                
+                # Create table with EXACT same width for all levels
+                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                toc_table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (0, 0), config.FONTS['heading']),
+                    ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
+                    ('FONTSIZE', (0, 0), (-1, -1), config.FONT_SIZES['toc']),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['heading']),
+                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # Zero padding for perfect alignment
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ]))
+                
+            else:
+                # Nested levels: Indented title with dotted leaders
+                indent_width = level * config.INDENTS['toc_per_level']
+                
+                # Calculate space available for title text and dots
+                available_for_content = title_width - indent_width - 20  # 20 for margins
+                
+                # Estimate character widths for dot calculation
+                char_width = font_size * 0.6
+                title_pixel_width = len(title_text) * char_width
+                available_for_dots = available_for_content - title_pixel_width
+                
+                # Calculate number of dots
+                dot_width = char_width * 0.8
+                num_dots = max(3, int(available_for_dots / dot_width))
+                dotted_leader = "." * num_dots
+                
+                # Create the title with proper spacing and dots
+                spaces_for_indent = " " * int(indent_width / 4)  # Approximate space-based indentation
+                title_with_dots = f"{spaces_for_indent}{title_text} {dotted_leader}"
+                
+                toc_data = [[title_with_dots, str(page_num)]]
+                
+                # Create table with EXACT same width as level 0
+                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                toc_table.setStyle(TableStyle([
+                    ('FONTNAME', (0, 0), (0, 0), config.FONTS['body']),
+                    ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
+                    ('FONTSIZE', (0, 0), (-1, -1), font_size),
+                    ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['text']),
+                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # This ensures page numbers are right-aligned
+                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                    ('TOPPADDING', (0, 0), (-1, -1), 2),
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # Same padding as level 0
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                ]))
+            
+            story.append(toc_table)
             
             if node['children']:
-                add_toc_entries(node['children'], level + 1)
+                add_toc_entries(node['children'], level + 1, page_counter)
     
     add_toc_entries(tree)
     story.append(PageBreak())
@@ -839,54 +912,8 @@ def generate_pdf(publication, tree):
             # Create proper heading hierarchy based on collection structure
             heading_text = node['title']
             
-            # Define heading styles for different hierarchy levels
-            if level == 0:
-                # Top-level topics: Main headings (H1 equivalent)
-                current_heading_style = ParagraphStyle(
-                    'MainHeading',
-                    parent=styles['Heading1'],
-                    fontSize=18,
-                    spaceAfter=16,
-                    spaceBefore=24,
-                    textColor=colors.black,
-                    keepWithNext=1
-                )
-            elif level == 1:
-                # Second-level topics: Sub-headings (H2 equivalent)
-                current_heading_style = ParagraphStyle(
-                    'SubHeading',
-                    parent=styles['Heading2'],
-                    fontSize=15,
-                    spaceAfter=12,
-                    spaceBefore=20,
-                    leftIndent=0,
-                    textColor=colors.black,
-                    keepWithNext=1
-                )
-            elif level == 2:
-                # Third-level topics: Minor headings (H3 equivalent)
-                current_heading_style = ParagraphStyle(
-                    'MinorHeading',
-                    parent=styles['Heading3'],
-                    fontSize=13,
-                    spaceAfter=10,
-                    spaceBefore=16,
-                    leftIndent=0,
-                    textColor=colors.black,
-                    keepWithNext=1
-                )
-            else:
-                # Deeper levels: Small headings (H4+ equivalent)
-                current_heading_style = ParagraphStyle(
-                    f'DeepHeading{level}',
-                    parent=styles['Heading4'],
-                    fontSize=max(11, 13 - (level - 2)),
-                    spaceAfter=8,
-                    spaceBefore=12,
-                    leftIndent=0,
-                    textColor=colors.black,
-                    keepWithNext=1
-                )
+            # Use config-based heading styles
+            current_heading_style = config.create_heading_style(base_styles, level)
             
             story.append(Paragraph(heading_text, current_heading_style))
             
@@ -896,14 +923,7 @@ def generate_pdf(publication, tree):
                 content_paragraphs = convert_markdown_to_pdf_paragraphs(node['content'])
                 for para in content_paragraphs:
                     # Create content style that matches the hierarchy level
-                    level_content_style = ParagraphStyle(
-                        f'ContentLevel{level}',
-                        parent=content_style,
-                        leftIndent=max(0, (level - 1) * 15),  # Slight indentation for sub-content
-                        rightIndent=0,
-                        spaceAfter=10,
-                        alignment=TA_JUSTIFY
-                    )
+                    level_content_style = config.create_content_style(base_styles, level)
                     story.append(Paragraph(para, level_content_style))
             
             # Add spacing after content

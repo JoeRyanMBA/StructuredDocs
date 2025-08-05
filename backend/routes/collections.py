@@ -18,6 +18,48 @@ def list_collections():
         print(f"❌ Error in list_collections: {e}")
         return jsonify({"error": str(e)}), 500
 
+@collections_bp.route('/stats', methods=['GET'])
+def get_collections_stats():
+    """Get statistics for collections dashboard"""
+    try:
+        # Get all collections (including children)
+        all_collections = Collection.query.all()
+        root_collections = Collection.query.filter_by(parent_id=None).all()
+        
+        total_collections = len(all_collections)
+        # Since Collection doesn't have status field, assume all are active
+        active_collections = total_collections
+        
+        # Calculate total topics across all collections
+        total_topics = sum(len(c.topics) for c in all_collections)
+        
+        # Since Collection doesn't have created_at, set new this week to 0
+        new_this_week = 0
+        
+        # Calculate average topics per collection
+        avg_topics = round(total_topics / total_collections) if total_collections > 0 else 0
+        
+        stats = {
+            'total': total_collections,
+            'active': active_collections,
+            'totalTopics': total_topics,
+            'newThisWeek': new_this_week,
+            'avgTopics': avg_topics,
+            'rootCollections': len(root_collections),
+            'debug': {
+                'all_collections_count': len(all_collections),
+                'root_collections_count': len(root_collections),
+                'topics_per_collection': [(c.name, len(c.topics)) for c in all_collections]
+            }
+        }
+        
+        print(f"📊 Collections stats: {stats}")
+        return jsonify(stats), 200
+        
+    except Exception as e:
+        print(f"❌ Error calculating collections stats: {e}")
+        return jsonify({"error": str(e)}), 500
+
 @collections_bp.route('', methods=['PUT'])
 @collections_bp.route('/', methods=['PUT'])
 def update_collections():

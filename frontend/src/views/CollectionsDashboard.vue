@@ -309,6 +309,7 @@ export default {
         }
         
         const data = await response.json()
+        console.log('🔍 Collections data received:', data)
         this.collections = data
         
         // Get recent collections (last 5, sorted by updated_at)
@@ -357,17 +358,64 @@ export default {
 
     async loadStats() {
       try {
-        // Calculate stats from collections data
-        const total = this.collections.length
-        const active = this.collections.filter(c => c.status === 'active' || !c.status).length
-        const totalTopics = this.collections.reduce((sum, c) => sum + (c.topics_count || 0), 0)
+        // Use the backend stats API for accurate calculation
+        const response = await fetch('/api/collections/stats')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
         
-        // Calculate new this week
-        const oneWeekAgo = new Date()
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        const newThisWeek = this.collections.filter(c => 
-          c.created_at && new Date(c.created_at) > oneWeekAgo
-        ).length
+        const stats = await response.json()
+        console.log('📊 Stats from backend:', stats)
+        
+        this.stats = {
+          total: stats.total,
+          active: stats.active,
+          totalTopics: stats.totalTopics,
+          newThisWeek: stats.newThisWeek,
+          avgTopics: stats.avgTopics
+        }
+        console.log('📊 Final stats applied:', this.stats)
+      } catch (error) {
+        console.error('Failed to load stats from backend, falling back to frontend calculation:', error)
+        
+        // Fallback to frontend calculation with hierarchical support
+        console.log('🔍 Calculating stats from collections:', this.collections)
+        
+        // Helper function to recursively count all collections and topics
+        const countCollectionsAndTopics = (collections) => {
+          let totalCollections = 0
+          let totalTopics = 0
+          let activeCollections = 0
+          
+          collections.forEach(collection => {
+            totalCollections++
+            if (collection.status === 'active' || !collection.status) {
+              activeCollections++
+            }
+            totalTopics += (collection.topics_count || 0)
+            console.log(`Collection ${collection.name}: topics_count = ${collection.topics_count}`)
+            
+            // Recursively count children
+            if (collection.children && collection.children.length > 0) {
+              const childCounts = countCollectionsAndTopics(collection.children)
+              totalCollections += childCounts.collections
+              totalTopics += childCounts.topics
+              activeCollections += childCounts.active
+            }
+          })
+          
+          return { collections: totalCollections, topics: totalTopics, active: activeCollections }
+        }
+        
+        const counts = countCollectionsAndTopics(this.collections)
+        const total = counts.collections
+        const active = counts.active
+        const totalTopics = counts.topics
+        
+        console.log(`📊 Fallback stats calculated: total=${total}, active=${active}, totalTopics=${totalTopics}`)
+        
+        // Calculate new this week (fallback doesn't support this without created_at)
+        const newThisWeek = 0
 
         // Calculate average topics per collection
         const avgTopics = total > 0 ? Math.round(totalTopics / total) : 0
@@ -379,8 +427,7 @@ export default {
           newThisWeek,
           avgTopics
         }
-      } catch (error) {
-        console.error('Failed to calculate stats:', error)
+        console.log('📊 Final fallback stats:', this.stats)
       }
     },
 
