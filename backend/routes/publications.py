@@ -803,19 +803,23 @@ def generate_pdf(publication, tree, config_type='default'):
     story.append(PageBreak())
     
     # Table of contents
-    # Create completely independent TOC heading style with zero margins
+    # Create TOC heading with forced left alignment to overcome any ReportLab frame margins
+    page_width, page_height = config.PAGE_SIZE
+    total_margins = config.MARGINS['left'] + config.MARGINS['right']
+    usable_width = page_width - total_margins
+    
+    # Try using a Paragraph with forced positioning to overcome any built-in indentation
     toc_heading_style = ParagraphStyle(
-        'TOCHeading',
+        'ForcedTOCHeading',
         fontName=config.FONTS['heading'],
         fontSize=config.FONT_SIZES['h1'],
         textColor=config.COLORS['heading'],
-        leftIndent=0,
+        leftIndent=-18,  # Negative indent to force alignment past any built-in margins
         rightIndent=0,
         firstLineIndent=0,
         spaceBefore=0,
         spaceAfter=12,
         alignment=TA_LEFT,
-        # Explicitly override any default margins
         bulletIndent=0,
         listIndent=0
     )
@@ -840,7 +844,7 @@ def generate_pdf(publication, tree, config_type='default'):
             font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
             
             if level == 0:
-                # Level 0: Simple title and page number, bold styling
+                # Level 0: Simple title and page number, bold styling, forced alignment
                 toc_data = [[title_text, str(page_num)]]
                 
                 # Create table with EXACT same width for all levels
@@ -855,47 +859,42 @@ def generate_pdf(publication, tree, config_type='default'):
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # Zero padding for perfect alignment
+                    ('LEFTPADDING', (0, 0), (-1, -1), -18),  # Same negative padding as heading
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 
             else:
-                # Nested levels: Indented title with dotted leaders
+                # Nested levels: Clean indented entries without dotted leaders
                 indent_width = level * config.INDENTS['toc_per_level']
                 
-                # Calculate space available for title text and dots
-                available_for_content = title_width - indent_width - 20  # 20 for margins
+                # Calculate right-side indentation for visual hierarchy
+                # Level 2 gets 20pt right indent, Level 3+ gets 40pt right indent
+                right_indent = 20 if level == 1 else 40 if level >= 2 else 0
                 
-                # Estimate character widths for dot calculation
-                char_width = font_size * 0.6
-                title_pixel_width = len(title_text) * char_width
-                available_for_dots = available_for_content - title_pixel_width
+                # Create simple indented title without dots
+                spaces_for_indent = " " * int(indent_width / 4)  # Space-based left indentation
+                clean_title = f"{spaces_for_indent}{title_text}"
                 
-                # Calculate number of dots
-                dot_width = char_width * 0.8
-                num_dots = max(3, int(available_for_dots / dot_width))
-                dotted_leader = "." * num_dots
+                # Adjust column widths to account for right indentation
+                adjusted_title_width = title_width - right_indent
+                adjusted_page_width = page_num_width + right_indent
                 
-                # Create the title with proper spacing and dots
-                spaces_for_indent = " " * int(indent_width / 4)  # Approximate space-based indentation
-                title_with_dots = f"{spaces_for_indent}{title_text} {dotted_leader}"
+                toc_data = [[clean_title, str(page_num)]]
                 
-                toc_data = [[title_with_dots, str(page_num)]]
-                
-                # Create table with EXACT same width as level 0
-                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                # Create table with adjusted widths for proper right indentation
+                toc_table = Table(toc_data, colWidths=[adjusted_title_width, adjusted_page_width])
                 toc_table.setStyle(TableStyle([
                     ('FONTNAME', (0, 0), (0, 0), config.FONTS['body']),
                     ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
                     ('FONTSIZE', (0, 0), (-1, -1), font_size),
                     ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['text']),
                     ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # This ensures page numbers are right-aligned
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Page numbers right-aligned
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # Same padding as level 0
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ('LEFTPADDING', (0, 0), (-1, -1), -18),  # Same base alignment as level 0
+                    ('RIGHTPADDING', (1, 0), (1, 0), right_indent),  # Right indentation for hierarchy
                 ]))
             
             story.append(toc_table)
