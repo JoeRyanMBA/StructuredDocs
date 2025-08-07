@@ -23,32 +23,15 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.3.147:5050
+ * Running on http://10.0.2.86:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [07/Aug/2025 01:37:12] "HEAD /static/images/20221123_103925_67b62cfd.jpg HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:39] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:39] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:39] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:41] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:41] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:41] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:43] "GET /api/topics/13 HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:37:47] "GET /static/images/20221123_103925_67b62cfd.jpg HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:38:36] "[35m[1mPOST /api/images/upload HTTP/1.1[0m" 201 -
-127.0.0.1 - - [07/Aug/2025 01:39:25] "[33mGET /staticimages/20221123_103925_3d1abb7c.jpg HTTP/1.1[0m" 404 -
-127.0.0.1 - - [07/Aug/2025 01:39:25] "GET /static/images/20221123_103925_3d1abb7c.jpg HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:39:35] "PUT /api/topics/13 HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:04] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:04] "GET /api/topics/13 HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:11] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:11] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:17] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:17] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:17] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:22] "GET /api/topics/13 HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 01:51:25] "[36mGET /static/images/20221123_103925_3d1abb7c.jpg HTTP/1.1[0m" 304 -
-127.0.0.1 - - [07/Aug/2025 02:01:22] "PUT /api/topics/13 HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 02:01:30] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 02:01:30] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 02:01:30] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 02:01:32] "GET /api/topics/13 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:29] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:29] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:29] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:31] "GET /api/collections/stats HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:31] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:34] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:34] "GET /api/topics HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:36] "POST /api/collections/2/publish HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:36] "GET /api/publications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 20:26:38] "GET /api/publications/5/export/pdf HTTP/1.1" 200 -

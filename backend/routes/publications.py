@@ -1,35 +1,46 @@
 from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response, current_app
 from models import db, Publication, PublicationNode, Topic
+from datetime import datetime
 import re
 import os
 import base64
 import mimetypes
-from datetime import datetime
+import io
+import json
+import traceback
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, NextPageTemplate, Flowable
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
 from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
 from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
-import io
-import os
 from pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
 
 
 class BackgroundImageDocTemplate(BaseDocTemplate):
-    """Custom document template that supports background images on specific pages"""
+    """Custom document template that supports background images, headers and footers on pages"""
     
-    def __init__(self, filename, background_image_path=None, **kwargs):
+    def __init__(self, filename, background_image_path=None, publication=None, **kwargs):
         BaseDocTemplate.__init__(self, filename, **kwargs)
         self.background_image_path = background_image_path
+        self.publication = publication
+        self.page_count = 0  # Track page numbers across templates
+        self.toc_start_page = 2  # TOC starts at page 2 (roman numerals)
+        self.content_start_page = 1  # Content pages start after TOC
         
-        # Create frame for content (same as SimpleDocTemplate)
+        # Reserve space for header and footer
+        header_space = 0.8 * inch
+        footer_space = 1.2 * inch  # More space for two-row footer
+        content_height = self.height - header_space - footer_space
+        content_bottom = self.bottomMargin + footer_space
+        
+        # Create frame for content with header and footer space reserved
         frame = Frame(
-            self.leftMargin, self.bottomMargin,
-            self.width, self.height,
+            self.leftMargin, content_bottom,
+            self.width, content_height,
             id='normal'
         )
         
@@ -37,49 +48,515 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
         title_template = PageTemplate(
             id='title_page',
             frames=[frame],
-            onPage=self.add_title_background
+            onPage=self.add_title_page_with_footer
+        )
+        
+        toc_template = PageTemplate(
+            id='toc_page',
+            frames=[frame],
+            onPage=self.add_toc_page_with_footer
         )
         
         normal_template = PageTemplate(
             id='normal_page', 
             frames=[frame],
-            onPage=self.add_normal_background
+            onPage=self.add_normal_page_with_footer
         )
         
-        self.addPageTemplates([title_template, normal_template])
+        self.addPageTemplates([title_template, toc_template, normal_template])
     
-    def add_title_background(self, canvas, doc):
-        """Add background image to title page"""
+    def add_title_page_with_footer(self, canvas, doc):
+        """Add background image and footer to title page"""
+        # Add background image
         if self.background_image_path and os.path.exists(self.background_image_path):
             try:
-                # Save canvas state
                 canvas.saveState()
-                
-                # Get page dimensions
                 page_width, page_height = self.pagesize
-                
-                # Draw background image covering the entire page
                 canvas.drawImage(
                     self.background_image_path,
-                    0, 0,  # Position at bottom-left corner
+                    0, 0,
                     width=page_width,
                     height=page_height,
                     preserveAspectRatio=True,
-                    mask='auto'  # Handle transparency if present
+                    mask='auto'
                 )
-                
-                # Optional: Add a semi-transparent overlay to improve text readability
-                canvas.setFillColorRGB(1, 1, 1, alpha=0.7)  # White overlay with 70% opacity
-                canvas.rect(0, 0, page_width, page_height, fill=1, stroke=0)
-                
-                # Restore canvas state
                 canvas.restoreState()
             except Exception as e:
                 print(f"Warning: Could not add background image: {e}")
+        
+        # Add title page footer
+        self.add_title_footer(canvas, doc)
     
-    def add_normal_background(self, canvas, doc):
-        """Normal pages without background image"""
-        pass
+    def add_toc_page_with_footer(self, canvas, doc):
+        """Add footer to TOC pages"""
+        self.add_toc_footer(canvas, doc)
+    
+    def add_normal_page_with_footer(self, canvas, doc):
+        """Add header and footer to normal content pages"""
+        self.add_header(canvas, doc)
+        self.add_content_footer(canvas, doc)
+    
+    def add_title_footer(self, canvas, doc):
+        """Add footer for title page with Census logo"""
+        try:
+            canvas.saveState()
+            page_width, page_height = self.pagesize
+            
+            # Footer positioning
+            footer_y = self.bottomMargin + 0.8 * inch  # Above bottom margin
+            logo_width = 0.8 * inch
+            logo_height = 0.4 * inch
+            
+            # Add Census logo (left-aligned)
+            title_logo_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'USCENSUS_Title_Page_Logo.png')
+            if os.path.exists(title_logo_path):
+                try:
+                    canvas.drawImage(
+                        title_logo_path,
+                        self.leftMargin, footer_y - logo_height,
+                        width=logo_width,
+                        height=logo_height,
+                        preserveAspectRatio=True
+                    )
+                except:
+                    print("Warning: Could not load title page logo")
+            
+            # Set font for footer text
+            canvas.setFont("Helvetica", 10)
+            
+            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            canvas.drawCentredText(page_width / 2, footer_y, "U.S. Census Bureau")
+            
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_text = f"Form: {form_number}"
+            right_margin_x = page_width - self.rightMargin
+            text_width = canvas.stringWidth(form_text, "Helvetica", 10)
+            canvas.drawString(right_margin_x - text_width, footer_y, form_text)
+            
+            # Bottom row: "Revised:" with date
+            revised_text = f"Revised: {datetime.now().strftime('%m/%d/%Y')}"
+            canvas.drawString(self.leftMargin + logo_width + 0.2 * inch, footer_y - 15, revised_text)
+            
+            canvas.restoreState()
+        except Exception as e:
+            print(f"Warning: Could not add title footer: {e}")
+    
+    def add_toc_footer(self, canvas, doc):
+        """Add footer for TOC pages with horizontal line"""
+        try:
+            canvas.saveState()
+            page_width, page_height = self.pagesize
+            
+            # Horizontal line above footer
+            line_y = self.bottomMargin + 1.0 * inch
+            canvas.setStrokeColor(colors.black)
+            canvas.setLineWidth(0.5)
+            canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
+            
+            # Footer positioning
+            footer_y = self.bottomMargin + 0.6 * inch
+            logo_width = 0.6 * inch
+            logo_height = 0.3 * inch
+            
+            # Add Census logo (left-aligned)
+            footer_logo_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'USCENSUS_Footer_Logo.png')
+            if os.path.exists(footer_logo_path):
+                try:
+                    canvas.drawImage(
+                        footer_logo_path,
+                        self.leftMargin, footer_y - logo_height,
+                        width=logo_width,
+                        height=logo_height,
+                        preserveAspectRatio=True
+                    )
+                except:
+                    print("Warning: Could not load footer logo")
+            
+            # Set font for footer text
+            canvas.setFont("Helvetica", 9)
+            
+            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            canvas.drawCentredText(page_width / 2, footer_y, "U.S. Census Bureau")
+            
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_text = f"Form: {form_number}"
+            right_margin_x = page_width - self.rightMargin
+            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_y, form_text)
+            
+            # Bottom row: Page number in roman numerals (starts at ii)
+            roman_page = self.int_to_roman(doc.page)
+            page_text = f"Page {roman_page}"
+            canvas.drawString(self.leftMargin + logo_width + 0.2 * inch, footer_y - 12, page_text)
+            
+            canvas.restoreState()
+        except Exception as e:
+            print(f"Warning: Could not add TOC footer: {e}")
+    
+    def add_content_footer(self, canvas, doc):
+        """Add footer for content pages with horizontal line"""
+        try:
+            canvas.saveState()
+            page_width, page_height = self.pagesize
+            
+            # Horizontal line above footer
+            line_y = self.bottomMargin + 1.0 * inch
+            canvas.setStrokeColor(colors.black)
+            canvas.setLineWidth(0.5)
+            canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
+            
+            # Footer positioning
+            footer_y = self.bottomMargin + 0.6 * inch
+            logo_width = 0.6 * inch
+            logo_height = 0.3 * inch
+            
+            # Add Census logo (left-aligned)
+            footer_logo_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'USCENSUS_Footer_Logo.png')
+            if os.path.exists(footer_logo_path):
+                try:
+                    canvas.drawImage(
+                        footer_logo_path,
+                        self.leftMargin, footer_y - logo_height,
+                        width=logo_width,
+                        height=logo_height,
+                        preserveAspectRatio=True
+                    )
+                except:
+                    print("Warning: Could not load footer logo")
+            
+            # Set font for footer text
+            canvas.setFont("Helvetica", 9)
+            
+            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            canvas.drawCentredText(page_width / 2, footer_y, "U.S. Census Bureau")
+            
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_text = f"Form: {form_number}"
+            right_margin_x = page_width - self.rightMargin
+            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_y, form_text)
+            
+            # Bottom row: Page number in Arabic numerals
+            page_text = f"Page {doc.page - 1}"  # Adjust for TOC pages
+            canvas.drawString(self.leftMargin + logo_width + 0.2 * inch, footer_y - 12, page_text)
+            
+            canvas.restoreState()
+        except Exception as e:
+            print(f"Warning: Could not add content footer: {e}")
+    
+    def int_to_roman(self, num):
+        """Convert integer to roman numerals"""
+        val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+        syms = ["m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i"]
+        roman_num = ''
+        i = 0
+        while num > 0:
+            for _ in range(num // val[i]):
+                roman_num += syms[i]
+                num -= val[i]
+            i += 1
+        return roman_num
+    
+    def add_header(self, canvas, doc):
+        """Add header with publication info and horizontal line"""
+        if not self.publication:
+            return
+            
+        try:
+            # Save canvas state
+            canvas.saveState()
+            
+            # Get page dimensions
+            page_width, page_height = self.pagesize
+            
+            # Header positioning (right-aligned at right margin) - within the page bounds
+            right_margin_x = page_width - self.rightMargin
+            header_y = page_height - 0.5 * inch  # 0.5 inches from the top of the page
+            
+            # Set font for header text (0.9rem ≈ 9pt)
+            canvas.setFont("Helvetica", 9)
+            
+            # Publication ID + Title (single line header)
+            form_number = getattr(self.publication, 'form_number', f"PUB-{self.publication.id}")
+            collection_name = self.publication.title or "Unknown Collection"
+            header_line = f"{form_number}, {collection_name}"
+            text_width = canvas.stringWidth(header_line, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, header_y, header_line)
+            
+            # Horizontal line from left margin to right margin (closer to text)
+            line_y = header_y - 14  # Reduced space - closer to the text
+            canvas.setStrokeColor(colors.black)
+            canvas.setLineWidth(0.5)
+            canvas.line(self.leftMargin, line_y, right_margin_x, line_y)
+            
+            # Restore canvas state
+            canvas.restoreState()
+            
+        except Exception as e:
+            print(f"Warning: Could not add header: {e}")
+
+
+class HeaderDocTemplate(BaseDocTemplate):
+    """Document template with headers and footers for PDF documents without background images"""
+    
+    def __init__(self, filename, publication=None, **kwargs):
+        BaseDocTemplate.__init__(self, filename, **kwargs)
+        self.publication = publication
+        self.page_count = 0  # Track page numbers across templates
+        self.toc_start_page = 2  # TOC starts at page 2 (roman numerals)
+        self.content_start_page = 1  # Content pages start after TOC
+        
+        # Reserve space for header and footer
+        header_space = 0.8 * inch
+        footer_space = 1.2 * inch  # More space for two-row footer
+        content_height = self.height - header_space - footer_space
+        content_bottom = self.bottomMargin + footer_space
+        
+        # Create frame for content with header and footer space reserved
+        frame = Frame(
+            self.leftMargin, content_bottom,
+            self.width, content_height,
+            id='normal'
+        )
+        
+        # Create page templates
+        title_template = PageTemplate(
+            id='title_page',
+            frames=[frame],
+            onPage=self.add_title_page_with_footer
+        )
+        
+        toc_template = PageTemplate(
+            id='toc_page',
+            frames=[frame],
+            onPage=self.add_toc_page_with_footer
+        )
+        
+        normal_template = PageTemplate(
+            id='normal_page',
+            frames=[frame],
+            onPage=self.add_normal_page_with_footer
+        )
+        
+        self.addPageTemplates([title_template, toc_template, normal_template])
+    
+    def add_title_page_with_footer(self, canvas, doc):
+        """Add footer to title page (no header)"""
+        self.add_title_footer(canvas, doc)
+    
+    def add_toc_page_with_footer(self, canvas, doc):
+        """Add footer to TOC pages"""
+        self.add_toc_footer(canvas, doc)
+    
+    def add_normal_page_with_footer(self, canvas, doc):
+        """Add header and footer to normal content pages"""
+        self.add_header(canvas, doc)
+        self.add_content_footer(canvas, doc)
+    
+    def add_title_footer(self, canvas, doc):
+        """Add footer for title page with Census logo"""
+        try:
+            canvas.saveState()
+            page_width, page_height = self.pagesize
+            
+            # Footer positioning
+            footer_y = self.bottomMargin + 0.8 * inch  # Above bottom margin
+            logo_width = 0.8 * inch
+            logo_height = 0.4 * inch
+            
+            # Add Census logo (left-aligned)
+            title_logo_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'USCENSUS_Title_Page_Logo.png')
+            if os.path.exists(title_logo_path):
+                try:
+                    canvas.drawImage(
+                        title_logo_path,
+                        self.leftMargin, footer_y - logo_height,
+                        width=logo_width,
+                        height=logo_height,
+                        preserveAspectRatio=True
+                    )
+                except:
+                    print("Warning: Could not load title page logo")
+            
+            # Set font for footer text
+            canvas.setFont("Helvetica", 10)
+            
+            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            canvas.drawCentredText(page_width / 2, footer_y, "U.S. Census Bureau")
+            
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_text = f"Form: {form_number}"
+            right_margin_x = page_width - self.rightMargin
+            text_width = canvas.stringWidth(form_text, "Helvetica", 10)
+            canvas.drawString(right_margin_x - text_width, footer_y, form_text)
+            
+            # Bottom row: "Revised:" with date
+            revised_text = f"Revised: {datetime.now().strftime('%m/%d/%Y')}"
+            canvas.drawString(self.leftMargin + logo_width + 0.2 * inch, footer_y - 15, revised_text)
+            
+            canvas.restoreState()
+        except Exception as e:
+            print(f"Warning: Could not add title footer: {e}")
+    
+    def add_toc_footer(self, canvas, doc):
+        """Add footer for TOC pages with horizontal line"""
+        try:
+            canvas.saveState()
+            page_width, page_height = self.pagesize
+            
+            # Horizontal line above footer
+            line_y = self.bottomMargin + 1.0 * inch
+            canvas.setStrokeColor(colors.black)
+            canvas.setLineWidth(0.5)
+            canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
+            
+            # Footer positioning
+            footer_y = self.bottomMargin + 0.6 * inch
+            logo_width = 0.6 * inch
+            logo_height = 0.3 * inch
+            
+            # Add Census logo (left-aligned)
+            footer_logo_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'USCENSUS_Footer_Logo.png')
+            if os.path.exists(footer_logo_path):
+                try:
+                    canvas.drawImage(
+                        footer_logo_path,
+                        self.leftMargin, footer_y - logo_height,
+                        width=logo_width,
+                        height=logo_height,
+                        preserveAspectRatio=True
+                    )
+                except:
+                    print("Warning: Could not load footer logo")
+            
+            # Set font for footer text
+            canvas.setFont("Helvetica", 9)
+            
+            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            canvas.drawCentredText(page_width / 2, footer_y, "U.S. Census Bureau")
+            
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_text = f"Form: {form_number}"
+            right_margin_x = page_width - self.rightMargin
+            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_y, form_text)
+            
+            # Bottom row: Page number in roman numerals (starts at ii)
+            roman_page = self.int_to_roman(doc.page)
+            page_text = f"Page {roman_page}"
+            canvas.drawString(self.leftMargin + logo_width + 0.2 * inch, footer_y - 12, page_text)
+            
+            canvas.restoreState()
+        except Exception as e:
+            print(f"Warning: Could not add TOC footer: {e}")
+    
+    def add_content_footer(self, canvas, doc):
+        """Add footer for content pages with horizontal line"""
+        try:
+            canvas.saveState()
+            page_width, page_height = self.pagesize
+            
+            # Horizontal line above footer
+            line_y = self.bottomMargin + 1.0 * inch
+            canvas.setStrokeColor(colors.black)
+            canvas.setLineWidth(0.5)
+            canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
+            
+            # Footer positioning
+            footer_y = self.bottomMargin + 0.6 * inch
+            logo_width = 0.6 * inch
+            logo_height = 0.3 * inch
+            
+            # Add Census logo (left-aligned)
+            footer_logo_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'USCENSUS_Footer_Logo.png')
+            if os.path.exists(footer_logo_path):
+                try:
+                    canvas.drawImage(
+                        footer_logo_path,
+                        self.leftMargin, footer_y - logo_height,
+                        width=logo_width,
+                        height=logo_height,
+                        preserveAspectRatio=True
+                    )
+                except:
+                    print("Warning: Could not load footer logo")
+            
+            # Set font for footer text
+            canvas.setFont("Helvetica", 9)
+            
+            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            canvas.drawCentredText(page_width / 2, footer_y, "U.S. Census Bureau")
+            
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_text = f"Form: {form_number}"
+            right_margin_x = page_width - self.rightMargin
+            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_y, form_text)
+            
+            # Bottom row: Page number in Arabic numerals
+            page_text = f"Page {doc.page - 1}"  # Adjust for TOC pages
+            canvas.drawString(self.leftMargin + logo_width + 0.2 * inch, footer_y - 12, page_text)
+            
+            canvas.restoreState()
+        except Exception as e:
+            print(f"Warning: Could not add content footer: {e}")
+    
+    def int_to_roman(self, num):
+        """Convert integer to roman numerals"""
+        val = [1000, 900, 500, 400, 100, 90, 50, 40, 10, 9, 5, 4, 1]
+        syms = ["m", "cm", "d", "cd", "c", "xc", "l", "xl", "x", "ix", "v", "iv", "i"]
+        roman_num = ''
+        i = 0
+        while num > 0:
+            for _ in range(num // val[i]):
+                roman_num += syms[i]
+                num -= val[i]
+            i += 1
+        return roman_num
+    
+    def add_header(self, canvas, doc):
+        """Add header with publication info and horizontal line"""
+        print("DEBUG: HeaderDocTemplate add_header called")
+        if not self.publication:
+            print("DEBUG: No publication object")
+            return
+            
+        try:
+            print(f"DEBUG: Adding header for publication: {self.publication.title}")
+            # Save canvas state
+            canvas.saveState()
+            
+            # Get page dimensions
+            page_width, page_height = self.pagesize
+            
+            # Header positioning (right-aligned at right margin) - within the page bounds
+            right_margin_x = page_width - self.rightMargin
+            header_y = page_height - 0.5 * inch  # 0.5 inches from the top of the page
+            
+            # Set font for header text (0.9rem ≈ 9pt)
+            canvas.setFont("Helvetica", 9)
+            
+            # Publication ID + Title (single line header)
+            form_number = getattr(self.publication, 'form_number', f"PUB-{self.publication.id}")
+            collection_name = self.publication.title or "Unknown Collection"
+            header_line = f"{form_number}, {collection_name}"
+            text_width = canvas.stringWidth(header_line, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, header_y, header_line)
+            
+            # Horizontal line from left margin to right margin (closer to text)
+            line_y = header_y - 14  # Reduced space - closer to the text
+            canvas.setStrokeColor(colors.black)
+            canvas.setLineWidth(0.5)
+            canvas.line(self.leftMargin, line_y, right_margin_x, line_y)
+            
+            # Restore canvas state
+            canvas.restoreState()
+            print("DEBUG: Header drawing completed successfully")
+            
+        except Exception as e:
+            print(f"WARNING: Could not add header: {e}")
+            import traceback
+            traceback.print_exc()
 
 
 # Pass strict_slashes here so both /api/publications and /api/publications/ match
@@ -860,11 +1337,21 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     else:
         config = PDFConfig
     
+    # If no background image is specified, use the default SC Cover Background.png
+    if not background_image_path:
+        default_bg_path = os.path.join(os.path.dirname(__file__), 'static', 'backgrounds', 'SC Cover Background.png')
+        if os.path.exists(default_bg_path):
+            background_image_path = default_bg_path
+            print(f"DEBUG: Using default background image: {background_image_path}")
+    
     # Create PDF document with background image support
+    print(f"DEBUG: Creating PDF document for publication: {publication.title}, id: {publication.id}")
     if background_image_path and os.path.exists(background_image_path):
+        print("DEBUG: Using BackgroundImageDocTemplate")
         doc = BackgroundImageDocTemplate(
             buffer,
             background_image_path=background_image_path,
+            publication=publication,
             pagesize=config.PAGE_SIZE,
             rightMargin=config.MARGINS['right'],
             leftMargin=config.MARGINS['left'],
@@ -872,9 +1359,11 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             bottomMargin=config.MARGINS['bottom']
         )
     else:
-        # Fallback to regular SimpleDocTemplate if no background image
-        doc = SimpleDocTemplate(
+        # Use HeaderDocTemplate for PDFs with headers but no background image
+        print("DEBUG: Using HeaderDocTemplate")
+        doc = HeaderDocTemplate(
             buffer,
+            publication=publication,
             pagesize=config.PAGE_SIZE,
             rightMargin=config.MARGINS['right'],
             leftMargin=config.MARGINS['left'],
@@ -886,24 +1375,27 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     story = []
     base_styles = config.get_base_styles()
     
+    # Start with title page template
+    story.append(NextPageTemplate('title_page'))
+    
     # Create styles using configuration
     title_style = config.create_title_style(base_styles)
     subtitle_style = config.create_subtitle_style(base_styles)
     
     # Title page content
     if hasattr(doc, 'background_image_path') and doc.background_image_path:
-        # For background image docs, make text more prominent
+        # For background image docs, use white text for visibility on blue background
         enhanced_title_style = ParagraphStyle(
             'EnhancedTitle',
             parent=title_style,
-            textColor=colors.black,  # Ensure text is visible over background
+            textColor=colors.white,  # White text for visibility on blue background
             fontSize=title_style.fontSize + 4,  # Make title larger
             leading=title_style.fontSize + 8,
         )
         enhanced_subtitle_style = ParagraphStyle(
             'EnhancedSubtitle',
             parent=subtitle_style,
-            textColor=colors.black,  # Ensure text is visible
+            textColor=colors.white,  # White text for visibility on blue background
             fontSize=subtitle_style.fontSize + 2,
         )
         story.append(Paragraph(publication.title, enhanced_title_style))
@@ -919,7 +1411,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         story.append(Spacer(1, 20))
         story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", subtitle_style))
     
-    # Page break to TOC (switches to normal page template)
+    # Page break to TOC (switches to TOC page template)
+    story.append(NextPageTemplate('toc_page'))
     story.append(PageBreak())
     
     # Table of contents
@@ -1015,6 +1508,9 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 add_toc_entries(node['children'], level + 1, page_counter)
     
     add_toc_entries(tree)
+    
+    # Switch to normal page template for content sections
+    story.append(NextPageTemplate('normal_page'))
     story.append(PageBreak())
     
     # Content sections
@@ -1146,7 +1642,61 @@ def convert_markdown_to_pdf_paragraphs(text):
             # Code
             formatted_line = re.sub(r'`(.*?)`', r'<font face="Courier">\1</font>', formatted_line)
             
-            current_paragraph.append(formatted_line)
+            # Handle markdown images first - convert to simple HTML
+            formatted_line = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2">', formatted_line)
+            
+            # Clean up HTML tags that ReportLab doesn't support
+            # Remove div, span, and other structural HTML tags but keep their content
+            formatted_line = re.sub(r'</?div[^>]*>', '', formatted_line)
+            formatted_line = re.sub(r'</?span[^>]*>', '', formatted_line)
+            formatted_line = re.sub(r'</?p[^>]*>', '', formatted_line)  # Remove paragraph tags since we're already in a paragraph
+            
+            # Handle images - ReportLab only supports specific img attributes
+            if '<img' in formatted_line:
+                # Remove unsupported attributes like 'alt', 'style', 'class'
+                # Keep only 'src', 'width', 'height', 'valign'
+                def clean_img_tag(match):
+                    img_tag = match.group(0)
+                    # Extract src attribute
+                    src_match = re.search(r'src="([^"]*)"', img_tag)
+                    src = src_match.group(1) if src_match else ""
+                    
+                    # Convert relative image paths to absolute paths
+                    if src:
+                        if src.startswith('/images/'):
+                            # Convert /images/ path to absolute path
+                            image_filename = src[8:]  # Remove /images/ prefix
+                            static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
+                            absolute_src = os.path.join(static_images_dir, image_filename)
+                            src = absolute_src
+                        elif src.startswith('/static/images/'):
+                            # Convert /static/images/ path to absolute path
+                            image_filename = src[15:]  # Remove /static/images/ prefix
+                            static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
+                            absolute_src = os.path.join(static_images_dir, image_filename)
+                            src = absolute_src
+                    
+                    # Extract width and height if present
+                    width_match = re.search(r'width="([^"]*)"', img_tag)
+                    height_match = re.search(r'height="([^"]*)"', img_tag)
+                    
+                    # Build clean img tag with only supported attributes
+                    clean_attrs = []
+                    if src:
+                        clean_attrs.append(f'src="{src}"')
+                    if width_match:
+                        clean_attrs.append(f'width="{width_match.group(1)}"')
+                    if height_match:
+                        clean_attrs.append(f'height="{height_match.group(1)}"')
+                    
+                    return f'<img {" ".join(clean_attrs)}/>'
+                
+                formatted_line = re.sub(r'<img[^>]*>', clean_img_tag, formatted_line)
+            
+            # Clean up extra whitespace and empty content
+            formatted_line = formatted_line.strip()
+            if formatted_line:  # Only add non-empty lines
+                current_paragraph.append(formatted_line)
     
     # Add any remaining content
     if current_paragraph:
