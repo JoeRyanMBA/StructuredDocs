@@ -2,7 +2,7 @@
   <div class="organize-view">
     <Breadcrumbs />
     <div class="organize-header">
-      <h1>📋 Organize Collection</h1>
+      <h1>{{ isEditMode ? '✏️ Edit Collection' : '📋 Organize Collection' }}</h1>
       <p class="guidance-text">
         Add topics to your collection by dragging topics from the Unassigned Topics area to your collection. 
         Use the drag handles to drag topics. You can organize your topics within the collection by reordering them and dragging them onto other topics to create a hierarchy.
@@ -12,6 +12,31 @@
     <div class="organize-layout">
       <div class="collections-panel">
         <h2>{{ currentCollection?.name || 'Collection' }}</h2>
+        
+        <!-- Collection Properties Edit Panel (only in edit mode) -->
+        <div v-if="isEditMode && currentCollection" class="collection-edit-panel">
+          <h3>Collection Properties</h3>
+          <div class="edit-form">
+            <div class="form-group">
+              <label>Collection Name:</label>
+              <input 
+                v-model="currentCollection.name" 
+                @blur="saveCollectionProperty('name')"
+                class="edit-input"
+              />
+            </div>
+            <div class="form-group">
+              <label>Form Number:</label>
+              <input 
+                v-model="currentCollection.form_number" 
+                @blur="saveCollectionProperty('form_number')"
+                class="edit-input"
+                placeholder="e.g., FORM-001"
+              />
+            </div>
+          </div>
+        </div>
+        
         <div v-if="currentCollection" class="current-collection">
           <div class="node">
             {{ currentCollection.name }}
@@ -134,10 +159,14 @@ export default {
       allCollections: [], // All collections (for saving purposes)
       topics: [],
       unassignedTopics: [],
-      confirmation: ''
+      confirmation: '',
+      isEditMode: false // Track if we're in edit mode
     }
   },
   async created() {
+    // Check if we're in edit mode
+    this.isEditMode = this.$route.query.edit === 'true'
+    
     this.allCollections = await getCollections()
     this.topics = await getTopics()
     
@@ -157,6 +186,30 @@ export default {
     this.unassignedTopics = this.getUnassignedTopics()
   },
   methods: {
+    async saveCollectionProperty(propertyName) {
+      if (!this.currentCollection) return
+      
+      try {
+        const response = await fetch(`/api/collections/${this.currentCollection.id}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            [propertyName]: this.currentCollection[propertyName]
+          })
+        })
+        
+        if (response.ok) {
+          console.log(`✅ Updated collection ${propertyName}`)
+        } else {
+          const error = await response.json()
+          alert(`Failed to update ${propertyName}: ${error.error || 'Unknown error'}`)
+        }
+      } catch (error) {
+        console.error(`Failed to update collection ${propertyName}:`, error)
+        alert(`Failed to update ${propertyName}. Please try again.`)
+      }
+    },
+
     findCollectionById(collections, id) {
       for (const collection of collections) {
         if (collection.id === id) return collection
@@ -540,5 +593,52 @@ export default {
 .empty-collection em {
   display: block;
   margin-bottom: 0.5rem;
+}
+
+/* Collection Edit Panel Styles */
+.collection-edit-panel {
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.collection-edit-panel h3 {
+  margin: 0 0 1rem 0;
+  color: #495057;
+  font-size: 1.1rem;
+}
+
+.edit-form {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.form-group {
+  display: flex;
+  flex-direction: column;
+}
+
+.form-group label {
+  font-weight: 500;
+  margin-bottom: 0.25rem;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.edit-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  transition: border-color 0.15s ease-in-out;
+}
+
+.edit-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 </style>

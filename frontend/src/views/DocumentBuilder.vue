@@ -229,6 +229,19 @@
               />
             </div>
             <div class="form-group">
+              <label>Collection ID (Form Number) *</label>
+              <input 
+                v-model="newCollection.form_number" 
+                placeholder="e.g., FORM-001, DOC-ABC-123" 
+                required
+                pattern="^[A-Za-z0-9\-_]+$"
+                title="Only letters, numbers, hyphens, and underscores are allowed"
+              />
+              <small class="form-help">
+                Unique alphanumeric identifier for this collection
+              </small>
+            </div>
+            <div class="form-group">
               <label>Description</label>
               <textarea 
                 v-model="newCollection.description" 
@@ -703,6 +716,7 @@ export default {
     resetNewCollection() {
       this.newCollection = {
         name: '',
+        form_number: '',
         description: '',
         status: 'active',
         projectId: null
@@ -1667,5 +1681,13 @@ status: "draft"
   .images-gallery {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
+}
+
+.form-help {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  line-height: 1.4;
 }
 </style>

@@ -131,20 +131,82 @@ def update_collections():
 def create_collection():
     """
     Create a new collection.
-    Expects JSON payload: { "name": str, "parentId": int (optional), "position": int (optional) }
+    Expects JSON payload: { 
+        "name": str, 
+        "form_number": str,
+        "parentId": int (optional), 
+        "position": int (optional),
+        "projectId": int (optional)
+    }
     """
     data = request.get_json()
     name = data.get('name')
+    form_number = data.get('form_number')
     parent_id = data.get('parentId')
+    project_id = data.get('projectId')
     position = data.get('position', 0)
 
     if not name:
         return jsonify({'error': 'Collection name is required'}), 400
+    
+    if not form_number:
+        return jsonify({'error': 'Collection ID (Form Number) is required'}), 400
+    
+    # Check if form_number already exists
+    existing = Collection.query.filter_by(form_number=form_number).first()
+    if existing:
+        return jsonify({'error': f'Collection ID "{form_number}" already exists'}), 400
 
-    new_collection = Collection(name=name, parent_id=parent_id, position=position)
+    new_collection = Collection(
+        name=name, 
+        form_number=form_number,
+        parent_id=parent_id, 
+        project_id=project_id,
+        position=position
+    )
     db.session.add(new_collection)
     db.session.commit()
     return jsonify(new_collection.to_dict()), 201
+
+@collections_bp.route('/<int:collection_id>', methods=['PUT'])
+def update_collection(collection_id):
+    """
+    Update a specific collection's properties.
+    Expects JSON payload with fields to update: { "name": str, "form_number": str, etc. }
+    """
+    try:
+        collection = Collection.query.get_or_404(collection_id)
+        data = request.get_json()
+        
+        # Update allowed fields
+        if 'name' in data:
+            collection.name = data['name']
+        
+        if 'form_number' in data:
+            # Check if form_number already exists (excluding current collection)
+            existing = Collection.query.filter(
+                Collection.form_number == data['form_number'],
+                Collection.id != collection_id
+            ).first()
+            if existing:
+                return jsonify({'error': f'Collection ID "{data["form_number"]}" already exists'}), 400
+            collection.form_number = data['form_number']
+        
+        if 'project_id' in data:
+            collection.project_id = data['project_id']
+        
+        if 'parent_id' in data:
+            collection.parent_id = data['parent_id']
+        
+        if 'position' in data:
+            collection.position = data['position']
+        
+        db.session.commit()
+        return jsonify(collection.to_dict()), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @collections_bp.route('/<int:collection_id>/publish', methods=['POST'])
 def publish_collection(collection_id):

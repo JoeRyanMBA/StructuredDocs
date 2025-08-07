@@ -3,31 +3,53 @@
 > vite
 
 
-  VITE v7.0.6  ready in 2912 ms
+  VITE v7.0.6  ready in 435 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://10.0.3.238:5173/
+  ➜  Network: http://10.0.3.147:5173/
+Sending Request to the Target: GET /api/notifications
+Sending Request to the Target: GET /api/import/history
+Received Response from the Target: 200 /api/notifications
+Sending Request to the Target: GET /api/projects/
+Received Response from the Target: 200 /api/projects/
+Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/topics/
+Sending Request to the Target: GET /api/projects/
+Sending Request to the Target: GET /api/reviews/reviewers
+Received Response from the Target: 200 /api/topics/
+Received Response from the Target: 200 /api/projects/
+Received Response from the Target: 200 /api/reviews/reviewers
+Sending Request to the Target: GET /api/topics/13
+Received Response from the Target: 200 /api/topics/13
+Sending Request to the Target: POST /api/images/upload
+Received Response from the Target: 201 /api/images/upload
+Sending Request to the Target: PUT /api/topics/13
+Received Response from the Target: 200 /api/topics/13
 Sending Request to the Target: GET /api/notifications
 Received Response from the Target: 200 /api/notifications
+Sending Request to the Target: GET /api/topics/13
+Received Response from the Target: 200 /api/topics/13
 Sending Request to the Target: GET /api/projects/
 Received Response from the Target: 200 /api/projects/
 Sending Request to the Target: GET /api/import/history
 Received Response from the Target: 200 /api/import/history
-Sending Request to the Target: GET /api/collections
-Received Response from the Target: 200 /api/collections
-Sending Request to the Target: GET /api/collections/stats
-Received Response from the Target: 200 /api/collections/stats
-Sending Request to the Target: GET /api/collections
-Received Response from the Target: 200 /api/collections
-Sending Request to the Target: GET /api/topics
-Received Response from the Target: 200 /api/topics
-Sending Request to the Target: PUT /api/collections
-Received Response from the Target: 200 /api/collections
-Sending Request to the Target: POST /api/collections/11/publish
-Received Response from the Target: 200 /api/collections/11/publish
-Sending Request to the Target: GET /api/publications
-Received Response from the Target: 200 /api/publications
-Sending Request to the Target: GET /api/publications/3/export/pdf
-Received Response from the Target: 200 /api/publications/3/export/pdf
-Sending Request to the Target: GET /api/import/history
-Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/reviews/reviewers
+Received Response from the Target: 200 /api/reviews/reviewers
+Sending Request to the Target: GET /api/projects/
+Received Response from the Target: 200 /api/projects/
+Sending Request to the Target: GET /api/topics/
+Received Response from the Target: 200 /api/topics/
+Sending Request to the Target: GET /api/topics/13
+Received Response from the Target: 200 /api/topics/13
+Sending Request to the Target: PUT /api/topics/13
+Received Response from the Target: 200 /api/topics/13
+Sending Request to the Target: GET /api/topics/
+Received Response from the Target: 200 /api/topics/
+Sending Request to the Target: GET /api/reviews/reviewers
+Sending Request to the Target: GET /api/projects/
+Received Response from the Target: 200 /api/reviews/reviewers
+Received Response from the Target: 200 /api/projects/
+Sending Request to the Target: GET /api/topics/13
+Received Response from the Target: 200 /api/topics/13
+2:01:43 AM [vite] vite.config.js changed, restarting server...
+2:01:43 AM [vite] server restarted.

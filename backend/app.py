@@ -96,6 +96,7 @@ def create_app():
     from routes.links          import links_bp
     from routes.stakeholders   import stakeholders_bp
     from routes.tasks          import tasks_bp
+    from routes.images         import images_bp
 
     # Register all blueprints once
     print("📋 Registering blueprints...")
@@ -123,6 +124,8 @@ def create_app():
     print("  ✅ Stakeholders blueprint registered")
     app.register_blueprint(tasks_bp)
     print("  ✅ Tasks blueprint registered")
+    app.register_blueprint(images_bp)
+    print("  ✅ Images blueprint registered")
 
     print("🎉 Flask app creation complete!")
     # Error handler for JWT errors

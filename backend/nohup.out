@@ -15,6 +15,7 @@
   ✅ Links blueprint registered
   ✅ Stakeholders blueprint registered
   ✅ Tasks blueprint registered
+  ✅ Images blueprint registered
 🎉 Flask app creation complete!
 ✅ App instance created successfully!
  * Serving Flask app 'backend.app'
@@ -22,55 +23,32 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.3.238:5050
+ * Running on http://10.0.3.147:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [06/Aug/2025 16:04:22] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:04:45] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:04:45] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:32] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:32] "GET /api/collections/stats HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:36] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:36] "GET /api/topics HTTP/1.1" 200 -
-🔍 Request from origin: None - Response: 200
-🔍 Request from origin: None - Response: 200
-🔍 Request from origin: None - Response: 200
-🔄 Collections GET request received
-✅ Returning 4 collections
-🔍 Request from origin: None - Response: 200
-📊 Collections stats: {'total': 11, 'active': 11, 'totalTopics': 32, 'newThisWeek': 0, 'avgTopics': 3, 'rootCollections': 4, 'debug': {'all_collections_count': 11, 'root_collections_count': 4, 'topics_per_collection': [('Survey Methodology', 5), ('Demographics & Population', 4), ('Economic Statistics', 7), ('Sampling Techniques', 1), ('Data Collection Methods', 2), ('Quality Control', 1), ('Census Data Analysis', 1), ('Population Estimates', 1), ('Employment Statistics', 1), ('Income & Poverty', 1), ('Test Collection 1', 8)]}}
-🔍 Request from origin: None - Response: 200
-🔄 Collections GET request received
-✅ Returning 4 collections
-🔍 Request from origin: None - Response: 200
-🔍 Request from origin: None - Response: 200
-🔄 Updating collections with payload: [{'children': [], 'id': 11, 'name': 'Test Collection 1', 'parentId': None, 'position': 0, 'projectId': None, 'topics': [{'children': [{'children': [{'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}, {'children': [], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}], 'id': 7, 'title': 'Income Distribution Analysis Methods'}, {'children': [{'children': [], 'id': 13, 'title': 'Test Topic 1'}], 'id': 11, 'title': 'Test Frontmatter Topic'}, {'children': [{'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}], 'topics_count': 8}, {'children': [{'children': [], 'id': 4, 'name': 'Sampling Techniques', 'parentId': 1, 'position': 1, 'projectId': None, 'topics': [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}], 'topics_count': 1}, {'children': [], 'id': 5, 'name': 'Data Collection Methods', 'parentId': 1, 'position': 2, 'projectId': None, 'topics': [{'children': [], 'id': 2, 'title': 'Computer-Assisted Personal Interviewing (CAPI) Best Practices'}, {'children': [], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}], 'topics_count': 2}, {'children': [], 'id': 6, 'name': 'Quality Control', 'parentId': 1, 'position': 3, 'projectId': None, 'topics': [{'children': [], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}], 'topics_count': 1}], 'id': 1, 'name': 'Survey Methodology', 'parentId': None, 'position': 1, 'projectId': None, 'topics': [{'children': [{'children': [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}], 'id': 11, 'title': 'Test Frontmatter Topic'}], 'id': 13, 'title': 'Test Topic 1'}, {'children': [], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}, {'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}], 'topics_count': 5}, {'children': [{'children': [], 'id': 7, 'name': 'Census Data Analysis', 'parentId': 2, 'position': 1, 'projectId': None, 'topics': [{'children': [], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}], 'topics_count': 1}, {'children': [], 'id': 8, 'name': 'Population Estimates', 'parentId': 2, 'position': 2, 'projectId': None, 'topics': [{'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}], 'topics_count': 1}], 'id': 2, 'name': 'Demographics & Population', 'parentId': None, 'position': 2, 'projectId': None, 'topics': [{'children': [{'children': [], 'id': 2, 'title': 'Computer-Assisted Personal Interviewing (CAPI) Best Practices'}, {'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}, {'children': [], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}], 'topics_count': 4}, {'children': [{'children': [], 'id': 9, 'name': 'Employment Statistics', 'parentId': 3, 'position': 1, 'projectId': None, 'topics': [{'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}], 'topics_count': 1}, {'children': [], 'id': 10, 'name': 'Income & Poverty', 'parentId': 3, 'position': 2, 'projectId': None, 'topics': [{'children': [], 'id': 7, 'title': 'Income Distribution Analysis Methods'}], 'topics_count': 1}], 'id': 3, 'name': 'Economic Statistics', 'parentId': None, 'position': 3, 'projectId': None, 'topics': [{'children': [{'children': [{'children': [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}], 'id': 13, 'title': 'Test Topic 1'}], 'id': 9, 'title': 'Test topic 1'}], 'id': 12, 'title': 'New Topic'}, {'children': [{'children': [{'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}], 'topics_count': 7}]
-📋 Updating topics for collection 11: [{'children': [{'children': [{'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}, {'children': [], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}], 'id': 7, 'title': 'Income Distribution Analysis Methods'}, {'children': [{'children': [], 'id': 13, 'title': 'Test Topic 1'}], 'id': 11, 'title': 'Test Frontmatter Topic'}, {'children': [{'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}]
-➕ Adding topic 7 to collection 11 at position 0, parent: None
-➕ Adding topic 8 to collection 11 at position 0, parent: 7
-➕ Adding topic 5 to collection 11 at position 0, parent: 8
-➕ Adding topic 4 to collection 11 at position 1, parent: 8
-➕ Adding topic 11 to collection 11 at position 1, parent: None
-➕ Adding topic 13 to collection 11 at position 0, parent: 11
-➕ Adding topic 1 to collection 11 at position 2, parent: None
-➕ Adding topic 6 to collection 11 at position 0, parent: 1
-📋 Updating topics for collection 1: [{'children': [{'children': [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}], 'id': 11, 'title': 'Test Frontmatter Topic'}], 'id': 13, 'title': 'Test Topic 1'}, {'children': [], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}, {'children': [], 'id': 6, 'title': 'Labor Force Participation Rate Calculation'}]
-➕ Adding topic 13 to collection 1 at position 0, parent: None
-➕ Adding topic 11 to collection 1 at position 0, parent: 13
-➕ Adding topic 1 to collection 1 at position 0, parent: 11
-➕ Adding topic 3 to collection 1 at position 1, parent: None
-➕ Adding topic 6 to collection 1 at position 2, parent: None
-📋 Updating topics for collection 4: [{'children': [], 'id': 1, 'title': 'Random Sampling Methodology for Large Scale Surveys'}]
-➕ Adding topic 1 to collection 4 at position 0, parent: None
-📋 Updating topics for collection 5: [{'children': [], 'id': 2, 'title': 'Computer-Assisted Personal Interviewing (CAPI) Best Practices'}, {'children': [], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}]
-➕ Adding topic 2 to collection 5 at position 0, parent: None
-➕ Adding topic 8 to collection 5 at position 1, parent: None
-📋 Updating topics for collection 6: [{'children': [], 'id': 4, 'title': 'Quality Control Procedures for Survey Data'}]
-➕ Adding topic 4 to collection 6 at position 0, parent: None
-📋 Updating topics for collection 2: [{'children': [{'children': [], 'id': 2, 'title': 'Computer-Assisted Personal Interviewing (CAPI) Best Practices'}, {'children': [], 'id': 5, 'title': 'Population Estimation Methodology'}], 'id': 3, 'title': 'Statistical Disclosure Control in Census Publications'}, {'children': [], 'id': 8, 'title': 'Legacy Survey Processing Methods (Archived)'}]
-➕ Adding topic 3 to collection 2 at position 0, parent: None
-➕ Adding topic 2 to collection 2 at position 0, parent: 3
-127.0.0.1 - - [06/Aug/2025 16:09:40] "PUT /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:42] "POST /api/collections/11/publish HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:42] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:09:44] "GET /api/publications/3/export/pdf HTTP/1.1" 200 -
-127.0.0.1 - - [06/Aug/2025 16:10:23] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:12] "HEAD /static/images/20221123_103925_67b62cfd.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:39] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:39] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:39] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:41] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:41] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:41] "GET /api/reviews/reviewers HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:43] "GET /api/topics/13 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:37:47] "GET /static/images/20221123_103925_67b62cfd.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:38:36] "[35m[1mPOST /api/images/upload HTTP/1.1[0m" 201 -
+127.0.0.1 - - [07/Aug/2025 01:39:25] "[33mGET /staticimages/20221123_103925_3d1abb7c.jpg HTTP/1.1[0m" 404 -
+127.0.0.1 - - [07/Aug/2025 01:39:25] "GET /static/images/20221123_103925_3d1abb7c.jpg HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:39:35] "PUT /api/topics/13 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:04] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:04] "GET /api/topics/13 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:11] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:11] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:17] "GET /api/reviews/reviewers HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:17] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:17] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:22] "GET /api/topics/13 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 01:51:25] "[36mGET /static/images/20221123_103925_3d1abb7c.jpg HTTP/1.1[0m" 304 -
+127.0.0.1 - - [07/Aug/2025 02:01:22] "PUT /api/topics/13 HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 02:01:30] "GET /api/topics/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 02:01:30] "GET /api/reviews/reviewers HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 02:01:30] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [07/Aug/2025 02:01:32] "GET /api/topics/13 HTTP/1.1" 200 -

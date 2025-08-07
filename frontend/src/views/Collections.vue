@@ -7,9 +7,27 @@
       Create a new collection (document) by typing the name in the Collection name box, and then selecting Add Collection. Existing collections appear below.
     </p>
     
-    <form @submit.prevent="createCollection">
-      <input v-model="newCollectionName" placeholder="Collection name" required />
-      <button type="submit">Add Collection</button>
+    <form @submit.prevent="createCollection" class="create-collection-form">
+      <div class="form-row">
+        <input 
+          v-model="newCollection.name" 
+          placeholder="Collection name" 
+          required 
+          class="form-input"
+        />
+        <input 
+          v-model="newCollection.form_number" 
+          placeholder="Collection ID (e.g., FORM-001)" 
+          required 
+          pattern="^[A-Za-z0-9\-_]+$"
+          title="Only letters, numbers, hyphens, and underscores are allowed"
+          class="form-input"
+        />
+        <button type="submit" class="form-button">Add Collection</button>
+      </div>
+      <small class="form-help">
+        Collection ID is a unique alphanumeric identifier for this document (e.g., FORM-001, DOC-ABC-123)
+      </small>
     </form>
   
     <p style="margin-top: 20px; margin-bottom: 10px; font-weight: 500;">Select a collection to organize:</p>
@@ -43,7 +61,10 @@ export default {
   data() {
     return {
       collections: [],
-      newCollectionName: ''
+      newCollection: {
+        name: '',
+        form_number: ''
+      }
     }
   },
   async created() {
@@ -59,11 +80,18 @@ export default {
       const res = await fetch('/api/collections', {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ name: this.newCollectionName })
+        body: JSON.stringify({ 
+          name: this.newCollection.name,
+          form_number: this.newCollection.form_number
+        })
       });
       if (res.ok) {
         this.collections = await getCollections();
-        this.newCollectionName = '';
+        this.newCollection.name = '';
+        this.newCollection.form_number = '';
+      } else {
+        const error = await res.json();
+        alert(`Error: ${error.error || 'Failed to create collection'}`);
       }
     }
   }
@@ -83,5 +111,52 @@ export default {
   color: #495057;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+.create-collection-form {
+  margin-bottom: 2rem;
+}
+
+.form-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: flex-start;
+}
+
+.form-input {
+  flex: 1;
+  padding: 0.75rem;
+  border: 1px solid #ddd;
+  border-radius: 4px;
+  font-size: 1rem;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #007acc;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
+}
+
+.form-button {
+  padding: 0.75rem 1.5rem;
+  background: #007acc;
+  color: white;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  white-space: nowrap;
+}
+
+.form-button:hover {
+  background: #005a9c;
+}
+
+.form-help {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.5rem;
+  line-height: 1.4;
 }
 </style>

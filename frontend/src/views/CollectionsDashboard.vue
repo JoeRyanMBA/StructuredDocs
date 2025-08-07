@@ -85,6 +85,7 @@
       <!-- Recent Collections -->
       <div class="dashboard-section">
         <h2>Recent Collections</h2>
+        <p class="section-guidance">Select a collection to open the Organize page for that collection.</p>
         <div class="collections-list">
           <div v-if="recentCollections.length === 0" class="empty-state">
             <p>No collections yet. Create your first collection to get started!</p>
@@ -186,6 +187,22 @@
               required
               placeholder="Enter collection name"
             />
+          </div>
+          
+          <div class="form-group">
+            <label for="collectionFormNumber">Collection ID (Form Number) *</label>
+            <input
+              id="collectionFormNumber"
+              v-model="newCollection.form_number"
+              type="text"
+              required
+              placeholder="e.g., FORM-001, DOC-ABC-123"
+              pattern="^[A-Za-z0-9\-_]+$"
+              title="Only letters, numbers, hyphens, and underscores are allowed"
+            />
+            <small class="form-help">
+              Unique alphanumeric identifier for this collection (e.g., FORM-001, DOC-ABC-123)
+            </small>
           </div>
           
           <div class="form-group">
@@ -443,6 +460,7 @@ export default {
         // Create collection data for API
         const collectionData = {
           name: this.newCollection.name,
+          form_number: this.newCollection.form_number,
           description: this.newCollection.description,
           status: this.newCollection.status,
           projectId: this.newCollection.projectId
@@ -499,6 +517,7 @@ export default {
     resetNewCollection() {
       this.newCollection = {
         name: '',
+        form_number: '',
         description: '',
         status: 'active',
         projectId: null
@@ -510,7 +529,7 @@ export default {
     },
 
     editCollection(collection) {
-      this.$router.push(`/collections/${collection.id}/edit`)
+      this.$router.push(`/organize/${collection.id}?edit=true`)
     },
 
     navigateTo(path) {
@@ -645,6 +664,14 @@ export default {
   font-weight: 600;
   border-bottom: 2px solid #f8f9fa;
   padding-bottom: 0.5rem;
+}
+
+.section-guidance {
+  margin: -1rem 0 1.5rem 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* Action Buttons */
@@ -1028,6 +1055,14 @@ export default {
   outline: none;
   border-color: #005a9c;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
+}
+
+.form-help {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  line-height: 1.4;
 }
 
 .modal-actions {

@@ -1,15 +1,85 @@
-from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response
+from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response, current_app
 from models import db, Publication, PublicationNode, Topic
 import re
+import os
+import base64
+import mimetypes
 from datetime import datetime
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY
+from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
+from reportlab.platypus.frames import Frame
+from reportlab.pdfgen import canvas
 import io
+import os
 from pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
+
+
+class BackgroundImageDocTemplate(BaseDocTemplate):
+    """Custom document template that supports background images on specific pages"""
+    
+    def __init__(self, filename, background_image_path=None, **kwargs):
+        BaseDocTemplate.__init__(self, filename, **kwargs)
+        self.background_image_path = background_image_path
+        
+        # Create frame for content (same as SimpleDocTemplate)
+        frame = Frame(
+            self.leftMargin, self.bottomMargin,
+            self.width, self.height,
+            id='normal'
+        )
+        
+        # Create page templates
+        title_template = PageTemplate(
+            id='title_page',
+            frames=[frame],
+            onPage=self.add_title_background
+        )
+        
+        normal_template = PageTemplate(
+            id='normal_page', 
+            frames=[frame],
+            onPage=self.add_normal_background
+        )
+        
+        self.addPageTemplates([title_template, normal_template])
+    
+    def add_title_background(self, canvas, doc):
+        """Add background image to title page"""
+        if self.background_image_path and os.path.exists(self.background_image_path):
+            try:
+                # Save canvas state
+                canvas.saveState()
+                
+                # Get page dimensions
+                page_width, page_height = self.pagesize
+                
+                # Draw background image covering the entire page
+                canvas.drawImage(
+                    self.background_image_path,
+                    0, 0,  # Position at bottom-left corner
+                    width=page_width,
+                    height=page_height,
+                    preserveAspectRatio=True,
+                    mask='auto'  # Handle transparency if present
+                )
+                
+                # Optional: Add a semi-transparent overlay to improve text readability
+                canvas.setFillColorRGB(1, 1, 1, alpha=0.7)  # White overlay with 70% opacity
+                canvas.rect(0, 0, page_width, page_height, fill=1, stroke=0)
+                
+                # Restore canvas state
+                canvas.restoreState()
+            except Exception as e:
+                print(f"Warning: Could not add background image: {e}")
+    
+    def add_normal_background(self, canvas, doc):
+        """Normal pages without background image"""
+        pass
 
 
 # Pass strict_slashes here so both /api/publications and /api/publications/ match
@@ -681,16 +751,31 @@ def generate_mobile_kb_html_inline(publication, tree):
 
 @pubs_bp.route('/<int:pub_id>/export/pdf', methods=['GET'])
 def export_pdf(pub_id):
-    """Export publication as PDF with optional formatting configuration"""
+    """Export publication as PDF with optional formatting configuration and background image"""
     pub = Publication.query.get_or_404(pub_id)
     
     try:
         # Get format configuration from query parameter
         config_type = request.args.get('format', 'default')
         
+        # Get optional background image path from query parameter
+        background_image = request.args.get('background_image')
+        background_image_path = None
+        
+        if background_image:
+            # Build path to background image (assumes images are in a backgrounds folder)
+            backgrounds_dir = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds')
+            background_image_path = os.path.join(backgrounds_dir, background_image)
+            
+            # Security check: ensure the file exists and is an image
+            if not (os.path.exists(background_image_path) and 
+                   background_image.lower().endswith(('.png', '.jpg', '.jpeg', '.gif', '.bmp'))):
+                background_image_path = None
+        
         # Validate config type
-        valid_configs = ['default', 'corporate', 'academic', 'compact']
+        valid_configs = ['default', 'corporate', 'academic', 'compact', 'organization']
         if config_type not in valid_configs:
+            config_type = 'default'
             config_type = 'default'
         
         # Build the hierarchical structure
@@ -710,8 +795,8 @@ def export_pdf(pub_id):
         tree = sorted([serialize_node(n) for n in top_nodes],
                       key=lambda x: x['position'])
         
-        # Generate PDF with specified configuration
-        pdf_buffer = generate_pdf(pub, tree, config_type)
+        # Generate PDF with specified configuration and optional background image
+        pdf_buffer = generate_pdf(pub, tree, config_type, background_image_path)
         
         response = make_response(pdf_buffer.getvalue())
         response.headers['Content-Type'] = 'application/pdf'
@@ -759,8 +844,8 @@ def export_pdf(pub_id):
         response.headers['Content-Type'] = 'text/html; charset=utf-8'
         return response
 
-def generate_pdf(publication, tree, config_type='default'):
-    """Generate PDF document from publication tree with configurable formatting"""
+def generate_pdf(publication, tree, config_type='default', background_image_path=None):
+    """Generate PDF document from publication tree with configurable formatting and optional background image"""
     buffer = io.BytesIO()
     
     # Select configuration based on type
@@ -775,15 +860,27 @@ def generate_pdf(publication, tree, config_type='default'):
     else:
         config = PDFConfig
     
-    # Create PDF document with configurable layout
-    doc = SimpleDocTemplate(
-        buffer,
-        pagesize=config.PAGE_SIZE,
-        rightMargin=config.MARGINS['right'],
-        leftMargin=config.MARGINS['left'],
-        topMargin=config.MARGINS['top'],
-        bottomMargin=config.MARGINS['bottom']
-    )
+    # Create PDF document with background image support
+    if background_image_path and os.path.exists(background_image_path):
+        doc = BackgroundImageDocTemplate(
+            buffer,
+            background_image_path=background_image_path,
+            pagesize=config.PAGE_SIZE,
+            rightMargin=config.MARGINS['right'],
+            leftMargin=config.MARGINS['left'],
+            topMargin=config.MARGINS['top'],
+            bottomMargin=config.MARGINS['bottom']
+        )
+    else:
+        # Fallback to regular SimpleDocTemplate if no background image
+        doc = SimpleDocTemplate(
+            buffer,
+            pagesize=config.PAGE_SIZE,
+            rightMargin=config.MARGINS['right'],
+            leftMargin=config.MARGINS['left'],
+            topMargin=config.MARGINS['top'],
+            bottomMargin=config.MARGINS['bottom']
+        )
     
     # Build content
     story = []
@@ -793,13 +890,36 @@ def generate_pdf(publication, tree, config_type='default'):
     title_style = config.create_title_style(base_styles)
     subtitle_style = config.create_subtitle_style(base_styles)
     
-    # Title page
-    story.append(Paragraph(publication.title, title_style))
-    if publication.description:
-        story.append(Paragraph(publication.description, subtitle_style))
+    # Title page content
+    if hasattr(doc, 'background_image_path') and doc.background_image_path:
+        # For background image docs, make text more prominent
+        enhanced_title_style = ParagraphStyle(
+            'EnhancedTitle',
+            parent=title_style,
+            textColor=colors.black,  # Ensure text is visible over background
+            fontSize=title_style.fontSize + 4,  # Make title larger
+            leading=title_style.fontSize + 8,
+        )
+        enhanced_subtitle_style = ParagraphStyle(
+            'EnhancedSubtitle',
+            parent=subtitle_style,
+            textColor=colors.black,  # Ensure text is visible
+            fontSize=subtitle_style.fontSize + 2,
+        )
+        story.append(Paragraph(publication.title, enhanced_title_style))
+        if publication.description:
+            story.append(Paragraph(publication.description, enhanced_subtitle_style))
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", enhanced_subtitle_style))
+    else:
+        # Regular title page without background
+        story.append(Paragraph(publication.title, title_style))
+        if publication.description:
+            story.append(Paragraph(publication.description, subtitle_style))
+        story.append(Spacer(1, 20))
+        story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", subtitle_style))
     
-    story.append(Spacer(1, 20))
-    story.append(Paragraph(f"Generated on: {datetime.now().strftime('%B %d, %Y')}", subtitle_style))
+    # Page break to TOC (switches to normal page template)
     story.append(PageBreak())
     
     # Table of contents
@@ -808,13 +928,13 @@ def generate_pdf(publication, tree, config_type='default'):
     total_margins = config.MARGINS['left'] + config.MARGINS['right']
     usable_width = page_width - total_margins
     
-    # Try using a Paragraph with forced positioning to overcome any built-in indentation
+    # Create TOC heading aligned exactly to the 1-inch margin (same as TOC entries)
     toc_heading_style = ParagraphStyle(
-        'ForcedTOCHeading',
+        'TOCHeading',
         fontName=config.FONTS['heading'],
         fontSize=config.FONT_SIZES['h1'],
         textColor=config.COLORS['heading'],
-        leftIndent=-18,  # Negative indent to force alignment past any built-in margins
+        leftIndent=-6,  # Compensate for ReportLab's apparent 6pt default offset
         rightIndent=0,
         firstLineIndent=0,
         spaceBefore=0,
@@ -844,10 +964,10 @@ def generate_pdf(publication, tree, config_type='default'):
             font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
             
             if level == 0:
-                # Level 0: Simple title and page number, bold styling, forced alignment
+                # Level 0: Simple title and page number, bold styling, aligned to 1-inch margin
                 toc_data = [[title_text, str(page_num)]]
                 
-                # Create table with EXACT same width for all levels
+                # Create table with proper margin alignment
                 toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
                 toc_table.setStyle(TableStyle([
                     ('FONTNAME', (0, 0), (0, 0), config.FONTS['heading']),
@@ -859,42 +979,34 @@ def generate_pdf(publication, tree, config_type='default'):
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), -18),  # Same negative padding as heading
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # No padding - align to document margin
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 
             else:
-                # Nested levels: Clean indented entries without dotted leaders
+                # Nested levels: Clean indented entries with consistent right alignment
                 indent_width = level * config.INDENTS['toc_per_level']
                 
-                # Calculate right-side indentation for visual hierarchy
-                # Level 2 gets 20pt right indent, Level 3+ gets 40pt right indent
-                right_indent = 20 if level == 1 else 40 if level >= 2 else 0
-                
-                # Create simple indented title without dots
+                # Create indented title using spaces
                 spaces_for_indent = " " * int(indent_width / 4)  # Space-based left indentation
                 clean_title = f"{spaces_for_indent}{title_text}"
                 
-                # Adjust column widths to account for right indentation
-                adjusted_title_width = title_width - right_indent
-                adjusted_page_width = page_num_width + right_indent
-                
                 toc_data = [[clean_title, str(page_num)]]
                 
-                # Create table with adjusted widths for proper right indentation
-                toc_table = Table(toc_data, colWidths=[adjusted_title_width, adjusted_page_width])
+                # Use SAME column widths as level 0 to ensure page numbers align to right margin
+                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
                 toc_table.setStyle(TableStyle([
                     ('FONTNAME', (0, 0), (0, 0), config.FONTS['body']),
                     ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
                     ('FONTSIZE', (0, 0), (-1, -1), font_size),
                     ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['text']),
                     ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Page numbers right-aligned
+                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Page numbers right-aligned to same position as level 0
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), -18),  # Same base alignment as level 0
-                    ('RIGHTPADDING', (1, 0), (1, 0), right_indent),  # Right indentation for hierarchy
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # No padding - maintain document margin alignment
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),  # No extra right padding to maintain alignment
                 ]))
             
             story.append(toc_table)
@@ -1045,6 +1157,37 @@ def convert_markdown_to_pdf_paragraphs(text):
     
     return [p for p in paragraphs if p.strip()]
 
+def convert_image_to_base64(image_src):
+    """Convert image path to base64 data URL for standalone HTML"""
+    try:
+        # Handle both /images/ paths and direct paths
+        if image_src.startswith('/images/'):
+            image_path = image_src[8:]  # Remove /images/ prefix
+        else:
+            image_path = image_src
+            
+        # Build full path to image file
+        static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
+        full_image_path = os.path.join(static_images_dir, image_path)
+        
+        if os.path.exists(full_image_path):
+            # Get mime type
+            mime_type, _ = mimetypes.guess_type(full_image_path)
+            if not mime_type:
+                mime_type = 'image/jpeg'  # Default fallback
+                
+            # Read and encode image
+            with open(full_image_path, 'rb') as image_file:
+                image_data = base64.b64encode(image_file.read()).decode('utf-8')
+                return f"data:{mime_type};base64,{image_data}"
+        else:
+            print(f"Warning: Image not found at {full_image_path}")
+            return image_src  # Return original if file not found
+            
+    except Exception as e:
+        print(f"Error converting image {image_src} to base64: {str(e)}")
+        return image_src  # Return original on error
+
 def convert_markdown_to_html(markdown_text):
     """Basic markdown to HTML conversion for mobile display"""
     if not markdown_text:
@@ -1063,6 +1206,23 @@ def convert_markdown_to_html(markdown_text):
     
     # Code
     html = re.sub(r'`(.*?)`', r'<code>\1</code>', html)
+    
+    # Images - handle both markdown format and direct HTML img tags, convert to base64
+    def replace_markdown_image(match):
+        alt_text = match.group(1)
+        image_src = match.group(2)
+        base64_src = convert_image_to_base64(image_src)
+        return f'<img src="{base64_src}" alt="{alt_text}" class="mobile-kb-image">'
+    
+    def replace_html_image(match):
+        pre_attrs = match.group(1)
+        image_src = match.group(2)
+        post_attrs = match.group(3)
+        base64_src = convert_image_to_base64(image_src)
+        return f'<img{pre_attrs}src="{base64_src}"{post_attrs} class="mobile-kb-image">'
+    
+    html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_markdown_image, html)
+    html = re.sub(r'<img([^>]*?)src="([^"]*)"([^>]*?)>', replace_html_image, html)
     
     # Links
     html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', html)
@@ -1089,7 +1249,11 @@ def convert_markdown_to_html(markdown_text):
                 result_lines.append('</ul>' if result_lines[-2].startswith('<li>') else '</ol>')
                 in_list = False
             if stripped:
-                result_lines.append(f'<p>{stripped}</p>')
+                # Don't wrap images in paragraphs
+                if stripped.startswith('<img') or '<img' in stripped:
+                    result_lines.append(stripped)
+                else:
+                    result_lines.append(f'<p>{stripped}</p>')
             else:
                 result_lines.append('<br>')
     

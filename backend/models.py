@@ -53,6 +53,7 @@ class Collection(db.Model):
 
     id        = db.Column(db.Integer, primary_key=True)
     name      = db.Column(db.String(200), nullable=False)
+    form_number = db.Column(db.String(100), nullable=False, unique=True)  # Collection ID (Form Number)
     parent_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
     position  = db.Column(db.Integer, nullable=False, default=0)
@@ -91,6 +92,7 @@ class Collection(db.Model):
         data = {
             'id': self.id,
             'name': self.name,
+            'form_number': self.form_number,
             'position': self.position,
             'parentId': self.parent_id,
             'projectId': self.project_id,
