@@ -31,23 +31,36 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
         self.toc_start_page = 2  # TOC starts at page 2 (roman numerals)
         self.content_start_page = 1  # Content pages start after TOC
         
-        # Reserve space for header and footer
-        header_space = 0.8 * inch
-        footer_space = 1.2 * inch  # More space for two-row footer
-        content_height = self.height - header_space - footer_space
-        content_bottom = self.bottomMargin + footer_space
+        # Position content much closer to header
+        content_top_margin = 0.005 * inch  # Ultra-minimal top margin - reduced by ~24pts
+        footer_space = 0.8 * inch  # Balanced footer space to prevent overlap without excessive gap
+        content_height = self.height - content_top_margin - footer_space
+        # Calculate Y position from bottom to position content from top
+        content_y_from_bottom = self.bottomMargin + footer_space
         
         # Create frame for content with header and footer space reserved
         frame = Frame(
-            self.leftMargin, content_bottom,
+            self.leftMargin, content_y_from_bottom,
             self.width, content_height,
             id='normal'
         )
         
+        # Create separate frame for title page with standard spacing
+        title_content_top = 0.05 * inch  # Normal spacing for title page
+        title_footer_space = 1.1 * inch  # Normal footer space for title page
+        title_content_height = self.height - title_content_top - title_footer_space
+        title_content_y = self.bottomMargin + title_footer_space
+        
+        title_frame = Frame(
+            self.leftMargin, title_content_y,
+            self.width, title_content_height,
+            id='title'
+        )
+
         # Create page templates
         title_template = PageTemplate(
             id='title_page',
-            frames=[frame],
+            frames=[title_frame],
             onPage=self.add_title_page_with_footer
         )
         
@@ -128,10 +141,10 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.setFont("Helvetica", 10)
             
             # Footer text positioning - move up one row to align better with visual top of logo
-            footer_text_y = logo_y + logo_height - 12  # Move down one row to align better with visual top of logo
+            footer_text_y = logo_y + logo_height - 32  # Move text down about 14 more points
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
-            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
             form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
@@ -156,15 +169,15 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
             logo_x = self.leftMargin  # Align with left margin
-            logo_y = 0.25 * inch  # Position 0.25" from bottom edge
+            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
-            
+            footer_text_y = logo_y + logo_height - 24  # Match standard page positioning 
+
             # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 12  # Position line 12pt above text
+            line_y = footer_text_y + 18  # Position line 18pt above text for more space   
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
@@ -186,16 +199,16 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
             
-            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
-            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
-            form_text = f"Form: {form_number}"
+            # Removed form_number, using revision date instead
+            revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
             right_margin_x = page_width - self.rightMargin
-            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - text_width, footer_text_y, form_text)
+            text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
             
             # Bottom row: Page number in roman numerals (starts at ii) - right-aligned
             roman_page = self.int_to_roman(doc.page)
@@ -215,15 +228,15 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
             logo_x = self.leftMargin  # Align with left margin
-            logo_y = 0.25 * inch  # Position 0.25" from bottom edge
+            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
             # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 12  # Position line 12pt above text
+            line_y = footer_text_y + 18  # Position line 18pt above text for more space
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
@@ -248,16 +261,16 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.setFont("Helvetica", 9)
             
             # Footer text positioning - below the horizontal line
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
-            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
-            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
-            form_text = f"Form: {form_number}"
+            # Removed form_number, using revision date instead
+            revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
             right_margin_x = page_width - self.rightMargin
-            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - text_width, footer_text_y, form_text)
+            text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
             
             # Bottom row: Page number in Arabic numerals - right-aligned
             page_text = f"Page {doc.page}"
@@ -331,23 +344,36 @@ class HeaderDocTemplate(BaseDocTemplate):
         self.toc_start_page = 2  # TOC starts at page 2 (roman numerals)
         self.content_start_page = 1  # Content pages start after TOC
         
-        # Reserve space for header and footer
-        header_space = 0.8 * inch
-        footer_space = 1.2 * inch  # More space for two-row footer
-        content_height = self.height - header_space - footer_space
-        content_bottom = self.bottomMargin + footer_space
+        # Position content much closer to header
+        content_top_margin = 0.005 * inch  # Ultra-minimal top margin - reduced by ~24pts
+        footer_space = 0.8 * inch  # Balanced footer space to prevent overlap without excessive gap
+        content_height = self.height - content_top_margin - footer_space
+        # Calculate Y position from bottom to position content from top
+        content_y_from_bottom = self.bottomMargin + footer_space
         
         # Create frame for content with header and footer space reserved
         frame = Frame(
-            self.leftMargin, content_bottom,
+            self.leftMargin, content_y_from_bottom,
             self.width, content_height,
             id='normal'
         )
         
+        # Create separate frame for title page with standard spacing
+        title_content_top = 0.05 * inch  # Normal spacing for title page
+        title_footer_space = 1.1 * inch  # Normal footer space for title page
+        title_content_height = self.height - title_content_top - title_footer_space
+        title_content_y = self.bottomMargin + title_footer_space
+        
+        title_frame = Frame(
+            self.leftMargin, title_content_y,
+            self.width, title_content_height,
+            id='title'
+        )
+
         # Create page templates
         title_template = PageTemplate(
             id='title_page',
-            frames=[frame],
+            frames=[title_frame],
             onPage=self.add_title_page_with_footer
         )
         
@@ -407,13 +433,13 @@ class HeaderDocTemplate(BaseDocTemplate):
                     print("Warning: Could not load title page logo")
             
             # Set font for footer text
-            canvas.setFont("Helvetica", 10)
+            canvas.setFont("Helvetica", 9)
             
             # Footer text positioning - move up one row to align better with visual top of logo
-            footer_text_y = logo_y + logo_height - 12  # Move down one row to align better with visual top of logo
+            footer_text_y = logo_y + logo_height - 26  # Move text down about 14 more points
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
-            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
             form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
@@ -437,15 +463,15 @@ class HeaderDocTemplate(BaseDocTemplate):
             page_width, page_height = self.pagesize
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
             logo_x = self.leftMargin  # Align with left margin
-            logo_y = 0.25 * inch  # Position 0.25" from bottom edge
+            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height  # Align with top of logo
             
             # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 12  # Position line 12pt above text
+            line_y = footer_text_y + 18  # Position line 18pt above text for more space
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
@@ -471,16 +497,16 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.setFont("Helvetica", 9)
             
             # Footer text positioning - below the horizontal line
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
             
-            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
-            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
-            form_text = f"Form: {form_number}"
+            # Removed form_number, using revision date instead
+            revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
             right_margin_x = page_width - self.rightMargin
-            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - text_width, footer_text_y, form_text)
+            text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
             
             # Bottom row: Page number in roman numerals (starts at ii) - right-aligned
             roman_page = self.int_to_roman(doc.page)
@@ -499,15 +525,15 @@ class HeaderDocTemplate(BaseDocTemplate):
             page_width, page_height = self.pagesize
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
             logo_x = self.leftMargin  # Align with left margin
-            logo_y = 0.25 * inch  # Position 0.25" from bottom edge
+            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
             # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 12  # Position line 12pt above text
+            line_y = footer_text_y + 18  # Position line 18pt above text for more space
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
@@ -533,16 +559,16 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.setFont("Helvetica", 9)
             
             # Footer text positioning - below the horizontal line
-            footer_text_y = logo_y + logo_height + 36  # Move down 0.5" and align with top of logo
+            footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
-            # Top row: "U.S. Census Bureau" (centered) and form number (right)
+            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
-            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
-            form_text = f"Form: {form_number}"
+            # Removed form_number, using revision date instead
+            revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
             right_margin_x = page_width - self.rightMargin
-            text_width = canvas.stringWidth(form_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - text_width, footer_text_y, form_text)
+            text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
+            canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
             
             # Bottom row: Page number in Arabic numerals - right-aligned
             page_text = f"Page {doc.page}"
@@ -1436,7 +1462,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     subtitle_style = config.create_subtitle_style(base_styles)
     
     # Title page content - move title down about 1" and align to right margin
-    story.append(Spacer(1, 72))  # Move down ~1" (72pt)
+    story.append(Spacer(1, 84))  # Move down ~1" (72pt)
     
     if hasattr(doc, 'background_image_path') and doc.background_image_path:
         # For background image docs, use white text for visibility on blue background
@@ -1448,16 +1474,16 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             leading=title_style.fontSize + 8,
             alignment=TA_RIGHT,  # Right-align title
             leftIndent=0,  # No left indent for full right alignment
-            rightIndent=0.5 * inch,  # Align to 0.5" right margin
+            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
         )
         enhanced_subtitle_style = ParagraphStyle(
             'EnhancedSubtitle',
             parent=subtitle_style,
             textColor=colors.white,  # White text for visibility on blue background
-            fontSize=subtitle_style.fontSize + 2,
+            fontSize=subtitle_style.fontSize + 3,
             alignment=TA_RIGHT,  # Right-align subtitle
             leftIndent=0,  # No left indent for full right alignment
-            rightIndent=0.5 * inch,  # Align to 0.5" right margin
+            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
         )
         story.append(Paragraph(publication.title, enhanced_title_style))
         if publication.description:
@@ -1469,14 +1495,14 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             parent=title_style,
             alignment=TA_RIGHT,  # Right-align title
             leftIndent=0,  # No left indent for full right alignment
-            rightIndent=0.5 * inch,  # Align to 0.5" right margin
+            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
         )
         enhanced_subtitle_style = ParagraphStyle(
             'EnhancedSubtitle',
             parent=subtitle_style,
             alignment=TA_RIGHT,  # Right-align subtitle
             leftIndent=0,  # No left indent for full right alignment
-            rightIndent=0.5 * inch,  # Align to 0.5" right margin
+            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
         )
         story.append(Paragraph(publication.title, enhanced_title_style))
         if publication.description:

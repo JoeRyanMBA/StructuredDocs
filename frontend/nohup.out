@@ -3,19 +3,19 @@
 > vite
 
 
-  VITE v7.0.6  ready in 459 ms
+  VITE v7.0.6  ready in 544 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://10.0.0.233:5173/
+  ➜  Network: http://10.0.0.104:5173/
 Sending Request to the Target: GET /api/notifications
-Sending Request to the Target: GET /api/projects/
 Sending Request to the Target: GET /api/import/history
+Sending Request to the Target: GET /api/projects/
 Received Response from the Target: 200 /api/projects/
 Received Response from the Target: 200 /api/notifications
 Received Response from the Target: 200 /api/import/history
-Sending Request to the Target: GET /api/collections
 Sending Request to the Target: GET /api/collections/stats
 Received Response from the Target: 200 /api/collections/stats
+Sending Request to the Target: GET /api/collections
 Received Response from the Target: 200 /api/collections
 Sending Request to the Target: GET /api/collections
 Received Response from the Target: 200 /api/collections

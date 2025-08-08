@@ -69,7 +69,7 @@ class PDFConfig:
     
     FONT_SIZES = {
         'title': 24,
-        'subtitle': 12,
+        'subtitle': 16,
         'h1': 18,
         'h2': 15,
         'h3': 13,

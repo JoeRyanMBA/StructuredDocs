@@ -434,6 +434,8 @@ export default {
 
 .current-collection .node {
   border: 2px solid #007acc;
+  border-radius: .5rem;
+  padding: 1rem;
   background: #f0f8ff;
 }
 
