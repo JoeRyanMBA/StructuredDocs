@@ -168,7 +168,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             page_width, page_height = self.pagesize
             
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin  # Align with left margin
+            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
             logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
@@ -227,7 +227,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             page_width, page_height = self.pagesize
             
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin  # Align with left margin
+            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
             logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
@@ -462,7 +462,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin  # Align with left margin
+            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
             logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
@@ -524,7 +524,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
             # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin  # Align with left margin
+            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
             logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
             logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
@@ -1676,11 +1676,11 @@ def convert_markdown_to_pdf_paragraphs(text):
                 in_list = False
             
             # Remove markdown headers since we're using the collection hierarchy
-            # Convert to emphasized text instead
+            # Convert to bold text instead (no italic to match main heading styles)
             header_level = len(stripped) - len(stripped.lstrip('#'))
             header_text = stripped.lstrip('#').strip()
             if header_text:
-                paragraphs.append(f"<b><i>{header_text}</i></b>")
+                paragraphs.append(f"<b>{header_text}</b>")
             
         # Handle bullet points and create proper lists
         elif stripped.startswith('-') or stripped.startswith('*'):

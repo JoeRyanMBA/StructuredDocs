@@ -134,6 +134,7 @@ def create_collection():
     Expects JSON payload: { 
         "name": str, 
         "form_number": str,
+        "description": str (optional),
         "parentId": int (optional), 
         "position": int (optional),
         "projectId": int (optional)
@@ -142,6 +143,7 @@ def create_collection():
     data = request.get_json()
     name = data.get('name')
     form_number = data.get('form_number')
+    description = data.get('description')
     parent_id = data.get('parentId')
     project_id = data.get('projectId')
     position = data.get('position', 0)
@@ -160,6 +162,7 @@ def create_collection():
     new_collection = Collection(
         name=name, 
         form_number=form_number,
+        description=description,
         parent_id=parent_id, 
         project_id=project_id,
         position=position
@@ -172,7 +175,7 @@ def create_collection():
 def update_collection(collection_id):
     """
     Update a specific collection's properties.
-    Expects JSON payload with fields to update: { "name": str, "form_number": str, etc. }
+    Expects JSON payload with fields to update: { "name": str, "form_number": str, "description": str, etc. }
     """
     try:
         collection = Collection.query.get_or_404(collection_id)
@@ -191,6 +194,9 @@ def update_collection(collection_id):
             if existing:
                 return jsonify({'error': f'Collection ID "{data["form_number"]}" already exists'}), 400
             collection.form_number = data['form_number']
+        
+        if 'description' in data:
+            collection.description = data['description']
         
         if 'project_id' in data:
             collection.project_id = data['project_id']

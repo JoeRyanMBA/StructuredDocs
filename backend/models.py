@@ -53,6 +53,7 @@ class Collection(db.Model):
 
     id        = db.Column(db.Integer, primary_key=True)
     name      = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)  # Add description field
     form_number = db.Column(db.String(100), nullable=False, unique=True)  # Collection ID (Form Number)
     parent_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
@@ -93,6 +94,7 @@ class Collection(db.Model):
             'id': self.id,
             'name': self.name,
             'form_number': self.form_number,
+            'description': self.description,
             'position': self.position,
             'parentId': self.parent_id,
             'projectId': self.project_id,
@@ -287,6 +289,7 @@ class Publication(db.Model):
             "title":       self.title,
             "description": self.description,
             "created_at":  self.created_at.isoformat(),
+            "topics_count": len(self.nodes),  # Count of publication nodes (topics)
         }
         if include_nodes:
             base["nodes"] = [n.to_dict() for n in self.nodes]

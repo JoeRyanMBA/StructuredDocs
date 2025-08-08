@@ -71,7 +71,7 @@ class PDFConfig:
         'title': 24,
         'subtitle': 16,
         'h1': 18,
-        'h2': 15,
+        'h2': 16,  # Increased from 15 to 16
         'h3': 13,
         'h4': 11,
         'body': 11,
@@ -110,6 +110,7 @@ class PDFConfig:
             parent=base_styles['Heading1'],
             fontName=cls.FONTS['title'],
             fontSize=cls.FONT_SIZES['title'],
+            leading=cls.FONT_SIZES['title'] * 1.3,  # Set line height for wrapped titles
             spaceAfter=cls.SPACING['title_after'],
             alignment=TA_CENTER,
             textColor=cls.COLORS['primary']
@@ -121,8 +122,9 @@ class PDFConfig:
         return ParagraphStyle(
             'CustomSubtitle',
             parent=base_styles['Normal'],
-            fontName=cls.FONTS['caption'],
+            fontName=cls.FONTS['heading'],  # Changed from 'caption' to 'heading' for consistency
             fontSize=cls.FONT_SIZES['subtitle'],
+            leading=cls.FONT_SIZES['subtitle'] * 1.3,  # Set line height for wrapped subtitles
             spaceAfter=cls.SPACING['subtitle_after'],
             alignment=TA_CENTER,
             textColor=cls.COLORS['secondary']
@@ -144,9 +146,10 @@ class PDFConfig:
         
         return ParagraphStyle(
             f'CustomHeading{level}',
-            parent=base_styles['Heading2'],
-            fontName=cls.FONTS['heading'],
+            parent=base_styles['Normal'],  # Changed from 'Heading2' to avoid italic inheritance
+            fontName=cls.FONTS['heading'],  # Explicitly set to 'Helvetica-Bold' (non-italic)
             fontSize=font_size,
+            leading=font_size * 1.3,  # Set line height to 1.3x font size for proper spacing
             spaceAfter=cls.SPACING['heading_after'],
             spaceBefore=cls.SPACING['heading_before'],
             textColor=cls.COLORS['primary'],
@@ -228,7 +231,7 @@ class CorporateConfig(PDFConfig):
         'title': 22,
         'subtitle': 11,
         'h1': 16,
-        'h2': 14,
+        'h2': 15,  # Increased from 14 to 15
         'h3': 12,
         'h4': 11,
         'body': 10,
@@ -278,7 +281,7 @@ class AcademicConfig(PDFConfig):
         'title': 20,
         'subtitle': 12,
         'h1': 16,
-        'h2': 14,
+        'h2': 15,  # Increased from 14 to 15
         'h3': 12,
         'h4': 11,
         'body': 12,  # Larger body text for readability
@@ -302,7 +305,7 @@ class CompactConfig(PDFConfig):
         'title': 20,
         'subtitle': 10,
         'h1': 15,
-        'h2': 13,
+        'h2': 14,  # Increased from 13 to 14
         'h3': 11,
         'h4': 10,
         'body': 9,
