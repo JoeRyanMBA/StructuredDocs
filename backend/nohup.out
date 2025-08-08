@@ -23,15 +23,15 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.2.86:5050
+ * Running on http://10.0.0.233:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [07/Aug/2025 20:26:29] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:29] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:29] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:31] "GET /api/collections/stats HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:31] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:34] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:34] "GET /api/topics HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:36] "POST /api/collections/2/publish HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:36] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [07/Aug/2025 20:26:38] "GET /api/publications/5/export/pdf HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:47] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:47] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:47] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:49] "GET /api/collections/stats HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:49] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:51] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:51] "GET /api/topics HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:53] "POST /api/collections/11/publish HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:53] "GET /api/publications HTTP/1.1" 200 -
+127.0.0.1 - - [08/Aug/2025 10:06:55] "GET /api/publications/3/export/pdf HTTP/1.1" 200 -
