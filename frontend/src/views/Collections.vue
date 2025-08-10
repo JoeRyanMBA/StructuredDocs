@@ -9,6 +9,10 @@
     
     <form @submit.prevent="createCollection" class="create-collection-form">
       <div class="form-row">
+        <select v-model="newCollection.projectId" required class="form-input" style="max-width: 220px;">
+          <option value="">Select Project...</option>
+          <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
+        </select>
         <input 
           v-model="newCollection.name" 
           placeholder="Collection name" 
@@ -26,7 +30,7 @@
         <button type="submit" class="form-button">Add Collection</button>
       </div>
       <small class="form-help">
-        Collection ID is a unique alphanumeric identifier for this document (e.g., FORM-001, DOC-ABC-123)
+        Select a project for this collection. Collection ID is a unique alphanumeric identifier for this document (e.g., FORM-001, DOC-ABC-123)
       </small>
     </form>
   
@@ -54,6 +58,7 @@
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import CollectionTree from '@/components/CollectionTree.vue'
 import { getCollections } from '@/api/collections.js'
+import { getProjects } from '@/api/projects.js'
 
 export default {
   name: 'CollectionsTree',
@@ -61,18 +66,26 @@ export default {
   data() {
     return {
       collections: [],
+      projects: [],
       newCollection: {
         name: '',
-        form_number: ''
+        form_number: '',
+        projectId: ''
       }
     }
   },
   async created() {
     try {
-      this.collections = await getCollections()
+      const [collections, projects] = await Promise.all([
+        getCollections(),
+        getProjects()
+      ]);
+      this.collections = collections;
+      this.projects = projects;
     } catch (error) {
-      console.error('Failed to load collections:', error)
-      this.collections = []
+      console.error('Failed to load collections or projects:', error)
+      this.collections = [];
+      this.projects = [];
     }
   },
   methods: {
@@ -82,13 +95,15 @@ export default {
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ 
           name: this.newCollection.name,
-          form_number: this.newCollection.form_number
+          form_number: this.newCollection.form_number,
+          projectId: this.newCollection.projectId ? Number(this.newCollection.projectId) : null
         })
       });
       if (res.ok) {
         this.collections = await getCollections();
         this.newCollection.name = '';
         this.newCollection.form_number = '';
+        this.newCollection.projectId = '';
       } else {
         const error = await res.json();
         alert(`Error: ${error.error || 'Failed to create collection'}`);

@@ -2,6 +2,10 @@
 set -e
 # Restart frontend (Vite) and backend (Flask) servers
 
+# Make port 5050 public in Codespaces (if possible)
+if [ -f ./make_port_5050_public.sh ]; then
+  bash ./make_port_5050_public.sh
+fi
 echo "Stopping any running servers..."
 # Only kill actual dev servers, not VS Code internals
 pkill -f "flask run" 2>/dev/null || true

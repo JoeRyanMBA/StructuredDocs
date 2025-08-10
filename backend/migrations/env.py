@@ -1,17 +1,16 @@
 import logging
 from logging.config import fileConfig
-
+import os
 from flask import current_app
-
 from alembic import context
 
 # this is the Alembic Config object, which provides
 # access to the values within the .ini file in use.
 config = context.config
 
-# Interpret the config file for Python logging.
-# This line sets up loggers basically.
-fileConfig(config.config_file_name)
+# Use absolute path to alembic.ini for logging config
+alembic_ini_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'alembic.ini')
+fileConfig(alembic_ini_path, disable_existing_loggers=False)
 logger = logging.getLogger('alembic.env')
 
 
@@ -36,7 +35,7 @@ def get_engine_url():
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-config.set_main_option('sqlalchemy.url', get_engine_url())
+config.set_main_option('sqlalchemy.url', 'sqlite:////workspaces/StructuredDocs/backend/knowledge_base.db')
 target_db = current_app.extensions['migrate'].db
 
 # other values from the config, defined by the needs of env.py,

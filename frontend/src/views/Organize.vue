@@ -36,6 +36,13 @@
                 placeholder="e.g., FORM-001"
               />
             </div>
+            <div class="form-group">
+              <label>Project:</label>
+              <select v-model="currentCollection.projectId" @change="saveCollectionProperty('projectId')" class="edit-input">
+                <option value="">Select Project...</option>
+                <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
+              </select>
+            </div>
           </div>
         </div>
         
@@ -88,13 +95,13 @@
                 :chosen-class="'sortable-chosen'"
                 :drag-class="'sortable-drag'"
                 handle=".drag-handle"
-              >
-                <template #item="{ element: topic, index }">
+    :move="customMove"
+  >
+    <template #item="{ element: topic, index }">
                   <div 
                     class="topic-wrapper"
                     @dragover="handleDragOver(topic, $event)"
                     @dragleave="handleDragLeave(topic, $event)"
-                    @drop="handleDrop(topic, $event)"
                   >
                     <div 
                       class="collection-topic-item"
@@ -105,53 +112,43 @@
                       :data-topic-id="topic.id"
                       @click="handleTopicClick(topic, index, $event)"
                       @contextmenu="handleTopicRightClick(topic, index, $event)"
+                      @drop="handleDrop(topic, $event)"
                     >
-                      <!-- Expand/Collapse toggle -->
-                      <div 
-                        v-if="topic.children && topic.children.length > 0"
-                        class="expand-toggle"
-                        @click.stop="toggleExpansion(topic.id)"
-                      >
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <path 
-                            v-if="expandedTopics.has(topic.id)"
-                            d="M3 4.5L6 7.5L9 4.5" 
-                            stroke="#666" 
-                            stroke-width="1.5" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round"
-                          />
-                          <path 
-                            v-else
-                            d="M4.5 3L7.5 6L4.5 9" 
-                            stroke="#666" 
-                            stroke-width="1.5" 
-                            stroke-linecap="round" 
-                            stroke-linejoin="round"
-                          />
-                        </svg>
+                      <div class="collection-topic-item-row" style="display: flex; align-items: center; width: 100%;">
+                        <div v-if="topic.children && topic.children.length > 0" class="expand-toggle" @click.stop="toggleExpansion(topic.id)">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <path v-if="expandedTopics.has(topic.id)" d="M3 4.5L6 7.5L9 4.5" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path v-else d="M4.5 3L7.5 6L4.5 9" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                          </svg>
+                        </div>
+                        <div v-else class="expand-spacer"></div>
+                        <div class="drag-handle">
+                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
+                            <circle cx="2" cy="2" r="1" fill="#999"/>
+                            <circle cx="6" cy="2" r="1" fill="#999"/>
+                            <circle cx="10" cy="2" r="1" fill="#999"/>
+                            <circle cx="2" cy="6" r="1" fill="#999"/>
+                            <circle cx="6" cy="6" r="1" fill="#999"/>
+                            <circle cx="10" cy="6" r="1" fill="#999"/>
+                            <circle cx="2" cy="10" r="1" fill="#999"/>
+                            <circle cx="6" cy="10" r="1" fill="#999"/>
+                            <circle cx="10" cy="10" r="1" fill="#999"/>
+                          </svg>
+                        </div>
+                        <div class="topic-content-row" style="display: flex; align-items: center; flex: 1; min-width: 0;">
+                          <span class="topic-title">{{ topic.title }}</span>
+                          <span v-if="topic.children && topic.children.length > 0" class="child-count">
+                            ({{ topic.children.length }})
+                          </span>
+                          <div class="topic-actions" style="margin-left: auto;">
+                            <button class="topic-btn up" @click.stop="moveTopicUp(topic)">▲</button>
+                            <button class="topic-btn down" @click.stop="moveTopicDown(topic)">▼</button>
+                            <button class="topic-btn right" @click.stop="indentTopic(topic)">▶</button>
+                            <button class="topic-btn left" @click.stop="outdentTopic(topic)">◀</button>
+                          </div>
+                        </div>
                       </div>
-                      <div v-else class="expand-spacer"></div>
-                      
-                      <div class="drag-handle">
-                        <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                          <circle cx="2" cy="2" r="1" fill="#999"/>
-                          <circle cx="6" cy="2" r="1" fill="#999"/>
-                          <circle cx="10" cy="2" r="1" fill="#999"/>
-                          <circle cx="2" cy="6" r="1" fill="#999"/>
-                          <circle cx="6" cy="6" r="1" fill="#999"/>
-                          <circle cx="10" cy="6" r="1" fill="#999"/>
-                          <circle cx="2" cy="10" r="1" fill="#999"/>
-                          <circle cx="6" cy="10" r="1" fill="#999"/>
-                          <circle cx="10" cy="10" r="1" fill="#999"/>
-                        </svg>
-                      </div>
-                      <span class="topic-title">{{ topic.title }}</span>
-                      <span v-if="topic.children && topic.children.length > 0" class="child-count">
-                        ({{ topic.children.length }})
-                      </span>
-                    </div>
-                    
+                    </div> <!-- close .collection-topic-item-row -->
                     <!-- Render child topics if they exist and topic is expanded -->
                     <div 
                       v-if="topic.children && topic.children.length > 0 && expandedTopics.has(topic.id)" 
@@ -188,6 +185,12 @@
                               </svg>
                             </div>
                             <span class="topic-title">{{ childTopic.title }}</span>
+                            <div class="topic-actions">
+                              <button class="topic-btn up" @click.stop="moveTopicUp(childTopic)">▲</button>
+                              <button class="topic-btn down" @click.stop="moveTopicDown(childTopic)">▼</button>
+                              <button class="topic-btn right" @click.stop="indentTopic(childTopic)">▶</button>
+                              <button class="topic-btn left" @click.stop="outdentTopic(childTopic)">◀</button>
+                            </div>
                           </div>
                         </template>
                       </draggable>
@@ -309,6 +312,7 @@ import CollectionTree from '@/components/CollectionTree.vue'
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
 import { getCollections, saveCollections } from '@/api/collections.js'
+import { getProjects } from '@/api/projects.js'
 import { getTopics } from '@/api/topics.js' // You may need to implement this
 
 export default {
@@ -326,6 +330,7 @@ export default {
       allCollections: [], // All collections (for saving purposes)
       topics: [],
       unassignedTopics: [],
+      projects: [],
       confirmation: '',
       isEditMode: false, // Track if we're in edit mode
       selectedTopics: new Set(), // Track selected topic IDs
@@ -346,8 +351,14 @@ export default {
     // Check if we're in edit mode
     this.isEditMode = this.$route.query.edit === 'true'
     
-    this.allCollections = await getCollections()
-    this.topics = await getTopics()
+    const [collections, topics, projects] = await Promise.all([
+      getCollections(),
+      getTopics(),
+      getProjects()
+    ])
+    this.allCollections = collections
+    this.topics = topics
+    this.projects = projects
     
     // Find the specific collection being organized
     this.currentCollection = this.findCollectionById(this.allCollections, parseInt(this.id))
@@ -365,6 +376,66 @@ export default {
     this.unassignedTopics = this.getUnassignedTopics()
   },
   methods: {
+    // Move topic up in its current list
+    moveTopicUp(topic) {
+      // Find the parent and index of this topic in the tree
+      function findParentAndIndex(topics, childId, parent = null) {
+        for (let i = 0; i < topics.length; i++) {
+          const t = topics[i];
+          if (t.id === childId) {
+            return { parent, topics, index: i };
+          }
+          if (t.children && t.children.length > 0) {
+            const found = findParentAndIndex(t.children, childId, t);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+      const result = findParentAndIndex(this.currentCollection.topics, topic.id);
+      if (result && result.index > 0) {
+        // Swap with previous
+        const temp = result.topics[result.index - 1];
+        result.topics[result.index - 1] = result.topics[result.index];
+        result.topics[result.index] = temp;
+        this.saveChanges();
+      }
+    },
+
+    // Move topic down in its current list
+    moveTopicDown(topic) {
+      // Find the parent and index of this topic in the tree
+      function findParentAndIndex(topics, childId, parent = null) {
+        for (let i = 0; i < topics.length; i++) {
+          const t = topics[i];
+          if (t.id === childId) {
+            return { parent, topics, index: i };
+          }
+          if (t.children && t.children.length > 0) {
+            const found = findParentAndIndex(t.children, childId, t);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+      const result = findParentAndIndex(this.currentCollection.topics, topic.id);
+      if (result && result.index < result.topics.length - 1) {
+        // Swap with next
+        const temp = result.topics[result.index + 1];
+        result.topics[result.index + 1] = result.topics[result.index];
+        result.topics[result.index] = temp;
+        this.saveChanges();
+      }
+    },
+    customMove(evt, originalEvent) {
+      // Prevent vuedraggable from handling drop if dropping onto a topic row (for subtopic)
+      // Only allow sorting if not dropping onto a topic row
+      if (originalEvent && originalEvent.target && originalEvent.target.classList.contains('collection-topic-item')) {
+        // Let the custom @drop handler handle this
+        return false;
+      }
+      return true;
+    },
     // Multi-select methods
     handleTopicClick(topic, index, event) {
       event.preventDefault()
@@ -577,7 +648,7 @@ export default {
         console.log('Found dragged topic from oldIndex:', draggedTopic)
       }
       
-      // Fallback: try to get from the item property (some versions of vuedraggable)
+      // Fallback: try to get from the item property (some versions of vueddraggable)
       if (!draggedTopic && event.item && event.item.dataset) {
         const topicId = parseInt(event.item.dataset.topicId)
         if (topicId) {
@@ -806,16 +877,18 @@ export default {
 
     async saveCollectionProperty(propertyName) {
       if (!this.currentCollection) return
-      
       try {
+        let payload = {};
+        if (propertyName === 'projectId') {
+          payload['project_id'] = this.currentCollection.projectId ? Number(this.currentCollection.projectId) : null;
+        } else {
+          payload[propertyName] = this.currentCollection[propertyName];
+        }
         const response = await fetch(`/api/collections/${this.currentCollection.id}`, {
           method: 'PUT',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            [propertyName]: this.currentCollection[propertyName]
-          })
+          body: JSON.stringify(payload)
         })
-        
         if (response.ok) {
           console.log(`✅ Updated collection ${propertyName}`)
         } else {
@@ -1015,7 +1088,75 @@ export default {
           button.textContent = '📋 Publish PDF'
         }
       }
-    }
+  },
+    // Indent topic (make it a child of the previous sibling)
+    indentTopic(topic) {
+      // Find the parent and index of this topic in the tree
+      function findParentAndIndex(topics, childId, parent = null) {
+        for (let i = 0; i < topics.length; i++) {
+          const t = topics[i];
+          if (t.id === childId) {
+            return { parent, topics, index: i };
+          }
+          if (t.children && t.children.length > 0) {
+            const found = findParentAndIndex(t.children, childId, t);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      const result = findParentAndIndex(this.currentCollection.topics, topic.id);
+      if (!result) return;
+      const { topics, index } = result;
+      if (index > 0) {
+        // Remove topic from its current parent/array
+        const [removed] = topics.splice(index, 1);
+        // Add as child to previous sibling (regardless of nesting)
+        const prevSibling = topics[index - 1];
+        if (!prevSibling.children) prevSibling.children = [];
+        prevSibling.children.push(removed);
+        // Expand the previous sibling to show the new child
+        this.expandedTopics.add(prevSibling.id);
+        this.saveChanges();
+      }
+    },
+
+    // Outdent topic (move it up one level in the hierarchy)
+    outdentTopic(topic) {
+      // Find the parent and index of this topic in the tree
+      function findParentAndIndex(topics, childId, parent = null) {
+        for (let i = 0; i < topics.length; i++) {
+          const t = topics[i];
+          if (t.id === childId) {
+            return { parent, topics, index: i };
+          }
+          if (t.children && t.children.length > 0) {
+            const found = findParentAndIndex(t.children, childId, t);
+            if (found) return found;
+          }
+        }
+        return null;
+      }
+
+      const result = findParentAndIndex(this.currentCollection.topics, topic.id);
+      if (result && result.parent) {
+        // Remove from parent's children
+        const [removed] = result.topics.splice(result.index, 1);
+        // Insert after the parent in the parent's parent's children (or top-level)
+        const parentResult = findParentAndIndex(this.currentCollection.topics, result.parent.id);
+        if (parentResult) {
+          parentResult.topics.splice(parentResult.index + 1, 0, removed);
+        } else {
+          // If parent is top-level, insert after it in top-level
+          const topIdx = this.currentCollection.topics.findIndex(t => t.id === result.parent.id);
+          if (topIdx !== -1) {
+            this.currentCollection.topics.splice(topIdx + 1, 0, removed);
+          }
+        }
+        this.saveChanges();
+      }
+    },
   }
 }
 </script>
@@ -1053,6 +1194,8 @@ export default {
   gap: 2rem;
   margin-bottom: 2rem;
   min-height: 400px;
+  align-items: flex-start;
+  height: 70vh;
 }
 
 .collections-panel {
@@ -1062,6 +1205,9 @@ export default {
   padding: 1rem;
   border-radius: 8px;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .topics-panel {
@@ -1070,7 +1216,9 @@ export default {
   background: #f8f8f8;
   padding: 1rem;
   border-radius: 8px;
-  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  height: 100%;
 }
 
 .organize-actions {
@@ -1120,6 +1268,10 @@ export default {
 .unassigned-list {
   min-height: 100px;
   padding: 8px;
+  flex: 1 1 auto;
+  overflow-y: auto;
+  max-height: 100%;
+  height: 100%;
 }
 
 .collection-topic-item.selected {
@@ -1270,6 +1422,51 @@ export default {
   font-size: 14px;
   cursor: move;
   transition: all 0.2s ease;
+  width: 100%;
+  flex-wrap: nowrap;
+  box-sizing: border-box;
+  max-width: 100%;
+}
+
+.collection-topic-item-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.topic-content-row {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+.topic-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 2px;
+  margin-right: 0;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
 }
 
 .collection-topic-item:hover {
@@ -1288,7 +1485,7 @@ export default {
 }
 
 .collection-topic-item .topic-title {
-  flex: 1;
+  flex: 1 1 auto;
   min-width: 0;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -1581,5 +1778,36 @@ export default {
   right: 0;
   bottom: 0;
   z-index: 999;
+}
+
+.topic-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
+  font-size: 1rem;
+  font-family: inherit;
+  padding: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  margin-left: 2px;
+  margin-right: 0;
+  box-sizing: border-box;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+}
+
+.topic-actions {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.25rem;
+  margin-left: auto;
 }
 </style>
