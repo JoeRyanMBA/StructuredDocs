@@ -52,6 +52,13 @@ class PDFConfig:
         'heading': hex_to_color('#112e51'),                  # Nearly black for headings
         'subheading': hex_to_color('#444444'),               # Medium gray
 
+        # Heading level colors (customize these for different heading levels)
+        'h1_color': hex_to_color('#112e51'),     # H1 color - dark blue
+        'h2_color': hex_to_color('#9B2743'),     # H2 color - orange/red
+        'h3_color': hex_to_color('#000000'),     # H3 color - teal
+        'h4_color': hex_to_color('#205493'),     # H4 color - dark gray
+        'h5_color': hex_to_color('#666666'),     # H5+ color - medium gray
+
         # Background colors
         'light_bg': hex_to_color('#F9FAFB'),                 # Very light gray
         'highlight': hex_to_color('#FEF3C7'),                # Yellow highlight
@@ -71,7 +78,7 @@ class PDFConfig:
         'title': 24,
         'subtitle': 16,
         'h1': 18,
-        'h2': 16,  # Increased from 15 to 16
+        'h2': 18,  # Increased to 18 to match H1 size
         'h3': 13,
         'h4': 11,
         'body': 11,
@@ -140,9 +147,23 @@ class PDFConfig:
             cls.FONT_SIZES['h4']
         ]
         
+        # Define colors for each heading level
+        heading_colors = [
+            cls.COLORS['h1_color'],   # Level 0 (H1)
+            cls.COLORS['h2_color'],   # Level 1 (H2)
+            cls.COLORS['h3_color'],   # Level 2 (H3)
+            cls.COLORS['h4_color'],   # Level 3 (H4)
+        ]
+        
         font_size = font_sizes[min(level, len(font_sizes)-1)]
         if level >= len(font_sizes):
             font_size = max(10, cls.FONT_SIZES['h4'] - (level - 3))
+        
+        # Select color for this heading level
+        if level < len(heading_colors):
+            heading_color = heading_colors[level]
+        else:
+            heading_color = cls.COLORS['h5_color']  # Use H5+ color for deeper levels
         
         return ParagraphStyle(
             f'CustomHeading{level}',
@@ -152,7 +173,7 @@ class PDFConfig:
             leading=font_size * 1.3,  # Set line height to 1.3x font size for proper spacing
             spaceAfter=cls.SPACING['heading_after'],
             spaceBefore=cls.SPACING['heading_before'],
-            textColor=cls.COLORS['primary'],
+            textColor=heading_color,  # Use level-specific color
             keepWithNext=1
         )
     
@@ -222,6 +243,14 @@ class CorporateConfig(PDFConfig):
         'text': colors.black,
         'heading': colors.Color(0.0, 0.2, 0.4),      # Same as primary
         'subheading': colors.Color(0.3, 0.3, 0.3),   # Same as secondary
+        
+        # Corporate heading level colors
+        'h1_color': colors.Color(0.0, 0.2, 0.4),     # Dark blue - primary
+        'h2_color': colors.Color(0.3, 0.3, 0.3),     # Dark gray - secondary
+        'h3_color': colors.Color(0.6, 0.1, 0.1),     # Dark red - accent
+        'h4_color': colors.Color(0.1, 0.1, 0.1),     # Very dark gray
+        'h5_color': colors.Color(0.4, 0.4, 0.4),     # Medium gray
+        
         'light_bg': colors.Color(0.95, 0.95, 0.95),
         'highlight': colors.Color(0.95, 0.95, 0.8),
         'border': colors.Color(0.8, 0.8, 0.8)
@@ -230,8 +259,8 @@ class CorporateConfig(PDFConfig):
     FONT_SIZES = {
         'title': 22,
         'subtitle': 11,
-        'h1': 16,
-        'h2': 15,  # Increased from 14 to 15
+        'h1': 17,  # Increased to maintain hierarchy over H2
+        'h2': 16,  # Increased for better prominence
         'h3': 12,
         'h4': 11,
         'body': 10,
@@ -259,6 +288,13 @@ class OrganizationConfig(PDFConfig):
         'heading': hex_to_color('#112e51'),                  # Nearly black for headings
         'subheading': hex_to_color('#444444'),               # Medium gray
 
+        # Organization heading level colors (customize these with your brand colors)
+        'h1_color': hex_to_color('#112e51'),     # H1 color - primary brand
+        'h2_color': hex_to_color('#FF5622'),     # H2 color - secondary brand  
+        'h3_color': hex_to_color('#008392'),     # H3 color - accent brand
+        'h4_color': hex_to_color('#444444'),     # H4 color - dark gray
+        'h5_color': hex_to_color('#666666'),     # H5+ color - medium gray
+
         # Background colors
         'light_bg': hex_to_color('#F9FAFB'),                 # Very light gray
         'highlight': hex_to_color('#FEF3C7'),                # Yellow highlight
@@ -280,8 +316,8 @@ class AcademicConfig(PDFConfig):
     FONT_SIZES = {
         'title': 20,
         'subtitle': 12,
-        'h1': 16,
-        'h2': 15,  # Increased from 14 to 15
+        'h1': 17,  # Increased to maintain hierarchy over H2
+        'h2': 16,  # Increased for better prominence
         'h3': 12,
         'h4': 11,
         'body': 12,  # Larger body text for readability
@@ -305,7 +341,7 @@ class CompactConfig(PDFConfig):
         'title': 20,
         'subtitle': 10,
         'h1': 15,
-        'h2': 14,  # Increased from 13 to 14
+        'h2': 15,  # Increased to 15 to match H1 for better hierarchy
         'h3': 11,
         'h4': 10,
         'body': 9,

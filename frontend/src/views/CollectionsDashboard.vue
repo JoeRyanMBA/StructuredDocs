@@ -303,14 +303,26 @@ export default {
   },
 
   methods: {
+    // Helper to assign projectName to collections based on projectId
+    assignProjectNames(collections) {
+      if (!this.projects || this.projects.length === 0) return collections;
+      return collections.map(col => {
+  // Robustly match projectId (number or string)
+  const colProjId = col.projectId !== undefined && col.projectId !== null ? Number(col.projectId) : null;
+  const proj = this.projects.find(p => Number(p.id) === colProjId);
+        return { ...col, projectName: proj ? proj.name : 'Unknown Project' };
+      });
+    },
+
     async loadDashboardData() {
       this.loading = true
       try {
-        await Promise.all([
-          this.loadCollections(),
-          this.loadProjects(),
-          this.loadStats()
-        ])
+        await this.loadProjects();
+        await this.loadCollections();
+        // Assign project names after both projects and collections are loaded
+        this.collections = this.assignProjectNames(this.collections);
+        this.recentCollections = this.assignProjectNames(this.recentCollections);
+        await this.loadStats();
       } catch (error) {
         console.error('Failed to load collections dashboard:', error)
       } finally {
@@ -341,37 +353,6 @@ export default {
       }
     },
 
-    async loadProjects() {
-      try {
-        // Mock projects data - should match the projects from ProjectsView
-        const mockProjects = [
-          {
-            id: 1,
-            name: 'Census Data Portal Redesign',
-            description: 'Modernizing the main census data access portal with improved user experience and performance.',
-            status: 'active'
-          },
-          {
-            id: 2,
-            name: 'Economic Survey Documentation',
-            description: 'Creating comprehensive documentation for the new economic indicators survey methodology.',
-            status: 'planning'
-          },
-          {
-            id: 3,
-            name: 'Mobile App API Documentation',
-            description: 'Complete API documentation for the new Census mobile application developers.',
-            status: 'completed'
-          }
-        ]
-
-        this.projects = mockProjects
-        
-      } catch (error) {
-        console.error('Failed to load projects:', error)
-        this.projects = []
-      }
-    },
 
     async loadStats() {
       try {
@@ -443,74 +424,23 @@ export default {
           totalTopics,
           newThisWeek,
           avgTopics
-        }
-        console.log('📊 Final fallback stats:', this.stats)
+        };
       }
     },
 
-    createNewCollection() {
-      this.showCreateModal = true
-    },
-
-    async submitNewCollection() {
+    async loadProjects() {
       try {
-        // Find the selected project
-        const selectedProject = this.projects.find(p => p.id === parseInt(this.newCollection.projectId))
-        
-        // Create collection data for API
-        const collectionData = {
-          name: this.newCollection.name,
-          form_number: this.newCollection.form_number,
-          description: this.newCollection.description,
-          status: this.newCollection.status,
-          projectId: this.newCollection.projectId
-        }
-        
-        // Add project name if available
-        if (selectedProject) {
-          collectionData.projectName = selectedProject.name
-        }
-        
-        // Save to backend via API
-        const response = await fetch('/api/collections', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(collectionData)
-        })
-        
+        // Fetch real projects from backend
+        const response = await fetch('/api/projects');
         if (!response.ok) {
-          throw new Error('Failed to create collection')
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        const collection = await response.json()
-        
-        // Add project information for display
-        if (selectedProject) {
-          collection.projectName = selectedProject.name
-          collection.projectId = this.newCollection.projectId
-        }
-        
-        // Add to collections array
-        this.collections.push(collection)
-        
-        // Update recent collections
-        this.recentCollections = [...this.collections]
-          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-          .slice(0, 5)
-        
-        // Recalculate stats
-        await this.loadStats()
-        
-        // Reset form and close modal
-        this.resetNewCollection()
-        this.showCreateModal = false
-        
-        // Redirect to organize page for the new collection
-        this.$router.push({ name: 'Organize', params: { id: String(collection.id) } })
-        
+        const data = await response.json();
+        console.log('📁 Projects data received:', data);
+        this.projects = data;
       } catch (error) {
-        console.error('Failed to create collection:', error)
-        alert('Failed to create collection. Please try again.')
+        console.error('Failed to load projects:', error);
+        this.projects = [];
       }
     },
 

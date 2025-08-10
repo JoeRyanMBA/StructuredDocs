@@ -132,8 +132,8 @@ export default {
     },
     
     previewMobileKB(pubId) {
-      // Open preview in mobile-sized window
-      const previewUrl = `/api/publications/${pubId}/export/mobile-kb`
+      // Open preview in mobile-sized window using the preview endpoint
+      const previewUrl = `/api/publications/${pubId}/preview/mobile-kb`
       const previewWindow = window.open(
         previewUrl, 
         '_blank', 

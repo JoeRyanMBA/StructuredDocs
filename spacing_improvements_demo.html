@@ -1,0 +1,217 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>In This Section Spacing Test</title>
+    <style>
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+            line-height: 1.6;
+            margin: 0;
+            padding: 2rem;
+            background: #f8f9fa;
+        }
+        
+        .container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+        }
+        
+        .comparison {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            gap: 2rem;
+            margin-top: 2rem;
+        }
+        
+        .old-style, .new-style {
+            padding: 1rem;
+            border: 1px solid #e9ecef;
+            border-radius: 6px;
+        }
+        
+        h3 {
+            margin-top: 0;
+            color: #005a9c;
+        }
+        
+        /* Old Style - Previous Spacing */
+        .old-style .in-this-section {
+            margin: 1.5rem 0;
+            padding: 0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        
+        .old-style .in-this-section h2 {
+            color: #005a9c;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+        }
+        
+        .old-style .section-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .old-style .section-links li {
+            margin-bottom: 0.25rem;
+            border-bottom: 1px solid #f8f9fa;
+            padding-bottom: 0.25rem;
+        }
+        
+        .old-style .section-links li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .old-style .section-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.5rem 0;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            color: #495057;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+            box-shadow: none;
+            width: 100%;
+        }
+        
+        .old-style .section-link:hover {
+            color: #005a9c;
+            text-decoration: underline;
+        }
+        
+        /* New Style - Improved Spacing */
+        .new-style .in-this-section {
+            margin: 1.5rem 0;
+            padding: 0;
+            background: transparent;
+            border: none;
+            box-shadow: none;
+        }
+        
+        .new-style .in-this-section h2 {
+            color: #005a9c;
+            font-size: 1.1rem;
+            margin-bottom: 0.75rem;
+            padding-bottom: 0.25rem;
+            border-bottom: 1px solid #e9ecef;
+            font-weight: 600;
+        }
+        
+        .new-style .section-links {
+            list-style: none;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .new-style .section-links li {
+            margin-bottom: 0;
+            border-bottom: 1px solid #f8f9fa;
+            padding-bottom: 0;
+        }
+        
+        .new-style .section-links li:last-child {
+            border-bottom: none;
+            margin-bottom: 0;
+            padding-bottom: 0;
+        }
+        
+        .new-style .section-link {
+            display: inline-flex;
+            align-items: center;
+            padding: 0.25rem 0;
+            background: transparent;
+            border: none;
+            border-radius: 0;
+            color: #495057;
+            text-decoration: none;
+            transition: color 0.2s ease;
+            font-weight: 500;
+            font-size: 0.95rem;
+            box-shadow: none;
+            width: 100%;
+            line-height: 1.4;
+        }
+        
+        .new-style .section-link:hover {
+            color: #005a9c;
+            text-decoration: underline;
+        }
+        
+        @media (max-width: 768px) {
+            .comparison {
+                grid-template-columns: 1fr;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>In This Section - Spacing Comparison</h1>
+        <p>Comparison showing the reduced spacing for a more compact, normal line-height appearance.</p>
+        
+        <div class="comparison">
+            <div class="old-style">
+                <h3>Previous Spacing</h3>
+                <div class="in-this-section">
+                    <h2>In this section</h2>
+                    <ul class="section-links">
+                        <li><a href="#" class="section-link">📝 Getting Started</a></li>
+                        <li><a href="#" class="section-link">📝 Basic Configuration</a></li>
+                        <li><a href="#" class="section-link">📝 Advanced Features</a></li>
+                        <li><a href="#" class="section-link">📝 Troubleshooting Tips</a></li>
+                        <li><a href="#" class="section-link">📝 Best Practices</a></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <div class="new-style">
+                <h3>New Compact Spacing</h3>
+                <div class="in-this-section">
+                    <h2>In this section</h2>
+                    <ul class="section-links">
+                        <li><a href="#" class="section-link">📝 Getting Started</a></li>
+                        <li><a href="#" class="section-link">📝 Basic Configuration</a></li>
+                        <li><a href="#" class="section-link">📝 Advanced Features</a></li>
+                        <li><a href="#" class="section-link">📝 Troubleshooting Tips</a></li>
+                        <li><a href="#" class="section-link">📝 Best Practices</a></li>
+                    </ul>
+                </div>
+            </div>
+        </div>
+        
+        <h2>Improvements Made</h2>
+        <ul>
+            <li><strong>Reduced Padding:</strong> Changed from 0.5rem to 0.25rem vertical padding on links</li>
+            <li><strong>Eliminated Margins:</strong> Removed bottom margins and padding from list items</li>
+            <li><strong>Normal Line Height:</strong> Added line-height: 1.4 for natural text spacing</li>
+            <li><strong>Cleaner Appearance:</strong> More compact while maintaining readability</li>
+            <li><strong>Space Efficiency:</strong> Much better use of vertical space, especially on mobile</li>
+        </ul>
+        
+        <h2>API Endpoint Improvements</h2>
+        <ul>
+            <li><strong>New Preview Endpoint:</strong> <code>/api/publications/{id}/preview/mobile-kb</code> - displays directly in browser</li>
+            <li><strong>Export Endpoint:</strong> <code>/api/publications/{id}/export/mobile-kb</code> - downloads file for distribution</li>
+            <li><strong>Clear Distinction:</strong> Preview for quick viewing, Export for deployment</li>
+        </ul>
+    </div>
+</body>
+</html>

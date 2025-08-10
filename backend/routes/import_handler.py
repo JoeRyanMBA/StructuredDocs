@@ -90,6 +90,14 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             # Additional cleaning for HTML comments and formatting issues
             updated_markdown = _clean_markdown_content(updated_markdown)
             
+            # Fix progressive list indentation issues from Word conversion
+            updated_markdown = _fix_list_indentation(updated_markdown)
+            print(f"LIST INDENTATION: Fixed progressive indentation issues")
+            
+            # Remove all blank lines from Word document content
+            updated_markdown = _remove_all_blank_lines(updated_markdown)
+            print(f"BLANK LINE REMOVAL: Removed all blank lines from Word document content")
+            
             # Validate image references
             validation_issues = image_handler.validate_markdown_images(updated_markdown)
             if validation_issues:
@@ -112,13 +120,22 @@ def _convert_word_to_markdown(file_content, import_doc_id):
     except subprocess.TimeoutExpired:
         print("PANDOC ERROR: Conversion timed out")
         raise Exception("Word to Markdown conversion timed out")
+    except FileNotFoundError:
+        print("PANDOC ERROR: Pandoc not found")
+        raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
+    except subprocess.CalledProcessError as e:
+        print(f"PANDOC ERROR: Process failed with code {e.returncode}: {e.stderr}")
+        raise Exception(f"Pandoc conversion failed: {e.stderr}")
     except Exception as e:
         print(f"PANDOC ERROR: {str(e)}")
+        # Check if it's a pandoc not found error
+        if "pandoc" in str(e).lower() and ("not found" in str(e).lower() or "command not found" in str(e).lower()):
+            raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
         raise Exception(f"Failed to convert Word to Markdown: {str(e)}")
 
 
 def _post_process_markdown(markdown_content):
-    """Post-process markdown to fix nested lists and handle margin notes"""
+    """Post-process markdown to fix nested lists and handle margin notes while preserving blank lines"""
     lines = markdown_content.split('\n')
     processed_lines = []
     
@@ -179,8 +196,8 @@ def _post_process_markdown(markdown_content):
     cleaned_content = re.sub(r'<!--\s*-->', '', cleaned_content)
     cleaned_content = re.sub(r'<!---->', '', cleaned_content)
     
-    # Remove excessive blank lines (more than 2 consecutive)
-    cleaned_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_content)
+    # Remove excessive blank lines (more than 2 consecutive) but preserve paragraph breaks
+    cleaned_content = re.sub(r'\n\s*\n\s*\n\s*\n+', '\n\n\n', cleaned_content)
     
     return cleaned_content
 
@@ -282,6 +299,142 @@ def _clean_markdown_content(content):
     return cleaned_content
 
 
+def _fix_list_indentation(content):
+    """Fix progressive list indentation issues from Word document conversion"""
+    if not content or not content.strip():
+        return content
+    
+    lines = content.split('\n')
+    fixed_lines = []
+    
+    # Track the current indentation context
+    current_list_type = None  # 'bullet' or 'numbered'
+    indentation_stack = []  # Track indentation levels
+    
+    for line in lines:
+        original_line = line
+        stripped = line.strip()
+        
+        # Check if this is a list item (bullet or numbered)
+        bullet_match = re.match(r'^(\s*)[-*+]\s+(.*)$', line)
+        numbered_match = re.match(r'^(\s*)(\d+\.)\s+(.*)$', line)
+        
+        if bullet_match:
+            leading_spaces = bullet_match.group(1)
+            content_text = bullet_match.group(2)
+            space_count = len(leading_spaces)
+            
+            # Determine indentation level (0, 1, 2, or 3 max)
+            if space_count == 0:
+                level = 0
+            elif space_count <= 3:
+                level = 1
+            elif space_count <= 7:
+                level = 2
+            else:
+                level = 3  # Cap at 3 levels
+            
+            # Apply consistent indentation
+            indent = "  " * level  # 2 spaces per level
+            fixed_line = f"{indent}- {content_text}"
+            fixed_lines.append(fixed_line)
+            
+        elif numbered_match:
+            leading_spaces = numbered_match.group(1)
+            number_part = numbered_match.group(2)
+            content_text = numbered_match.group(3)
+            space_count = len(leading_spaces)
+            
+            # Determine indentation level (0, 1, 2, or 3 max)
+            if space_count == 0:
+                level = 0
+            elif space_count <= 3:
+                level = 1
+            elif space_count <= 7:
+                level = 2
+            else:
+                level = 3  # Cap at 3 levels
+            
+            # Apply consistent indentation
+            indent = "  " * level  # 2 spaces per level
+            fixed_line = f"{indent}{number_part} {content_text}"
+            fixed_lines.append(fixed_line)
+            
+        else:
+            # Not a list item, keep as is
+            fixed_lines.append(original_line)
+    
+    return '\n'.join(fixed_lines)
+
+
+def _remove_all_blank_lines(content):
+    """Remove all blank lines from content - specifically for Word document imports"""
+    if not content or not content.strip():
+        return ''
+    
+    lines = content.split('\n')
+    cleaned_lines = []
+    
+    for line in lines:
+        # Skip any line that is empty or contains only whitespace
+        if line.strip() == '':
+            continue
+        
+        # Skip lines that are just HTML paragraph tags (including with whitespace inside)
+        if re.match(r'^\s*<\s*/?p\s*/?>\s*$', line):
+            continue
+        
+        # Skip empty HTML paragraph pairs specifically
+        if re.match(r'^\s*<p></p>\s*$', line):
+            continue
+        
+        # Skip lines with only non-breaking spaces or similar HTML entities
+        if re.match(r'^\s*(&nbsp;|\s|&\w+;)*\s*$', line):
+            continue
+            
+        # Skip empty list items
+        if re.match(r'^\s*[-*+]\s*$', line):
+            continue
+            
+        # Skip empty numbered list items
+        if re.match(r'^\s*\d+\.\s*$', line):
+            continue
+        
+        # Skip Word document artifacts
+        if re.match(r'^\s*\[\s*\]\s*$', line):  # Empty checkboxes
+            continue
+            
+        if re.match(r'^\s*\\\s*$', line):  # Stray backslashes
+            continue
+            
+        # Skip lines with only formatting marks or tabs
+        if re.match(r'^\s*[\t\r\f\v]+\s*$', line):
+            continue
+            
+        # Skip Word table artifacts like empty table cells
+        if re.match(r'^\s*\|\s*\|\s*$', line):
+            continue
+        
+        # Skip HTML comments
+        if re.match(r'^\s*<!--.*?-->\s*$', line):
+            continue
+        
+        # Skip empty HTML tags more broadly
+        if re.match(r'^\s*<\s*/?[^>]*>\s*$', line.strip()):
+            continue
+        
+        # Keep all non-empty lines
+        cleaned_lines.append(line)
+    
+    # Join lines without any blank lines between them
+    cleaned_content = '\n'.join(cleaned_lines)
+    
+    # Remove leading/trailing whitespace
+    cleaned_content = cleaned_content.strip()
+    
+    return cleaned_content
+
+
 def _clean_topic_content(content):
     """Clean up topic content by removing empty paragraphs and excessive whitespace"""
     if not content or not content.strip():
@@ -334,13 +487,12 @@ def _clean_topic_content(content):
     # Join and clean up
     cleaned_content = '\n'.join(cleaned_lines)
     
-    # Remove excessive blank lines (more than 1 consecutive)
-    cleaned_content = re.sub(r'\n\s*\n\s*\n+', '\n\n', cleaned_content)
+    # Remove excessive blank lines (more than 2 consecutive)
+    cleaned_content = re.sub(r'\n\s*\n\s*\n\s*\n+', '\n\n\n', cleaned_content)
     
     # Clean up common Word artifacts in the content
-    cleaned_content = re.sub(r'\s*\n\s*\n\s*\n+', '\n\n', cleaned_content)  # Multiple newlines
-    cleaned_content = re.sub(r'(?<!\n)\n(?!\n)', ' ', cleaned_content)  # Single newlines (join wrapped lines)
-    cleaned_content = re.sub(r'\n\n+', '\n\n', cleaned_content)  # Excessive double newlines
+    cleaned_content = re.sub(r'\s*\n\s*\n\s*\n\s*\n+', '\n\n', cleaned_content)  # Multiple newlines
+    # NOTE: Removed the aggressive single newline joining to preserve paragraph breaks
     
     # Remove leading/trailing whitespace
     cleaned_content = cleaned_content.strip()
@@ -422,7 +574,12 @@ def _parse_and_store(file, imp_doc, source):
             content = '\n'.join(buffer).strip()
             
             # Apply additional content cleaning
-            content = _clean_topic_content(content)
+            if source == 'word':
+                # For Word documents, remove ALL blank lines as requested
+                content = _remove_all_blank_lines(content)
+            else:
+                # For Markdown documents, use the existing cleaning that preserves paragraph breaks
+                content = _clean_topic_content(content)
             
             # Only create an item if we have actual content (not just empty lines/whitespace)
             if content:
@@ -440,11 +597,15 @@ def _parse_and_store(file, imp_doc, source):
         if is_h1:
             # Check if we have a current title but no substantive content yet
             current_buffer_content = '\n'.join(buffer).strip()
-            if current_title and not current_buffer_content:
+            current_buffer_has_content = bool(current_buffer_content and 
+                                            not all(line.strip() == '' or line.strip().startswith('#') 
+                                                   for line in current_buffer_content.split('\n')))
+            
+            if current_title and not current_buffer_has_content:
                 # Merge this heading into the content of the previous heading
                 heading_text = text.strip().lstrip('#').strip()
                 buffer.append(f"## {heading_text}")  # Add as H2 in content
-                print(f"MERGED_HEADING: '{heading_text}' added to content of '{current_title}'")
+                print(f"MERGED_HEADING: '{heading_text}' added to content of '{current_title}' (no substantive content found)")
             else:
                 # Normal case: commit previous section and start new one
                 commit_buffer()
@@ -468,29 +629,168 @@ def _parse_and_store(file, imp_doc, source):
 def _upload_file(source):
     print(f"UPLOAD: Starting upload with source={source}")
     file = request.files.get('file')
+    import_type = request.form.get('import_type', 'topics')  # Default to topics for backward compatibility
+    
     if not file or source not in SOURCES:
         print(f"UPLOAD: Missing file or invalid source. file={file}, source={source}")
         return jsonify({'error': 'Missing file or invalid source'}), 400
 
     try:
-        imp_doc = ImportDocument(
-            filename=secure_filename(file.filename),
-            source_type=source
-        )
-        db.session.add(imp_doc)
-        db.session.flush()  # get imp_doc.id
-        print(f"UPLOAD: Created ImportDocument with ID={imp_doc.id}")
-
-        _parse_and_store(file, imp_doc, source)
-        db.session.commit()
-        print(f"UPLOAD: Committed to database")
-        return jsonify(imp_doc.to_dict(include_items=True)), 201
+        # Handle collection import
+        if import_type == 'collection':
+            return _import_as_collection(file, source)
+        else:
+            # Handle regular topic import (existing functionality)
+            return _import_as_topics(file, source)
 
     except Exception as e:
         db.session.rollback()
         current_app.logger.exception("Upload failed")
         print(f"UPLOAD: Exception occurred: {e}")
         return jsonify({'error': str(e)}), 500
+
+
+def _import_as_topics(file, source):
+    """Import document as individual topics (original functionality)"""
+def _import_as_topics(file, source):
+    """Import document as individual topics (original functionality)"""
+    imp_doc = ImportDocument(
+        filename=secure_filename(file.filename),
+        source_type=source
+    )
+    db.session.add(imp_doc)
+    db.session.flush()  # get imp_doc.id
+    print(f"UPLOAD: Created ImportDocument with ID={imp_doc.id}")
+
+    _parse_and_store(file, imp_doc, source)
+    
+    # Check if any items were created
+    items_count = ImportItem.query.filter_by(document_id=imp_doc.id).count()
+    print(f"UPLOAD: Created {items_count} import items")
+    
+    if items_count == 0:
+        db.session.rollback()
+        error_msg = f"No content items could be extracted from {imp_doc.filename}. "
+        if source == 'word':
+            error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
+        else:
+            error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
+        print(f"UPLOAD: {error_msg}")
+        return jsonify({'error': error_msg}), 422
+    
+    db.session.commit()
+    print(f"UPLOAD: Committed to database")
+    return jsonify(imp_doc.to_dict(include_items=True)), 201
+
+
+def _import_as_collection(file, source):
+    """Import document as a collection with hierarchical structure"""
+    from models import Collection, Topic, collection_topic_tree, Project
+    
+    # Get collection details from form
+    collection_name = request.form.get('collection_name', '').strip()
+    collection_form_number = request.form.get('collection_form_number', '').strip()
+    collection_description = request.form.get('collection_description', '').strip()
+    project_id = request.form.get('project_id', '').strip()
+    
+    if not collection_name:
+        return jsonify({'error': 'Collection name is required'}), 400
+    if not collection_form_number:
+        return jsonify({'error': 'Collection ID (Form Number) is required'}), 400
+    if not project_id:
+        return jsonify({'error': 'Project selection is required'}), 400
+    
+    # Validate that the project exists
+    try:
+        project_id = int(project_id)
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({'error': 'Selected project does not exist'}), 400
+    except ValueError:
+        return jsonify({'error': 'Invalid project ID'}), 400
+    
+    # Check if form number already exists
+    existing_collection = Collection.query.filter_by(form_number=collection_form_number).first()
+    if existing_collection:
+        return jsonify({'error': f'Collection ID "{collection_form_number}" already exists'}), 400
+    
+    # Create temporary import document to parse content
+    temp_imp_doc = ImportDocument(
+        filename=secure_filename(file.filename),
+        source_type=source
+    )
+    db.session.add(temp_imp_doc)
+    db.session.flush()  # get temp_imp_doc.id
+    print(f"COLLECTION_IMPORT: Created temporary ImportDocument with ID={temp_imp_doc.id}")
+    
+    # Parse the document into import items
+    _parse_and_store(file, temp_imp_doc, source)
+    
+    # Check if any items were created
+    import_items = ImportItem.query.filter_by(document_id=temp_imp_doc.id).all()
+    if not import_items:
+        db.session.rollback()
+        error_msg = f"No content items could be extracted from {temp_imp_doc.filename}. "
+        if source == 'word':
+            error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
+        else:
+            error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
+        return jsonify({'error': error_msg}), 422
+    
+    print(f"COLLECTION_IMPORT: Parsed {len(import_items)} items from document")
+    
+    # Create the collection
+    collection = Collection(
+        name=collection_name,
+        form_number=collection_form_number,
+        description=collection_description or None,
+        project_id=project_id
+    )
+    db.session.add(collection)
+    db.session.flush()  # get collection.id
+    print(f"COLLECTION_IMPORT: Created collection with ID={collection.id}")
+    
+    # Convert import items to topics and add them to the collection
+    created_topics = []
+    for item in import_items:
+        topic = Topic(
+            title=item.title,
+            content=item.content
+        )
+        db.session.add(topic)
+        db.session.flush()  # get topic.id
+        created_topics.append(topic)
+        
+        # Add topic to collection (maintain order from import)
+        db.session.execute(
+            collection_topic_tree.insert().values(
+                collection_id=collection.id,
+                topic_id=topic.id,
+                position=item.heading_order,
+                parent_topic_id=None  # All topics at the same level initially
+            )
+        )
+    
+    print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics and added to collection")
+    
+    # Clean up the temporary import document and associated images
+    # First, delete any associated import images
+    ImportImage.query.filter_by(document_id=temp_imp_doc.id).delete()
+    
+    # Then delete the temporary import document
+    db.session.delete(temp_imp_doc)
+    
+    # Commit everything
+    db.session.commit()
+    print(f"COLLECTION_IMPORT: Successfully committed collection import and cleaned up temporary data")
+    
+    return jsonify({
+        'collection_id': collection.id,
+        'collection_name': collection.name,
+        'collection_form_number': collection.form_number,
+        'topics_count': len(created_topics),
+        'message': f'Successfully imported {len(created_topics)} topics into collection "{collection.name}"'
+    }), 201
 
 
 @imports.route('/upload', methods=['POST'])

@@ -10,7 +10,10 @@
     <!-- Data Loaded -->
     <div v-else>
       <h2>Review Import: {{ doc.filename }}</h2>
-      <p>Status: {{ doc.status }}</p>
+      <div class="status-row">
+        <span>Status: {{ doc.status }}</span>
+        <span class="topics-count">Total Topics: {{ doc.topics_count || (doc.items ? doc.items.length : 0) }}</span>
+      </div>
 
       <table class="items-table" v-if="doc.items && doc.items.length > 0">
         <thead>
@@ -192,6 +195,19 @@ export default {
 .import-review-view { padding: 2rem; }
 .loading { font-style: italic; }
 .error { color: #c00; margin-bottom: 1rem; font-weight: bold; }
+
+.status-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  font-weight: 500;
+}
+
+.topics-count {
+  color: #666;
+  font-size: 0.95em;
+}
 
 .review-status {
   background: #f8f9fa;

@@ -52,11 +52,33 @@
       </div>
     </div>
 
+    <!-- Database Metrics Panel (below metrics, above notifications) -->
+    <div style="margin-top:2rem;">
+      <DatabaseMetricsPanel :metrics="dbMetrics" />
+    </div>
+
     <!-- Main Content Grid -->
     <div class="content-grid">
       
       <!-- Quick Actions -->
  <!--     <div class="dashboard-section full-width">
+
+        async loadDbMetrics() {
+          try {
+            const response = await fetch('/api/metrics/')
+            if (!response.ok) throw new Error('Failed to fetch database metrics')
+            const data = await response.json()
+            const db = data.database || {}
+            this.dbMetrics = {
+              tables: db.tables || 0,
+              rows: db.totalRecords || 0,
+              size: db.size || '0 MB',
+              lastBackup: db.lastBackup ? new Date(db.lastBackup).toLocaleString() : 'Unknown'
+            }
+          } catch (error) {
+            console.error('Failed to load database metrics:', error)
+          }
+        },
         <h2>Quick Actions</h2>
         <div class="quick-actions-grid">
           <button class="action-card" @click="navigateTo('/admin/users')">
@@ -221,12 +243,14 @@
 
 </template>
 
+
 <script>
 import NotificationTicker from '../components/NotificationTicker.vue'
+import DatabaseMetricsPanel from '../components/DatabaseMetricsPanel.vue'
 
 export default {
   name: 'AdminDashboard',
-  components: { NotificationTicker },
+  components: { NotificationTicker, DatabaseMetricsPanel },
   props: {
     notifications: {
       type: Array,
@@ -251,6 +275,12 @@ export default {
         reviewers: 0,
         systemHealth: 'Good',
         uptime: '99.9%'
+      },
+      dbMetrics: {
+        tables: 12,
+        rows: 15432,
+        size: '24 MB',
+        lastBackup: '2025-08-09 02:00 UTC'
       },
       userStats: {
         total: 0,

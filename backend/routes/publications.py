@@ -745,6 +745,36 @@ def export_mobile_knowledge_base(pub_id):
     response.headers['Content-Disposition'] = f'attachment; filename="{pub.title}_mobile_kb.html"'
     return response
 
+@pubs_bp.route('/<int:pub_id>/preview/mobile-kb', methods=['GET'])
+def preview_mobile_knowledge_base(pub_id):
+    """Preview publication as mobile-first knowledge base HTML in browser"""
+    pub = Publication.query.get_or_404(pub_id)
+    
+    # Build the hierarchical structure (same as export)
+    def serialize_node(node):
+        topic_data = node.topic.to_dict() if node.topic else {'title': 'Unknown', 'content': ''}
+        return {
+            'id': node.id,
+            'topic_id': node.topic_id,
+            'title': topic_data.get('title', 'Untitled'),
+            'content': topic_data.get('content', ''),
+            'position': node.position,
+            'children': sorted([serialize_node(c) for c in node.children],
+                             key=lambda x: x['position'])
+        }
+    
+    top_nodes = [n for n in pub.nodes if n.parent_id is None]
+    tree = sorted([serialize_node(n) for n in top_nodes],
+                  key=lambda x: x['position'])
+    
+    # Generate mobile-optimized HTML
+    html_content = generate_mobile_kb_html(pub, tree)
+    
+    response = make_response(html_content)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    # No attachment header - this will display directly in browser
+    return response
+
 def generate_mobile_kb_html(publication, tree):
     """Generate mobile-first HTML for knowledge base using template"""
     
@@ -800,9 +830,9 @@ def generate_mobile_kb_html(publication, tree):
 {nav_html}        </div>'''
     
     # Build content sections HTML
-    def build_content_html(nodes):
+    def build_content_html(nodes, parent=None):
         html = ""
-        for node in nodes:
+        for idx, node in enumerate(nodes):
             # Clean and process content
             content = node.get('content', '')
             if content:
@@ -810,14 +840,17 @@ def generate_mobile_kb_html(publication, tree):
                 content = convert_markdown_to_html(content)
             else:
                 content = '<p>No content available.</p>'
-            
+
+            has_children = bool(node.get('children'))
+            in_this_section_html = ''
+            related_content_html = ''
+
             # If this topic has children, add "In this section..." navigation
-            if node.get('children'):
+            if has_children:
                 in_this_section = '<div class="in-this-section">\n<h2>In this section</h2>\n<ul class="section-links">\n'
                 for child in node['children']:
                     in_this_section += f'<li><a href="#" onclick="showSection(\'section-{child["id"]}\'); return false;" class="section-link">📝 {child["title"]}</a></li>\n'
                 in_this_section += '</ul>\n</div>\n'
-                
                 # Add the section navigation after the main content
                 if content == '<p>No content available.</p>':
                     # If no content, replace with section overview
@@ -825,6 +858,30 @@ def generate_mobile_kb_html(publication, tree):
                 else:
                     # If there is content, append the section navigation
                     content += f'\n{in_this_section}'
+                in_this_section_html = in_this_section
+            else:
+                # No children: add Related content section if there are siblings or children
+                # Siblings: other topics at the same level (from parent)
+                siblings = []
+                if parent and parent.get('children'):
+                    siblings = [sib for sib in parent['children'] if sib['id'] != node['id']]
+                # Children: always empty here (no children)
+                # But for completeness, if node.get('children'), add them
+                related_links = []
+                # Add siblings
+                for sib in siblings:
+                    related_links.append(f'<li><a href="#" onclick="showSection(\'section-{sib["id"]}\'); return false;" class="section-link">📝 {sib["title"]}</a></li>')
+                    # Also add their children (lower level)
+                    if sib.get('children'):
+                        for child in sib['children']:
+                            related_links.append(f'<li class="sub-related"><a href="#" onclick="showSection(\'section-{child["id"]}\'); return false;" class="section-link">📝 {child["title"]}</a></li>')
+                # Add own children (should be none, but for completeness)
+                if node.get('children'):
+                    for child in node['children']:
+                        related_links.append(f'<li class="sub-related"><a href="#" onclick="showSection(\'section-{child["id"]}\'); return false;" class="section-link">📝 {child["title"]}</a></li>')
+                if related_links:
+                    related_content_html = '<div class="related-content">\n<h2>Related content</h2>\n<ul class="section-links">\n' + '\n'.join(related_links) + '\n</ul>\n</div>\n'
+                    content += f'\n{related_content_html}'
 
             html += f'''
         <div id="section-{node["id"]}" class="content-section">
@@ -833,7 +890,7 @@ def generate_mobile_kb_html(publication, tree):
         </div>
 '''
             if node.get('children'):
-                html += build_content_html(node['children'])
+                html += build_content_html(node['children'], parent=node)
         return html
     
     # Generate navigation and content
@@ -977,7 +1034,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         .content-section h4,
         .content-section h5,
         .content-section h6 {
-            color: #212529;
+            color: #112E51;
             margin-top: 1.5rem;
             margin-bottom: 0.75rem;
             line-height: 1.3;
@@ -1675,12 +1732,24 @@ def convert_markdown_to_pdf_paragraphs(text):
                 list_items = []
                 in_list = False
             
-            # Remove markdown headers since we're using the collection hierarchy
-            # Convert to bold text instead (no italic to match main heading styles)
+            # Convert markdown headers to styled headings with appropriate font sizes
             header_level = len(stripped) - len(stripped.lstrip('#'))
             header_text = stripped.lstrip('#').strip()
             if header_text:
-                paragraphs.append(f"<b>{header_text}</b>")
+                # Map markdown heading levels to appropriate font sizes
+                # H1 (header_level=1) -> H2 style, H2 -> H3 style, etc.
+                if header_level == 1:  # # Header
+                    font_size = 16  # H2 equivalent size
+                elif header_level == 2:  # ## Header  
+                    font_size = 14  # H3 equivalent size
+                elif header_level == 3:  # ### Header
+                    font_size = 12  # H4 equivalent size
+                else:  # #### and deeper
+                    font_size = 11  # H5+ equivalent size
+                
+                # Use explicit font tag with size to ensure proper rendering
+                paragraphs.append(f'<font face="Helvetica-Bold" size="{font_size}"><b>{header_text}</b></font>')
+            
             
         # Handle bullet points and create proper lists
         elif stripped.startswith('-') or stripped.startswith('*'):

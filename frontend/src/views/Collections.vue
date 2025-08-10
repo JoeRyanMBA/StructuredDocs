@@ -106,6 +106,7 @@ export default {
 .guidance-text {
   background: #f8f9fa;
   border-left: 4px solid #007acc;
+  border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
   color: #495057;
