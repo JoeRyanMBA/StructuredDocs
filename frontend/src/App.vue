@@ -1,25 +1,27 @@
 <template>
-  <HeaderBar />
-  <TabNavigation />
-  <!-- NotificationTicker: always below TabNavigation -->
-  <div class="full-width">
-    <NotificationTicker
-      :notifications="notifications"
-      contextType="global"
-      @mark-read="markNotificationRead"
-    />
-  </div>
-  <main class="content">
-    <!-- <Breadcrumbs /> -->
-    <router-view v-slot="{ Component, route }">
-      <component
-        :is="Component"
-        v-bind="route.props"
+  <div :class="[{ 'login-bg': isLoginPage }]">
+    <HeaderBar v-if="!isLoginPage" />
+    <TabNavigation v-if="!isLoginPage" />
+    <!-- NotificationTicker: always below TabNavigation -->
+    <div class="full-width" v-if="!isLoginPage">
+      <NotificationTicker
         :notifications="notifications"
-        :markNotificationRead="markNotificationRead"
+        contextType="global"
+        @mark-read="markNotificationRead"
       />
-    </router-view>
-  </main>
+    </div>
+    <main class="content" :class="{ 'login-content': isLoginPage }">
+      <!-- <Breadcrumbs /> -->
+      <router-view v-slot="{ Component, route }">
+        <component
+          :is="Component"
+          v-bind="route.props"
+          :notifications="notifications"
+          :markNotificationRead="markNotificationRead"
+        />
+      </router-view>
+    </main>
+  </div>
 </template>
 
 <script>
@@ -34,6 +36,16 @@ export default {
     return {
       notifications: [],
       notificationsLoading: false
+    }
+  },
+  computed: {
+    isLoginPage() {
+      return this.$route.name === 'Login';
+    }
+  },
+  watch: {
+    $route() {
+      // force update on route change
     }
   },
   created() {
@@ -80,10 +92,25 @@ export default {
   margin-right: auto;
 }
 
+.login-bg {
+  min-height: 100vh;
+  background: linear-gradient(135deg, #005a9c 0%, #0074cc 100%) !important;
+}
+
+.login-content {
+  margin-top: 0 !important;
+  max-width: 100vw;
+  padding: 0;
+}
+
 @media (max-width: 768px) {
   .content {
     margin-top: 110px; /* Slightly less space on mobile */
     padding: 1rem;
+  }
+  .login-content {
+    margin-top: 0 !important;
+    padding: 0;
   }
 }
 </style>

@@ -16,10 +16,15 @@ projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 @projects_bp.route('/', methods=['GET'])
 def list_projects():
     """Get all projects with basic info"""
-    # Uncomment and use real data when models are ready
-    # projects = Project.query.order_by(desc(Project.updated_at)).all()
-    # return jsonify([project.to_dict() for project in projects])
-    return jsonify([])
+    from models import db, Project
+    import traceback
+    try:
+        projects = Project.query.order_by(desc(Project.updated_at)).all()
+        return jsonify([project.to_dict() for project in projects])
+    except Exception as e:
+        print('Error in /api/projects:', e)
+        traceback.print_exc()
+        return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>', methods=['GET'])
 def get_project(project_id):
@@ -103,38 +108,22 @@ def get_project(project_id):
 @projects_bp.route('/', methods=['POST'])
 def create_project():
     """Create a new project"""
+    from models import db, Project
     try:
         data = request.get_json()
-        
         # Validate required fields
         if not data.get('name'):
             return jsonify({"error": "Project name is required"}), 400
-        
-        # project = Project(
-        #     name=data['name'],
-        #     description=data.get('description'),
-        #     status=data.get('status', 'planning'),
-        #     start_date=datetime.fromisoformat(data['start_date']).date() if data.get('start_date') else None,
-        #     target_completion=datetime.fromisoformat(data['target_completion']).date() if data.get('target_completion') else None
-        # )
-        # 
-        # db.session.add(project)
-        # db.session.commit()
-        # 
-        # return jsonify(project.to_dict()), 201
-        
-        # Placeholder response
-        return jsonify({
-            "id": 999,
-            "name": data['name'],
-            "description": data.get('description'),
-            "status": data.get('status', 'planning'),
-            "start_date": data.get('start_date'),
-            "target_completion": data.get('target_completion'),
-            "created_at": datetime.utcnow().isoformat(),
-            "updated_at": datetime.utcnow().isoformat()
-        }), 201
-        
+        project = Project(
+            name=data['name'],
+            description=data.get('description'),
+            status=data.get('status', 'planning'),
+            start_date=datetime.fromisoformat(data['start_date']).date() if data.get('start_date') else None,
+            target_completion=datetime.fromisoformat(data['target_completion']).date() if data.get('target_completion') else None
+        )
+        db.session.add(project)
+        db.session.commit()
+        return jsonify(project.to_dict()), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

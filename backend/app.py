@@ -26,8 +26,9 @@ def create_app():
     
     # Configure SQLAlchemy database URI
     import os
-    backend_dir = os.path.dirname(os.path.abspath(__file__))
-    db_path = os.path.join(backend_dir, 'instance', 'structured_docs.db')
+    # Use the main instance directory for the database
+    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    db_path = os.path.join(project_root, 'instance', 'structured_docs.db')
     app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
     
     # Configure static files for image serving

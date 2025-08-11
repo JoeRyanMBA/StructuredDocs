@@ -4,7 +4,7 @@
       <div class="login-header">
         <div class="census-logo">
           <div class="logo-icon">🏛️</div>
-          <h1>Census Bureau</h1>
+          <h1>Structured Docs</h1>
           <p class="system-title">Structured Documentation System</p>
         </div>
       </div>
@@ -307,7 +307,7 @@ export default {
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #005a9c 0%, #0074cc 100%);
+  background:radial-gradient( #e6e2e2ff 0%, #ffffff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
