@@ -197,15 +197,26 @@ export default {
     
     async loadStats() {
       try {
-        // Mock data for demonstration
-        this.stats = {
-          projects: { total: 12, active: 8 },
-          collections: { total: 25, new_today: 3 },
-          topics: { total: 150, drafts: 18 },
-          reviews: { total: 7, pending: 4 }
+        // Fetch real stats from backend API
+        const response = await fetch('/api/dashboard/stats');
+        if (response.ok) {
+          this.stats = await response.json();
+        } else {
+          this.stats = {
+            projects: { total: 0, active: 0 },
+            collections: { total: 0, new_today: 0 },
+            topics: { total: 0, drafts: 0 },
+            reviews: { total: 0, pending: 0 }
+          };
         }
       } catch (error) {
         console.error('Failed to load stats:', error)
+        this.stats = {
+          projects: { total: 0, active: 0 },
+          collections: { total: 0, new_today: 0 },
+          topics: { total: 0, drafts: 0 },
+          reviews: { total: 0, pending: 0 }
+        };
       }
     },
     
@@ -226,25 +237,16 @@ export default {
     
     async loadPendingActions() {
       try {
-        // Mock data for demonstration
-        this.pendingActions = [
-          {
-            id: 1,
-            title: 'Review Survey Documentation',
-            description: 'Complete review of economic survey procedures',
-            created_at: '2025-08-01T09:00:00Z',
-            link: '/reviews'
-          },
-          {
-            id: 2,
-            title: 'Approve Import Request',
-            description: 'New document import awaiting approval',
-            created_at: '2025-08-02T11:30:00Z',
-            link: '/import'
-          }
-        ]
+        // Fetch real pending actions from backend API
+        const response = await fetch('/api/dashboard/pending-actions');
+        if (response.ok) {
+          this.pendingActions = await response.json();
+        } else {
+          this.pendingActions = [];
+        }
       } catch (error) {
         console.error('Failed to load pending actions:', error)
+        this.pendingActions = [];
       }
     },
     

@@ -268,30 +268,10 @@ export default {
   data() {
     return {
       loading: true,
-      stats: {
-        totalUsers: 0,
-        activeUsers: 0,
-        authors: 0,
-        reviewers: 0,
-        systemHealth: 'Good',
-        uptime: '99.9%'
-      },
-      dbMetrics: {
-        tables: 12,
-        rows: 15432,
-        size: '24 MB',
-        lastBackup: '2025-08-09 02:00 UTC'
-      },
-      userStats: {
-        total: 0,
-        newThisWeek: 0,
-        activeToday: 0
-      },
-      systemMetrics: {
-        cpu: 25,
-        memory: 45,
-        storage: 60
-      },
+      stats: {},
+      dbMetrics: {},
+      userStats: {},
+      systemMetrics: {},
       recentActivity: [],
       systemLogs: [],
       systemEvents: [],
@@ -339,112 +319,53 @@ export default {
 
     async loadStats() {
       try {
-        // Create mock data for prototype - replace with real API calls
-        const mockStats = {
-          totalUsers: 45,
-          activeUsers: 32,
-          authors: 12,
-          reviewers: 8,
-          systemHealth: 'Good',
-          uptime: '99.9%'
+        // Fetch real stats from backend API
+        const response = await fetch('/api/admin/stats');
+        if (response.ok) {
+          const data = await response.json();
+          this.stats = data.stats || {};
+          this.userStats = data.userStats || {};
+          this.systemMetrics = data.systemMetrics || {};
+        } else {
+          this.stats = {};
+          this.userStats = {};
+          this.systemMetrics = {};
         }
-
-        const mockUserStats = {
-          total: 45,
-          newThisWeek: 3,
-          activeToday: 12
-        }
-
-        // Try to fetch real data, fall back to mock
-        this.stats = mockStats
-        this.userStats = mockUserStats
-
-        // Simulate random system metrics
-        this.systemMetrics = {
-          cpu: Math.floor(Math.random() * 40) + 10, // 10-50%
-          memory: Math.floor(Math.random() * 30) + 30, // 30-60%
-          storage: Math.floor(Math.random() * 20) + 50 // 50-70%
-        }
-        
       } catch (error) {
         console.error('Failed to load stats:', error)
+        this.stats = {};
+        this.userStats = {};
+        this.systemMetrics = {};
       }
     },
 
     async loadActivity() {
       try {
-        // Create mock activity data
-        const mockActivity = [
-          {
-            id: 1,
-            icon: '👤',
-            title: 'New user registered',
-            description: 'Jane Smith joined as Content Reviewer',
-            user: 'System',
-            type: 'user',
-            timestamp: new Date(Date.now() - 2 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 2,
-            icon: '🔧',
-            title: 'System backup completed',
-            description: 'Automated database backup successful',
-            user: 'System',
-            type: 'system',
-            timestamp: new Date(Date.now() - 6 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 3,
-            icon: '⚠️',
-            title: 'Permission updated',
-            description: 'User role changed from Author to Admin',
-            user: 'Admin User',
-            type: 'security',
-            timestamp: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
-
-        this.recentActivity = mockActivity
-        
+        // Fetch real activity from backend API
+        const response = await fetch('/api/admin/activity');
+        if (response.ok) {
+          this.recentActivity = await response.json();
+        } else {
+          this.recentActivity = [];
+        }
       } catch (error) {
         console.error('Failed to load activity:', error)
+        this.recentActivity = [];
       }
     },
 
     async loadSystemLogs() {
       try {
-        // Create mock system logs
-        const mockLogs = [
-          {
-            id: 1,
-            timestamp: new Date(Date.now() - 5 * 60 * 1000).toISOString(),
-            level: 'info',
-            message: 'Database backup completed successfully'
-          },
-          {
-            id: 2,
-            timestamp: new Date(Date.now() - 15 * 60 * 1000).toISOString(),
-            level: 'warning',
-            message: 'High memory usage detected (85%)'
-          },
-          {
-            id: 3,
-            timestamp: new Date(Date.now() - 30 * 60 * 1000).toISOString(),
-            level: 'info',
-            message: 'User authentication cache cleared'
-          },
-          {
-            id: 4,
-            timestamp: new Date(Date.now() - 45 * 60 * 1000).toISOString(),
-            level: 'error',
-            message: 'Failed to send email notification (retry scheduled)'
-          }
-        ]
-
-        this.systemLogs = mockLogs.slice(0, 5) // Show last 5 logs
-        
+        // Fetch real system logs from backend API
+        const response = await fetch('/api/admin/system-logs');
+        if (response.ok) {
+          this.systemLogs = await response.json();
+        } else {
+          this.systemLogs = [];
+        }
       } catch (error) {
         console.error('Failed to load system logs:', error)
+        this.systemLogs = [];
       }
     },
 

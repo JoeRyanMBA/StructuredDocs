@@ -74,103 +74,11 @@ def list_tasks():
 
     except Exception as e:
         print(f"Error in list_tasks: {e}")
-        # Return placeholder response as fallback
-        sample_tasks = [
-            {
-                "id": 1,
-                "title": "Review Census Methodology Document",
-                "description": "Complete review of the updated census methodology documentation for accuracy and completeness.",
-                "status": "in_progress",
-                "priority": "high",
-                "due_date": "2025-08-15",
-                "completed_at": None,
-                "project_id": 1,
-                "collection_id": None,
-                "topic_id": None,
-                "assigned_to": "sarah.johnson@census.gov",
-                "created_by": "admin@census.gov",
-                "tags": '["documentation", "review", "methodology"]',
-                "created_at": "2025-08-01T09:00:00",
-                "updated_at": "2025-08-02T14:30:00",
-                "project_name": "Census 2030 Modernization Initiative",
-                "collection_name": None,
-                "topic_name": None
-            },
-            {
-                "id": 2,
-                "title": "Update API Documentation",
-                "description": "Add examples and improve clarity in the REST API documentation.",
-                "status": "todo",
-                "priority": "medium",
-                "due_date": "2025-08-20",
-                "completed_at": None,
-                "project_id": None,
-                "collection_id": 1,
-                "topic_id": None,
-                "assigned_to": "michael.chen@statistics.gov",
-                "created_by": "admin@census.gov",
-                "tags": '["api", "documentation", "development"]',
-                "created_at": "2025-08-01T10:30:00",
-                "updated_at": "2025-08-01T10:30:00",
-                "project_name": None,
-                "collection_name": "API Documentation",
-                "topic_name": None
-            },
-            {
-                "id": 3,
-                "title": "Validate Survey Questions",
-                "description": "Review and validate the survey questions for the upcoming labor force survey.",
-                "status": "review",
-                "priority": "high",
-                "due_date": "2025-08-10",
-                "completed_at": None,
-                "project_id": None,
-                "collection_id": None,
-                "topic_id": 15,
-                "assigned_to": "amanda.rodriguez@census.gov",
-                "created_by": "admin@census.gov",
-                "tags": '["survey", "validation", "questions"]',
-                "created_at": "2025-07-28T15:00:00",
-                "updated_at": "2025-08-02T11:15:00",
-                "project_name": None,
-                "collection_name": None,
-                "topic_name": "Labor Force Survey Design"
-            },
-            {
-                "id": 4,
-                "title": "Create Training Materials",
-                "description": "Develop training materials for new census field representatives.",
-                "status": "completed",
-                "priority": "medium",
-                "due_date": "2025-07-30",
-                "completed_at": "2025-07-29T16:45:00",
-                "project_id": 1,
-                "collection_id": None,
-                "topic_id": None,
-                "assigned_to": "james.wilson@commerce.gov",
-                "created_by": "admin@census.gov",
-                "tags": '["training", "materials", "field-work"]',
-                "created_at": "2025-07-15T08:00:00",
-                "updated_at": "2025-07-29T16:45:00",
-                "project_name": "Census 2030 Modernization Initiative",
-                "collection_name": None,
-                "topic_name": None
-            }
-        ]
-
-        # Apply filters to sample data
-        filtered_tasks = sample_tasks
-        if status:
-            filtered_tasks = [t for t in filtered_tasks if t['status'] == status]
-        if priority:
-            filtered_tasks = [t for t in filtered_tasks if t['priority'] == priority]
-        if project_id:
-            filtered_tasks = [t for t in filtered_tasks if t['project_id'] == project_id]
-
+        # Return empty response if error occurs
         return jsonify({
-            'tasks': filtered_tasks,
-            'total': len(filtered_tasks),
-            'pages': 1,
+            'tasks': [],
+            'total': 0,
+            'pages': 0,
             'current_page': 1
         })
 

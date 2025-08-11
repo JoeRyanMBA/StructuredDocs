@@ -210,56 +210,12 @@ export default {
     },
     async loadPublications() {
       try {
-        // Create mock data for prototype - replace with real API call
-        const mockPublications = [
-          {
-            id: 1,
-            title: 'Census Bureau Mobile Knowledge Base',
-            type: 'Mobile KB',
-            status: 'published',
-            description: 'Comprehensive mobile knowledge base for field operations',
-            pages_count: 42,
-            topics_count: 28,
-            file_size: 2048000,
-            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 2,
-            title: 'Data Collection Procedures Manual',
-            type: 'PDF',
-            status: 'draft',
-            description: 'Detailed procedures for data collection teams',
-            pages_count: 18,
-            topics_count: 12,
-            file_size: 1536000,
-            created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 3,
-            title: 'Survey Quality Guidelines',
-            type: 'Web Publication',
-            status: 'published',
-            description: 'Guidelines for maintaining survey quality standards',
-            pages_count: 8,
-            topics_count: 6,
-            file_size: 512000,
-            created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
-        // Try to fetch real data, fall back to mock
-        try {
-          const res = await fetch('/api/publications')
-          if (res.ok) {
-            const realPublications = await res.json()
-            this.publications = realPublications.length > 0 ? realPublications : mockPublications
-          } else {
-            this.publications = mockPublications
-          }
-        } catch {
-          this.publications = mockPublications
+        // Fetch real data from backend API
+        const res = await fetch('/api/publications')
+        if (res.ok) {
+          this.publications = await res.json()
+        } else {
+          this.publications = []
         }
         // Get recent publications (last 5, sorted by updated_at)
         this.recentPublications = [...this.publications]
@@ -267,6 +223,8 @@ export default {
           .slice(0, 5)
       } catch (error) {
         console.error('Failed to load publications:', error)
+        this.publications = []
+        this.recentPublications = []
       }
     },
     async loadStats() {

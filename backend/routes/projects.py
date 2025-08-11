@@ -16,37 +16,10 @@ projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 @projects_bp.route('/', methods=['GET'])
 def list_projects():
     """Get all projects with basic info"""
-    try:
-        # projects = Project.query.order_by(desc(Project.updated_at)).all()
-        # return jsonify([project.to_dict() for project in projects])
-        
-        # Placeholder response for now
-        return jsonify([
-            {
-                "id": 1,
-                "name": "Census 2030 Survey Methodology",
-                "description": "Development of survey methodology for 2030 Census",
-                "status": "active",
-                "start_date": "2025-01-15",
-                "target_completion": "2025-12-31",
-                "stakeholders_count": 8,
-                "collections_count": 3,
-                "active_reviews_count": 2
-            },
-            {
-                "id": 2,
-                "name": "Labor Statistics Modernization",
-                "description": "Updating labor force survey methodologies",
-                "status": "planning",
-                "start_date": "2025-03-01",
-                "target_completion": "2026-06-30",
-                "stakeholders_count": 5,
-                "collections_count": 2,
-                "active_reviews_count": 0
-            }
-        ])
-    except Exception as e:
-        return jsonify({"error": str(e)}), 500
+    # Uncomment and use real data when models are ready
+    # projects = Project.query.order_by(desc(Project.updated_at)).all()
+    # return jsonify([project.to_dict() for project in projects])
+    return jsonify([])
 
 @projects_bp.route('/<int:project_id>', methods=['GET'])
 def get_project(project_id):

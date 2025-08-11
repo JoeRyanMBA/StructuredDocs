@@ -41,12 +41,3 @@ export async function saveDocuments(tree) {
   if (!res.ok) throw new Error(res.statusText)
   return res.json()
 }
-
-export const data = [
-  {
-    id: 1,
-    name: 'Collection A',
-    topics: [{ id: 1, title: 'Topic 1' }],
-    children: []
-  }
-]

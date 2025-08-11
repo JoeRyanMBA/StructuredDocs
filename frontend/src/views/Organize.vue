@@ -263,6 +263,13 @@
                 </svg>
               </div>
               <span class="topic-title">{{ element.title }}</span>
+              <div style="margin-left: auto; display: flex; align-items: center;">
+                <button class="preview-icon-btn" @click.stop="previewTopic(element)" title="Preview this topic">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
+                    <path d="M10 4C5 4 1.73 8.11 1.08 9.01a1.5 1.5 0 0 0 0 1.98C1.73 11.89 5 16 10 16s8.27-4.11 8.92-5.01a1.5 1.5 0 0 0 0-1.98C18.27 8.11 15 4 10 4Zm0 10c-3.87 0-6.82-3.13-7.7-4C3.18 9.13 6.13 6 10 6s6.82 3.13 7.7 4c-.88.87-3.83 4-7.7 4Zm0-7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" fill="#007acc"/>
+                  </svg>
+                </button>
+              </div>
             </div>
           </template>
         </draggable>
@@ -303,6 +310,28 @@
       class="context-menu-overlay"
       @click="closeContextMenu"
     ></div>
+
+    <div v-if="previewModal.show" class="modal-overlay" @click.self="closePreviewModal">
+      <div class="modal-content preview-modal" @click.stop>
+        <div class="modal-header">
+          <h3>👁️ Topic Preview</h3>
+          <button class="btn-close" @click="closePreviewModal">✕</button>
+        </div>
+        <div class="modal-body">
+          <div v-if="previewModal.loading">Loading…</div>
+          <div v-else-if="previewModal.error" class="error">{{ previewModal.error }}</div>
+          <div v-else>
+            <TopicEditor
+              :topicId="previewModal.topic.id"
+              :initialTitle="previewModal.title"
+              :initialContent="previewModal.content"
+              :initialFrontmatter="previewModal.frontmatter"
+              :readOnly="true"
+            />
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -314,6 +343,7 @@ import draggable from 'vuedraggable'
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { getTopics } from '@/api/topics.js' // You may need to implement this
+import TopicEditor from '@/components/TopicEditor.vue'
 
 export default {
   name: 'OrganizeView',
@@ -323,7 +353,7 @@ export default {
       required: true
     }
   },
-  components: { Breadcrumbs, CollectionTree, TopicItem, draggable },
+  components: { Breadcrumbs, CollectionTree, TopicItem, draggable, TopicEditor },
   data() {
     return {
       currentCollection: null, // The specific collection being organized
@@ -344,6 +374,15 @@ export default {
         x: 0,
         y: 0,
         targetTopic: null
+      },
+      previewModal: {
+        show: false,
+        topic: null,
+        loading: false,
+        error: null,
+        content: '',
+        title: '',
+        frontmatter: ''
       }
     }
   },
@@ -1157,6 +1196,33 @@ export default {
         this.saveChanges();
       }
     },
+    async previewTopic(topic) {
+      this.previewModal.show = true;
+      this.previewModal.loading = true;
+      this.previewModal.error = null;
+      this.previewModal.topic = topic;
+      try {
+        const res = await fetch(`/api/topics/${topic.id}`);
+        if (!res.ok) throw new Error('Failed to load topic');
+        const data = await res.json();
+        this.previewModal.title = data.title || topic.title;
+        this.previewModal.content = data.content || '';
+        this.previewModal.frontmatter = data.frontmatter || '';
+      } catch (e) {
+        this.previewModal.error = e.message;
+      } finally {
+        this.previewModal.loading = false;
+      }
+    },
+    closePreviewModal() {
+      this.previewModal.show = false;
+      this.previewModal.topic = null;
+      this.previewModal.content = '';
+      this.previewModal.title = '';
+      this.previewModal.frontmatter = '';
+      this.previewModal.error = null;
+      this.previewModal.loading = false;
+    },
   }
 }
 </script>
@@ -1809,5 +1875,77 @@ export default {
   align-items: center;
   gap: 0.25rem;
   margin-left: auto;
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(0,0,0,0.35);
+  z-index: 2000;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.modal-content.preview-modal {
+  background: #fff;
+  border-radius: 10px;
+  max-width: 900px;
+  width: 90vw;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.25);
+  padding: 0;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.5rem 0.5rem 1.5rem;
+  border-bottom: 1px solid #eee;
+}
+.modal-body {
+  padding: 1.5rem;
+}
+.btn-close {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: #888;
+  margin-left: 1rem;
+}
+.error {
+  color: #dc3545;
+  font-weight: bold;
+  margin: 1rem 0;
+}
+
+.preview-icon-btn {
+  width: 28px;
+  height: 28px;
+  min-width: 28px;
+  min-height: 28px;
+  max-width: 28px;
+  max-height: 28px;
+  margin-left: 2px;
+  margin-right: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 0;
+  font-size: 1rem;
+  font-family: inherit;
+  background: #f0f0f0;
+  border: 1px solid #ccc;
+  border-radius: 4px;
+  cursor: pointer;
+  transition: background 0.2s, border 0.2s;
+  box-sizing: border-box;
+}
+.preview-icon-btn:hover {
+  background: #e3f2fd;
 }
 </style>

@@ -15,25 +15,26 @@ def seed_collections():
     print("📁 Creating sample collections...")
     
     # Root collections
-    methodology = Collection(name="Survey Methodology", position=1)
-    demographics = Collection(name="Demographics & Population", position=2)
-    economics = Collection(name="Economic Statistics", position=3)
+    now = datetime.utcnow()
+    methodology = Collection(name="Survey Methodology", form_number="COLL-001", position=1, created_at=now, updated_at=now)
+    demographics = Collection(name="Demographics & Population", form_number="COLL-002", position=2, created_at=now, updated_at=now)
+    economics = Collection(name="Economic Statistics", form_number="COLL-003", position=3, created_at=now, updated_at=now)
     
     db.session.add_all([methodology, demographics, economics])
     db.session.flush()  # Get IDs
     
     # Sub-collections under Survey Methodology
-    sampling = Collection(name="Sampling Techniques", parent_id=methodology.id, position=1)
-    data_collection = Collection(name="Data Collection Methods", parent_id=methodology.id, position=2)
-    quality_control = Collection(name="Quality Control", parent_id=methodology.id, position=3)
-    
+    sampling = Collection(name="Sampling Techniques", form_number="COLL-004", parent_id=methodology.id, position=1, created_at=now, updated_at=now)
+    data_collection = Collection(name="Data Collection Methods", form_number="COLL-005", parent_id=methodology.id, position=2, created_at=now, updated_at=now)
+    quality_control = Collection(name="Quality Control", form_number="COLL-006", parent_id=methodology.id, position=3, created_at=now, updated_at=now)
+
     # Sub-collections under Demographics
-    census_data = Collection(name="Census Data Analysis", parent_id=demographics.id, position=1)
-    population_estimates = Collection(name="Population Estimates", parent_id=demographics.id, position=2)
-    
+    census_data = Collection(name="Census Data Analysis", form_number="COLL-007", parent_id=demographics.id, position=1, created_at=now, updated_at=now)
+    population_estimates = Collection(name="Population Estimates", form_number="COLL-008", parent_id=demographics.id, position=2, created_at=now, updated_at=now)
+
     # Sub-collections under Economics
-    employment = Collection(name="Employment Statistics", parent_id=economics.id, position=1)
-    income_poverty = Collection(name="Income & Poverty", parent_id=economics.id, position=2)
+    employment = Collection(name="Employment Statistics", form_number="COLL-009", parent_id=economics.id, position=1, created_at=now, updated_at=now)
+    income_poverty = Collection(name="Income & Poverty", form_number="COLL-010", parent_id=economics.id, position=2, created_at=now, updated_at=now)
     
     db.session.add_all([
         sampling, data_collection, quality_control,
@@ -422,6 +423,8 @@ def main():
     
     app = create_app()
     
+    from models import User
+    from werkzeug.security import generate_password_hash
     with app.app_context():
         try:
             # Clear existing data (optional - comment out if you want to keep existing data)
@@ -433,34 +436,26 @@ def main():
             ImportDocument.query.delete()
             Topic.query.delete()
             Collection.query.delete()
-            
-            # Create new data
-            collections = seed_collections()
-            topics = seed_topics(collections)
-            imports = seed_import_documents()
-            publications = seed_publications()
-            
-            # Commit all changes
+            User.query.delete()
+
+            # Create default admin user only
+            print("👤 Creating default admin user...")
+            admin_user = User(
+                name="Admin User",
+                email="admin@example.com",
+                password_hash=generate_password_hash("admin123"),
+                role="admin",
+                active=True
+            )
+            db.session.add(admin_user)
+
+            # Commit only the admin user
             db.session.commit()
-            
+
             print("\n✅ Database seeding completed successfully!")
-            print(f"📁 Created {len(collections)} collections")
-            print(f"📄 Created {len(topics)} topics")
-            print(f"📥 Created {len(imports)} import documents")
-            print(f"📚 Created {len(publications)} publications")
-            
-            print("\n🎯 Test Data Summary:")
-            print("  • Draft topics (ready for review): 5")
-            print("  • Published topics: 2") 
-            print("  • Archived topics: 1")
-            print("  • Import documents in various review stages: 3")
-            print("  • Hierarchical collections with sub-collections")
-            print("\n🧪 Test the review workflow:")
-            print("  1. Go to Topics page")
-            print("  2. Click 'Review' button on any draft topic") 
-            print("  3. Test the modal with date picker and reviewer selection")
-            print("  4. Check Reviews dashboard for submitted reviews")
-            
+            print("� Created 1 admin user (admin@example.com)")
+            print("No collections, topics, import documents, or publications were seeded.")
+
         except Exception as e:
             db.session.rollback()
             print(f"❌ Error during seeding: {e}")

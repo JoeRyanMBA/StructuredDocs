@@ -246,45 +246,17 @@ export default {
 
     async loadReviews() {
       try {
-        // For now, we'll create mock data since the reviews endpoint might not be fully implemented
-        // In a real implementation, you'd fetch from your reviews API
-        const mockReviews = [
-          {
-            id: 1,
-            topic_title: 'Data Collection Standards',
-            reviewer_name: 'Dr. Smith',
-            status: 'pending',
-            sent_date: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            due_date: new Date(Date.now() + 3 * 24 * 60 * 60 * 1000).toISOString(),
-            type: 'SME Review',
-            created_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          },
-          {
-            id: 2,
-            topic_title: 'Survey Methodology Guide',
-            reviewer_name: 'Jane Wilson',
-            status: 'completed',
-            sent_date: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            due_date: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString(),
-            type: 'Technical Review',
-            feedback_count: 3,
-            created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-            updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-          }
-        ]
-
-        // Try to fetch real data, fall back to mock if needed
+        // Fetch real reviews from backend API
         try {
           const res = await fetch('/api/reviews/')
           if (res.ok) {
             const realReviews = await res.json()
-            this.processReviews(realReviews.length > 0 ? realReviews : mockReviews)
+            this.processReviews(realReviews)
           } else {
-            this.processReviews(mockReviews)
+            this.processReviews([])
           }
         } catch {
-          this.processReviews(mockReviews)
+          this.processReviews([])
         }
         
       } catch (error) {
