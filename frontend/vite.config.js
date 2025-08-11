@@ -29,6 +29,11 @@ export default defineConfig({
             console.log('Received Response from the Target:', proxyRes.statusCode, req.url);
           });
         }
+      },
+      '/static': {
+        target: 'http://localhost:5050',
+        changeOrigin: true,
+        secure: false
       }
     }
   }

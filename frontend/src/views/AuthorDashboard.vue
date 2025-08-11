@@ -248,7 +248,6 @@ export default {
           const allTopics = await res.json()
           // Filter to current user's topics (in real app, this would be done server-side)
           this.myTopics = allTopics
-          
           // Get recent topics (last 5, sorted by updated_at)
           this.recentTopics = [...this.myTopics]
             .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
@@ -256,51 +255,12 @@ export default {
         }
       } catch (error) {
         console.error('Failed to load topics:', error)
-        // Fallback to mock data for demonstration
-        this.createMockData()
+        this.myTopics = []
+        this.recentTopics = []
       }
     },
 
-    createMockData() {
-      const mockTopics = [
-        {
-          id: 1,
-          title: 'Data Collection Best Practices',
-          status: 'draft',
-          collection_name: 'Field Operations',
-          summary: 'Comprehensive guide for field data collection procedures',
-          word_count: 1250,
-          review_status: null,
-          created_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 1 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 2,
-          title: 'Survey Quality Control Checklist',
-          status: 'published',
-          collection_name: 'Quality Assurance',
-          summary: 'Step-by-step quality control procedures for surveys',
-          word_count: 890,
-          review_status: 'approved',
-          created_at: new Date(Date.now() - 7 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 2 * 24 * 60 * 60 * 1000).toISOString()
-        },
-        {
-          id: 3,
-          title: 'Interview Techniques Manual',
-          status: 'in_review',
-          collection_name: 'Training Materials',
-          summary: 'Guidelines for conducting effective interviews',
-          word_count: 2100,
-          review_status: 'pending',
-          created_at: new Date(Date.now() - 5 * 24 * 60 * 60 * 1000).toISOString(),
-          updated_at: new Date(Date.now() - 3 * 24 * 60 * 60 * 1000).toISOString()
-        }
-      ]
-      
-      this.myTopics = mockTopics
-      this.recentTopics = [...mockTopics].slice(0, 3)
-    },
+
 
     async loadStats() {
       try {

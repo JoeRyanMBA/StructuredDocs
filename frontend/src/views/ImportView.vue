@@ -1,11 +1,92 @@
 <template>
   <div class="import-view">
     <Breadcrumbs />
-    <h2>Import Topics</h2>
+    <h2>Import Content</h2>
     
     <p class="guidance-text">
       Use this tool to import content from outside this app. You can import Markdown (.md) documents (preferred) or Word (.docx) documents.
     </p>
+
+    <!-- Import Type Selection -->
+    <div class="import-type-selection">
+      <h3>Import Type</h3>
+      <div class="radio-group">
+        <label class="radio-option">
+          <input type="radio" v-model="importType" value="topics" :disabled="isUploading">
+          <span class="radio-label">
+            <strong>Individual Topics</strong>
+            <p>Import as separate topics that can be organized later</p>
+          </span>
+        </label>
+        <label class="radio-option">
+          <input type="radio" v-model="importType" value="collection" :disabled="isUploading">
+          <span class="radio-label">
+            <strong>Collection (Document)</strong>
+            <p>Import as a single collection with hierarchical structure maintained</p>
+          </span>
+        </label>
+      </div>
+    </div>
+
+    <!-- Collection Details (only shown when importing as collection) -->
+    <div v-if="importType === 'collection'" class="collection-details">
+      <h3>Collection Details</h3>
+      <div class="form-group">
+        <label for="projectSelect">Project *</label>
+        <select 
+          id="projectSelect"
+          v-model="selectedProjectId" 
+          required
+          :disabled="isUploading"
+          class="project-select"
+        >
+          <option value="">Select a project...</option>
+          <option 
+            v-for="project in projects" 
+            :key="project.id" 
+            :value="project.id"
+          >
+            {{ project.name }}
+          </option>
+        </select>
+        <small class="form-help">Select the project this collection belongs to</small>
+      </div>
+      <div class="form-group">
+        <label for="collectionName">Collection Name *</label>
+        <input 
+          id="collectionName"
+          v-model="collectionName" 
+          type="text" 
+          placeholder="Enter collection name"
+          required
+          :disabled="isUploading"
+        />
+      </div>
+      <div class="form-group">
+        <label for="collectionFormNumber">Collection ID (Form Number) *</label>
+        <input 
+          id="collectionFormNumber"
+          v-model="collectionFormNumber" 
+          type="text" 
+          placeholder="e.g., DOC-001, FORM-ABC"
+          pattern="^[A-Za-z0-9\-_]+$"
+          title="Only letters, numbers, hyphens, and underscores are allowed"
+          required
+          :disabled="isUploading"
+        />
+        <small class="form-help">Unique identifier for this collection</small>
+      </div>
+      <div class="form-group">
+        <label for="collectionDescription">Description (Optional)</label>
+        <textarea 
+          id="collectionDescription"
+          v-model="collectionDescription" 
+          rows="3" 
+          placeholder="Describe the content of this collection"
+          :disabled="isUploading"
+        ></textarea>
+      </div>
+    </div>
 
     <!-- Loading indicator -->
     <div v-if="isUploading" class="loading-overlay">
@@ -34,7 +115,37 @@
         :disabled="isUploading"
       />
 
+      <div v-if="selectedFile" class="file-preview">
+        <div class="file-info">
+          <div class="file-icon">📄</div>
+          <div class="file-details">
+            <div class="file-name">{{ selectedFile.name }}</div>
+            <div class="file-size">{{ formatFileSize(selectedFile.size) }}</div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="error" class="error">{{ error }}</div>
+
+      <!-- Import Button -->
+      <div class="import-actions">
+        <button 
+          v-if="selectedFile" 
+          @click="startImport" 
+          :disabled="isUploading || !canStartImport"
+          class="import-btn"
+        >
+          <span v-if="isUploading">⏳ Processing...</span>
+          <span v-else>📥 Start Import</span>
+        </button>
+        <button 
+          v-if="selectedFile && !isUploading" 
+          @click="clearFile" 
+          class="clear-btn"
+        >
+          Clear
+        </button>
+      </div>
     </div>
   </div>
 </template>
@@ -50,30 +161,125 @@ export default {
     return {
       source: 'markdown',
       error: null,
-      isUploading: false
+      isUploading: false,
+      importType: 'topics',
+      collectionName: '',
+      collectionFormNumber: '',
+      collectionDescription: '',
+      selectedFile: null,
+      projects: [],
+      selectedProjectId: '',
+      loadingProjects: true
     }
   },
 
   computed: {
     acceptedTypes() {
       return this.source === 'word' ? '.docx' : '.md,.markdown'
+    },
+    
+    canStartImport() {
+      if (!this.selectedFile) return false
+      
+      // For collection imports, require collection details and project selection
+      if (this.importType === 'collection') {
+        return this.collectionName.trim() && 
+               this.collectionFormNumber.trim() && 
+               this.selectedProjectId
+      }
+      
+      return true
     }
   },
 
+  mounted() {
+    this.fetchProjects()
+  },
+
   methods: {
-    async onFileSelected(event) {
+    async fetchProjects() {
+      this.loadingProjects = true
+      try {
+        const response = await fetch('/api/projects/')
+        if (response.ok) {
+          const data = await response.json()
+          this.projects = data || []
+        } else {
+          console.error('Failed to fetch projects:', response.statusText)
+        }
+      } catch (error) {
+        console.error('Error fetching projects:', error)
+      } finally {
+        this.loadingProjects = false
+      }
+    },
+
+    onFileSelected(event) {
       this.error = null
-      this.isUploading = true
       
       const file = event.target.files[0]
       if (!file) {
-        this.isUploading = false
+        this.selectedFile = null
         return
       }
 
+      this.selectedFile = file
+    },
+
+    clearFile() {
+      this.selectedFile = null
+      this.$refs.fileInput.value = null
+      this.error = null
+    },
+
+    formatFileSize(bytes) {
+      if (bytes === 0) return '0 Bytes'
+      const k = 1024
+      const sizes = ['Bytes', 'KB', 'MB', 'GB']
+      const i = Math.floor(Math.log(bytes) / Math.log(k))
+      return parseFloat((bytes / Math.pow(k, i)).toFixed(2)) + ' ' + sizes[i]
+    },
+
+    async startImport() {
+      if (!this.selectedFile) {
+        this.error = 'Please select a file to import'
+        return
+      }
+
+      this.error = null
+      this.isUploading = true
+
+      // Validate collection details if importing as collection
+      if (this.importType === 'collection') {
+        if (!this.collectionName.trim()) {
+          this.error = 'Collection name is required'
+          this.isUploading = false
+          return
+        }
+        if (!this.collectionFormNumber.trim()) {
+          this.error = 'Collection ID (Form Number) is required'
+          this.isUploading = false
+          return
+        }
+        if (!this.selectedProjectId) {
+          this.error = 'Project selection is required'
+          this.isUploading = false
+          return
+        }
+      }
+
       const form = new FormData()
-      form.append('file', file)
+      form.append('file', this.selectedFile)
       form.append('source', this.source)
+      form.append('import_type', this.importType)
+      
+      // Add collection details if importing as collection
+      if (this.importType === 'collection') {
+        form.append('collection_name', this.collectionName)
+        form.append('collection_form_number', this.collectionFormNumber)
+        form.append('collection_description', this.collectionDescription)
+        form.append('project_id', this.selectedProjectId)
+      }
 
       try {
         const res = await fetch('/api/import/upload', {
@@ -85,38 +291,53 @@ export default {
         const text = await res.text()
 
         // Try parse JSON if appropriate
-        let importDoc = null
+        let result = null
         const ct = res.headers.get('content-type') || ''
         if (ct.includes('application/json')) {
-          importDoc = JSON.parse(text)
+          result = JSON.parse(text)
         }
 
         // On error status, throw with message from payload or raw text
         if (!res.ok) {
-          const msg = importDoc?.error || text || `HTTP ${res.status}`
+          const msg = result?.error || text || `HTTP ${res.status}`
           throw new Error(msg)
         }
 
-        // Ensure we got an ID
-        if (!importDoc || typeof importDoc.id !== 'number') {
-          throw new Error('Invalid response from import endpoint')
+        console.log('Upload successful, result:', result) // Debug log
+
+        // Handle different import types
+        if (this.importType === 'collection') {
+          // For collection imports, redirect to the collection organize page
+          if (result.collection_id) {
+            this.$router.push({
+              name: 'Organize',
+              params: { id: result.collection_id }
+            })
+          } else {
+            throw new Error('Collection creation failed - no collection ID returned')
+          }
+        } else {
+          // For topic imports, go to the import review page
+          if (result.id) {
+            this.$router.push({
+              name: 'ImportReview',
+              params: { id: result.id }
+            })
+          } else {
+            throw new Error('Import failed - no import document ID returned')
+          }
         }
-
-        console.log('Upload successful, import doc:', importDoc) // Debug log
-
-        // Navigate to review, passing ID as param
-        this.$router.push({
-          name: 'ImportReview',
-          params: { id: importDoc.id }
-        })
 
       } catch (err) {
         console.error('Import failed:', err)
         this.error = `Import failed: ${err.message}`
       } finally {
         this.isUploading = false
-        // Clear the file input so the same file can be re‐selected
-        this.$refs.fileInput.value = null
+        // Clear the file selection after successful import
+        if (!this.error) {
+          this.selectedFile = null
+          this.$refs.fileInput.value = null
+        }
       }
     }
   }
@@ -135,11 +356,133 @@ export default {
 .guidance-text {
   background: #f8f9fa;
   border-left: 4px solid #007acc;
+  border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
   color: #495057;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+.import-type-selection {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  background: #f8f9fa;
+}
+
+.import-type-selection h3 {
+  margin: 0 0 1rem 0;
+  color: #343a40;
+  font-size: 1.1rem;
+}
+
+.radio-group {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.radio-option {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  padding: 1rem;
+  border: 2px solid #dee2e6;
+  border-radius: 6px;
+  background: white;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.radio-option:hover {
+  border-color: #007acc;
+  background: #f8fcff;
+}
+
+.radio-option input[type="radio"] {
+  margin: 0;
+  margin-top: 0.25rem;
+}
+
+.radio-option input[type="radio"]:checked + .radio-label {
+  color: #007acc;
+}
+
+.radio-option:has(input[type="radio"]:checked) {
+  border-color: #007acc;
+  background: #f8fcff;
+}
+
+.radio-label {
+  flex: 1;
+}
+
+.radio-label strong {
+  display: block;
+  margin-bottom: 0.25rem;
+  font-size: 1rem;
+}
+
+.radio-label p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: #6c757d;
+  line-height: 1.4;
+}
+
+.collection-details {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  background: white;
+}
+
+.collection-details h3 {
+  margin: 0 0 1.5rem 0;
+  color: #343a40;
+  font-size: 1.1rem;
+}
+
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group:last-child {
+  margin-bottom: 0;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 500;
+  color: #343a40;
+}
+
+.form-group input,
+.form-group textarea {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 1rem;
+  transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-group input:focus,
+.form-group textarea:focus {
+  outline: 0;
+  border-color: #007acc;
+  box-shadow: 0 0 0 0.2rem rgba(0, 122, 204, 0.25);
+}
+
+.form-help {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.875rem;
+  color: #6c757d;
 }
 
 .upload-form {
@@ -215,5 +558,90 @@ input[type="file"] {
 @keyframes spin {
   0% { transform: rotate(0deg); }
   100% { transform: rotate(360deg); }
+}
+
+/* File preview */
+.file-preview {
+  margin: 1rem 0;
+  padding: 1rem;
+  background: #f8f9fa;
+  border: 1px solid #e9ecef;
+  border-radius: 6px;
+}
+
+.file-info {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.file-icon {
+  font-size: 1.5rem;
+  color: #6c757d;
+}
+
+.file-details {
+  flex: 1;
+}
+
+.file-name {
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.25rem;
+}
+
+.file-size {
+  font-size: 0.875rem;
+  color: #6c757d;
+}
+
+/* Import actions */
+.import-actions {
+  display: flex;
+  gap: 1rem;
+  margin-top: 1.5rem;
+}
+
+.import-btn {
+  background: #007acc;
+  color: white;
+  border: none;
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.import-btn:hover:not(:disabled) {
+  background: #005a9c;
+  transform: translateY(-1px);
+  box-shadow: 0 2px 8px rgba(0, 122, 204, 0.3);
+}
+
+.import-btn:disabled {
+  background: #6c757d;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.clear-btn {
+  background: #6c757d;
+  color: white;
+  border: none;
+  padding: 0.75rem 1rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.clear-btn:hover {
+  background: #5a6268;
 }
 </style>

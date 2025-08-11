@@ -83,8 +83,8 @@ export default {
       window.open(`/api/publications/${this.id}/export/mobile-kb`, '_blank')
     },
     previewMobileKB() {
-      // Open preview in a new window/tab
-      const previewUrl = `/api/publications/${this.id}/export/mobile-kb`
+      // Open preview in a new window/tab using the preview endpoint
+      const previewUrl = `/api/publications/${this.id}/preview/mobile-kb`
       const previewWindow = window.open(previewUrl, '_blank', 'width=375,height=812,scrollbars=yes,resizable=yes')
       if (previewWindow) {
         previewWindow.focus()
@@ -102,6 +102,7 @@ export default {
 .guidance-text {
   background: #f8f9fa;
   border-left: 4px solid #007acc;
+  border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
   color: #495057;

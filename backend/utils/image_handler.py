@@ -43,45 +43,65 @@ class ImageHandler:
             current_app.logger.info(f"No temp media directory found at {temp_media_dir}")
             return updated_content, stored_images
         
-        # Find all image files in temp directory
+        # Find all image files in temp directory, including .emf
         image_files = []
+        emf_files = []
         for root, dirs, files in os.walk(temp_media_dir):
             for file in files:
                 file_path = Path(root) / file
                 if file_path.suffix.lower() in self.SUPPORTED_FORMATS:
                     image_files.append(file_path)
-        
-        current_app.logger.info(f"Found {len(image_files)} images to process")
-        
+                elif file_path.suffix.lower() == '.emf':
+                    emf_files.append(file_path)
+
+        # Convert .emf files to .png using libreoffice (headless)
+        for emf_path in emf_files:
+            try:
+                png_path = emf_path.with_suffix('.png')
+                # Use libreoffice to convert emf to png
+                import subprocess
+                result = subprocess.run([
+                    'libreoffice', '--headless', '--convert-to', 'png', str(emf_path), '--outdir', str(emf_path.parent)
+                ], capture_output=True)
+                if result.returncode == 0 and png_path.exists():
+                    image_files.append(png_path)
+                    current_app.logger.info(f"Converted {emf_path} to {png_path}")
+                    # Update markdown references from .emf to .png
+                    old_ref = f"media/{emf_path.name}"
+                    new_ref = f"media/{png_path.name}"
+                    updated_content = updated_content.replace(old_ref, new_ref)
+                else:
+                    current_app.logger.error(f"Failed to convert {emf_path} to PNG: {result.stderr.decode()}")
+            except Exception as e:
+                current_app.logger.error(f"Exception during EMF to PNG conversion for {emf_path}: {str(e)}")
+
+        current_app.logger.info(f"Found {len(image_files)} images to process (after EMF conversion)")
+
         # Process each image
         for temp_image_path in image_files:
             try:
                 stored_image_info = self._store_single_image(temp_image_path)
                 if stored_image_info:
                     stored_images.append(stored_image_info)
-                    
                     # Update markdown content with new image path
                     old_ref = f"media/{temp_image_path.name}"
                     new_ref = f"/images/imports/{self.import_doc_id}/{stored_image_info['filename']}"
-                    
                     # Replace various possible reference formats
                     patterns = [
                         f"![.*?]\\({re.escape(old_ref)}\\)",
                         f"![.*?]\\({re.escape(temp_image_path.name)}\\)",
                         f"!\\[.*?\\]\\(.*?{re.escape(temp_image_path.stem)}.*?\\)"
                     ]
-                    
                     for pattern in patterns:
                         matches = re.finditer(pattern, updated_content)
                         for match in matches:
                             alt_text = re.search(r'!\[(.*?)\]', match.group()).group(1)
                             new_markdown = f"![{alt_text}]({new_ref})"
                             updated_content = updated_content.replace(match.group(), new_markdown)
-                
             except Exception as e:
                 current_app.logger.error(f"Failed to process image {temp_image_path}: {str(e)}")
                 continue
-        
+
         return updated_content, stored_images
     
     def _store_single_image(self, temp_image_path):

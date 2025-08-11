@@ -8,33 +8,9 @@ reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews/')
 # Base GET endpoint for /api/reviews/
 @reviews_bp.route('/', methods=['GET'])
 def reviews_root():
-    """Base endpoint for reviews API - returns mock reviews list for dashboard"""
-    mock_reviews = [
-        {
-            'id': 1,
-            'topic_title': 'Data Collection Standards',
-            'reviewer_name': 'Dr. Smith',
-            'status': 'pending',
-            'sent_date': (datetime.utcnow()).isoformat(),
-            'due_date': (datetime.utcnow()).isoformat(),
-            'type': 'SME Review',
-            'created_at': (datetime.utcnow()).isoformat(),
-            'updated_at': (datetime.utcnow()).isoformat()
-        },
-        {
-            'id': 2,
-            'topic_title': 'Survey Methodology Guide',
-            'reviewer_name': 'Jane Wilson',
-            'status': 'completed',
-            'sent_date': (datetime.utcnow()).isoformat(),
-            'due_date': (datetime.utcnow()).isoformat(),
-            'type': 'Technical Review',
-            'feedback_count': 3,
-            'created_at': (datetime.utcnow()).isoformat(),
-            'updated_at': (datetime.utcnow()).isoformat()
-        }
-    ]
-    return jsonify(mock_reviews)
+    """Base endpoint for reviews API - returns real reviews from the database or an empty list if none exist"""
+    # TODO: Implement real review aggregation logic if needed
+    return jsonify([])
 
 @reviews_bp.route('/reviewers', methods=['GET'])
 def get_available_reviewers():

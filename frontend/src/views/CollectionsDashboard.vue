@@ -85,6 +85,7 @@
       <!-- Recent Collections -->
       <div class="dashboard-section">
         <h2>Recent Collections</h2>
+        <p class="section-guidance">Select a collection to open the Organize page for that collection.</p>
         <div class="collections-list">
           <div v-if="recentCollections.length === 0" class="empty-state">
             <p>No collections yet. Create your first collection to get started!</p>
@@ -189,6 +190,22 @@
           </div>
           
           <div class="form-group">
+            <label for="collectionFormNumber">Collection ID (Form Number) *</label>
+            <input
+              id="collectionFormNumber"
+              v-model="newCollection.form_number"
+              type="text"
+              required
+              placeholder="e.g., FORM-001, DOC-ABC-123"
+              pattern="^[A-Za-z0-9\-_]+$"
+              title="Only letters, numbers, hyphens, and underscores are allowed"
+            />
+            <small class="form-help">
+              Unique alphanumeric identifier for this collection (e.g., FORM-001, DOC-ABC-123)
+            </small>
+          </div>
+          
+          <div class="form-group">
             <label for="collectionDescription">Description</label>
             <textarea
               id="collectionDescription"
@@ -286,14 +303,26 @@ export default {
   },
 
   methods: {
+    // Helper to assign projectName to collections based on projectId
+    assignProjectNames(collections) {
+      if (!this.projects || this.projects.length === 0) return collections;
+      return collections.map(col => {
+  // Robustly match projectId (number or string)
+  const colProjId = col.projectId !== undefined && col.projectId !== null ? Number(col.projectId) : null;
+  const proj = this.projects.find(p => Number(p.id) === colProjId);
+        return { ...col, projectName: proj ? proj.name : 'Unknown Project' };
+      });
+    },
+
     async loadDashboardData() {
       this.loading = true
       try {
-        await Promise.all([
-          this.loadCollections(),
-          this.loadProjects(),
-          this.loadStats()
-        ])
+        await this.loadProjects();
+        await this.loadCollections();
+        // Assign project names after both projects and collections are loaded
+        this.collections = this.assignProjectNames(this.collections);
+        this.recentCollections = this.assignProjectNames(this.recentCollections);
+        await this.loadStats();
       } catch (error) {
         console.error('Failed to load collections dashboard:', error)
       } finally {
@@ -309,6 +338,7 @@ export default {
         }
         
         const data = await response.json()
+        console.log('🔍 Collections data received:', data)
         this.collections = data
         
         // Get recent collections (last 5, sorted by updated_at)
@@ -323,51 +353,67 @@ export default {
       }
     },
 
-    async loadProjects() {
-      try {
-        // Mock projects data - should match the projects from ProjectsView
-        const mockProjects = [
-          {
-            id: 1,
-            name: 'Census Data Portal Redesign',
-            description: 'Modernizing the main census data access portal with improved user experience and performance.',
-            status: 'active'
-          },
-          {
-            id: 2,
-            name: 'Economic Survey Documentation',
-            description: 'Creating comprehensive documentation for the new economic indicators survey methodology.',
-            status: 'planning'
-          },
-          {
-            id: 3,
-            name: 'Mobile App API Documentation',
-            description: 'Complete API documentation for the new Census mobile application developers.',
-            status: 'completed'
-          }
-        ]
-
-        this.projects = mockProjects
-        
-      } catch (error) {
-        console.error('Failed to load projects:', error)
-        this.projects = []
-      }
-    },
 
     async loadStats() {
       try {
-        // Calculate stats from collections data
-        const total = this.collections.length
-        const active = this.collections.filter(c => c.status === 'active' || !c.status).length
-        const totalTopics = this.collections.reduce((sum, c) => sum + (c.topics_count || 0), 0)
+        // Use the backend stats API for accurate calculation
+        const response = await fetch('/api/collections/stats')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
         
-        // Calculate new this week
-        const oneWeekAgo = new Date()
-        oneWeekAgo.setDate(oneWeekAgo.getDate() - 7)
-        const newThisWeek = this.collections.filter(c => 
-          c.created_at && new Date(c.created_at) > oneWeekAgo
-        ).length
+        const stats = await response.json()
+        console.log('📊 Stats from backend:', stats)
+        
+        this.stats = {
+          total: stats.total,
+          active: stats.active,
+          totalTopics: stats.totalTopics,
+          newThisWeek: stats.newThisWeek,
+          avgTopics: stats.avgTopics
+        }
+        console.log('📊 Final stats applied:', this.stats)
+      } catch (error) {
+        console.error('Failed to load stats from backend, falling back to frontend calculation:', error)
+        
+        // Fallback to frontend calculation with hierarchical support
+        console.log('🔍 Calculating stats from collections:', this.collections)
+        
+        // Helper function to recursively count all collections and topics
+        const countCollectionsAndTopics = (collections) => {
+          let totalCollections = 0
+          let totalTopics = 0
+          let activeCollections = 0
+          
+          collections.forEach(collection => {
+            totalCollections++
+            if (collection.status === 'active' || !collection.status) {
+              activeCollections++
+            }
+            totalTopics += (collection.topics_count || 0)
+            console.log(`Collection ${collection.name}: topics_count = ${collection.topics_count}`)
+            
+            // Recursively count children
+            if (collection.children && collection.children.length > 0) {
+              const childCounts = countCollectionsAndTopics(collection.children)
+              totalCollections += childCounts.collections
+              totalTopics += childCounts.topics
+              activeCollections += childCounts.active
+            }
+          })
+          
+          return { collections: totalCollections, topics: totalTopics, active: activeCollections }
+        }
+        
+        const counts = countCollectionsAndTopics(this.collections)
+        const total = counts.collections
+        const active = counts.active
+        const totalTopics = counts.topics
+        
+        console.log(`📊 Fallback stats calculated: total=${total}, active=${active}, totalTopics=${totalTopics}`)
+        
+        // Calculate new this week (fallback doesn't support this without created_at)
+        const newThisWeek = 0
 
         // Calculate average topics per collection
         const avgTopics = total > 0 ? Math.round(totalTopics / total) : 0
@@ -378,80 +424,30 @@ export default {
           totalTopics,
           newThisWeek,
           avgTopics
-        }
-      } catch (error) {
-        console.error('Failed to calculate stats:', error)
+        };
       }
     },
 
-    createNewCollection() {
-      this.showCreateModal = true
-    },
-
-    async submitNewCollection() {
+    async loadProjects() {
       try {
-        // Find the selected project
-        const selectedProject = this.projects.find(p => p.id === parseInt(this.newCollection.projectId))
-        
-        // Create collection data for API
-        const collectionData = {
-          name: this.newCollection.name,
-          description: this.newCollection.description,
-          status: this.newCollection.status,
-          projectId: this.newCollection.projectId
-        }
-        
-        // Add project name if available
-        if (selectedProject) {
-          collectionData.projectName = selectedProject.name
-        }
-        
-        // Save to backend via API
-        const response = await fetch('/api/collections', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(collectionData)
-        })
-        
+        // Fetch real projects from backend
+        const response = await fetch('/api/projects');
         if (!response.ok) {
-          throw new Error('Failed to create collection')
+          throw new Error(`HTTP error! status: ${response.status}`);
         }
-        
-        const collection = await response.json()
-        
-        // Add project information for display
-        if (selectedProject) {
-          collection.projectName = selectedProject.name
-          collection.projectId = this.newCollection.projectId
-        }
-        
-        // Add to collections array
-        this.collections.push(collection)
-        
-        // Update recent collections
-        this.recentCollections = [...this.collections]
-          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-          .slice(0, 5)
-        
-        // Recalculate stats
-        await this.loadStats()
-        
-        // Reset form and close modal
-        this.resetNewCollection()
-        this.showCreateModal = false
-        
-        // Redirect to organize page for the new collection
-        this.$router.push({ name: 'Organize', params: { id: String(collection.id) } })
-        
+        const data = await response.json();
+        console.log('📁 Projects data received:', data);
+        this.projects = data;
       } catch (error) {
-        console.error('Failed to create collection:', error)
-        alert('Failed to create collection. Please try again.')
+        console.error('Failed to load projects:', error);
+        this.projects = [];
       }
     },
 
     resetNewCollection() {
       this.newCollection = {
         name: '',
+        form_number: '',
         description: '',
         status: 'active',
         projectId: null
@@ -463,7 +459,7 @@ export default {
     },
 
     editCollection(collection) {
-      this.$router.push(`/collections/${collection.id}/edit`)
+      this.$router.push(`/organize/${collection.id}?edit=true`)
     },
 
     navigateTo(path) {
@@ -598,6 +594,14 @@ export default {
   font-weight: 600;
   border-bottom: 2px solid #f8f9fa;
   padding-bottom: 0.5rem;
+}
+
+.section-guidance {
+  margin: -1rem 0 1.5rem 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  font-style: italic;
+  line-height: 1.4;
 }
 
 /* Action Buttons */
@@ -981,6 +985,14 @@ export default {
   outline: none;
   border-color: #005a9c;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
+}
+
+.form-help {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  line-height: 1.4;
 }
 
 .modal-actions {

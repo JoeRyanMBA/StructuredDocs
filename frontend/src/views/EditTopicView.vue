@@ -97,7 +97,8 @@ export default {
 
     // Called when TopicEditor emits save after PUT
     onTopicSaved(data) {
-      this.showConfirmation(`✅ Topic ${this.topicId} updated successfully`)
+      // Don't show confirmation banner since TopicEditor now shows its own local message
+      // this.showConfirmation(`✅ Topic ${this.topicId} updated successfully`)
       console.log('Saved response:', data)
     },
 

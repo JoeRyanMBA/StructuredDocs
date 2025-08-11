@@ -229,6 +229,19 @@
               />
             </div>
             <div class="form-group">
+              <label>Collection ID (Form Number) *</label>
+              <input 
+                v-model="newCollection.form_number" 
+                placeholder="e.g., FORM-001, DOC-ABC-123" 
+                required
+                pattern="^[A-Za-z0-9\-_]+$"
+                title="Only letters, numbers, hyphens, and underscores are allowed"
+              />
+              <small class="form-help">
+                Unique alphanumeric identifier for this collection
+              </small>
+            </div>
+            <div class="form-group">
               <label>Description</label>
               <textarea 
                 v-model="newCollection.description" 
@@ -519,23 +532,7 @@ export default {
         this.collections = await getCollections()
       } catch (error) {
         console.error('Failed to load collections:', error)
-        // Use mock data for development
-        this.collections = [
-          {
-            id: 1,
-            name: 'User Documentation',
-            status: 'active',
-            topics_count: 5,
-            topics: []
-          },
-          {
-            id: 2,
-            name: 'API Reference',
-            status: 'active',
-            topics_count: 8,
-            topics: []
-          }
-        ]
+        this.collections = []
       }
     },
     
@@ -547,27 +544,7 @@ export default {
         }
       } catch (error) {
         console.error('Failed to load projects:', error)
-        // Mock data for development
-        this.allProjects = [
-          {
-            id: 1,
-            name: 'Census Data Portal Redesign',
-            description: 'Modernizing the main census data access portal',
-            status: 'active'
-          },
-          {
-            id: 2,
-            name: 'Economic Survey Documentation',
-            description: 'Creating comprehensive documentation for the economic survey',
-            status: 'planning'
-          },
-          {
-            id: 3,
-            name: 'Mobile App API Documentation',
-            description: 'Complete API documentation for the mobile application',
-            status: 'completed'
-          }
-        ]
+        this.allProjects = []
       }
     },
     
@@ -576,23 +553,7 @@ export default {
         this.allTopics = await getTopics()
       } catch (error) {
         console.error('Failed to load topics:', error)
-        // Mock data for development
-        this.allTopics = [
-          {
-            id: 1,
-            title: 'Getting Started',
-            status: 'published',
-            summary: 'Introduction to the system',
-            updated_at: '2025-08-01T10:00:00Z'
-          },
-          {
-            id: 2,
-            title: 'User Interface Guide',
-            status: 'draft',
-            summary: 'Complete UI walkthrough',
-            updated_at: '2025-08-02T14:30:00Z'
-          }
-        ]
+        this.allTopics = []
       }
     },
     
@@ -606,17 +567,8 @@ export default {
         }
       } catch (error) {
         console.error('Failed to load links:', error)
-        // Mock data
-        this.allLinks = [
-          {
-            id: 1,
-            title: 'Form AB-123',
-            reference_code: 'AB-123',
-            url: 'https://forms.example.com/ab-123',
-            link_type: 'form'
-          }
-        ]
-        this.recentLinks = this.allLinks.slice(0, 5)
+        this.allLinks = []
+        this.recentLinks = []
       }
     },
     
@@ -703,6 +655,7 @@ export default {
     resetNewCollection() {
       this.newCollection = {
         name: '',
+        form_number: '',
         description: '',
         status: 'active',
         projectId: null
@@ -1667,5 +1620,13 @@ status: "draft"
   .images-gallery {
     grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
   }
+}
+
+.form-help {
+  display: block;
+  font-size: 0.875rem;
+  color: #6b7280;
+  margin-top: 0.25rem;
+  line-height: 1.4;
 }
 </style>

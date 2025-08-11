@@ -15,6 +15,7 @@ class User(db.Model):
     id = db.Column(db.Integer, primary_key=True)
     name = db.Column(db.String(100), nullable=False)
     email = db.Column(db.String(120), nullable=False, unique=True)
+    password_hash = db.Column(db.String(255), nullable=True)
     role = db.Column(
         Enum('author', 'reviewer', 'admin', name='user_role'),
         nullable=False,
@@ -53,9 +54,13 @@ class Collection(db.Model):
 
     id        = db.Column(db.Integer, primary_key=True)
     name      = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)  # Add description field
+    form_number = db.Column(db.String(100), nullable=False, unique=True)  # Collection ID (Form Number)
     parent_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
     position  = db.Column(db.Integer, nullable=False, default=0)
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
     # Nested children collections
     children = relationship(
@@ -91,10 +96,15 @@ class Collection(db.Model):
         data = {
             'id': self.id,
             'name': self.name,
+            'form_number': self.form_number,
+            'description': self.description,
             'position': self.position,
             'parentId': self.parent_id,
             'projectId': self.project_id,
-            'topics_count': len(self.topics)  # Add topic count
+            'topics_count': len(self.topics),  # Add topic count
+            'created_at': self.created_at.isoformat() if hasattr(self, 'created_at') and self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if hasattr(self, 'updated_at') and self.updated_at else None,
+            'projectName': self.project.name if self.project else None
         }
         if include_topics:
             # Use hierarchical topic structure instead of flat list
@@ -285,6 +295,7 @@ class Publication(db.Model):
             "title":       self.title,
             "description": self.description,
             "created_at":  self.created_at.isoformat(),
+            "topics_count": len(self.nodes),  # Count of publication nodes (topics)
         }
         if include_nodes:
             base["nodes"] = [n.to_dict() for n in self.nodes]

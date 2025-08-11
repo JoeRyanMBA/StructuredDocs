@@ -797,73 +797,14 @@ export default {
         console.error('Failed to fetch projects:', error)
         this.error = 'Failed to load projects. Please try again.'
         
-        // Fallback to sample data for demo purposes
-        this.projects = this.getSampleProjects()
+  // Fallback to empty array if API fails
+  this.projects = []
       } finally {
         this.loading = false
       }
     },
 
-    getSampleProjects() {
-      return [
-        {
-          id: 1,
-          name: 'Census Data Portal Redesign',
-          description: 'Modernizing the main census data access portal with improved user experience and performance.',
-          status: 'active',
-          created_at: '2025-06-15T10:00:00Z',
-          stakeholders: [
-            { name: 'Sarah Johnson', role: 'Project Manager', email: 'sarah.johnson@census.gov' },
-            { name: 'Mike Chen', role: 'Lead Developer', email: 'mike.chen@census.gov' }
-          ],
-          milestones: [
-            { name: 'User Research Complete', date: '2025-07-15', status: 'completed' },
-            { name: 'Design Mockups', date: '2025-08-01', status: 'in-progress' },
-            { name: 'Frontend Development', date: '2025-09-15', status: 'planned' },
-            { name: 'User Testing', date: '2025-10-01', status: 'planned' },
-            { name: 'Production Deployment', date: '2025-10-30', status: 'planned' }
-          ],
-          collections: [],
-          publishedDocuments: []
-        },
-        {
-          id: 2,
-          name: 'Economic Survey Documentation',
-          description: 'Creating comprehensive documentation for the new economic indicators survey methodology.',
-          status: 'planning',
-          created_at: '2025-07-01T14:30:00Z',
-          stakeholders: [
-            { name: 'Dr. Lisa Park', role: 'Senior Economist', email: 'lisa.park@census.gov' }
-          ],
-          milestones: [
-            { name: 'Methodology Review', date: '2025-08-10', status: 'planned' },
-            { name: 'Draft Documentation', date: '2025-09-05', status: 'planned' },
-            { name: 'Stakeholder Review', date: '2025-09-20', status: 'planned' },
-            { name: 'Final Publication', date: '2025-10-15', status: 'planned' }
-          ],
-          collections: [],
-          publishedDocuments: []
-        },
-        {
-          id: 3,
-          name: 'Mobile App API Documentation',
-          description: 'Complete API documentation for the new Census mobile application developers.',
-          status: 'completed',
-          created_at: '2025-05-20T09:15:00Z',
-          stakeholders: [
-            { name: 'Alex Rodriguez', role: 'API Lead', email: 'alex.rodriguez@census.gov' }
-          ],
-          milestones: [
-            { name: 'API Specification', date: '2025-06-01', status: 'completed' },
-            { name: 'Code Examples', date: '2025-06-15', status: 'completed' },
-            { name: 'Testing Guide', date: '2025-07-01', status: 'completed' },
-            { name: 'Publication', date: '2025-07-15', status: 'completed' }
-          ],
-          collections: [],
-          publishedDocuments: []
-        }
-      ]
-    },
+  // Removed getSampleProjects - no more sample/demo data
 
     async fetchStakeholders() {
       this.loadingStakeholders = true
