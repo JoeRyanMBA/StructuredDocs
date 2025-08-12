@@ -41,3 +41,13 @@ export async function saveDocuments(tree) {
   if (!res.ok) throw new Error(res.statusText)
   return res.json()
 }
+
+export async function updateCollection(collectionId, data) {
+  const res = await fetch(`/api/collections/${collectionId}`, {
+    method: 'PUT',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  });
+  if (!res.ok) throw new Error(await res.text());
+  return res.json();
+}

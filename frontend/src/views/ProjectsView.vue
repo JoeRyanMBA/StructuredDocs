@@ -641,6 +641,10 @@
 import Breadcrumbs from '../components/Breadcrumbs.vue'
 import CalendarWidget from '../components/CalendarWidget.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
+import { createStakeholder, addStakeholderToProject } from '../api/stakeholders';
+import { getCollections, updateCollection } from '../api/collections';
+import { createPublication, deletePublication, updatePublication } from '../api/publications';
+import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
 
 export default {
   components: { Breadcrumbs, CalendarWidget, NotificationTicker },
@@ -849,22 +853,49 @@ export default {
 
     async createProject() {
       try {
-        const project = {
-          id: Date.now(),
+        // Prepare payload for backend
+        const payload = {
           name: this.newProject.name,
           description: this.newProject.description,
           status: this.newProject.status,
-          stakeholders: [...this.newProject.stakeholders],
-          milestones: [...this.newProject.milestones],
-          collections: [...this.newProject.collections],
-          publishedDocuments: [...this.newProject.publishedDocuments],
-          created_at: new Date().toISOString()
+          start_date: this.newProject.start_date || null,
+          target_completion: this.newProject.target_completion || null
         }
-        this.projects.push(project)
+        // 1. Create the project
+        const response = await fetch('/api/projects/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to create project: ${response.status} ${errorText}`)
+        }
+        const createdProject = await response.json()
+
+        // 2. For each new stakeholder, create in backend and associate with project
+        for (const s of this.newProject.stakeholders) {
+          let stakeholderId = s.stakeholder_id
+          if (s.isNew) {
+            // Create stakeholder in backend
+            const newStakeholder = await createStakeholder({
+              name: s.name,
+              email: s.email,
+              title: s.title,
+              organization: s.organization
+            })
+            stakeholderId = newStakeholder.id
+          }
+          // Associate stakeholder with project
+          await addStakeholderToProject(createdProject.id, stakeholderId, s.role || 'stakeholder')
+        }
+
+        this.projects.push(createdProject)
         this.showCreateModal = false
         this.resetNewProject()
       } catch (error) {
         console.error('Failed to create project:', error)
+        alert('Failed to create project: ' + error.message)
       }
     },
     filterByStatus(status) {
@@ -1073,48 +1104,154 @@ export default {
     },
 
     // Collection management methods
-    addCollection(type) {
+    async addCollection(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.collections.push({
-        name: '',
-        description: ''
-      })
+      // Call backend to create collection
+      try {
+        const payload = {
+          name: '',
+          description: '',
+          project_id: this.newProject.id || this.editingProject.id
+        }
+        const res = await fetch('/api/collections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error(await res.text())
+        const newCollection = await res.json()
+        target.collections.push(newCollection)
+      } catch (error) {
+        alert('Failed to add collection: ' + error.message)
+      }
     },
 
-    removeCollection(index, type) {
+    async removeCollection(index, type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.collections.splice(index, 1)
+      const collection = target.collections[index]
+      if (!collection || !collection.id) {
+        target.collections.splice(index, 1)
+        return
+      }
+      try {
+        const res = await fetch(`/api/collections/${collection.id}`, {
+          method: 'DELETE'
+        })
+        if (!res.ok) throw new Error(await res.text())
+        target.collections.splice(index, 1)
+      } catch (error) {
+        alert('Failed to remove collection: ' + error.message)
+      }
+    },
+
+    async updateCollectionField(index, field, value, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      const collection = target.collections[index]
+      if (!collection || !collection.id) {
+        collection[field] = value
+        return
+      }
+      try {
+        collection[field] = value
+        await updateCollection(collection.id, { [field]: value })
+      } catch (error) {
+        alert('Failed to update collection: ' + error.message)
+      }
     },
 
     // Document management methods
-    addDocument(type) {
+    async addDocument(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.publishedDocuments.push({
-        title: '',
-        url: '',
-        type: ''
-      })
+      try {
+        const payload = {
+          title: '',
+          url: '',
+          type: '',
+          project_id: this.newProject.id || this.editingProject.id
+        }
+        const newDoc = await createPublication(payload)
+        target.publishedDocuments.push(newDoc)
+      } catch (error) {
+        alert('Failed to add document: ' + error.message)
+      }
     },
 
-    removeDocument(index, type) {
+    async removeDocument(index, type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.publishedDocuments.splice(index, 1)
+      const doc = target.publishedDocuments[index]
+      if (!doc || !doc.id) {
+        target.publishedDocuments.splice(index, 1)
+        return
+      }
+      try {
+        await deletePublication(doc.id)
+        target.publishedDocuments.splice(index, 1)
+      } catch (error) {
+        alert('Failed to remove document: ' + error.message)
+      }
+    },
+
+    async updateDocumentField(index, field, value, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      const doc = target.publishedDocuments[index]
+      if (!doc || !doc.id) {
+        doc[field] = value
+        return
+      }
+      try {
+        doc[field] = value
+        await updatePublication(doc.id, { [field]: value })
+      } catch (error) {
+        alert('Failed to update document: ' + error.message)
+      }
     },
 
     // Milestone management methods
-    addMilestone(type) {
+    async addMilestone(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.milestones.push({
-        name: '',
-        date: '',
-        status: 'planned'
-      })
-      this.sortMilestones(type)
+      try {
+        const payload = {
+          name: '',
+          date: '',
+          status: 'planned',
+          project_id: this.newProject.id || this.editingProject.id
+        }
+        const newMilestone = await createMilestone(payload)
+        target.milestones.push(newMilestone)
+        this.sortMilestones(type)
+      } catch (error) {
+        alert('Failed to add milestone: ' + error.message)
+      }
     },
 
-    removeMilestone(index, type) {
+    async removeMilestone(index, type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.milestones.splice(index, 1)
+      const milestone = target.milestones[index]
+      if (!milestone || !milestone.id) {
+        target.milestones.splice(index, 1)
+        return
+      }
+      try {
+        await deleteMilestone(milestone.id)
+        target.milestones.splice(index, 1)
+      } catch (error) {
+        alert('Failed to remove milestone: ' + error.message)
+      }
+    },
+
+    async updateMilestoneField(index, field, value, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      const milestone = target.milestones[index]
+      if (!milestone || !milestone.id) {
+        milestone[field] = value
+        return
+      }
+      try {
+        milestone[field] = value
+        await updateMilestone(milestone.id, { [field]: value })
+      } catch (error) {
+        alert('Failed to update milestone: ' + error.message)
+      }
     },
 
     sortMilestones(type) {
