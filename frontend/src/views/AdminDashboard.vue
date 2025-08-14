@@ -432,7 +432,32 @@ export default {
       
       const time = new Date(timestamp)
       return time.toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' })
-    }
+    },
+
+    async createNotification() {
+      // Persist new notification to backend
+      if (!this.newNotification.title || !this.newNotification.description) {
+        alert('Title and description are required.')
+        return
+      }
+      try {
+        const response = await fetch('/api/notifications', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            title: this.newNotification.title,
+            description: this.newNotification.description
+          })
+        })
+        if (!response.ok) throw new Error('Failed to create notification')
+        await this.loadDashboardData()
+        this.newNotification.title = ''
+        this.newNotification.description = ''
+        alert('Notification created successfully!')
+      } catch (error) {
+        alert('Failed to create notification: ' + error.message)
+      }
+    },
   }
 }
 </script>

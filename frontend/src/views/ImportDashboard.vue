@@ -160,6 +160,7 @@
                     Review
                   </button>
                   <button @click.stop="viewImport(importDoc)" class="card-action-btn">View</button>
+                  <button @click.stop="deleteImport(importDoc)" class="card-action-btn" style="color:#c00;">Delete</button>
                 </div>
               </div>
             </div>
@@ -300,13 +301,40 @@ export default {
       this.$router.push('/import')
     },
 
-    reviewImport(importDoc) {
+    async reviewImport(importDoc) {
+      // Persist review action to backend before navigating
+      try {
+        const res = await fetch(`/api/import/${importDoc.id}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'reviewed' })
+        })
+        if (!res.ok) throw new Error('Failed to persist review')
+        // Optionally reload imports to update UI
+        await this.loadImports()
+      } catch (err) {
+        console.error('Error persisting review:', err)
+      }
       this.$router.push(`/import/${importDoc.id}/review`)
     },
 
-    viewImport(importDoc) {
-      // For approved documents, also go to the review page to view the content
+    async viewImport(importDoc) {
+      // Optionally, mark as viewed in backend (if needed)
       this.$router.push(`/import/${importDoc.id}/review`)
+    },
+
+    async deleteImport(importDoc) {
+      // Persist delete action to backend
+      if (!confirm('Are you sure you want to delete this import?')) return
+      try {
+        const res = await fetch(`/api/import/${importDoc.id}`, {
+          method: 'DELETE'
+        })
+        if (!res.ok) throw new Error('Failed to delete import')
+        await this.loadImports()
+      } catch (err) {
+        console.error('Error deleting import:', err)
+      }
     },
 
     navigateTo(path) {

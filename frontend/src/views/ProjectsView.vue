@@ -222,7 +222,7 @@
           <h2>Create New Project</h2>
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
-        <form @submit.prevent="createProject" class="modal-body">
+        <form @submit.prevent="createProjectBasic" class="modal-body">
           <!-- Basic Information -->
           <div class="form-section">
             <h3>Basic Information</h3>
@@ -258,205 +258,6 @@
             </div>
           </div>
 
-          <!-- Stakeholders -->
-          <div class="form-section">
-            <h3>Stakeholders</h3>
-            
-            <!-- Add from existing stakeholders -->
-            <div class="stakeholder-selector">
-              <h4>Add Existing Stakeholder</h4>
-              <div class="selector-row">
-                <select v-model="selectedStakeholderId" class="stakeholder-select">
-                  <option value="">Select a stakeholder...</option>
-                  <option 
-                    v-for="stakeholder in availableStakeholders" 
-                    :key="stakeholder.id" 
-                    :value="stakeholder.id"
-                  >
-                    {{ stakeholder.name }} ({{ stakeholder.organization }})
-                  </option>
-                </select>
-                <select v-model="selectedStakeholderRole" class="role-select">
-                  <option value="">Select role...</option>
-                  <option value="project_manager">Project Manager</option>
-                  <option value="subject_matter_expert">Subject Matter Expert</option>
-                  <option value="reviewer">Reviewer</option>
-                  <option value="stakeholder">Stakeholder</option>
-                  <option value="sponsor">Sponsor</option>
-                </select>
-                <button 
-                  type="button" 
-                  @click="addExistingStakeholder('new')" 
-                  :disabled="!selectedStakeholderId || !selectedStakeholderRole"
-                  class="add-btn"
-                >
-                  + Add Selected
-                </button>
-              </div>
-            </div>
-
-            <!-- Current project stakeholders -->
-            <div class="stakeholders-list">
-              <h4>Project Stakeholders</h4>
-              <div v-for="(stakeholder, index) in newProject.stakeholders" :key="index" class="stakeholder-item">
-                <div class="stakeholder-info">
-                  <strong>{{ stakeholder.name }}</strong>
-                  <span class="stakeholder-details">{{ stakeholder.email }} | {{ stakeholder.organization }}</span>
-                </div>
-                <select
-                  v-model="stakeholder.role"
-                  class="stakeholder-role-input"
-                >
-                  <option value="project_manager">Project Manager</option>
-                  <option value="subject_matter_expert">Subject Matter Expert</option>
-                  <option value="reviewer">Reviewer</option>
-                  <option value="stakeholder">Stakeholder</option>
-                  <option value="sponsor">Sponsor</option>
-                </select>
-                <input
-                  v-model="stakeholder.notes"
-                  type="text"
-                  placeholder="Notes (optional)"
-                  class="stakeholder-input"
-                />
-                <button type="button" @click="removeStakeholder(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              
-              <!-- Add new stakeholder manually -->
-              <div class="add-new-stakeholder">
-                <h4>Or Add New Stakeholder</h4>
-                <div class="new-stakeholder-form">
-                  <input
-                    v-model="newStakeholderName"
-                    type="text"
-                    placeholder="Full name"
-                    class="stakeholder-input"
-                  />
-                  <input
-                    v-model="newStakeholderEmail"
-                    type="email"
-                    placeholder="Email address"
-                    class="stakeholder-input"
-                  />
-                  <input
-                    v-model="newStakeholderTitle"
-                    type="text"
-                    placeholder="Title"
-                    class="stakeholder-input"
-                  />
-                  <input
-                    v-model="newStakeholderOrganization"
-                    type="text"
-                    placeholder="Organization"
-                    class="stakeholder-input"
-                  />
-                  <select v-model="newStakeholderRole" class="stakeholder-input">
-                    <option value="">Select role...</option>
-                    <option value="project_manager">Project Manager</option>
-                    <option value="subject_matter_expert">Subject Matter Expert</option>
-                    <option value="reviewer">Reviewer</option>
-                    <option value="stakeholder">Stakeholder</option>
-                    <option value="sponsor">Sponsor</option>
-                  </select>
-                  <button 
-                    type="button" 
-                    @click="addNewStakeholder('new')"
-                    :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
-                    class="add-btn"
-                  >
-                    + Add New Stakeholder
-                  </button>
-                </div>
-              </div>
-            </div>
-          </div>
-
-          <!-- Milestones -->
-          <div class="form-section">
-            <h3>Milestones</h3>
-            <div class="milestones-list">
-              <div v-for="(milestone, index) in newProject.milestones" :key="index" class="milestone-item">
-                <input
-                  v-model="milestone.name"
-                  type="text"
-                  placeholder="Milestone name"
-                  class="milestone-input"
-                />
-                <input
-                  v-model="milestone.date"
-                  type="date"
-                  class="milestone-input"
-                  placeholder="Target date"
-                />
-                <select
-                  v-model="milestone.status"
-                  class="milestone-input"
-                >
-                  <option value="planned">Planned</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <button type="button" @click="removeMilestone(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addMilestone('new')" class="add-btn">+ Add Milestone</button>
-            </div>
-          </div>
-
-          <!-- Collections -->
-          <div class="form-section">
-            <h3>Collections</h3>
-            <div class="collections-list">
-              <div v-for="(collection, index) in newProject.collections" :key="index" class="collection-item">
-                <input
-                  v-model="collection.name"
-                  type="text"
-                  placeholder="Collection name"
-                  class="collection-input"
-                />
-                <textarea
-                  v-model="collection.description"
-                  placeholder="Description"
-                  rows="2"
-                  class="collection-input"
-                ></textarea>
-                <button type="button" @click="removeCollection(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addCollection('new')" class="add-btn">+ Add Collection</button>
-            </div>
-          </div>
-
-          <!-- Published Documents -->
-          <div class="form-section">
-            <h3>Published Documents</h3>
-            <div class="documents-list">
-              <div v-for="(document, index) in newProject.publishedDocuments" :key="index" class="document-item">
-                <input
-                  v-model="document.title"
-                  type="text"
-                  placeholder="Document title"
-                  class="document-input"
-                />
-                <input
-                  v-model="document.url"
-                  type="url"
-                  placeholder="Document URL"
-                  class="document-input"
-                />
-                <select v-model="document.type" class="document-input">
-                  <option value="">Select type</option>
-                  <option value="pdf">PDF</option>
-                  <option value="docx">Word Document</option>
-                  <option value="html">HTML</option>
-                  <option value="markdown">Markdown</option>
-                  <option value="other">Other</option>
-                </select>
-                <button type="button" @click="removeDocument(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addDocument('new')" class="add-btn">+ Add Document</button>
-            </div>
-          </div>
-
           <div class="modal-actions">
             <button type="button" @click="showCreateModal = false" class="cancel-btn">
               Cancel
@@ -467,171 +268,98 @@
       </div>
     </div>
 
-    <!-- Edit Project Modal -->
-    <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
+    <!-- Stakeholder Modal (Step 2) -->
+    <div v-if="showStakeholderModal" class="modal-overlay" @click="showStakeholderModal = false">
       <div class="modal large-modal" @click.stop>
         <div class="modal-header">
-          <h2>Edit Project</h2>
-          <button @click="showEditModal = false" class="close-btn">×</button>
+          <h2>Add Stakeholders to Project</h2>
+          <button @click="showStakeholderModal = false" class="close-btn">×</button>
         </div>
-        <form @submit.prevent="updateProject" class="modal-body">
-          <!-- Basic Information -->
+        <div class="modal-body">
           <div class="form-section">
-            <h3>Basic Information</h3>
+            <h3>Add Existing Stakeholder</h3>
+            <div class="selector-row">
+              <select v-model="selectedStakeholderId" class="stakeholder-select">
+                <option value="">Select a stakeholder...</option>
+                <option v-for="stakeholder in availableStakeholders" :key="stakeholder.id" :value="stakeholder.id">
+                  {{ stakeholder.name }} ({{ stakeholder.organization }})
+                </option>
+              </select>
+              <select v-model="selectedStakeholderRole" class="role-select">
+                <option value="">Select role...</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="add-btn">
+                + Add Selected
+              </button>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3>Or Add New Stakeholder</h3>
             <div class="form-row">
-              <div class="form-group">
-                <label for="editProjectName">Project Name *</label>
-                <input
-                  id="editProjectName"
-                  v-model="editingProject.name"
-                  type="text"
-                  required
-                  placeholder="Enter project name"
-                />
-              </div>
-              <div class="form-group">
-                <label for="editProjectStatus">Status</label>
-                <select id="editProjectStatus" v-model="editingProject.status">
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="editProjectDescription">Description</label>
-              <textarea
-                id="editProjectDescription"
-                v-model="editingProject.description"
-                placeholder="Project description"
-                rows="3"
-              ></textarea>
+              <input v-model="newStakeholder.name" type="text" placeholder="Name *" required />
+              <input v-model="newStakeholder.email" type="email" placeholder="Email *" required />
+              <input v-model="newStakeholder.title" type="text" placeholder="Title" />
+              <input v-model="newStakeholder.organization" type="text" placeholder="Organization" />
+              <select v-model="newStakeholder.role" class="role-select" required>
+                <option value="">Select role...</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholder.name || !newStakeholder.email || !newStakeholder.role" class="add-btn">
+                + Add New Stakeholder
+              </button>
             </div>
           </div>
-
-          <!-- Stakeholders -->
           <div class="form-section">
-            <h3>Stakeholders</h3>
-            <div class="stakeholders-list">
-              <div v-for="(stakeholder, index) in editingProject.stakeholders" :key="index" class="stakeholder-item">
-                <input
-                  v-model="stakeholder.name"
-                  type="text"
-                  placeholder="Stakeholder name"
-                  class="stakeholder-input"
-                />
-                <input
-                  v-model="stakeholder.role"
-                  type="text"
-                  placeholder="Role/Title"
-                  class="stakeholder-input"
-                />
-                <input
-                  v-model="stakeholder.email"
-                  type="email"
-                  placeholder="Email"
-                  class="stakeholder-input"
-                />
-                <button type="button" @click="removeStakeholder(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addStakeholder('edit')" class="add-btn">+ Add Stakeholder</button>
-            </div>
+            <h3>Current Project Stakeholders</h3>
+            <ul>
+              <li v-for="s in projectStakeholders" :key="s.id || s.email">
+                {{ s.name }} ({{ s.role }}) <span v-if="s.email">- {{ s.email }}</span>
+              </li>
+            </ul>
           </div>
+          <div class="modal-actions">
+            <button type="button" class="primary-btn" @click="proceedToMilestones">Add Stakeholders</button>
+          </div>
+        </div>
+      </div>
+    </div>
 
-          <!-- Milestones -->
+    <!-- Milestone Modal (Step 3) -->
+    <div v-if="showMilestoneModal" class="modal-overlay" @click="showMilestoneModal = false">
+      <div class="modal large-modal" @click.stop>
+        <div class="modal-header">
+          <h2>Add Project Milestones</h2>
+          <button @click="showMilestoneModal = false" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
           <div class="form-section">
             <h3>Milestones</h3>
-            <div class="milestones-list">
-              <div v-for="(milestone, index) in editingProject.milestones" :key="index" class="milestone-item">
-                <input
-                  v-model="milestone.name"
-                  type="text"
-                  placeholder="Milestone name"
-                  class="milestone-input"
-                />
-                <input
-                  v-model="milestone.date"
-                  type="date"
-                  class="milestone-input"
-                  placeholder="Target date"
-                />
-                <select
-                  v-model="milestone.status"
-                  class="milestone-input"
-                >
-                  <option value="planned">Planned</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <button type="button" @click="removeMilestone(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addMilestone('edit')" class="add-btn">+ Add Milestone</button>
+            <div v-for="(milestone, idx) in newMilestones" :key="idx" class="milestone-row">
+              <input v-model="milestone.name" type="text" placeholder="Milestone Name *" required />
+              <input v-model="milestone.date" type="date" placeholder="Due Date" />
+              <select v-model="milestone.status">
+                <option value="planned">Planned</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="overdue">Overdue</option>
+              </select>
+              <button type="button" @click="removeMilestone(idx)" class="remove-btn">×</button>
             </div>
+            <button type="button" @click="addMilestoneRow" class="add-btn">+ Add Milestone</button>
           </div>
-
-          <!-- Collections -->
-          <div class="form-section">
-            <h3>Collections</h3>
-            <div class="collections-list">
-              <div v-for="(collection, index) in editingProject.collections" :key="index" class="collection-item">
-                <input
-                  v-model="collection.name"
-                  type="text"
-                  placeholder="Collection name"
-                  class="collection-input"
-                />
-                <textarea
-                  v-model="collection.description"
-                  placeholder="Description"
-                  rows="2"
-                  class="collection-input"
-                ></textarea>
-                <button type="button" @click="removeCollection(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addCollection('edit')" class="add-btn">+ Add Collection</button>
-            </div>
-          </div>
-
-          <!-- Published Documents -->
-          <div class="form-section">
-            <h3>Published Documents</h3>
-            <div class="documents-list">
-              <div v-for="(document, index) in editingProject.publishedDocuments" :key="index" class="document-item">
-                <input
-                  v-model="document.title"
-                  type="text"
-                  placeholder="Document title"
-                  class="document-input"
-                />
-                <input
-                  v-model="document.url"
-                  type="url"
-                  placeholder="Document URL"
-                  class="document-input"
-                />
-                <select v-model="document.type" class="document-input">
-                  <option value="">Select type</option>
-                  <option value="pdf">PDF</option>
-                  <option value="docx">Word Document</option>
-                  <option value="html">HTML</option>
-                  <option value="markdown">Markdown</option>
-                  <option value="other">Other</option>
-                </select>
-                <button type="button" @click="removeDocument(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addDocument('edit')" class="add-btn">+ Add Document</button>
-            </div>
-          </div>
-
           <div class="modal-actions">
-            <button type="button" @click="showEditModal = false" class="cancel-btn">
-              Cancel
-            </button>
-            <button type="submit" class="create-btn">Update Project</button>
+            <button type="button" class="primary-btn" @click="saveMilestonesAndFinish">Add Milestones</button>
           </div>
-        </form>
+        </div>
       </div>
     </div>
   </div>
@@ -683,11 +411,7 @@ export default {
       selectedStakeholderRole: '',
       
       // New stakeholder form
-      newStakeholderName: '',
-      newStakeholderEmail: '',
-      newStakeholderTitle: '',
-      newStakeholderOrganization: '',
-      newStakeholderRole: '',
+      newStakeholder: { name: '', email: '', title: '', organization: '', role: '' },
       
       newProject: {
         name: '',
@@ -707,7 +431,16 @@ export default {
         milestones: [],
         collections: [],
         publishedDocuments: []
-      }
+      },
+      // Multi-step project creation
+      createProjectStep: 1,
+      createdProjectId: null,
+      createdProjectName: '',
+      showStakeholderModal: false,
+      showMilestoneModal: false,
+      confirmationMessage: '',
+      projectStakeholders: [],
+      newMilestones: [{ name: '', date: '', status: 'planned' }],
     }
   },
   computed: {
@@ -851,9 +584,8 @@ export default {
       }
     },
 
-    async createProject() {
+    async createProjectBasic() {
       try {
-        // Prepare payload for backend
         const payload = {
           name: this.newProject.name,
           description: this.newProject.description,
@@ -861,7 +593,6 @@ export default {
           start_date: this.newProject.start_date || null,
           target_completion: this.newProject.target_completion || null
         }
-        // 1. Create the project
         const response = await fetch('/api/projects/', {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
@@ -872,27 +603,13 @@ export default {
           throw new Error(`Failed to create project: ${response.status} ${errorText}`)
         }
         const createdProject = await response.json()
-
-        // 2. For each new stakeholder, create in backend and associate with project
-        for (const s of this.newProject.stakeholders) {
-          let stakeholderId = s.stakeholder_id
-          if (s.isNew) {
-            // Create stakeholder in backend
-            const newStakeholder = await createStakeholder({
-              name: s.name,
-              email: s.email,
-              title: s.title,
-              organization: s.organization
-            })
-            stakeholderId = newStakeholder.id
-          }
-          // Associate stakeholder with project
-          await addStakeholderToProject(createdProject.id, stakeholderId, s.role || 'stakeholder')
-        }
-
-        this.projects.push(createdProject)
+        this.createdProjectId = createdProject.id
+        this.createdProjectName = createdProject.name
+        this.createProjectStep = 2
+        this.showStakeholderModal = true
         this.showCreateModal = false
-        this.resetNewProject()
+        // Optionally, store createdProject in newProject for later steps
+        this.newProject.id = createdProject.id
       } catch (error) {
         console.error('Failed to create project:', error)
         alert('Failed to create project: ' + error.message)
@@ -1330,7 +1047,84 @@ export default {
     hasActiveMilestones(project) {
       if (!project.milestones || !Array.isArray(project.milestones)) return false
       return project.milestones.some(milestone => milestone.date)
-    }
+    },
+
+    proceedToNextStep() {
+      // Here you can add any validation or processing logic for the current step
+      // For now, we just log the new project data and move to the next step
+      console.log('Project created, stakeholders added:', this.newProject)
+      
+      // Proceed to next step (e.g., show milestone modal)
+      this.showStakeholderModal = false
+      this.showMilestoneModal = true
+    },
+
+    async addSelectedStakeholderToProject() {
+      if (!this.createdProjectId || !this.selectedStakeholderId || !this.selectedStakeholderRole) return
+      try {
+        await addStakeholderToProject(this.createdProjectId, this.selectedStakeholderId, this.selectedStakeholderRole)
+        const stakeholder = this.availableStakeholders.find(s => s.id === this.selectedStakeholderId)
+        if (stakeholder) {
+          this.projectStakeholders.push({ ...stakeholder, role: this.selectedStakeholderRole })
+        }
+        this.selectedStakeholderId = ''
+        this.selectedStakeholderRole = ''
+      } catch (err) {
+        alert('Failed to add stakeholder: ' + err.message)
+      }
+    },
+    async addNewStakeholderToProject() {
+      if (!this.createdProjectId || !this.newStakeholder.name || !this.newStakeholder.email || !this.newStakeholder.role) return
+      try {
+        const newStakeholder = await createStakeholder({
+          name: this.newStakeholder.name,
+          email: this.newStakeholder.email,
+          title: this.newStakeholder.title,
+          organization: this.newStakeholder.organization
+        })
+        await addStakeholderToProject(this.createdProjectId, newStakeholder.id, this.newStakeholder.role)
+        this.projectStakeholders.push({ ...newStakeholder, role: this.newStakeholder.role })
+        this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' }
+      } catch (err) {
+        alert('Failed to add new stakeholder: ' + err.message)
+      }
+    },
+    addMilestoneRow() {
+      this.newMilestones.push({ name: '', date: '', status: 'planned' })
+    },
+    removeMilestone(idx) {
+      this.newMilestones.splice(idx, 1)
+    },
+    async saveMilestonesAndFinish() {
+      if (!this.createdProjectId) return
+      try {
+        for (const m of this.newMilestones) {
+          if (m.name) {
+            await fetch(`/api/projects/${this.createdProjectId}/milestones`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: m.name,
+                date: m.date,
+                status: m.status
+              })
+            })
+          }
+        }
+        this.showMilestoneModal = false
+        this.confirmationMessage = `Project #${this.createdProjectId} (${this.createdProjectName}) was created successfully!`
+        // Optionally reset state
+        this.createProjectStep = 1
+        this.createdProjectId = null
+        this.createdProjectName = ''
+        this.projectStakeholders = []
+        this.newMilestones = [{ name: '', date: '', status: 'planned' }]
+        // Show confirmation (could be a toast or modal)
+        alert(this.confirmationMessage)
+      } catch (err) {
+        alert('Failed to add milestones: ' + err.message)
+      }
+    },
   },
   mounted() {
     // Fetch projects and stakeholders from API

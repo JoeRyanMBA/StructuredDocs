@@ -157,6 +157,8 @@
             </div>
           </div>
 
+          <div class="task-id">Task ID: {{ task.id }}</div>
+
           <p v-if="task.description" class="task-description">{{ task.description }}</p>
 
           <!-- Association Info -->
@@ -593,7 +595,7 @@ export default {
         project_id: task.project_id,
         collection_id: task.collection_id,
         topic_id: task.topic_id,
-        tags: task.tags ? JSON.parse(task.tags) : []
+        tags: Array.isArray(task.tags) ? task.tags : (typeof task.tags === 'string' ? JSON.parse(task.tags || '[]') : [])
       }
       this.showEditModal = true
     },
@@ -1457,7 +1459,7 @@ export default {
 
 .cancel-btn {
   padding: 0.75rem 1.5rem;
-  border: 1px solid #d1d5db;
+  border: 1px solid #d5d7db;
   background: white;
   color: #374151;
   border-radius: 6px;

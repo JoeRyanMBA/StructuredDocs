@@ -331,13 +331,34 @@ export default {
       this.$router.push(`/topics/${topic.id}`)
     },
 
-    sendForReview(topic) {
+    async sendForReview(topic) {
+      // Persist review request to backend
+      try {
+        const res = await fetch(`/api/topics/${topic.id}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'in_review' })
+        })
+        if (!res.ok) throw new Error('Failed to send for review')
+        await this.loadMyTopics()
+      } catch (err) {
+        console.error('Error sending for review:', err)
+      }
       this.$router.push(`/topics/${topic.id}/review`)
     },
 
-    duplicateTopic(topic) {
-      // Implement topic duplication
-      console.log('Duplicating topic:', topic.title)
+    async duplicateTopic(topic) {
+      // Persist duplication to backend
+      try {
+        const res = await fetch(`/api/topics/${topic.id}/duplicate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (!res.ok) throw new Error('Failed to duplicate topic')
+        await this.loadMyTopics()
+      } catch (err) {
+        console.error('Error duplicating topic:', err)
+      }
     },
 
     navigateTo(path) {

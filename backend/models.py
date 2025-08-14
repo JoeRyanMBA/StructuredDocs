@@ -725,6 +725,11 @@ class Task(db.Model):
     topic = relationship('Topic', backref='tasks')
 
     def to_dict(self):
+        import json
+        try:
+            tags = json.loads(self.tags) if self.tags else []
+        except Exception:
+            tags = []
         return {
             "id": self.id,
             "title": self.title,
@@ -738,7 +743,7 @@ class Task(db.Model):
             "topic_id": self.topic_id,
             "assigned_to": self.assigned_to,
             "created_by": self.created_by,
-            "tags": self.tags,
+            "tags": tags,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             # Include related object names for display

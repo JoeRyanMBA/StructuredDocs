@@ -267,9 +267,18 @@ export default {
     editPublication(publication) {
       this.$router.push(`/publications/${publication.id}/edit`)
     },
-    publishNow(publication) {
-      // Implement publish functionality
-      console.log('Publishing:', publication.title)
+    async publishNow(publication) {
+      // Persist publish action to backend
+      try {
+        const res = await fetch(`/api/publications/${publication.id}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (!res.ok) throw new Error('Failed to publish')
+        await this.loadPublications()
+      } catch (err) {
+        console.error('Error publishing:', err)
+      }
     },
     downloadPublication(publication) {
       // Implement download functionality

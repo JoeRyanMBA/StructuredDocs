@@ -323,7 +323,19 @@ export default {
       }
     },
 
-    sendNewReview() {
+    async sendNewReview() {
+      // Persist new review action to backend (example: create a new review draft)
+      try {
+        const res = await fetch('/api/reviews/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'start_review' })
+        })
+        if (!res.ok) throw new Error('Failed to start new review')
+        await this.loadReviews()
+      } catch (err) {
+        console.error('Error starting new review:', err)
+      }
       this.$router.push('/reviews/send')
     },
 
@@ -331,11 +343,35 @@ export default {
       this.$router.push(`/reviews/${review.id}`)
     },
 
-    incorporateFeedback(review) {
+    async incorporateFeedback(review) {
+      // Persist feedback incorporation to backend
+      try {
+        const res = await fetch(`/api/reviews/${review.id}/incorporate`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'incorporate_feedback' })
+        })
+        if (!res.ok) throw new Error('Failed to incorporate feedback')
+        await this.loadReviews()
+      } catch (err) {
+        console.error('Error incorporating feedback:', err)
+      }
       this.$router.push(`/reviews/${review.id}/incorporate`)
     },
 
-    followUp(review) {
+    async followUp(review) {
+      // Persist follow-up action to backend
+      try {
+        const res = await fetch(`/api/reviews/${review.id}/followup`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ action: 'follow_up' })
+        })
+        if (!res.ok) throw new Error('Failed to follow up')
+        await this.loadReviews()
+      } catch (err) {
+        console.error('Error following up:', err)
+      }
       this.$router.push(`/reviews/${review.id}/followup`)
     },
 
