@@ -23,322 +23,43 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.1.203:5050
+ * Running on http://10.0.4.89:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [12/Aug/2025 09:46:02] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:46:02] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:46:02] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:46:02] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:46:02] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:46:23] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:46:23] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:47:58] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:47:58] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:47:58] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:47:58] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:47:58] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:48:15] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:15] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:25] "GET /api/tasks/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:25] "[35m[1mGET /api/tasks/associations HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:25] "GET /api/tasks/summary HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:27] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:27] "[35m[1mGET /api/collections HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:27] "[35m[1mGET /api/collections/stats HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:28] "[35m[1mGET /api/collections HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:28] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:28] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:28] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-[2025-08-12 09:48:28,913] ERROR in topics: Failed to list topics
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.OperationalError: no such column: topics.frontmatter
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/backend/routes/topics.py", line 13, in list_topics
-    all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2704, in all
-    return self._iter().all()  # type: ignore
-           ^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-           ^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: topics.frontmatter
-[SQL: SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.frontmatter AS topics_frontmatter, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
-FROM topics ORDER BY topics.created_at DESC]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-127.0.0.1 - - [12/Aug/2025 09:48:29] "[35m[1mGET /api/topics HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:31] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:31] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-[2025-08-12 09:48:31,441] ERROR in topics: Failed to list topics
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.OperationalError: no such column: topics.frontmatter
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/backend/routes/topics.py", line 13, in list_topics
-    all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2704, in all
-    return self._iter().all()  # type: ignore
-           ^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-           ^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: topics.frontmatter
-[SQL: SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.frontmatter AS topics_frontmatter, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
-FROM topics ORDER BY topics.created_at DESC]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-127.0.0.1 - - [12/Aug/2025 09:48:31] "[35m[1mGET /api/topics/ HTTP/1.1[0m" 500 -
-[2025-08-12 09:48:35,067] ERROR in topics: Failed to list topics
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.OperationalError: no such column: topics.frontmatter
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/backend/routes/topics.py", line 13, in list_topics
-    all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2704, in all
-    return self._iter().all()  # type: ignore
-           ^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-           ^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: topics.frontmatter
-[SQL: SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.frontmatter AS topics_frontmatter, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
-FROM topics ORDER BY topics.created_at DESC]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-127.0.0.1 - - [12/Aug/2025 09:48:35] "[35m[1mGET /api/topics HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:35] "[35m[1mGET /api/collections HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:35] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:35] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:35] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-[2025-08-12 09:48:36,636] ERROR in topics: Failed to list topics
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.OperationalError: no such column: topics.frontmatter
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/backend/routes/topics.py", line 13, in list_topics
-    all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2704, in all
-    return self._iter().all()  # type: ignore
-           ^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-           ^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: topics.frontmatter
-[SQL: SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.frontmatter AS topics_frontmatter, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
-FROM topics ORDER BY topics.created_at DESC]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-127.0.0.1 - - [12/Aug/2025 09:48:36] "[35m[1mGET /api/topics/ HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:36] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:48:36] "GET /api/projects/ HTTP/1.1" 200 -
-[2025-08-12 09:48:38,459] ERROR in topics: Failed to list topics
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlite3.OperationalError: no such column: topics.frontmatter
-
-The above exception was the direct cause of the following exception:
-
-Traceback (most recent call last):
-  File "/workspaces/StructuredDocs/backend/routes/topics.py", line 13, in list_topics
-    all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
-                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2704, in all
-    return self._iter().all()  # type: ignore
-           ^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/query.py", line 2857, in _iter
-    result: Union[ScalarResult[_T], Result[_T]] = self.session.execute(
-                                                  ^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2365, in execute
-    return self._execute_internal(
-           ^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/session.py", line 2251, in _execute_internal
-    result: Result[Any] = compile_state_cls.orm_execute_statement(
-                          ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/orm/context.py", line 306, in orm_execute_statement
-    result = conn.execute(
-             ^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1419, in execute
-    return meth(
-           ^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/sql/elements.py", line 526, in _execute_on_connection
-    return connection._execute_clauseelement(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1641, in _execute_clauseelement
-    ret = self._execute_context(
-          ^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1846, in _execute_context
-    return self._exec_single_context(
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1986, in _exec_single_context
-    self._handle_dbapi_exception(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 2355, in _handle_dbapi_exception
-    raise sqlalchemy_exception.with_traceback(exc_info[2]) from e
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/base.py", line 1967, in _exec_single_context
-    self.dialect.do_execute(
-  File "/workspaces/StructuredDocs/.venv/lib/python3.12/site-packages/sqlalchemy/engine/default.py", line 951, in do_execute
-    cursor.execute(statement, parameters)
-sqlalchemy.exc.OperationalError: (sqlite3.OperationalError) no such column: topics.frontmatter
-[SQL: SELECT topics.id AS topics_id, topics.title AS topics_title, topics.content AS topics_content, topics.frontmatter AS topics_frontmatter, topics.status AS topics_status, topics.created_at AS topics_created_at, topics.updated_at AS topics_updated_at 
-FROM topics ORDER BY topics.created_at DESC]
-(Background on this error at: https://sqlalche.me/e/20/e3q8)
-127.0.0.1 - - [12/Aug/2025 09:48:38] "[35m[1mGET /api/topics/ HTTP/1.1[0m" 500 -
-127.0.0.1 - - [12/Aug/2025 09:48:58] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:49:00] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:49:02] "GET /api/reviews/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:49:04] "[33mGET /api/admin/system-logs HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:49:04] "[33mGET /api/admin/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:49:04] "[33mGET /api/admin/activity HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:49:10] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:49:10] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 09:51:39] "[33mPOST /api/milestones HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 09:51:45] "[31m[1mPOST /api/collections HTTP/1.1[0m" 400 -
-127.0.0.1 - - [12/Aug/2025 09:51:48] "[35m[1mPOST /api/publications HTTP/1.1[0m" 201 -
-127.0.0.1 - - [12/Aug/2025 09:51:51] "[31m[1mDELETE /api/publications/1 HTTP/1.1[0m" 405 -
-127.0.0.1 - - [12/Aug/2025 09:51:56] "[35m[1mPOST /api/projects/ HTTP/1.1[0m" 201 -
-127.0.0.1 - - [12/Aug/2025 09:51:56] "[35m[1mPOST /api/stakeholders/ HTTP/1.1[0m" 201 -
-127.0.0.1 - - [12/Aug/2025 09:51:56] "[31m[1mPOST /api/projects/1/stakeholders HTTP/1.1[0m" 400 -
+127.0.0.1 - - [12/Aug/2025 19:31:16] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:31:21] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:22] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:24] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:47:24] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:47:24] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:24] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:26] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:26] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:26] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:47:27] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:23] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:25] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:50:25] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:25] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:50:25] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:27] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:27] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:27] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:50:28] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:24] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:26] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:26] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:51:26] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:51:26] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:27] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:28] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:28] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:51:29] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:05] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:07] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:53:07] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:07] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
+127.0.0.1 - - [12/Aug/2025 19:53:07] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:08] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:08] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:08] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [12/Aug/2025 19:53:09] "GET /api/notifications HTTP/1.1" 200 -
