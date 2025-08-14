@@ -299,7 +299,15 @@ export default {
   },
   methods: {
     deleteNotification(id) {
-      this.notifications = this.notifications.filter(n => n.id !== id)
+      // Persist notification deletion to backend
+      fetch(`/api/notifications/${id}`, { method: 'DELETE' })
+        .then(response => {
+          if (!response.ok) throw new Error('Failed to delete notification')
+          this.notifications = this.notifications.filter(n => n.id !== id)
+        })
+        .catch(error => {
+          alert('Failed to delete notification: ' + error.message)
+        })
     },
 
     async loadDashboardData() {

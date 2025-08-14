@@ -303,6 +303,69 @@ export default {
   },
 
   methods: {
+    async updateCollection(collection) {
+      try {
+        const payload = {
+          name: collection.name,
+          form_number: collection.form_number,
+          description: collection.description,
+          status: collection.status,
+          project_id: collection.projectId
+        }
+        const response = await fetch(`/api/collections/${collection.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to update collection: ${response.status} ${errorText}`)
+        }
+        await this.loadCollections()
+      } catch (error) {
+        alert('Failed to update collection: ' + error.message)
+      }
+    },
+
+    async deleteCollection(collectionId) {
+      try {
+        const response = await fetch(`/api/collections/${collectionId}`, {
+          method: 'DELETE'
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to delete collection: ${response.status} ${errorText}`)
+        }
+        await this.loadCollections()
+      } catch (error) {
+        alert('Failed to delete collection: ' + error.message)
+      }
+    },
+    async submitNewCollection() {
+      try {
+        const payload = {
+          name: this.newCollection.name,
+          form_number: this.newCollection.form_number,
+          description: this.newCollection.description,
+          status: this.newCollection.status,
+          project_id: this.newCollection.projectId
+        }
+        const response = await fetch('/api/collections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to create collection: ${response.status} ${errorText}`)
+        }
+        await this.loadCollections()
+        this.showCreateModal = false
+        this.resetNewCollection()
+      } catch (error) {
+        alert('Failed to create collection: ' + error.message)
+      }
+    },
     // Helper to assign projectName to collections based on projectId
     assignProjectNames(collections) {
       if (!this.projects || this.projects.length === 0) return collections;

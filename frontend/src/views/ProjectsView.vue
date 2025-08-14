@@ -993,25 +993,89 @@ export default {
 
     async updateProject() {
       try {
-        // Find and update the project in the array
-        const index = this.projects.findIndex(p => p.id === this.editingProject.id)
-        if (index !== -1) {
-          this.projects[index] = {
-            ...this.projects[index],
-            name: this.editingProject.name,
-            description: this.editingProject.description,
-            status: this.editingProject.status,
-            stakeholders: [...this.editingProject.stakeholders],
-            milestones: [...this.editingProject.milestones],
-            collections: [...this.editingProject.collections],
-            publishedDocuments: [...this.editingProject.publishedDocuments]
-          }
+        // 1. Update the project core fields
+        const payload = {
+          name: this.editingProject.name,
+          description: this.editingProject.description,
+          status: this.editingProject.status
         }
-        
+        const response = await fetch(`/api/projects/${this.editingProject.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to update project: ${response.status} ${errorText}`)
+        }
+
+        // 2. Update stakeholders
+        // Remove all current stakeholders from project, then re-add (simple approach)
+        await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+          method: 'DELETE'
+        })
+        for (const s of this.editingProject.stakeholders) {
+          let stakeholderId = s.stakeholder_id
+          if (s.isNew) {
+            // Create stakeholder in backend
+            const newStakeholder = await createStakeholder({
+              name: s.name,
+              email: s.email,
+              title: s.title,
+              organization: s.organization
+            })
+            stakeholderId = newStakeholder.id
+          }
+          await addStakeholderToProject(this.editingProject.id, stakeholderId, s.role || 'stakeholder')
+        }
+
+        // 3. Update milestones
+        // Remove all milestones, then re-add
+        await fetch(`/api/projects/${this.editingProject.id}/milestones`, { method: 'DELETE' })
+        for (const m of this.editingProject.milestones) {
+          const payload = {
+            name: m.name,
+            date: m.date,
+            status: m.status,
+            project_id: this.editingProject.id
+          }
+          await createMilestone(payload)
+        }
+
+        // 4. Update collections
+        await fetch(`/api/projects/${this.editingProject.id}/collections`, { method: 'DELETE' })
+        for (const c of this.editingProject.collections) {
+          const payload = {
+            name: c.name,
+            description: c.description,
+            project_id: this.editingProject.id
+          }
+          await fetch('/api/collections', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        }
+
+        // 5. Update published documents
+        await fetch(`/api/projects/${this.editingProject.id}/publications`, { method: 'DELETE' })
+        for (const d of this.editingProject.publishedDocuments) {
+          const payload = {
+            title: d.title,
+            url: d.url,
+            type: d.type,
+            project_id: this.editingProject.id
+          }
+          await createPublication(payload)
+        }
+
+        // 6. Refresh projects from backend
+        await this.fetchProjects()
         this.showEditModal = false
         this.resetEditingProject()
       } catch (error) {
         console.error('Failed to update project:', error)
+        alert('Failed to update project: ' + error.message)
       }
     },
 

@@ -23,43 +23,25 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.4.89:5050
+ * Running on http://10.0.5.30:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [12/Aug/2025 19:31:16] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:31:21] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:22] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:24] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:47:24] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:47:24] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:24] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:26] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:26] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:26] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:47:27] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:23] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:25] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:50:25] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:25] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:50:25] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:27] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:27] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:27] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:50:28] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:24] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:26] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:26] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:51:26] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:51:26] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:27] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:28] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:28] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:51:29] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:05] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:07] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:53:07] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:07] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [12/Aug/2025 19:53:07] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:08] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:08] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:08] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [12/Aug/2025 19:53:09] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:39] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
+127.0.0.1 - - [14/Aug/2025 17:23:39] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
+127.0.0.1 - - [14/Aug/2025 17:23:39] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:39] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:39] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:40] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:41] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:41] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:44] "GET /api/reviews/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:50] "GET /api/reviews/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:53] "GET /api/reviews/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:57] "GET /api/reviews/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:23:59] "GET /api/publications HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:24:05] "[32mGET /api/projects HTTP/1.1[0m" 308 -
+127.0.0.1 - - [14/Aug/2025 17:24:06] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:24:06] "GET /api/collections HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:24:06] "GET /api/collections/stats HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:24:13] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:24:18] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [14/Aug/2025 17:24:18] "GET /api/stakeholders/ HTTP/1.1" 200 -
