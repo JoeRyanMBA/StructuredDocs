@@ -89,6 +89,13 @@
     </div>
 
     <!-- Loading indicator -->
+    <div v-if="preparingImport" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Preparing to import your document...</h3>
+        <p>Reading file and preparing for upload. Please wait...</p>
+      </div>
+    </div>
     <div v-if="isUploading" class="loading-overlay">
       <div class="loading-content">
         <div class="spinner"></div>
@@ -161,7 +168,8 @@ export default {
     return {
       source: 'markdown',
       error: null,
-      isUploading: false,
+  isUploading: false,
+  preparingImport: false,
       importType: 'topics',
       collectionName: '',
       collectionFormNumber: '',
@@ -216,14 +224,18 @@ export default {
 
     onFileSelected(event) {
       this.error = null
-      
       const file = event.target.files[0]
       if (!file) {
         this.selectedFile = null
+        this.preparingImport = false
         return
       }
-
       this.selectedFile = file
+      this.preparingImport = true
+      // Simulate a short delay for UX (remove if not desired)
+      setTimeout(() => {
+        this.preparingImport = false
+      }, 800)
     },
 
     clearFile() {
@@ -241,6 +253,7 @@ export default {
     },
 
     async startImport() {
+      this.preparingImport = false
       if (!this.selectedFile) {
         this.error = 'Please select a file to import'
         return

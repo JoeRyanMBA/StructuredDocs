@@ -13,6 +13,28 @@ from sqlalchemy import desc
 
 projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 
+@projects_bp.route('/<int:project_id>', methods=['PUT'])
+def update_project(project_id):
+    """Update a project's basic info"""
+    from models import db, Project
+    try:
+        data = request.get_json()
+        project = Project.query.get_or_404(project_id)
+        if 'name' in data:
+            project.name = data['name']
+        if 'description' in data:
+            project.description = data['description']
+        if 'status' in data:
+            project.status = data['status']
+        if 'start_date' in data:
+            project.start_date = data['start_date']
+        if 'target_completion' in data:
+            project.target_completion = data['target_completion']
+        db.session.commit()
+        return jsonify(project.to_dict()), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @projects_bp.route('/', methods=['GET'])
 def list_projects():
     """Get all projects with basic info"""
@@ -176,39 +198,35 @@ def add_project_stakeholder(project_id):
     """Add a stakeholder to a project"""
     try:
         data = request.get_json()
-        
-        # Validate required fields
-        required_fields = ['name', 'email', 'role']
-        for field in required_fields:
-            if not data.get(field):
-                return jsonify({"error": f"{field} is required"}), 400
-        
-        # stakeholder = ProjectStakeholder(
-        #     project_id=project_id,
-        #     name=data['name'],
-        #     email=data['email'],
-        #     role=data['role'],
-        #     can_review=data.get('can_review', True),
-        #     notes=data.get('notes')
-        # )
-        # 
-        # db.session.add(stakeholder)
-        # db.session.commit()
-        # 
-        # return jsonify(stakeholder.to_dict()), 201
-        
-        # Placeholder response
-        return jsonify({
-            "id": 999,
-            "project_id": project_id,
-            "name": data['name'],
-            "email": data['email'],
-            "role": data['role'],
-            "can_review": data.get('can_review', True),
-            "notes": data.get('notes'),
-            "created_at": datetime.utcnow().isoformat()
-        }), 201
-        
+        # Support adding by stakeholder_id (existing) or by name/email/role (new)
+        if data.get('stakeholder_id'):
+            # Simulate lookup and association for existing stakeholder
+            return jsonify({
+                "id": data['stakeholder_id'],
+                "project_id": project_id,
+                "role": data.get('role', 'stakeholder'),
+                "can_review": data.get('can_review', True),
+                "notes": data.get('notes'),
+                "created_at": datetime.utcnow().isoformat(),
+                "existing": True
+            }), 201
+        else:
+            required_fields = ['name', 'email', 'role']
+            for field in required_fields:
+                if not data.get(field):
+                    return jsonify({"error": f"{field} is required"}), 400
+            # Simulate creation of new stakeholder and association
+            return jsonify({
+                "id": 999,
+                "project_id": project_id,
+                "name": data['name'],
+                "email": data['email'],
+                "role": data['role'],
+                "can_review": data.get('can_review', True),
+                "notes": data.get('notes'),
+                "created_at": datetime.utcnow().isoformat(),
+                "existing": False
+            }), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 

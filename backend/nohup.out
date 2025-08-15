@@ -16,6 +16,7 @@
   ✅ Stakeholders blueprint registered
   ✅ Tasks blueprint registered
   ✅ Images blueprint registered
+  ✅ Dashboard blueprint registered
 🎉 Flask app creation complete!
 ✅ App instance created successfully!
  * Serving Flask app 'backend.app'
@@ -23,80 +24,15 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.10.107:5050
+ * Running on http://10.0.2.64:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [14/Aug/2025 19:07:51] "[33mGET /api/dashboard/stats HTTP/1.1[0m" 404 -
-127.0.0.1 - - [14/Aug/2025 19:07:51] "[33mGET /api/dashboard/pending-actions HTTP/1.1[0m" 404 -
-127.0.0.1 - - [14/Aug/2025 19:07:52] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:07:52] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:07:52] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:16] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:16] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:25] "GET /api/tasks/summary HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:25] "GET /api/tasks/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:25] "GET /api/tasks/associations HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:29] "PUT /api/tasks/1 HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:29] "GET /api/tasks/summary HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:35] "PUT /api/tasks/1 HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:09:35] "GET /api/tasks/summary HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:33] "[32mGET /api/projects HTTP/1.1[0m" 308 -
-127.0.0.1 - - [14/Aug/2025 19:10:33] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:34] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:34] "GET /api/collections/stats HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:42] "GET /api/topics HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:42] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:42] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:42] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:42] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:44] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:44] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:44] "GET /api/collections/stats HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:45] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:45] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:45] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:48] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:48] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:48] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:48] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:48] "GET /api/topics HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:50] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:50] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:10:50] "GET /api/collections/stats HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:24] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:33] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:33] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:33] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:34] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:34] "GET /api/topics HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:34] "GET /api/links?include_usage=true HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:34] "GET /api/collections HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:11:34] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:14:48] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:14:48] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:14:48] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:15:15] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:15:24] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:15:56] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:20] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:22] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:24] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:24] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:24] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:25] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:35] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:38] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:38] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:40] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:45] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:45] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:45] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:16:47] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:04] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:11] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:13] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:14] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:16] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:17] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:19] "GET /api/publications HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:17:22] "GET /api/reviews/ HTTP/1.1" 200 -
-127.0.0.1 - - [14/Aug/2025 19:53:16] "GET /api/reviews/ HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/dashboard/pending-actions HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/dashboard/stats HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:18] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:18] "GET /api/stakeholders/ HTTP/1.1" 200 -
+127.0.0.1 - - [15/Aug/2025 15:47:39] "[35m[1mPOST /api/projects/ HTTP/1.1[0m" 201 -
+127.0.0.1 - - [15/Aug/2025 15:48:26] "[35m[1mPOST /api/projects/35/stakeholders HTTP/1.1[0m" 201 -
+127.0.0.1 - - [15/Aug/2025 15:57:22] "[33mPOST /api/projects/35/milestones HTTP/1.1[0m" 404 -

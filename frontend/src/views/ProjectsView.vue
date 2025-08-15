@@ -1,3 +1,52 @@
+/* Milestone Modal Styling */
+.milestone-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 1.5rem;
+  background: #f8fafc;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+.milestone-row input[type="text"],
+.milestone-row input[type="date"],
+.milestone-row select {
+  flex: 1 1 0;
+  min-width: 0;
+  height: 44px;
+  margin-right: 0.75rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  font-size: 1rem;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease;
+}
+.milestone-row input[type="text"]:focus,
+.milestone-row input[type="date"]:focus,
+.milestone-row select:focus {
+  outline: none;
+  border-color: #005a9c;
+  box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
+  margin-left: .5rem;
+}
+.milestone-row select {
+  appearance: none;
+  background: white;
+  padding-right: 2rem;
+}
+.milestone-row .remove-btn {
+  align-self: center;
+  margin-left: 0.75rem;
+  margin-right: 0.25rem;
+}
+.milestone-row .remove-btn {
+  align-self: center;
+  margin-left: 0.5rem;
+}
 <template>
   <NotificationTicker
     :notifications="mergedNotifications"
@@ -6,12 +55,12 @@
   />
   <div class="projects-dashboard">
     <!-- Dashboard Header -->
-     <div class="dashboard-header">
+      <div class="dashboard-header">
         <h1>Projects Dashboard</h1>
         <p class="welcome-text">Manage projects, stakeholders, and review workflows</p>
-  </div>
-
+      </div>
     <!-- Metrics Overview -->
+
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">📊</div>
@@ -132,13 +181,8 @@
       
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
-        <div class="loading-content">
-          <div class="loading-icon">⏳</div>
-          <h3>Loading Projects...</h3>
-          <p>Please wait while we fetch your projects.</p>
-        </div>
+        <p>Please wait while we fetch your projects.</p>
       </div>
-      
       <!-- Error State -->
       <div v-else-if="error" class="error-state">
         <div class="error-content">
@@ -148,7 +192,6 @@
           <button @click="fetchProjects" class="retry-btn">🔄 Retry</button>
         </div>
       </div>
-      
       <!-- Empty State -->
       <div v-else-if="filteredProjects.length === 0" class="empty-state">
         <div class="empty-content">
@@ -159,7 +202,9 @@
             ➕ {{ projects.length === 0 ? 'Create Your First Project' : 'Create New Project' }}
           </button>
         </div>
-      </div>      <div v-else class="projects-grid">
+      </div>
+      <!-- Projects List -->
+      <div v-else class="projects-grid">
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -172,7 +217,6 @@
             </span>
           </div>
           <p class="project-description">{{ project.description }}</p>
-          
           <!-- Project Summary -->
           <div class="project-summary">
             <div class="summary-item" v-if="project.stakeholders && project.stakeholders.length > 0">
@@ -188,7 +232,6 @@
               <span>{{ project.publishedDocuments.length }} Document{{ project.publishedDocuments.length > 1 ? 's' : '' }}</span>
             </div>
           </div>
-
           <!-- Milestone Dates -->
           <div class="project-milestones" v-if="hasActiveMilestones(project)">
             <div class="milestone-item" v-for="milestone in project.milestones.slice(0, 3)" :key="milestone.name">
@@ -202,7 +245,6 @@
               +{{ project.milestones.length - 3 }} more milestones
             </div>
           </div>
-
           <div class="project-meta">
             <small>Created: {{ formatDate(project.created_at) }}</small>
           </div>
@@ -222,10 +264,16 @@
           <h2>Create New Project</h2>
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
-        <form @submit.prevent="createProjectBasic" class="modal-body">
+    <form @submit.prevent="handleCreateProject" class="modal-body">
           <!-- Basic Information -->
           <div class="form-section">
             <h3>Basic Information</h3>
+            <div v-if="confirmationMessage" class="confirmation-message" style="margin-bottom:1rem; color: #155724; background: #d4edda; border: 1px solid #c3e6cb; padding: 0.75rem; border-radius: 4px;">
+              {{ confirmationMessage }}
+              <div style="margin-top: 1rem; text-align: right;">
+                <button type="button" class="primary-btn" @click="proceedToStakeholders">OK</button>
+              </div>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="projectName">Project Name *</label>
@@ -259,14 +307,13 @@
           </div>
 
           <div class="modal-actions">
-            <button type="button" @click="showCreateModal = false" class="cancel-btn">
+            <button type="button" @click="showCreateModal = false" class="secondary-btn">
               Cancel
             </button>
-            <button type="submit" class="create-btn">Create Project</button>
+            <button type="submit" class="primary-btn" :disabled="creatingProject || (!!confirmationMessage)">Next</button>
           </div>
         </form>
       </div>
-    </div>
 
     <!-- Stakeholder Modal (Step 2) -->
     <div v-if="showStakeholderModal" class="modal-overlay" @click="showStakeholderModal = false">
@@ -301,11 +348,11 @@
           <div class="form-section">
             <h3>Or Add New Stakeholder</h3>
             <div class="form-row">
-              <input v-model="newStakeholder.name" type="text" placeholder="Name *" required />
-              <input v-model="newStakeholder.email" type="email" placeholder="Email *" required />
-              <input v-model="newStakeholder.title" type="text" placeholder="Title" />
-              <input v-model="newStakeholder.organization" type="text" placeholder="Organization" />
-              <select v-model="newStakeholder.role" class="role-select" required>
+              <input v-model="newStakeholder.name" type="text" placeholder="Name *" required class="stakeholder-input" />
+              <input v-model="newStakeholder.email" type="email" placeholder="Email *" required class="stakeholder-input" />
+              <input v-model="newStakeholder.title" type="text" placeholder="Title" class="stakeholder-input" />
+              <input v-model="newStakeholder.organization" type="text" placeholder="Organization" class="stakeholder-input" />
+              <select v-model="newStakeholder.role" class="role-select stakeholder-input" required>
                 <option value="">Select role...</option>
                 <option value="project_manager">Project Manager</option>
                 <option value="subject_matter_expert">Subject Matter Expert</option>
@@ -328,6 +375,7 @@
           </div>
           <div class="modal-actions">
             <button type="button" class="primary-btn" @click="proceedToMilestones">Add Stakeholders</button>
+            <button type="button" class="secondary-btn" @click="skipStakeholders" style="margin-left: 1rem;">Not Now</button>
           </div>
         </div>
       </div>
@@ -344,9 +392,9 @@
           <div class="form-section">
             <h3>Milestones</h3>
             <div v-for="(milestone, idx) in newMilestones" :key="idx" class="milestone-row">
-              <input v-model="milestone.name" type="text" placeholder="Milestone Name *" required />
-              <input v-model="milestone.date" type="date" placeholder="Due Date" />
-              <select v-model="milestone.status">
+              <input v-model="milestone.name" type="text" placeholder="Milestone Name *" required class="milestone-input" />
+              <input v-model="milestone.date" type="date" placeholder="Due Date" class="milestone-input" />
+              <select v-model="milestone.status" class="milestone-input">
                 <option value="planned">Planned</option>
                 <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
@@ -358,11 +406,13 @@
           </div>
           <div class="modal-actions">
             <button type="button" class="primary-btn" @click="saveMilestonesAndFinish">Add Milestones</button>
+            <button type="button" class="secondary-btn" @click="skipMilestones" style="margin-left: 1rem;">Not Now</button>
           </div>
         </div>
       </div>
     </div>
   </div>
+</div>
 </template>
 
 <script>
@@ -510,6 +560,13 @@ export default {
     }
   },
   methods: {
+    proceedToStakeholders() {
+      this.confirmationMessage = '';
+      this.showStakeholderModal = true;
+    },
+    handleCreateProject() {
+      this.createProjectBasic();
+    },
     async fetchProjects() {
       this.loading = true
       this.error = null
@@ -603,13 +660,15 @@ export default {
           throw new Error(`Failed to create project: ${response.status} ${errorText}`)
         }
         const createdProject = await response.json()
-        this.createdProjectId = createdProject.id
-        this.createdProjectName = createdProject.name
-        this.createProjectStep = 2
-        this.showStakeholderModal = true
-        this.showCreateModal = false
-        // Optionally, store createdProject in newProject for later steps
-        this.newProject.id = createdProject.id
+  this.createdProjectId = createdProject.id
+  this.createdProjectName = createdProject.name
+  this.confirmationMessage = `Project #${createdProject.id} (${createdProject.name}) was created successfully!`;
+  this.createProjectStep = 2
+  // Only close the modal after user clicks OK (handled in proceedToStakeholders)
+  // this.showStakeholderModal = true
+  // this.showCreateModal = false
+  // Optionally, store createdProject in newProject for later steps
+  this.newProject.id = createdProject.id
       } catch (error) {
         console.error('Failed to create project:', error)
         alert('Failed to create project: ' + error.message)
@@ -708,93 +767,7 @@ export default {
       this.showEditModal = true
     },
 
-    async updateProject() {
-      try {
-        // 1. Update the project core fields
-        const payload = {
-          name: this.editingProject.name,
-          description: this.editingProject.description,
-          status: this.editingProject.status
-        }
-        const response = await fetch(`/api/projects/${this.editingProject.id}`, {
-          method: 'PATCH',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to update project: ${response.status} ${errorText}`)
-        }
 
-        // 2. Update stakeholders
-        // Remove all current stakeholders from project, then re-add (simple approach)
-        await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
-          method: 'DELETE'
-        })
-        for (const s of this.editingProject.stakeholders) {
-          let stakeholderId = s.stakeholder_id
-          if (s.isNew) {
-            // Create stakeholder in backend
-            const newStakeholder = await createStakeholder({
-              name: s.name,
-              email: s.email,
-              title: s.title,
-              organization: s.organization
-            })
-            stakeholderId = newStakeholder.id
-          }
-          await addStakeholderToProject(this.editingProject.id, stakeholderId, s.role || 'stakeholder')
-        }
-
-        // 3. Update milestones
-        // Remove all milestones, then re-add
-        await fetch(`/api/projects/${this.editingProject.id}/milestones`, { method: 'DELETE' })
-        for (const m of this.editingProject.milestones) {
-          const payload = {
-            name: m.name,
-            date: m.date,
-            status: m.status,
-            project_id: this.editingProject.id
-          }
-          await createMilestone(payload)
-        }
-
-        // 4. Update collections
-        await fetch(`/api/projects/${this.editingProject.id}/collections`, { method: 'DELETE' })
-        for (const c of this.editingProject.collections) {
-          const payload = {
-            name: c.name,
-            description: c.description,
-            project_id: this.editingProject.id
-          }
-          await fetch('/api/collections', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
-        }
-
-        // 5. Update published documents
-        await fetch(`/api/projects/${this.editingProject.id}/publications`, { method: 'DELETE' })
-        for (const d of this.editingProject.publishedDocuments) {
-          const payload = {
-            title: d.title,
-            url: d.url,
-            type: d.type,
-            project_id: this.editingProject.id
-          }
-          await createPublication(payload)
-        }
-
-        // 6. Refresh projects from backend
-        await this.fetchProjects()
-        this.showEditModal = false
-        this.resetEditingProject()
-      } catch (error) {
-        console.error('Failed to update project:', error)
-        alert('Failed to update project: ' + error.message)
-      }
-    },
 
     resetEditingProject() {
       this.editingProject = {
@@ -1049,14 +1022,32 @@ export default {
       return project.milestones.some(milestone => milestone.date)
     },
 
-    proceedToNextStep() {
-      // Here you can add any validation or processing logic for the current step
-      // For now, we just log the new project data and move to the next step
-      console.log('Project created, stakeholders added:', this.newProject)
-      
-      // Proceed to next step (e.g., show milestone modal)
-      this.showStakeholderModal = false
-      this.showMilestoneModal = true
+    proceedToMilestones() {
+      // Validate that at least one stakeholder is added, unless skipping
+      if (!this.projectStakeholders || this.projectStakeholders.length === 0) {
+        alert('Please add at least one stakeholder before proceeding, or click Not Now to skip.');
+        return;
+      }
+      this.showStakeholderModal = false;
+      this.showMilestoneModal = true;
+    },
+
+    skipStakeholders() {
+      // Always proceed to milestones, regardless of validation
+      this.showStakeholderModal = false;
+      this.showMilestoneModal = true;
+    },
+
+    skipMilestones() {
+      // Always finish project creation, regardless of milestones
+      this.showMilestoneModal = false;
+      this.confirmationMessage = `Project #${this.createdProjectId} (${this.createdProjectName}) was created successfully!`;
+      this.createProjectStep = 1;
+      this.createdProjectId = null;
+      this.createdProjectName = '';
+      this.projectStakeholders = [];
+      this.newMilestones = [{ name: '', date: '', status: 'planned' }];
+      alert(this.confirmationMessage);
     },
 
     async addSelectedStakeholderToProject() {
@@ -1111,16 +1102,17 @@ export default {
             })
           }
         }
+        // Close all modals and reset state, return to dashboard
         this.showMilestoneModal = false
-        this.confirmationMessage = `Project #${this.createdProjectId} (${this.createdProjectName}) was created successfully!`
-        // Optionally reset state
+        this.showStakeholderModal = false
+        this.showCreateModal = false
+        this.confirmationMessage = ''
         this.createProjectStep = 1
         this.createdProjectId = null
         this.createdProjectName = ''
         this.projectStakeholders = []
         this.newMilestones = [{ name: '', date: '', status: 'planned' }]
-        // Show confirmation (could be a toast or modal)
-        alert(this.confirmationMessage)
+        // Optionally, you could show a toast here if desired
       } catch (err) {
         alert('Failed to add milestones: ' + err.message)
       }
@@ -1175,15 +1167,16 @@ export default {
   align-items: center;
   gap: 1rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-}
-
-.metric-icon {
-  font-size: 2.5rem;
-  min-width: 60px;
-  text-align: center;
-}
-
-.metric-content h3 {
+  background: #fff0f0;
+  color: #dc2626;
+  border: 1.5px solid #dc2626;
+  padding: 0.5rem 1.25rem;
+  border-radius: 8px;
+  cursor: pointer;
+  font-size: 1.1rem;
+  font-weight: 700;
+  transition: background 0.2s, color 0.2s, border-color 0.2s;
+  box-shadow: 0 1px 2px rgba(220,38,38,0.04);
   margin: 0 0 0.25rem 0;
   color: #495057;
   font-size: 0.875rem;
@@ -1919,15 +1912,49 @@ export default {
   background: #dc2626;
   color: white;
   border: none;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   transition: background 0.2s ease;
+  margin-left: .5rem;
 }
 
 .remove-btn:hover {
   background: #b91c1c;
+  color: #fff;
+  border-color: #b91c1c;
+}
+
+.primary-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: #005a9c;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.primary-btn:hover {
+  background: #004080;
+}
+.secondary-btn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.secondary-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 /* Responsive Design */

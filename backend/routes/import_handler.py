@@ -517,7 +517,15 @@ def _parse_and_store(file, imp_doc, source):
             file.stream.seek(0)  # Reset stream for potential future reads
             
             # Convert to Markdown with image handling
-            markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
+            try:
+                markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
+            except Exception as e:
+                print(f"PANDOC/CONVERSION ERROR: {e}")
+                current_app.logger.error(f"Pandoc or conversion failed for {imp_doc.filename}: {e}")
+                # Save a snippet of the file content for debugging
+                snippet = file_content[:500]
+                current_app.logger.error(f"First 500 bytes of file: {snippet}")
+                raise
             
             # Now parse as if it were a Markdown file
             lines = []
@@ -533,6 +541,10 @@ def _parse_and_store(file, imp_doc, source):
                 lines.append(line)
             
             paras = [('md', line) for line in lines]
+            # Log a snippet of the parsed Markdown for debugging
+            md_snippet = '\n'.join(lines[:10])
+            print(f"MARKDOWN SNIPPET (first 10 lines):\n{md_snippet}")
+            current_app.logger.info(f"Parsed Markdown snippet for {imp_doc.filename}:\n{md_snippet}")
             
         except Exception as e:
             print(f"ERROR converting Word document: {e}")
@@ -670,12 +682,28 @@ def _import_as_topics(file, source):
     
     if items_count == 0:
         db.session.rollback()
+        # Try to log more details for debugging
+        try:
+            file.stream.seek(0)
+            file_content = file.read()
+            snippet = file_content[:500]
+        except Exception as e:
+            snippet = f"Could not read file content: {e}"
+        # Try to get a snippet of the Markdown if possible
+        try:
+            markdown_content = _convert_word_to_markdown(file_content, imp_doc.id) if source == 'word' else file_content.decode('utf-8')
+            md_lines = markdown_content.splitlines()[:10]
+            md_snippet = '\n'.join(md_lines)
+        except Exception as e:
+            md_snippet = f"Could not get Markdown snippet: {e}"
         error_msg = f"No content items could be extracted from {imp_doc.filename}. "
         if source == 'word':
             error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
         else:
             error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
+        error_msg += f"\nFirst 500 bytes of file: {snippet}\nMarkdown snippet (first 10 lines):\n{md_snippet}"
         print(f"UPLOAD: {error_msg}")
+        current_app.logger.error(error_msg)
         return jsonify({'error': error_msg}), 422
     
     db.session.commit()
