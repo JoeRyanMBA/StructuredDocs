@@ -8,6 +8,7 @@
     "serve": "vite preview"
   },
   "dependencies": {
+    "@fortawesome/fontawesome-free": "^7.0.0",
     "axios": "^1.4.0",
     "lodash": "^4.17.21",
     "marked": "^16.1.1",

@@ -16,10 +16,45 @@
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <div v-else class="stakeholders-content">
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Search:</label>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="filter-input"
+              placeholder="Search stakeholders..."
+              @input="applyFilters"
+            />
+          </div>
+          <div class="filter-group">
+            <label>Status:</label>
+            <select v-model="statusFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Statuses</option>
+              <option value="active">Active</option>
+              <option value="inactive">Inactive</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Organization:</label>
+            <select v-model="organizationFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Organizations</option>
+              <option v-for="org in uniqueOrganizations" :key="org" :value="org">{{ org }}</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+
       <div class="stakeholders-table-container">
         <table class="stakeholders-table">
           <thead>
             <tr>
+              <th class="id-column">ID</th>
               <th>Name</th>
               <th>Email</th>
               <th>Title</th>
@@ -30,7 +65,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="stakeholder in stakeholders" :key="stakeholder.id">
+            <tr v-for="stakeholder in filteredStakeholders" :key="stakeholder.id">
+              <td class="id-cell">{{ stakeholder.id }}</td>
               <td class="name-cell">{{ stakeholder.name }}</td>
               <td>{{ stakeholder.email }}</td>
               <td>{{ stakeholder.title || '-' }}</td>
@@ -134,15 +170,32 @@
                 />
               </div>
               <div class="form-group">
+                <label for="stakeholderDivision">Division</label>
+                <input
+                  id="stakeholderDivision"
+                  v-model="stakeholderForm.division"
+                  type="text"
+                  class="form-input"
+                  placeholder="Division or branch"
+                  maxlength="200"
+                />
+              </div>
+            </div>
+
+            <div class="form-row">
+              <div class="form-group">
                 <label for="stakeholderDepartment">Department</label>
                 <input
                   id="stakeholderDepartment"
                   v-model="stakeholderForm.department"
                   type="text"
                   class="form-input"
-                  placeholder="Department or division"
+                  placeholder="Department or unit"
                   maxlength="200"
                 />
+              </div>
+              <div class="form-group">
+                <!-- Empty space to maintain layout -->
               </div>
             </div>
 
@@ -218,6 +271,10 @@ export default {
   data() {
     return {
       stakeholders: [],
+      filteredStakeholders: [],
+      searchQuery: '',
+      statusFilter: '',
+      organizationFilter: '',
       loading: false,
       error: null,
       showModal: false,
@@ -230,12 +287,20 @@ export default {
         email: '',
         title: '',
         organization: '',
+        division: '',
         department: '',
         phone: '',
         expertise_areas: '',
         bio: '',
         active: true
       }
+    }
+  },
+  
+  computed: {
+    uniqueOrganizations() {
+      const orgs = [...new Set(this.stakeholders.map(s => s.organization).filter(org => org))]
+      return orgs.sort()
     }
   },
   
@@ -253,12 +318,46 @@ export default {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
         this.stakeholders = await response.json()
+        this.applyFilters() // Initialize filtered data
       } catch (error) {
         console.error('Failed to fetch stakeholders:', error)
         this.error = 'Failed to load stakeholders. Please try again.'
       } finally {
         this.loading = false
       }
+    },
+
+    applyFilters() {
+      let filtered = [...this.stakeholders]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(stakeholder => 
+          stakeholder.name.toLowerCase().includes(query) ||
+          stakeholder.email.toLowerCase().includes(query) ||
+          (stakeholder.title && stakeholder.title.toLowerCase().includes(query)) ||
+          (stakeholder.organization && stakeholder.organization.toLowerCase().includes(query)) ||
+          (stakeholder.department && stakeholder.department.toLowerCase().includes(query))
+        )
+      }
+      
+      if (this.statusFilter) {
+        const isActive = this.statusFilter === 'active'
+        filtered = filtered.filter(stakeholder => stakeholder.active === isActive)
+      }
+      
+      if (this.organizationFilter) {
+        filtered = filtered.filter(stakeholder => stakeholder.organization === this.organizationFilter)
+      }
+      
+      this.filteredStakeholders = filtered
+    },
+    
+    clearFilters() {
+      this.searchQuery = ''
+      this.statusFilter = ''
+      this.organizationFilter = ''
+      this.applyFilters()
     },
     
     openCreateModal() {
@@ -269,6 +368,7 @@ export default {
         email: '',
         title: '',
         organization: '',
+        division: '',
         department: '',
         phone: '',
         expertise_areas: '',
@@ -286,6 +386,7 @@ export default {
         email: stakeholder.email,
         title: stakeholder.title || '',
         organization: stakeholder.organization || '',
+        division: stakeholder.division || '',
         department: stakeholder.department || '',
         phone: stakeholder.phone || '',
         expertise_areas: stakeholder.expertise_areas || '',
@@ -303,6 +404,7 @@ export default {
         email: '',
         title: '',
         organization: '',
+        division: '',
         department: '',
         phone: '',
         expertise_areas: '',
@@ -326,6 +428,7 @@ export default {
             email: this.stakeholderForm.email.trim(),
             title: this.stakeholderForm.title.trim() || null,
             organization: this.stakeholderForm.organization.trim() || null,
+            division: this.stakeholderForm.division.trim() || null,
             department: this.stakeholderForm.department.trim() || null,
             phone: this.stakeholderForm.phone.trim() || null,
             expertise_areas: this.stakeholderForm.expertise_areas.trim() || null,
@@ -401,6 +504,48 @@ export default {
   justify-content: flex-end;
 }
 
+/* Filters */
+.filters-section {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
 .loading, .error {
   text-align: center;
   padding: 2rem;
@@ -438,6 +583,15 @@ export default {
   background-color: #f5f5f5;
   font-weight: 600;
   color: #333;
+}
+
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
 }
 
 .name-cell {
@@ -620,13 +774,19 @@ export default {
   cursor: not-allowed;
 }
 
+/* FontAwesome icon spacing */
+.btn i {
+  flex-shrink: 0;
+  width: 1em;
+}
+
 .btn-primary {
-  background-color: #007bff;
+  background-color: #205493;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: #005E7B;
 }
 
 .btn-secondary {

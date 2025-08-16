@@ -490,6 +490,7 @@ class Stakeholder(db.Model):
     email = db.Column(db.String(120), nullable=False, unique=True)
     title = db.Column(db.String(200), nullable=True)
     organization = db.Column(db.String(200), nullable=True)
+    division = db.Column(db.String(200), nullable=True)
     department = db.Column(db.String(200), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
     expertise_areas = db.Column(db.Text, nullable=True)  # JSON string of expertise areas
@@ -514,6 +515,7 @@ class Stakeholder(db.Model):
             "email": self.email,
             "title": self.title,
             "organization": self.organization,
+            "division": self.division,
             "department": self.department,
             "phone": self.phone,
             "expertise_areas": self.expertise_areas,

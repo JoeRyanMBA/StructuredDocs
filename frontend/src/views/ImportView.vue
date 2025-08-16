@@ -368,7 +368,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -410,7 +410,7 @@ export default {
 }
 
 .radio-option:hover {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8fcff;
 }
 
@@ -420,11 +420,11 @@ export default {
 }
 
 .radio-option input[type="radio"]:checked + .radio-label {
-  color: #007acc;
+  color: #205493;
 }
 
 .radio-option:has(input[type="radio"]:checked) {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8fcff;
 }
 
@@ -487,7 +487,7 @@ export default {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: 0;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 0.2rem rgba(0, 122, 204, 0.25);
 }
 
@@ -562,7 +562,7 @@ input[type="file"] {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #007acc;
+  border-top: 4px solid #205493;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto;
@@ -616,7 +616,7 @@ input[type="file"] {
 }
 
 .import-btn {
-  background: #007acc;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;

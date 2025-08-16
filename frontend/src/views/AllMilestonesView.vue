@@ -16,10 +16,46 @@
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <div v-else class="milestones-content">
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Search:</label>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="filter-input"
+              placeholder="Search milestones..."
+              @input="applyFilters"
+            />
+          </div>
+          <div class="filter-group">
+            <label>Project:</label>
+            <select v-model="projectFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Projects</option>
+              <option v-for="project in uniqueProjects" :key="project" :value="project">{{ project }}</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Status:</label>
+            <select v-model="statusFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Statuses</option>
+              <option value="pending">Pending</option>
+              <option value="in_progress">In Progress</option>
+              <option value="completed">Completed</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+
       <div class="milestones-table-container">
         <table class="milestones-table">
           <thead>
             <tr>
+              <th class="id-column">ID</th>
               <th>Milestone</th>
               <th>Project</th>
               <th>Date</th>
@@ -29,7 +65,8 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="milestone in milestones" :key="milestone.id">
+            <tr v-for="milestone in filteredMilestones" :key="milestone.id">
+              <td class="id-cell">{{ milestone.id }}</td>
               <td class="milestone-cell">
                 <div class="milestone-name">{{ milestone.name }}</div>
                 <div class="milestone-desc" v-if="milestone.description">{{ milestone.description }}</div>
@@ -173,6 +210,10 @@ export default {
   data() {
     return {
       milestones: [],
+      filteredMilestones: [],
+      searchQuery: '',
+      projectFilter: '',
+      statusFilter: '',
       projects: [],
       loading: false,
       error: null,
@@ -188,6 +229,13 @@ export default {
         status: 'planned',
         description: ''
       }
+    }
+  },
+
+  computed: {
+    uniqueProjects() {
+      const projects = [...new Set(this.milestones.map(m => m.project_name).filter(proj => proj))]
+      return projects.sort()
     }
   },
   
@@ -206,12 +254,43 @@ export default {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
         this.milestones = await response.json()
+        this.applyFilters() // Initialize filtered data
       } catch (error) {
         console.error('Failed to fetch milestones:', error)
         this.error = 'Failed to load milestones. Please try again.'
       } finally {
         this.loading = false
       }
+    },
+
+    applyFilters() {
+      let filtered = [...this.milestones]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(milestone => 
+          milestone.name.toLowerCase().includes(query) ||
+          (milestone.description && milestone.description.toLowerCase().includes(query)) ||
+          (milestone.project_name && milestone.project_name.toLowerCase().includes(query))
+        )
+      }
+      
+      if (this.projectFilter) {
+        filtered = filtered.filter(milestone => milestone.project_name === this.projectFilter)
+      }
+      
+      if (this.statusFilter) {
+        filtered = filtered.filter(milestone => milestone.status === this.statusFilter)
+      }
+      
+      this.filteredMilestones = filtered
+    },
+    
+    clearFilters() {
+      this.searchQuery = ''
+      this.projectFilter = ''
+      this.statusFilter = ''
+      this.applyFilters()
     },
 
     async fetchProjects() {
@@ -365,6 +444,48 @@ export default {
   justify-content: flex-end;
 }
 
+/* Filters */
+.filters-section {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
 .loading, .error {
   text-align: center;
   padding: 2rem;
@@ -402,6 +523,15 @@ export default {
   background-color: #f5f5f5;
   font-weight: 600;
   color: #333;
+}
+
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
 }
 
 .milestone-cell {
@@ -593,12 +723,12 @@ export default {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: #205493;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: #005E7B;
 }
 
 .btn-secondary {

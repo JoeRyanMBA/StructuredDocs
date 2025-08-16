@@ -16,25 +16,67 @@
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <div v-else class="tags-content">
-      <div class="tags-grid">
-        <div v-for="tag in tags" :key="tag.id" class="tag-card">
-          <div class="tag-name">{{ tag.name }}</div>
-          <div class="tag-meta">
-            <small>Created: {{ formatDate(tag.created_at) }}</small>
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Search:</label>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="filter-input"
+              placeholder="Search tags..."
+              @keyup.enter="applyFilters"
+            />
           </div>
-          <div class="tag-actions">
-            <button @click="editTag(tag)" class="btn btn-sm btn-secondary">
-              <i class="fas fa-edit"></i> Edit
+          <div class="filter-group">
+            <button @click="applyFilters" class="btn btn-primary btn-sm">
+              <i class="fas fa-search"></i> Search
             </button>
-            <button @click="deleteTag(tag)" class="btn btn-sm btn-danger">
-              <i class="fas fa-trash"></i> Delete
-            </button>
+            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Search</button>
           </div>
         </div>
       </div>
 
-      <div v-if="tags.length === 0" class="no-data">
+      <div v-if="filteredTags.length === 0 && !searchQuery" class="no-data">
         <p>No tags found. Create your first tag to get started.</p>
+      </div>
+      <div v-else-if="filteredTags.length === 0 && searchQuery" class="no-data">
+        <p>No tags match your search criteria.</p>
+      </div>
+      
+      <div v-else class="tags-table-container">
+        <table class="tags-table">
+          <thead>
+            <tr>
+              <th class="id-column">ID</th>
+              <th>Tag Name</th>
+              <th>Created Date</th>
+              <th>Usage Count</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="tag in filteredTags" :key="tag.id">
+              <td class="id-cell">{{ tag.id }}</td>
+              <td class="tag-name-cell">
+                <div class="tag-name-display">{{ tag.name }}</div>
+              </td>
+              <td class="created-date">{{ formatDate(tag.created_at) }}</td>
+              <td class="usage-count">{{ tag.usage_count || 0 }} topics</td>
+              <td class="actions-cell">
+                <div class="tag-actions">
+                  <button @click="editTag(tag)" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button @click="deleteTag(tag)" class="btn btn-sm btn-danger">
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -100,6 +142,8 @@ export default {
   data() {
     return {
       tags: [],
+      filteredTags: [],
+      searchQuery: '',
       loading: false,
       error: null,
       showModal: false,
@@ -127,12 +171,31 @@ export default {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
         this.tags = await response.json()
+        this.applyFilters() // Initialize filtered data
       } catch (error) {
         console.error('Failed to fetch tags:', error)
         this.error = 'Failed to load tags. Please try again.'
       } finally {
         this.loading = false
       }
+    },
+
+    applyFilters() {
+      let filtered = [...this.tags]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(tag => 
+          tag.name.toLowerCase().includes(query)
+        )
+      }
+      
+      this.filteredTags = filtered
+    },
+    
+    clearFilters() {
+      this.searchQuery = ''
+      this.applyFilters()
     },
     
     openCreateModal() {
@@ -248,6 +311,48 @@ export default {
   justify-content: flex-end;
 }
 
+/* Filters */
+.filters-section {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: 1fr auto;
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
 .loading, .error {
   text-align: center;
   padding: 2rem;
@@ -261,41 +366,81 @@ export default {
   border-radius: 4px;
 }
 
-.tags-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
-}
-
-.tag-card {
+/* Tags Table */
+.tags-table-container {
+  overflow-x: auto;
   background: white;
-  border: 1px solid #e0e0e0;
   border-radius: 8px;
-  padding: 1rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  transition: box-shadow 0.2s;
 }
 
-.tag-card:hover {
-  box-shadow: 0 4px 8px rgba(0,0,0,0.15);
+.tags-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 600px;
 }
 
-.tag-name {
-  font-size: 1.2rem;
+.tags-table th,
+.tags-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.tags-table th {
+  background-color: #f5f5f5;
   font-weight: 600;
   color: #333;
-  margin-bottom: 0.5rem;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
 
-.tag-meta {
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
+.tags-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.tags-table tbody tr:hover {
+  background-color: #f8f9fa;
+}
+
+.tag-name-cell {
+  max-width: 250px;
+}
+
+.tag-name-display {
+  font-weight: 600;
+  color: #333;
+  font-size: 1rem;
+}
+
+.created-date {
   color: #666;
   font-size: 0.9rem;
-  margin-bottom: 1rem;
+}
+
+.usage-count {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.actions-cell {
+  min-width: 150px;
 }
 
 .tag-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
 .no-data {
@@ -425,12 +570,12 @@ export default {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: #205493;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: #005E7B;
 }
 
 .btn-secondary {
@@ -454,5 +599,43 @@ export default {
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.8rem;
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+  .all-tags {
+    padding: 1rem;
+  }
+  
+  .filter-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .tags-table-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+  
+  .tags-table {
+    min-width: 500px;
+  }
+  
+  .tags-table th,
+  .tags-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .tag-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: stretch;
+  }
+  
+  .tag-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
 }
 </style>

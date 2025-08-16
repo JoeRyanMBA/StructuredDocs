@@ -292,7 +292,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 2rem;
@@ -380,12 +380,12 @@ export default {
 }
 
 .tab-btn:hover {
-  color: #007acc;
+  color: #205493;
 }
 
 .tab-btn.active {
-  color: #007acc;
-  border-bottom-color: #007acc;
+  color: #205493;
+  border-bottom-color: #205493;
   font-weight: 500;
 }
 
@@ -507,12 +507,12 @@ export default {
 }
 
 .btn-approve {
-  background: #28a745;
+  background: #009964;
   color: white;
 }
 
 .btn-approve:hover {
-  background: #218838;
+  background: #006548;
 }
 
 .btn-reject {
@@ -525,7 +525,7 @@ export default {
 }
 
 .btn-edit {
-  background: #007acc;
+  background: #205493;
   color: white;
 }
 

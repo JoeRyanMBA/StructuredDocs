@@ -62,7 +62,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;

@@ -142,75 +142,93 @@
         </div>
       </div>
 
-      <!-- Tasks Grid -->
-      <div v-else class="tasks-grid">
-        <div
-          v-for="task in filteredTasks"
-          :key="task.id + '-' + task.status + '-' + refreshKey"
-          class="task-card"
-          :class="[task.status, task.priority]"
-        >
-          <div class="task-header">
-            <h3 class="task-title">{{ task.title }}</h3>
-            <div class="task-badges">
-              <span class="status-badge" :class="task.status">
-                {{ formatStatus(task.status) }}
-              </span>
-              <span class="priority-badge" :class="task.priority">
-                {{ formatPriority(task.priority) }}
-              </span>
-            </div>
-          </div>
-
-          <div class="task-id">Task ID: {{ task.id }}</div>
-
-          <p v-if="task.description" class="task-description">{{ task.description }}</p>
-
-          <!-- Association Info -->
-          <div class="task-association">
-            <span v-if="task.project_name" class="association-tag project">
-              📁 {{ task.project_name }}
-            </span>
-            <span v-else-if="task.collection_name" class="association-tag collection">
-              📚 {{ task.collection_name }}
-            </span>
-            <span v-else-if="task.topic_name" class="association-tag topic">
-              📄 {{ task.topic_name }}
-            </span>
-          </div>
-
-          <!-- Task Meta -->
-          <div class="task-meta">
-            <div v-if="task.due_date" class="due-date" :class="{ overdue: isOverdue(task) }">
-              📅 Due: {{ formatDate(task.due_date) }}
-            </div>
-            <div v-if="task.assigned_to" class="assigned-to">
-              👤 {{ task.assigned_to }}
-            </div>
-          </div>
-
-          <!-- Task Actions -->
-          <div class="task-actions">
-            <button @click="editTask(task)" class="edit-btn">
-              ✏️ Edit
-            </button>
-            <button 
-              v-if="getNextStatus(task.status)"
-              @click="advanceStatus(task.id)" 
-              class="advance-btn"
-              :class="getStatusButtonClass(task.status)"
+      <!-- Tasks Table -->
+      <div v-else class="tasks-table-container">
+        <table class="tasks-table">
+          <thead>
+            <tr>
+              <th class="id-column">ID</th>
+              <th>Task</th>
+              <th>Status</th>
+              <th>Priority</th>
+              <th>Association</th>
+              <th>Due Date</th>
+              <th>Assigned To</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="task in filteredTasks"
+              :key="task.id + '-' + task.status + '-' + refreshKey"
+              class="task-row"
+              :class="[task.status, task.priority, { overdue: isOverdue(task) }]"
             >
-              {{ getStatusButtonText(task.status) }}
-            </button>
-            <button 
-              v-if="isAdmin" 
-              @click="deleteTask(task)" 
-              class="delete-btn"
-            >
-              🗑️ Delete
-            </button>
-          </div>
-        </div>
+              <td class="id-cell">{{ task.id }}</td>
+              <td class="task-cell">
+                <div class="task-title">{{ task.title }}</div>
+                <div class="task-id">ID: {{ task.id }}</div>
+                <div v-if="task.description" class="task-description">{{ task.description }}</div>
+              </td>
+              <td>
+                <span class="status-badge" :class="task.status">
+                  {{ formatStatus(task.status) }}
+                </span>
+              </td>
+              <td>
+                <span class="priority-badge" :class="task.priority">
+                  {{ formatPriority(task.priority) }}
+                </span>
+              </td>
+              <td class="association-cell">
+                <span v-if="task.project_name" class="association-tag project">
+                  <i class="fas fa-project-diagram"></i> {{ task.project_name }}
+                </span>
+                <span v-else-if="task.collection_name" class="association-tag collection">
+                  <i class="fas fa-folder"></i> {{ task.collection_name }}
+                </span>
+                <span v-else-if="task.topic_name" class="association-tag topic">
+                  <i class="fas fa-file-alt"></i> {{ task.topic_name }}
+                </span>
+                <span v-else class="association-tag none">-</span>
+              </td>
+              <td class="due-date-cell">
+                <div v-if="task.due_date" class="due-date" :class="{ overdue: isOverdue(task) }">
+                  <i class="fas fa-calendar"></i> {{ formatDate(task.due_date) }}
+                </div>
+                <span v-else class="no-date">-</span>
+              </td>
+              <td class="assigned-cell">
+                <div v-if="task.assigned_to" class="assigned-to">
+                  <i class="fas fa-user"></i> {{ task.assigned_to }}
+                </div>
+                <span v-else class="no-assignment">-</span>
+              </td>
+              <td class="actions-cell">
+                <div class="task-actions">
+                  <button @click="editTask(task)" class="btn btn-sm btn-secondary">
+                    <i class="fas fa-edit"></i> Edit
+                  </button>
+                  <button 
+                    v-if="getNextStatus(task.status)"
+                    @click="advanceStatus(task.id)" 
+                    class="btn btn-sm"
+                    :class="getStatusButtonClass(task.status)"
+                  >
+                    {{ getStatusButtonText(task.status) }}
+                  </button>
+                  <button 
+                    v-if="isAdmin" 
+                    @click="deleteTask(task)" 
+                    class="btn btn-sm btn-danger"
+                  >
+                    <i class="fas fa-trash"></i> Delete
+                  </button>
+                </div>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -1181,77 +1199,97 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.tasks-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-}
-
-.task-card {
-  border: 2px solid #e2e8f0;
+/* Tasks Table */
+.tasks-table-container {
+  overflow-x: auto;
+  background: white;
   border-radius: 8px;
-  padding: 1.5rem;
-  transition: all 0.2s ease;
-  position: relative;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  border: 1px solid #e2e8f0;
 }
 
-.task-card:hover {
-  border-color: #205493;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
+.tasks-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1200px;
 }
-.task-card.high:hover {
-  border-color: #FF7043;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
+
+.tasks-table th,
+.tasks-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e2e8f0;
 }
-.task-card.urgent:hover {
-  border-color: #9B2743;
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
+
+.tasks-table th {
+  background-color: #f8fafc;
+  font-weight: 600;
+  color: #112e51;
+  font-size: 0.875rem;
+  text-transform: uppercase;
+  letter-spacing: 0.5px;
 }
-.task-card.low:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.15);
-  border-color: #009964;
+
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
 }
-.task-card.urgent {
+
+.tasks-table tbody tr {
+  transition: background-color 0.2s ease;
+}
+
+.tasks-table tbody tr:hover {
+  background-color: #f8fafc;
+}
+
+.tasks-table tbody tr.overdue {
+  background-color: #fef2f2;
+}
+
+.tasks-table tbody tr.urgent {
   border-left: 4px solid #9B2743;
 }
 
-.task-card.high {
+.tasks-table tbody tr.high {
   border-left: 4px solid #FF7043;
 }
 
-.task-card.medium {
+.tasks-table tbody tr.medium {
   border-left: 4px solid #205493;
 }
 
-.task-card.low {
+.tasks-table tbody tr.low {
   border-left: 4px solid #009964;
 }
 
-.task-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
+.task-cell {
+  max-width: 300px;
 }
 
 .task-title {
-  margin: 0;
+  margin: 0 0 0.5rem 0;
   color: #112e51;
-  font-size: 1.1rem;
+  font-size: 1rem;
   font-weight: 600;
   line-height: 1.3;
-  flex: 1;
 }
 
-.task-badges {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-  margin-left: 1rem;
+.task-id {
+  color: #6b7280;
+  font-size: 0.75rem;
+  margin-bottom: 0.5rem;
+}
+
+.task-description {
+  color: #6b7280;
+  font-size: 0.875rem;
+  line-height: 1.4;
+  margin: 0;
 }
 
 .status-badge, .priority-badge {
@@ -1309,19 +1347,14 @@ export default {
   color: #065f46;
 }
 
-.task-description {
-  color: #6b7280;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-  font-size: 0.9rem;
-}
-
-.task-association {
-  margin-bottom: 1rem;
+.association-cell {
+  max-width: 200px;
 }
 
 .association-tag {
-  display: inline-block;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -1343,13 +1376,21 @@ export default {
   color: #a16207;
 }
 
-.task-meta {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-  margin-bottom: 1rem;
-  font-size: 0.8rem;
+.association-tag.none {
   color: #6b7280;
+  background: transparent;
+  padding: 0;
+}
+
+.due-date-cell, .assigned-cell {
+  color: #6b7280;
+  font-size: 0.875rem;
+}
+
+.due-date {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 .due-date.overdue {
@@ -1357,63 +1398,107 @@ export default {
   font-weight: 600;
 }
 
+.assigned-to {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.no-date, .no-assignment {
+  color: #9ca3af;
+}
+
+.actions-cell {
+  min-width: 200px;
+}
+
 .task-actions {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
 }
 
-.edit-btn, .complete-btn, .delete-btn, .advance-btn, .start-btn, .review-btn {
-  padding: 0.4rem 0.8rem;
+.task-actions {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  flex-wrap: wrap;
+}
+
+/* Button Styles */
+.btn {
+  padding: 0.5rem 1rem;
   border: none;
   border-radius: 4px;
-  font-size: 0.8rem;
   cursor: pointer;
-  transition: all 0.2s ease;
+  font-size: 0.875rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
 }
 
-.edit-btn {
-  background: #e0f2fe;
-  color: #005E7B;
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.edit-btn:hover {
-  background: #bae6fd;
+.btn i {
+  flex-shrink: 0;
+  width: 1em;
 }
 
-.start-btn {
-  background: #fef3c7;
-  color: #92400e;
+.btn-primary {
+  background-color: #205493;
+  color: white;
 }
 
-.start-btn:hover {
-  background: #fde68a;
+.btn-primary:hover:not(:disabled) {
+  background-color: #005E7B;
 }
 
-.review-btn {
-  background: #e0e7ff;
-  color: #3730a3;
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
 }
 
-.review-btn:hover {
-  background: #c7d2fe;
+.btn-secondary:hover {
+  background-color: #545b62;
 }
 
-.complete-btn {
-  background: #d1fae5;
-  color: #065f46;
+.btn-success {
+  background-color: #009964;
+  color: white;
 }
 
-.complete-btn:hover {
-  background: #a7f3d0;
+.btn-success:hover {
+  background-color: #006548;
 }
 
-.delete-btn {
-  background: #fee2e2;
-  color: #991b1b;
+.btn-warning {
+  background-color: #f57c00;
+  color: white;
 }
 
-.delete-btn:hover {
-  background: #fecaca;
+.btn-warning:hover {
+  background-color: #ef6c00;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
 }
 
 /* Modal Styles */
@@ -1729,8 +1814,30 @@ export default {
     gap: 1rem;
   }
   
-  .tasks-grid {
-    grid-template-columns: 1fr;
+  .tasks-table-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+  
+  .tasks-table {
+    min-width: 800px;
+  }
+  
+  .tasks-table th,
+  .tasks-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .task-actions {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: stretch;
+  }
+  
+  .task-actions .btn {
+    width: 100%;
+    justify-content: center;
   }
   
   .form-row {

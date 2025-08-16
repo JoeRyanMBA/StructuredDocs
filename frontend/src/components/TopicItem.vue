@@ -104,13 +104,13 @@ export default {
 }
 
 .topic-item:hover {
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
 }
 
 .topic-item.is-nested {
   margin-left: 20px;
-  border-left: 3px solid #007acc;
+  border-left: 3px solid #205493;
   background: #f8fafe;
 }
 
@@ -168,13 +168,13 @@ export default {
 
 /* Enhanced drag feedback */
 .topic-item:hover .drop-zone {
-  border-left-color: #007acc;
+  border-left-color: #205493;
 }
 
 /* Drag placeholder styling */
 .sortable-ghost {
   opacity: 0.5;
-  background: #007acc !important;
+  background: #205493 !important;
 }
 
 .sortable-chosen {

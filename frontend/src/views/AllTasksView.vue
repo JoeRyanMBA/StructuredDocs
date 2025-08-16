@@ -25,8 +25,8 @@
               v-model="searchQuery"
               type="text"
               class="filter-input"
-              placeholder="Search tasks..."
-              @input="applyFilters"
+              placeholder="Type your search term and press Enter..."
+              @keyup.enter="applyFilters"
             />
           </div>
           <div class="filter-group">
@@ -48,27 +48,38 @@
             </select>
           </div>
           <div class="filter-group">
-            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+            <div class="button-group">
+              <button @click="applyFilters" class="btn btn-primary btn-sm">
+                <i class="fas fa-search"></i> Search
+              </button>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+            </div>
           </div>
         </div>
+      </div>
+
+      <div class="table-instructions">
+        <p>Select a task to edit.</p>
       </div>
 
       <div class="tasks-table-container">
         <table class="tasks-table">
           <thead>
             <tr>
+              <th class="id-column">ID</th>
               <th>Task</th>
               <th>Association</th>
-              <th>Status</th>
+              <th class="status-column">Status</th>
               <th>Priority</th>
               <th>Due Date</th>
               <th>Assigned To</th>
               <th>Tags</th>
-              <th>Actions</th>
+              <th class="actions-column"></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="task in filteredTasks" :key="task.id">
+            <tr v-for="task in filteredTasks" :key="task.id" @click="editTask(task)" class="task-row">
+              <td class="id-cell">{{ task.id }}</td>
               <td class="task-cell">
                 <div class="task-title">{{ task.title }}</div>
                 <div class="task-desc" v-if="task.description">{{ task.description }}</div>
@@ -85,7 +96,7 @@
                 </div>
                 <div v-else class="association">-</div>
               </td>
-              <td>
+              <td class="status-column">
                 <span :class="`status-badge status-${task.status.replace('_', '-')}`">
                   {{ formatStatus(task.status) }}
                 </span>
@@ -95,8 +106,8 @@
                   {{ formatPriority(task.priority) }}
                 </span>
               </td>
-              <td>{{ formatDate(task.due_date) || '-' }}</td>
-              <td>{{ task.assigned_to || '-' }}</td>
+              <td class="due-date-cell">{{ formatDate(task.due_date) || '-' }}</td>
+              <td class="assigned-to-cell">{{ getAssignedToDisplayName(task.assigned_to) }}</td>
               <td>
                 <div class="tags-cell">
                   <span v-for="tag in parseTaskTags(task.tags)" :key="tag" class="tag-badge">
@@ -104,12 +115,9 @@
                   </span>
                 </div>
               </td>
-              <td class="actions-cell">
-                <button @click="editTask(task)" class="btn btn-sm btn-secondary">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <button @click="deleteTask(task)" class="btn btn-sm btn-danger">
-                  <i class="fas fa-trash"></i> Delete
+              <td class="actions-cell" @click.stop>
+                <button @click="deleteTask(task)" class="btn-delete">
+                  <i class="fas fa-times"></i>
                 </button>
               </td>
             </tr>
@@ -158,8 +166,9 @@
 
             <div class="form-row">
               <div class="form-group">
-                <label for="taskStatus">Status</label>
-                <select id="taskStatus" v-model="taskForm.status" class="form-input">
+                <label for="taskStatus">Status *</label>
+                <select id="taskStatus" v-model="taskForm.status" class="form-input" required>
+                  <option value="">Select Status</option>
                   <option value="todo">To Do</option>
                   <option value="in_progress">In Progress</option>
                   <option value="completed">Completed</option>
@@ -187,13 +196,16 @@
               </div>
               <div class="form-group">
                 <label for="taskAssignedTo">Assigned To</label>
-                <input
+                <select
                   id="taskAssignedTo"
                   v-model="taskForm.assigned_to"
-                  type="text"
                   class="form-input"
-                  placeholder="Assignee name or email"
-                />
+                >
+                  <option value="">Unassigned</option>
+                  <option v-for="stakeholder in stakeholders" :key="stakeholder.id" :value="stakeholder.name">
+                    {{ stakeholder.name }} ({{ stakeholder.email }})
+                  </option>
+                </select>
               </div>
             </div>
 
@@ -281,7 +293,7 @@
         
         <div class="modal-footer">
           <button @click="closeModal" class="btn btn-secondary">Cancel</button>
-          <button @click="saveTask" class="btn btn-primary" :disabled="!taskForm.title.trim()">
+          <button @click="saveTask" class="btn btn-primary" :disabled="!taskForm.title.trim() || !taskForm.status">
             {{ isEditing ? 'Update Task' : 'Create Task' }}
           </button>
         </div>
@@ -330,6 +342,9 @@ export default {
       isEditing: false,
       taskToDelete: null,
       
+      // Data for lookups
+      stakeholders: [],
+      
       // Filters
       searchQuery: '',
       statusFilter: '',
@@ -361,6 +376,7 @@ export default {
     this.fetchTasks()
     this.fetchAllTags()
     this.fetchAssociations()
+    this.fetchStakeholders()
   },
   
   methods: {
@@ -460,6 +476,14 @@ export default {
     
     editTask(task) {
       this.isEditing = true
+      
+      // Convert email to name for the dropdown if needed
+      let assignedTo = task.assigned_to || ''
+      if (assignedTo && assignedTo.includes('@')) {
+        const stakeholder = this.stakeholders.find(s => s.email === assignedTo)
+        assignedTo = stakeholder ? stakeholder.name : assignedTo
+      }
+      
       this.taskForm = {
         id: task.id,
         title: task.title,
@@ -467,7 +491,7 @@ export default {
         status: task.status,
         priority: task.priority,
         due_date: task.due_date || '',
-        assigned_to: task.assigned_to || '',
+        assigned_to: assignedTo,
         associationType: task.project_id ? 'project' : task.collection_id ? 'collection' : task.topic_id ? 'topic' : '',
         project_id: task.project_id,
         collection_id: task.collection_id,
@@ -616,6 +640,32 @@ export default {
       }
       return []
     },
+
+    async fetchStakeholders() {
+      try {
+        const response = await fetch('/api/stakeholders/')
+        if (response.ok) {
+          const data = await response.json()
+          // Backend returns direct array, not wrapped in object
+          this.stakeholders = Array.isArray(data) ? data : (data.stakeholders || [])
+        }
+      } catch (error) {
+        console.error('Failed to fetch stakeholders:', error)
+      }
+    },
+
+    getAssignedToDisplayName(assignedTo) {
+      if (!assignedTo) return '-'
+      
+      // If it's an email, try to find the stakeholder name
+      if (assignedTo.includes('@')) {
+        const stakeholder = this.stakeholders.find(s => s.email === assignedTo)
+        return stakeholder ? stakeholder.name : assignedTo
+      }
+      
+      // If it's already a name, return it
+      return assignedTo
+    },
     
     formatDate(dateString) {
       if (!dateString) return null
@@ -673,7 +723,7 @@ export default {
 
 .filter-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr auto;
+  grid-template-columns: 1fr 1fr 1fr auto;
   gap: 1rem;
   align-items: end;
 }
@@ -685,12 +735,19 @@ export default {
   color: #333;
 }
 
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
 .filter-input {
   width: 100%;
   padding: 0.5rem;
   border: 1px solid #ddd;
   border-radius: 4px;
   font-size: 0.9rem;
+  box-sizing: border-box;
 }
 
 .loading, .error {
@@ -713,23 +770,43 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
+.table-instructions {
+  margin: 1rem 0 0.5rem 0;
+  text-align: left;
+}
+
+.table-instructions p {
+  color: #666;
+  font-style: italic;
+  margin: 0;
+  font-size: 0.9rem;
+}
+
 .tasks-table {
   width: 100%;
   border-collapse: collapse;
-  min-width: 1200px;
 }
 
 .tasks-table th,
 .tasks-table td {
-  padding: 1rem;
+  padding: .1rem;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
 }
 
 .tasks-table th {
-  background-color: #f5f5f5;
+  background-color: #f8f9fa;
   font-weight: 600;
-  color: #333;
+  color: #495057;
+}
+
+.task-row {
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+
+.task-row:hover {
+  background-color: #f8f9fa;
 }
 
 .task-cell {
@@ -808,12 +885,52 @@ export default {
   font-weight: 500;
 }
 
+.actions-column,
 .actions-cell {
+  white-space: nowrap;
+  text-align: center !important;
+  vertical-align: middle;
+  width: 30px;
+  padding: .1rem .1rem;
+}
+
+.btn-delete {
+  background-color: #dc3545;
+  border: none;
+  color: white;
+  width: 28px;
+  height: 28px;
+  border-radius: 4px;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  transition: background-color 0.2s ease;
+  font-size: 0.9rem;
+}
+
+.btn-delete:hover {
+  background-color: #c82333;
+}
+
+.due-date-cell,
+.assigned-to-cell {
+  font-size: 0.85rem;
+  color: #666;
+}
+
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
   white-space: nowrap;
 }
 
-.actions-cell .btn {
-  margin-right: 0.5rem;
+.status-column {
+  white-space: nowrap;
+  width: 1%;
 }
 
 .no-data {
@@ -943,11 +1060,12 @@ export default {
 }
 
 .selected-tag {
-  background-color: #007bff;
-  color: white;
-  padding: 0.3rem 0.6rem;
+  background-color: #e8f4f8;
+  color: #0277bd;
+  padding: 0.2rem 0.5rem;
   border-radius: 12px;
-  font-size: 0.8rem;
+  font-size: 0.75rem;
+  font-weight: 500;
   display: flex;
   align-items: center;
   gap: 0.3rem;
@@ -1005,12 +1123,12 @@ export default {
 }
 
 .btn-primary {
-  background-color: #007bff;
+  background-color: #205493;
   color: white;
 }
 
 .btn-primary:hover:not(:disabled) {
-  background-color: #0056b3;
+  background-color: #005E7B;
 }
 
 .btn-secondary {

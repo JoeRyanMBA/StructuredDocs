@@ -80,28 +80,6 @@
             </div>
           </button>
         </div>
-
-        <div class="action-section">
-          <h3>Content Templates</h3>
-          <div class="template-buttons">
-            <button class="template-btn" @click="createFromTemplate('procedure')">
-              <span class="template-icon">📋</span>
-              <span>Procedure Guide</span>
-            </button>
-            <button class="template-btn" @click="createFromTemplate('reference')">
-              <span class="template-icon">📖</span>
-              <span>Reference Document</span>
-            </button>
-            <button class="template-btn" @click="createFromTemplate('faq')">
-              <span class="template-icon">❓</span>
-              <span>FAQ Section</span>
-            </button>
-            <button class="template-btn" @click="createFromTemplate('blank')">
-              <span class="template-icon">📄</span>
-              <span>Blank Topic</span>
-            </button>
-          </div>
-        </div>
       </div>
 
       <!-- Recent Topics -->
@@ -137,58 +115,98 @@
           <div v-if="myTopics.length === 0" class="empty-state">
             <p>No topics found. <button @click="navigateTo('/topics/new')" class="link-btn">Create your first topic</button></p>
           </div>
-          <div v-else class="topics-grid">
-            <div 
-              v-for="topic in myTopics" 
-              :key="topic.id"
-              class="topic-card"
-              @click="editTopic(topic)"
-            >
-              <div class="card-header">
-                <div class="card-title">
-                  <h3>{{ topic.title }}</h3>
-                  <span class="card-badge">{{ topic.word_count || 0 }} words</span>
+          <div v-else>
+            <!-- Filters -->
+            <div class="filters-section">
+              <div class="filter-row">
+                <div class="filter-group">
+                  <label>Search:</label>
+                  <input
+                    v-model="searchQuery"
+                    type="text"
+                    class="filter-input"
+                    placeholder="Search your topics..."
+                    @input="applyFilters"
+                  />
                 </div>
-                <span class="card-status" :class="topic.status">{{ formatStatus(topic.status) }}</span>
-              </div>
-              <div class="card-content">
-                <p class="card-description">{{ topic.summary || 'No summary available' }}</p>
-                <div class="card-metrics">
-                  <span class="card-metric">
-                    <span class="metric-label">Collection:</span>
-                    {{ topic.collection_name || 'None' }}
-                  </span>
-                  <span class="card-metric">
-                    <span class="metric-label">Updated:</span>
-                    {{ formatRelativeTime(topic.updated_at) }}
-                  </span>
-                  <span class="card-metric" v-if="topic.review_status">
-                    <span class="metric-label">Review:</span>
-                    {{ formatReviewStatus(topic.review_status) }}
-                  </span>
+                <div class="filter-group">
+                  <label>Status:</label>
+                  <select v-model="statusFilter" @change="applyFilters" class="filter-input">
+                    <option value="">All Statuses</option>
+                    <option value="draft">Draft</option>
+                    <option value="in_review">In Review</option>
+                    <option value="published">Published</option>
+                  </select>
                 </div>
-              </div>
-              <div class="card-footer">
-                <span class="card-date">Created {{ formatRelativeTime(topic.created_at) }}</span>
-                <div class="card-actions">
-                  <button 
-                    v-if="topic.status === 'draft'" 
-                    @click.stop="sendForReview(topic)" 
-                    class="card-action-btn primary"
-                  >
-                    Send for Review
-                  </button>
-                  <button 
-                    v-else-if="topic.status === 'published'" 
-                    @click.stop="viewPublished(topic)" 
-                    class="card-action-btn primary"
-                  >
-                    View Published
-                  </button>
-                  <button @click.stop="editTopic(topic)" class="card-action-btn">Edit</button>
-                  <button @click.stop="duplicateTopic(topic)" class="card-action-btn">Duplicate</button>
+                <div class="filter-group">
+                  <label>Collection:</label>
+                  <select v-model="collectionFilter" @change="applyFilters" class="filter-input">
+                    <option value="">All Collections</option>
+                    <option v-for="collection in uniqueCollections" :key="collection" :value="collection">{{ collection || 'No Collection' }}</option>
+                  </select>
+                </div>
+                <div class="filter-group">
+                  <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
                 </div>
               </div>
+            </div>
+
+            <div class="topics-table-container">
+            <table class="topics-table">
+              <thead>
+                <tr>
+                  <th>Title</th>
+                  <th>Status</th>
+                  <th>Collection</th>
+                  <th>Words</th>
+                  <th>Updated</th>
+                  <th>Actions</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr 
+                  v-for="topic in filteredMyTopics" 
+                  :key="topic.id"
+                  class="topic-row"
+                  @click="editTopic(topic)"
+                >
+                  <td class="topic-title-cell">
+                    <div class="topic-title">{{ topic.title }}</div>
+                    <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
+                  </td>
+                  <td>
+                    <span class="status-badge" :class="topic.status">{{ formatStatus(topic.status) }}</span>
+                  </td>
+                  <td class="collection-cell">{{ topic.collection_name || 'None' }}</td>
+                  <td class="word-count">{{ topic.word_count || 0 }}</td>
+                  <td class="updated-cell">{{ formatRelativeTime(topic.updated_at) }}</td>
+                  <td class="actions-cell">
+                    <div class="action-buttons">
+                      <button 
+                        v-if="topic.status === 'draft'" 
+                        @click.stop="sendForReview(topic)" 
+                        class="btn btn-sm btn-primary"
+                      >
+                        <i class="fas fa-paper-plane"></i> Review
+                      </button>
+                      <button 
+                        v-else-if="topic.status === 'published'" 
+                        @click.stop="viewPublished(topic)" 
+                        class="btn btn-sm btn-success"
+                      >
+                        <i class="fas fa-eye"></i> View
+                      </button>
+                      <button @click.stop="editTopic(topic)" class="btn btn-sm btn-secondary">
+                        <i class="fas fa-edit"></i> Edit
+                      </button>
+                      <button @click.stop="duplicateTopic(topic)" class="btn btn-sm btn-outline">
+                        <i class="fas fa-copy"></i> Copy
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
             </div>
           </div>
         </div>
@@ -207,6 +225,39 @@
 export default {
   name: 'AuthorDashboard',
   
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
+
+  computed: {
+    mergedNotifications() {
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
+
+    uniqueCollections() {
+      const collections = [...new Set(this.myTopics.map(t => t.collection_name).filter(col => col))]
+      return collections.sort()
+    }
+  },
+  
   data() {
     return {
       loading: true,
@@ -218,6 +269,10 @@ export default {
         createdThisWeek: 0
       },
       myTopics: [],
+      filteredMyTopics: [],
+      searchQuery: '',
+      statusFilter: '',
+      collectionFilter: '',
       recentTopics: []
     }
   },
@@ -252,6 +307,7 @@ export default {
           this.recentTopics = [...this.myTopics]
             .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
             .slice(0, 5)
+          this.applyFilters() // Initialize filtered data
         }
       } catch (error) {
         console.error('Failed to load topics:', error)
@@ -260,7 +316,35 @@ export default {
       }
     },
 
-
+    applyFilters() {
+      let filtered = [...this.myTopics]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(topic => 
+          topic.title.toLowerCase().includes(query) ||
+          (topic.summary && topic.summary.toLowerCase().includes(query)) ||
+          (topic.collection_name && topic.collection_name.toLowerCase().includes(query))
+        )
+      }
+      
+      if (this.statusFilter) {
+        filtered = filtered.filter(topic => topic.status === this.statusFilter)
+      }
+      
+      if (this.collectionFilter) {
+        filtered = filtered.filter(topic => topic.collection_name === this.collectionFilter)
+      }
+      
+      this.filteredMyTopics = filtered
+    },
+    
+    clearFilters() {
+      this.searchQuery = ''
+      this.statusFilter = ''
+      this.collectionFilter = ''
+      this.applyFilters()
+    },
 
     async loadStats() {
       try {
@@ -287,40 +371,6 @@ export default {
       } catch (error) {
         console.error('Failed to calculate stats:', error)
       }
-    },
-
-    createFromTemplate(type) {
-      const templates = {
-        'procedure': '/topics/new?template=procedure',
-        'reference': '/topics/new?template=reference',
-  props: {
-    notifications: {
-      type: Array,
-      default: () => []
-    },
-    globalNotifications: {
-      type: Array,
-      default: () => []
-    },
-    markNotificationRead: {
-      type: Function,
-      required: true
-    }
-  },
-        'faq': '/topics/new?template=faq',
-    mergedNotifications() {
-      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
-      const seen = new Set()
-      return all.filter(n => {
-        if (!n || !n.id) return true
-        if (seen.has(n.id)) return false
-        seen.add(n.id)
-        return true
-      })
-    },
-        'blank': '/topics/new'
-      }
-      this.navigateTo(templates[type])
     },
 
     editTopic(topic) {
@@ -560,48 +610,6 @@ export default {
   opacity: 0.8;
 }
 
-/* Template Section */
-.action-section {
-  border-top: 1px solid #f8f9fa;
-  padding-top: 1.5rem;
-}
-
-.action-section h3 {
-  margin: 0 0 1rem 0;
-  color: #495057;
-  font-size: 1rem;
-  font-weight: 600;
-}
-
-.template-buttons {
-  display: grid;
-  grid-template-columns: 1fr 1fr;
-  gap: 0.75rem;
-}
-
-.template-btn {
-  display: flex;
-  align-items: center;
-  gap: 0.5rem;
-  padding: 0.75rem;
-  border: 1px solid #e9ecef;
-  border-radius: 4px;
-  background: white;
-  cursor: pointer;
-  transition: all 0.2s ease;
-  text-align: left;
-  font-size: 0.8rem;
-}
-
-.template-btn:hover {
-  border-color: #205493;
-  background: #f8f9fa;
-}
-
-.template-icon {
-  font-size: 1rem;
-}
-
 /* Topics List */
 .topics-list {
   max-height: 400px;
@@ -678,148 +686,222 @@ export default {
   color: #004085;
 }
 
-/* Topic Cards */
-.topics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-}
-
-.topic-card {
-  border: 1px solid #e9ecef;
-  border-radius: 8px;
-  padding: 1.5rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+/* Topics Table */
+.topics-table-container {
+  overflow-x: auto;
   background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-.topic-card:hover {
-  border-color: #205493;
-  box-shadow: 0 4px 12px rgba(0,90,156,0.15);
+.topics-table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 1000px;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
+.topics-table th,
+.topics-table td {
+  padding: 1rem;
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
 }
 
-.card-title {
-  display: flex;
-  align-items: center;
-  gap: 0.75rem;
-  flex: 1;
-}
-
-.card-title h3 {
-  margin: 0;
-  color: #495057;
-  font-size: 1rem;
+.topics-table th {
+  background-color: #f5f5f5;
   font-weight: 600;
-}
-
-.card-badge {
-  background: #e9ecef;
-  color: #495057;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.75rem;
-}
-
-.card-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.7rem;
-  font-weight: 500;
+  color: #333;
+  font-size: 0.875rem;
   text-transform: uppercase;
   letter-spacing: 0.5px;
 }
 
-.card-status.draft {
-  background: #fff3cd;
-  color: #856404;
+.topics-table tbody tr {
+  transition: background-color 0.2s ease;
+  cursor: pointer;
 }
 
-.card-status.published {
-  background: #d4edda;
-  color: #155724;
+.topics-table tbody tr:hover {
+  background-color: #f8f9fa;
 }
 
-.card-status.in_review {
-  background: #cce5ff;
-  color: #004085;
+.topic-title-cell {
+  max-width: 300px;
 }
 
-.card-content {
-  margin-bottom: 1rem;
+.topic-title {
+  font-weight: 600;
+  color: #333;
+  margin: 0 0 0.25rem 0;
+  font-size: 0.95rem;
 }
 
-.card-description {
-  color: #6c757d;
-  font-size: 0.875rem;
+.topic-summary {
+  font-size: 0.85rem;
+  color: #666;
   line-height: 1.4;
-  margin: 0 0 0.75rem 0;
+  margin: 0;
 }
 
-.card-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
+.status-badge {
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.8rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  display: inline-block;
 }
 
-.card-metric {
-  font-size: 0.75rem;
-  color: #6c757d;
+.status-badge.draft {
+  background-color: #fff3e0;
+  color: #f57c00;
 }
 
-.metric-label {
+.status-badge.published {
+  background-color: #e8f5e8;
+  color: #2e7d32;
+}
+
+.status-badge.in_review {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.collection-cell {
+  color: #666;
+  font-size: 0.9rem;
+}
+
+.word-count {
   font-weight: 500;
-  color: #495057;
+  color: #333;
+  font-size: 0.9rem;
 }
 
-.card-footer {
+.updated-cell {
+  color: #666;
+  font-size: 0.85rem;
+}
+
+.actions-cell {
+  min-width: 200px;
+}
+
+/* Filters */
+.filters-section {
+  margin-bottom: 1.5rem;
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
   display: flex;
-  justify-content: space-between;
-  align-items: center;
+  flex-direction: column;
+  gap: 0.5rem;
 }
 
-.card-date {
-  color: #adb5bd;
-  font-size: 0.75rem;
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.85rem;
 }
 
-.card-actions {
+.filter-input {
+  padding: 0.4rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.85rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.action-buttons {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
   flex-wrap: wrap;
 }
 
-.card-action-btn {
-  padding: 0.25rem 0.75rem;
-  border: 1px solid #e9ecef;
+/* Button Styles */
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
   border-radius: 4px;
-  background: white;
-  color: #495057;
   cursor: pointer;
-  font-size: 0.75rem;
-  transition: all 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
 }
 
-.card-action-btn:hover {
-  border-color: #205493;
-  background: #f8f9fa;
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
-.card-action-btn.primary {
-  background: #205493;
+.btn i {
+  flex-shrink: 0;
+  width: 1em;
+}
+
+.btn-primary {
+  background-color: #205493;
   color: white;
-  border-color: #205493;
 }
 
-.card-action-btn.primary:hover {
-  background: #005E7B;
+.btn-primary:hover:not(:disabled) {
+  background-color: #005E7B;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+.btn-success {
+  background-color: #009964;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #006548;
+}
+
+.btn-outline {
+  background-color: transparent;
+  color: #6c757d;
+  border: 1px solid #6c757d;
+}
+
+.btn-outline:hover {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
 }
 
 /* Empty States */
@@ -882,8 +964,30 @@ export default {
     gap: 1.5rem;
   }
   
-  .topics-grid {
-    grid-template-columns: 1fr;
+  .topics-table-container {
+    margin: 0 -1rem;
+    border-radius: 0;
+  }
+  
+  .topics-table {
+    min-width: 800px;
+  }
+  
+  .topics-table th,
+  .topics-table td {
+    padding: 0.75rem 0.5rem;
+    font-size: 0.875rem;
+  }
+  
+  .action-buttons {
+    flex-direction: column;
+    gap: 0.25rem;
+    align-items: stretch;
+  }
+  
+  .action-buttons .btn {
+    width: 100%;
+    justify-content: center;
   }
   
   .template-buttons {
@@ -892,11 +996,6 @@ export default {
   
   .dashboard-header h1 {
     font-size: 2rem;
-  }
-  
-  .card-actions {
-    flex-direction: column;
-    align-items: stretch;
   }
 }
 </style>

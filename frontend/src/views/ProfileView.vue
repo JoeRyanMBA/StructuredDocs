@@ -135,7 +135,7 @@ h1 {
   color: white;
 }
 .btn-primary:hover {
-  background-color: #004a80;
+  background-color: #005E7B;
 }
 .btn-primary:disabled {
   background-color: #7ab5e0;

@@ -151,7 +151,7 @@ export default {
 /* Guidance text for new topics */
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -333,7 +333,7 @@ button:disabled {
 }
 
 .cheatsheet-link {
-  color: #007acc;
+  color: #205493;
   text-decoration: none;
   font-size: 0.875rem;
 }
@@ -377,7 +377,7 @@ button:disabled {
 
 .frontmatter-textarea:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -445,9 +445,9 @@ button:disabled {
 }
 
 .toolbar-btn.active {
-  background: #007acc;
+  background: #205493;
   color: white;
-  border-color: #007acc;
+  border-color: #205493;
 }
 
 .mode-btn {
@@ -523,7 +523,7 @@ button:disabled {
 
 .content-textarea:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -544,7 +544,7 @@ button:disabled {
 
 .wysiwyg-textarea:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -700,9 +700,9 @@ button:disabled {
 }
 
 .tab-btn.active {
-  background: #007acc;
+  background: #205493;
   color: white;
-  border-color: #007acc;
+  border-color: #205493;
   font-weight: 600;
 }
 
@@ -761,7 +761,7 @@ button:disabled {
 }
 
 .image-item:hover {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -829,7 +829,7 @@ button:disabled {
 }
 
 .link-item:hover {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8f9fa;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -841,7 +841,7 @@ button:disabled {
 }
 
 .link-url {
-  color: #007acc;
+  color: #205493;
   font-size: 0.875rem;
   margin-bottom: 0.25rem;
   word-break: break-all;
@@ -865,7 +865,7 @@ button:disabled {
 
 /* Button styles */
 .btn-primary {
-  background: #007acc;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem 1rem;

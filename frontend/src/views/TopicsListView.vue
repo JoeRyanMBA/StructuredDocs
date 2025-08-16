@@ -15,7 +15,44 @@
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
 
-    <table v-else>
+    <div v-else class="topics-content">
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-row">
+          <div class="filter-group">
+            <label>Search:</label>
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="filter-input"
+              placeholder="Search topics..."
+              @input="applyFilters"
+            />
+          </div>
+          <div class="filter-group">
+            <label>Status:</label>
+            <select v-model="statusFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Statuses</option>
+              <option value="draft">Draft</option>
+              <option value="in_review">In Review</option>
+              <option value="published">Published</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <label>Collection:</label>
+            <select v-model="collectionFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Collections</option>
+              <option v-for="collection in uniqueCollections" :key="collection" :value="collection">{{ collection }}</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+
+      <div class="topics-table-container">
+        <table class="topics-table">
       <thead>
         <tr>
           <th>ID</th>
@@ -25,7 +62,7 @@
         </tr>
       </thead>
       <tbody>
-        <tr v-for="t in topics" :key="t.id">
+        <tr v-for="t in filteredTopics" :key="t.id">
           <td>{{ t.id }}</td>
           <td>{{ t.title }}</td>
           <td>
@@ -36,30 +73,32 @@
           <td class="actions-cell">
             <router-link
               :to="{ name: 'EditTopic', params: { id: t.id } }"
-              class="action-link"
+              class="btn btn-sm btn-secondary"
             >
-              Edit
+              <i class="fas fa-edit"></i> Edit
             </router-link>
 
             <button
               v-if="t.status === 'draft'"
               @click="submitForReview(t.id)"
-              class="action-button review"
+              class="btn btn-sm btn-warning"
             >
-              Review
+              <i class="fas fa-eye"></i> Review
             </button>
 
             <button
               v-if="t.status === 'draft'"
               @click="publish(t.id)"
-              class="action-button publish"
+              class="btn btn-sm btn-success"
             >
-              Publish
+              <i class="fas fa-share"></i> Publish
             </button>
           </td>
         </tr>
       </tbody>
     </table>
+      </div>
+    </div>
 
     <!-- Review Submission Modal -->
     <div v-if="showReviewModal" class="modal-overlay" @click="closeReviewModal">
@@ -170,6 +209,10 @@ export default {
   data() {
     return {
       topics: [],
+      filteredTopics: [],
+      searchQuery: '',
+      statusFilter: '',
+      collectionFilter: '',
       loading: true,
       error: null,
       showReviewModal: false,
@@ -198,6 +241,11 @@ export default {
         return true
       })
     },
+
+    uniqueCollections() {
+      const collections = [...new Set(this.topics.map(t => t.collection_name).filter(col => col))]
+      return collections.sort()
+    },
     todayDate() {
       const today = new Date()
       return today.toISOString().split('T')[0]
@@ -219,12 +267,43 @@ export default {
         const res = await fetch('/api/topics/')
         if (!res.ok) throw new Error(`Status ${res.status}`)
         this.topics = await res.json()
+        this.applyFilters() // Initialize filtered data
       } catch (err) {
         console.error(err)
         this.error = 'Failed to load topics'
       } finally {
         this.loading = false
       }
+    },
+
+    applyFilters() {
+      let filtered = [...this.topics]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(topic => 
+          topic.title.toLowerCase().includes(query) ||
+          (topic.summary && topic.summary.toLowerCase().includes(query)) ||
+          (topic.collection_name && topic.collection_name.toLowerCase().includes(query))
+        )
+      }
+      
+      if (this.statusFilter) {
+        filtered = filtered.filter(topic => topic.status === this.statusFilter)
+      }
+      
+      if (this.collectionFilter) {
+        filtered = filtered.filter(topic => topic.collection_name === this.collectionFilter)
+      }
+      
+      this.filteredTopics = filtered
+    },
+    
+    clearFilters() {
+      this.searchQuery = ''
+      this.statusFilter = ''
+      this.collectionFilter = ''
+      this.applyFilters()
     },
 
     async fetchReviewers() {
@@ -360,13 +439,67 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
   color: #495057;
   font-size: 0.95rem;
   line-height: 1.5;
+}
+
+/* Filters */
+.filters-section {
+  margin-bottom: 2rem;
+  background: #f8f9fa;
+  padding: 1.5rem;
+  border-radius: 8px;
+  border: 1px solid #e9ecef;
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.topics-table-container {
+  background: white;
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  overflow: hidden;
+}
+
+.topics-table {
+  width: 100%;
+  border-collapse: collapse;
 }
 
 .loading,
@@ -388,8 +521,8 @@ table {
 th,
 td {
   text-align: left;
-  padding: 0.5rem;
-  border-bottom: 1px solid #ddd;
+  padding: 1rem;
+  border-bottom: 1px solid #e0e0e0;
 }
 
 .badge {
@@ -437,7 +570,7 @@ td {
 }
 
 .action-button.publish {
-  background: #28a745;
+  background: #009964;
   color: white;
 }
 
@@ -453,7 +586,77 @@ td {
 }
 
 .action-button.publish:hover {
-  background: #218838;
+  background: #006548;
+}
+
+/* Button Styles */
+.btn {
+  padding: 0.5rem 1rem;
+  border: none;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+}
+
+.btn-primary {
+  background-color: #205493;
+  color: white;
+}
+
+.btn-primary:hover:not(:disabled) {
+  background-color: #005E7B;
+}
+
+.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-secondary:hover {
+  background-color: #545b62;
+}
+
+.btn-success {
+  background-color: #009964;
+  color: white;
+}
+
+.btn-success:hover {
+  background-color: #006548;
+}
+
+.btn-warning {
+  background-color: #ffc107;
+  color: #212529;
+}
+
+.btn-warning:hover {
+  background-color: #e0a800;
+}
+
+.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c82333;
+}
+
+.btn-sm {
+  padding: 0.375rem 0.75rem;
+  font-size: 0.8rem;
 }
 
 /* Modal Styles */
@@ -561,42 +764,21 @@ td {
   border-radius: 0 0 8px 8px;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 400;
-  text-align: center;
-  cursor: pointer;
-  transition: all 0.15s ease-in-out;
-}
-
-.btn-secondary {
+.text-muted {
   color: #6c757d;
-  background-color: #f8f9fa;
-  border-color: #6c757d;
+  font-size: 0.875rem;
 }
 
-.btn-secondary:hover {
-  color: #545b62;
-  background-color: #e2e6ea;
-  border-color: #545b62;
+.text-warning {
+  color: #856404;
+  font-size: 0.875rem;
 }
 
-.btn-primary {
-  color: #fff;
-  background-color: #205493;
-  border-color: #205493;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #004a82;
-  border-color: #004a82;
-}
-
-.btn-primary:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
+.debug-info {
+  background: #f8f9fa;
+  padding: 1rem;
+  border-radius: 4px;
+  margin-top: 1rem;
+  font-size: 0.75rem;
 }
 </style>

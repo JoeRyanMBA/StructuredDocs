@@ -141,7 +141,10 @@ def delete_milestone(milestone_id):
 def list_projects():
     """Get list of projects for milestone association"""
     try:
-        projects = Project.query.filter_by(active=True).order_by(Project.name).all()
+        # Get projects that are not completed or on hold
+        projects = Project.query.filter(
+            Project.status.in_(['planning', 'active', 'review'])
+        ).order_by(Project.name).all()
         return jsonify([{"id": p.id, "name": p.name} for p in projects])
     except Exception as e:
         return jsonify({"error": str(e)}), 500

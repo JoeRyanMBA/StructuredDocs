@@ -232,7 +232,7 @@ export default {
 }
 
 .publish-btn.publish-html {
-  background-color: #007acc;
+  background-color: #205493;
   color: white;
 }
 

@@ -44,6 +44,7 @@ def create_stakeholder():
             email=data['email'],
             title=data.get('title'),
             organization=data.get('organization'),
+            division=data.get('division'),
             department=data.get('department'),
             phone=data.get('phone'),
             expertise_areas=json.dumps(data.get('expertise_areas', [])),
@@ -87,52 +88,55 @@ def get_stakeholder(stakeholder_id):
 def update_stakeholder(stakeholder_id):
     """Update a stakeholder"""
     try:
-        # stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
+        stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
         data = request.get_json()
         
+        # Validate required fields if they're provided
+        if 'email' in data:
+            existing = Stakeholder.query.filter(
+                Stakeholder.email == data['email'],
+                Stakeholder.id != stakeholder_id
+            ).first()
+            if existing:
+                return jsonify({"error": "Another stakeholder with this email already exists"}), 409
+        
         # Update fields
-        # stakeholder.name = data.get('name', stakeholder.name)
-        # stakeholder.email = data.get('email', stakeholder.email)
-        # stakeholder.title = data.get('title', stakeholder.title)
-        # stakeholder.organization = data.get('organization', stakeholder.organization)
-        # stakeholder.department = data.get('department', stakeholder.department)
-        # stakeholder.phone = data.get('phone', stakeholder.phone)
-        # stakeholder.bio = data.get('bio', stakeholder.bio)
-        # stakeholder.active = data.get('active', stakeholder.active)
+        stakeholder.name = data.get('name', stakeholder.name)
+        stakeholder.email = data.get('email', stakeholder.email)
+        stakeholder.title = data.get('title', stakeholder.title)
+        stakeholder.organization = data.get('organization', stakeholder.organization)
+        stakeholder.division = data.get('division', stakeholder.division)
+        stakeholder.department = data.get('department', stakeholder.department)
+        stakeholder.phone = data.get('phone', stakeholder.phone)
+        stakeholder.bio = data.get('bio', stakeholder.bio)
+        stakeholder.active = data.get('active', stakeholder.active)
         
-        # if 'expertise_areas' in data:
-        #     stakeholder.expertise_areas = json.dumps(data['expertise_areas'])
+        if 'expertise_areas' in data:
+            if isinstance(data['expertise_areas'], str):
+                # If it's a string, assume it's newline-separated areas
+                expertise_list = [area.strip() for area in data['expertise_areas'].split('\n') if area.strip()]
+                stakeholder.expertise_areas = json.dumps(expertise_list)
+            elif isinstance(data['expertise_areas'], list):
+                stakeholder.expertise_areas = json.dumps(data['expertise_areas'])
         
-        # db.session.commit()
-        # return jsonify(stakeholder.to_dict())
-        
-        # Placeholder response
-        return jsonify({
-            "id": stakeholder_id,
-            "name": data.get('name', "Dr. Sarah Johnson"),
-            "email": data.get('email', "sarah.johnson@census.gov"),
-            "title": data.get('title', "Senior Project Manager"),
-            "organization": data.get('organization', "U.S. Census Bureau"),
-            "active": True,
-            "updated_at": "2025-08-02T00:00:00"
-        })
+        db.session.commit()
+        return jsonify(stakeholder.to_dict())
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/<int:stakeholder_id>', methods=['DELETE'])
 def delete_stakeholder(stakeholder_id):
     """Deactivate a stakeholder (soft delete)"""
     try:
-        # stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
-        # stakeholder.active = False
-        # db.session.commit()
-        # return jsonify({"message": "Stakeholder deactivated successfully"})
-        
-        # Placeholder response
+        stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
+        stakeholder.active = False
+        db.session.commit()
         return jsonify({"message": "Stakeholder deactivated successfully"})
         
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/search', methods=['GET'])

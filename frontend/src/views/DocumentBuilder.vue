@@ -1300,18 +1300,23 @@ status: "draft"
 }
 
 .btn-success {
-  background: #28a745;
+  background: #009964;
   color: white;
   border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
 }
 
 .btn-success:hover {
-  background: #218838;
+  background: #006548;
 }
 
 .btn-icon {

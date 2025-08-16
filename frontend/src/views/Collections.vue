@@ -120,7 +120,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -149,13 +149,13 @@ export default {
 
 .form-input:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
 .form-button {
   padding: 0.75rem 1.5rem;
-  background: #007acc;
+  background: #205493;
   color: white;
   border: none;
   border-radius: 4px;

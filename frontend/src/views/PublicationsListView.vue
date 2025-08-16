@@ -9,6 +9,7 @@
       <table class="publications-table">
         <thead>
           <tr>
+            <th class="id-column">ID</th>
             <th>Title</th>
             <th>Type</th>
             <th>Status</th>
@@ -20,6 +21,7 @@
         </thead>
         <tbody>
           <tr v-for="pub in publications" :key="pub.id">
+            <td class="id-cell">{{ pub.id }}</td>
             <td>{{ pub.title }}</td>
             <td>{{ pub.type || 'N/A' }}</td>
             <td>{{ formatStatus(pub.status) }}</td>
@@ -131,6 +133,16 @@ export default {
   font-weight: 600;
   color: #495057;
 }
+
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: #666;
+  white-space: nowrap;
+}
+
 .table-btn {
   background: #205493;
   color: white;
