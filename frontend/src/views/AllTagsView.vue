@@ -30,13 +30,17 @@
             />
           </div>
           <div class="filter-group">
-            <button @click="applyFilters" class="btn btn-primary btn-sm">
-              <i class="fas fa-search"></i> Search
-            </button>
-            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Search</button>
+            <div class="button-group">
+              <button @click="applyFilters" class="btn btn-primary btn-sm">
+                <i class="fas fa-search"></i> Search
+              </button>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Search</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <p class="table-instruction">Select a tag to edit.</p>
 
       <div v-if="filteredTags.length === 0 && !searchQuery" class="no-data">
         <p>No tags found. Create your first tag to get started.</p>
@@ -351,6 +355,18 @@ export default {
   outline: none;
   border-color: #205493;
   box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-instruction {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 1rem 0 0.5rem 0;
+  font-style: italic;
 }
 
 .loading, .error {

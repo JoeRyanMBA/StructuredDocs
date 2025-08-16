@@ -384,17 +384,34 @@ export default {
     // Check if we're in edit mode
     this.isEditMode = this.$route.query.edit === 'true'
     
-    const [collections, topics, projects] = await Promise.all([
-      getCollections(),
-      getTopics(),
-      getProjects()
-    ])
-    this.allCollections = collections
-    this.topics = topics
-    this.projects = projects
+    try {
+      // Load collections and topics (critical)
+      const [collections, topics] = await Promise.all([
+        getCollections(),
+        getTopics()
+      ])
+      this.allCollections = collections
+      this.topics = topics
+      
+      // Load projects separately with error handling (non-critical for viewing)
+      try {
+        const projects = await getProjects()
+        this.projects = projects
+      } catch (projectError) {
+        console.warn('Failed to load projects, but continuing with collection view:', projectError)
+        this.projects = [] // Default to empty array
+      }
+    } catch (error) {
+      console.error('Failed to load critical data:', error)
+      return
+    }
     
     // Find the specific collection being organized
     this.currentCollection = this.findCollectionById(this.allCollections, parseInt(this.id))
+    console.log('🔍 Collection ID being searched:', this.id)
+    console.log('🔍 All collections:', this.allCollections)
+    console.log('🔍 Found collection:', this.currentCollection)
+    
     if (!this.currentCollection) {
       console.error(`Collection with ID ${this.id} not found`)
       this.$router.push({ name: 'Collections' })
@@ -403,7 +420,11 @@ export default {
     
     // Ensure all topics have proper structure for nesting
     if (this.currentCollection.topics) {
+      console.log('🔍 Collection topics before processing:', this.currentCollection.topics.length)
       this.currentCollection.topics = this.currentCollection.topics.map(topic => this.ensureTopicStructure(topic))
+      console.log('🔍 Collection topics after processing:', this.currentCollection.topics.length)
+    } else {
+      console.log('🔍 No topics found in currentCollection')
     }
     
     this.unassignedTopics = this.getUnassignedTopics()

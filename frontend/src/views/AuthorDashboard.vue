@@ -222,8 +222,14 @@
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
+
 export default {
   name: 'AuthorDashboard',
+  
+  components: {
+    NotificationTicker
+  },
   
   props: {
     notifications: {

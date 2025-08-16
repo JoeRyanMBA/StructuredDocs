@@ -46,10 +46,17 @@
             </select>
           </div>
           <div class="filter-group">
-            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+            <div class="button-group">
+              <button @click="applyFilters" class="btn btn-primary btn-sm">
+                <i class="fas fa-search"></i> Search
+              </button>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <p class="table-instruction">Select a topic to edit.</p>
 
       <div class="topics-table-container">
         <table class="topics-table">
@@ -488,6 +495,24 @@ export default {
   outline: none;
   border-color: #205493;
   box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-instruction {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 1rem 0 0.5rem 0;
+  font-style: italic;
+}
+
+.loading, .error {
+  text-align: center;
+  padding: 2rem;
+  font-size: 1.1rem;
 }
 
 .topics-table-container {

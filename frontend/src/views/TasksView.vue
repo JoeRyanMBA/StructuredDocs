@@ -1,10 +1,10 @@
 <template>
+  <NotificationTicker
+    :notifications="mergedNotifications"
+    contextType="global"
+    @mark-read="markNotificationRead"
+  />
   <div class="tasks-page">
-    <NotificationTicker
-      :notifications="mergedNotifications"
-      contextType="global"
-      @mark-read="markNotificationRead"
-    />
     <!-- Page Header -->
     <div class="page-header">
       <div class="page-header-content">

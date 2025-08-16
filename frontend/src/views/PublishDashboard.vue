@@ -1,6 +1,6 @@
 <template>
   <NotificationTicker
-    :notifications="notifications"
+    :notifications="mergedNotifications"
     contextType="publish"
     @mark-read="markNotificationRead"
   />
@@ -172,6 +172,10 @@ export default {
       type: Array,
       default: () => []
     },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
     markNotificationRead: {
       type: Function,
       required: true
@@ -191,6 +195,21 @@ export default {
       recentPublications: []
     }
   },
+  
+  computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    }
+  },
+  
   async created() {
     await this.loadDashboardData()
   },

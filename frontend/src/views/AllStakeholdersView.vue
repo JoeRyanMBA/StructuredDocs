@@ -24,8 +24,8 @@
             <input
               v-model="searchQuery"
               type="text"
+              placeholder="Type your search term and press Enter..."
               class="filter-input"
-              placeholder="Search stakeholders..."
               @input="applyFilters"
             />
           </div>
@@ -45,10 +45,24 @@
             </select>
           </div>
           <div class="filter-group">
-            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+            <label>Division:</label>
+            <select v-model="divisionFilter" @change="applyFilters" class="filter-input">
+              <option value="">All Divisions</option>
+              <option v-for="div in uniqueDivisions" :key="div" :value="div">{{ div }}</option>
+            </select>
+          </div>
+          <div class="filter-group">
+            <div class="button-group">
+              <button @click="applyFilters" class="btn btn-primary btn-sm">
+                <i class="fas fa-search"></i> Search
+              </button>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+            </div>
           </div>
         </div>
       </div>
+
+      <p class="table-instruction">Select a stakeholder to edit.</p>
 
       <div class="stakeholders-table-container">
         <table class="stakeholders-table">
@@ -56,33 +70,31 @@
             <tr>
               <th class="id-column">ID</th>
               <th>Name</th>
-              <th>Email</th>
               <th>Title</th>
               <th>Organization</th>
+              <th>Division</th>
               <th>Department</th>
               <th>Status</th>
-              <th>Actions</th>
+              <th></th>
             </tr>
           </thead>
           <tbody>
-            <tr v-for="stakeholder in filteredStakeholders" :key="stakeholder.id">
+            <tr v-for="stakeholder in filteredStakeholders" :key="stakeholder.id" 
+                @click="editStakeholder(stakeholder)" class="clickable-row">
               <td class="id-cell">{{ stakeholder.id }}</td>
               <td class="name-cell">{{ stakeholder.name }}</td>
-              <td>{{ stakeholder.email }}</td>
               <td>{{ stakeholder.title || '-' }}</td>
               <td>{{ stakeholder.organization || '-' }}</td>
+              <td>{{ stakeholder.division || '-' }}</td>
               <td>{{ stakeholder.department || '-' }}</td>
               <td>
                 <span :class="`status-badge ${stakeholder.active ? 'active' : 'inactive'}`">
                   {{ stakeholder.active ? 'Active' : 'Inactive' }}
                 </span>
               </td>
-              <td class="actions-cell">
-                <button @click="editStakeholder(stakeholder)" class="btn btn-sm btn-secondary">
-                  <i class="fas fa-edit"></i> Edit
-                </button>
-                <button @click="deleteStakeholder(stakeholder)" class="btn btn-sm btn-danger">
-                  <i class="fas fa-trash"></i> Delete
+              <td class="actions-cell" @click.stop>
+                <button @click="deleteStakeholder(stakeholder)" class="btn-icon btn-danger" title="Delete Stakeholder">
+                  <i class="fas fa-times"></i>
                 </button>
               </td>
             </tr>
@@ -275,6 +287,7 @@ export default {
       searchQuery: '',
       statusFilter: '',
       organizationFilter: '',
+      divisionFilter: '',
       loading: false,
       error: null,
       showModal: false,
@@ -301,6 +314,10 @@ export default {
     uniqueOrganizations() {
       const orgs = [...new Set(this.stakeholders.map(s => s.organization).filter(org => org))]
       return orgs.sort()
+    },
+    uniqueDivisions() {
+      const divs = [...new Set(this.stakeholders.map(s => s.division).filter(div => div))]
+      return divs.sort()
     }
   },
   
@@ -337,6 +354,7 @@ export default {
           stakeholder.email.toLowerCase().includes(query) ||
           (stakeholder.title && stakeholder.title.toLowerCase().includes(query)) ||
           (stakeholder.organization && stakeholder.organization.toLowerCase().includes(query)) ||
+          (stakeholder.division && stakeholder.division.toLowerCase().includes(query)) ||
           (stakeholder.department && stakeholder.department.toLowerCase().includes(query))
         )
       }
@@ -350,6 +368,10 @@ export default {
         filtered = filtered.filter(stakeholder => stakeholder.organization === this.organizationFilter)
       }
       
+      if (this.divisionFilter) {
+        filtered = filtered.filter(stakeholder => stakeholder.division === this.divisionFilter)
+      }
+      
       this.filteredStakeholders = filtered
     },
     
@@ -357,6 +379,7 @@ export default {
       this.searchQuery = ''
       this.statusFilter = ''
       this.organizationFilter = ''
+      this.divisionFilter = ''
       this.applyFilters()
     },
     
@@ -506,11 +529,11 @@ export default {
 
 /* Filters */
 .filters-section {
-  margin-bottom: 2rem;
-  background: #f8f9fa;
-  padding: 1.5rem;
+  background: white;
+  padding: 1rem;
   border-radius: 8px;
-  border: 1px solid #e9ecef;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
 .filter-row {
@@ -546,6 +569,18 @@ export default {
   box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
 }
 
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+}
+
+.table-instruction {
+  color: #6b7280;
+  font-size: 0.9rem;
+  margin: 1rem 0 0.5rem 0;
+  font-style: italic;
+}
+
 .loading, .error {
   text-align: center;
   padding: 2rem;
@@ -574,9 +609,19 @@ export default {
 
 .stakeholders-table th,
 .stakeholders-table td {
-  padding: 1rem;
+  padding: 0.25rem;
   text-align: left;
   border-bottom: 1px solid #e0e0e0;
+  font-size: 0.85rem;
+}
+
+.clickable-row {
+  cursor: pointer;
+  transition: background-color 0.2s;
+}
+
+.clickable-row:hover {
+  background-color: #f8f9fa;
 }
 
 .stakeholders-table th {
@@ -587,7 +632,6 @@ export default {
 
 .id-column,
 .id-cell {
-  width: 60px;
   text-align: center;
   font-size: 0.85rem;
   color: #666;
@@ -595,7 +639,6 @@ export default {
 }
 
 .name-cell {
-  font-weight: 600;
   color: #333;
 }
 
@@ -619,10 +662,33 @@ export default {
 
 .actions-cell {
   white-space: nowrap;
+
+  text-align: center;
 }
 
-.actions-cell .btn {
-  margin-right: 0.5rem;
+.btn-icon {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 3px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  transition: background-color 0.2s;
+}
+
+.btn-icon.btn-danger {
+  color: white;
+  background-color: #dc3545;
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #c82333;
+  color: white;
 }
 
 .no-data {

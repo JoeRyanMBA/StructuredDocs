@@ -95,6 +95,40 @@
       <CalendarWidget :events="calendarEvents" />
     </div>
 
+    <!-- Filters -->
+    <div class="filters-section">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Search:</label>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search projects..."
+            class="filter-input"
+            @input="applyFilters"
+          />
+        </div>
+        <div class="filter-group">
+          <label>Status:</label>
+          <select v-model="statusFilter" @change="applyFilters" class="filter-input">
+            <option value="">All Statuses</option>
+            <option value="planning">Planning</option>
+            <option value="active">Active</option>
+            <option value="on_hold">On Hold</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="button-group">
+            <button @click="applyFilters" class="btn btn-primary btn-sm">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button @click="clearFilter" class="btn btn-secondary btn-sm">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Projects List -->
     <!-- Projects List -->
     <div class="section-card" ref="projectsSection">
@@ -103,23 +137,6 @@
           {{ statusFilter ? `${formatStatus(statusFilter)} Projects` : 'All Projects' }}
           <span v-if="statusFilter" class="filter-badge">{{ filteredProjects.length }}</span>
         </h2>
-        <div class="filter-controls">
-          <select v-model="statusFilter" @change="applyFilters" class="filter-select">
-            <option value="">All Statuses</option>
-            <option value="planning">Planning</option>
-            <option value="active">Active</option>
-            <option value="on_hold">On Hold</option>
-            <option value="completed">Completed</option>
-          </select>
-          <button 
-            v-if="statusFilter" 
-            @click="clearFilter" 
-            class="clear-filter-btn"
-            title="Clear filter"
-          >
-            ✕ Clear Filter
-          </button>
-        </div>
       </div>
       
       <!-- Loading State -->
@@ -532,6 +549,7 @@ export default {
       error: null,
       showEditModal: false,
       statusFilter: '',
+      searchQuery: '',
       calendarView: '',
       showCreateModal: false,
       showTemplateModal: false,
@@ -605,10 +623,22 @@ export default {
       }
     },
     filteredProjects() {
-      if (!this.statusFilter) {
-        return this.projects
+      let filtered = [...this.projects]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(project =>
+          project.name.toLowerCase().includes(query) ||
+          (project.description && project.description.toLowerCase().includes(query)) ||
+          (project.project_manager && project.project_manager.toLowerCase().includes(query))
+        )
       }
-      return this.projects.filter(project => project.status === this.statusFilter)
+      
+      if (this.statusFilter) {
+        filtered = filtered.filter(project => project.status === this.statusFilter)
+      }
+      
+      return filtered
     },
     calendarEvents() {
       const events = []
@@ -822,7 +852,8 @@ export default {
 
     clearFilter() {
       this.statusFilter = ''
-      console.log('Filter cleared - showing all projects')
+      this.searchQuery = ''
+      console.log('Filters cleared - showing all projects')
     },
 
     applyFilters() {
@@ -1270,6 +1301,53 @@ export default {
   color: #6c757d;
   font-size: 1.1rem;
   margin: 0;
+}
+
+/* Filters */
+.filters-section {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* Metrics Grid */
