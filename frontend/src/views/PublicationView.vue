@@ -144,7 +144,7 @@ export default {
 .actions button {
   padding: 0.75rem 1.25rem; 
   border: none; 
-  background: #005a9c; 
+  background: #205493; 
   color: white; 
   border-radius: 4px;
   cursor: pointer; 
@@ -153,7 +153,7 @@ export default {
 }
 
 .actions button:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 .mobile-kb-btn {

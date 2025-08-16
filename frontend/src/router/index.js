@@ -167,6 +167,46 @@ const routes = [
     component: () => import('@/views/TasksView.vue')
   },
   {
+    path: '/all-tasks',
+    name: 'AllTasks',
+    component: () => import('@/views/AllTasksView.vue')
+  },
+  {
+    path: '/all-tags',
+    name: 'AllTags',
+    component: () => import('@/views/AllTagsView.vue')
+  },
+  {
+    path: '/all-stakeholders',
+    name: 'AllStakeholders',
+    component: () => import('@/views/AllStakeholdersView.vue')
+  },
+  {
+    path: '/all-milestones',
+    name: 'AllMilestones',
+    component: () => import('@/views/AllMilestonesView.vue')
+  },
+  {
+    path: '/all-tasks',
+    name: 'AllTasks',
+    component: () => import('@/views/AllTasksView.vue')
+  },
+  {
+    path: '/all-tags',
+    name: 'AllTags',
+    component: () => import('@/views/AllTagsView.vue')
+  },
+  {
+    path: '/all-stakeholders',
+    name: 'AllStakeholders',
+    component: () => import('@/views/AllStakeholdersView.vue')
+  },
+  {
+    path: '/all-milestones',
+    name: 'AllMilestones',
+    component: () => import('@/views/AllMilestonesView.vue')
+  },
+  {
     path: '/organize/:id',
     name: 'Organize',
     component: () => import('@/views/Organize.vue'),

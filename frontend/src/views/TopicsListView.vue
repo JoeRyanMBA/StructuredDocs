@@ -1,5 +1,10 @@
 <template>
   <div class="topics-list">
+    <NotificationTicker
+      :notifications="mergedNotifications"
+      contextType="global"
+      @mark-read="markNotificationRead"
+    />
     <Breadcrumbs />
     <h2>All Topics</h2>
     
@@ -142,10 +147,25 @@
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import NotificationTicker from '../components/NotificationTicker.vue'
 
 export default {
   name: 'TopicListView',
-  components: { Breadcrumbs },
+  components: { Breadcrumbs, NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
 
   data() {
     return {
@@ -167,6 +187,17 @@ export default {
   },
 
   computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
     todayDate() {
       const today = new Date()
       return today.toISOString().split('T')[0]
@@ -394,7 +425,7 @@ td {
 }
 
 .action-link {
-  color: #005a9c;
+  color: #205493;
   text-decoration: none;
 }
 
@@ -511,7 +542,7 @@ td {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: 0;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 0.2rem rgba(0, 90, 156, 0.25);
 }
 
@@ -555,8 +586,8 @@ td {
 
 .btn-primary {
   color: #fff;
-  background-color: #005a9c;
-  border-color: #005a9c;
+  background-color: #205493;
+  border-color: #205493;
 }
 
 .btn-primary:hover:not(:disabled) {

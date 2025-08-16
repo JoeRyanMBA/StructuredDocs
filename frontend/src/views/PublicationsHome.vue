@@ -98,7 +98,7 @@ export default {
 
 .publication-link {
   text-decoration: none;
-  color: #2563eb;
+  color: #205493;
   display: block;
 }
 

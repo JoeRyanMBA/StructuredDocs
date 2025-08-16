@@ -3,32 +3,27 @@
 > vite
 
 
-  VITE v7.1.1  ready in 991 ms
+  VITE v7.1.1  ready in 529 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://10.0.2.64:5173/
+  ➜  Network: http://10.0.1.135:5173/
 Sending Request to the Target: GET /api/notifications
-Sending Request to the Target: GET /api/import/history
-Sending Request to the Target: GET /api/projects/
-Sending Request to the Target: GET /api/dashboard/pending-actions
 Sending Request to the Target: GET /api/dashboard/stats
-Received Response from the Target: 200 /api/dashboard/pending-actions
-Received Response from the Target: 200 /api/dashboard/stats
-Received Response from the Target: 200 /api/import/history
-Received Response from the Target: 200 /api/projects/
 Received Response from the Target: 200 /api/notifications
+Received Response from the Target: 200 /api/dashboard/stats
+Sending Request to the Target: GET /api/dashboard/pending-actions
 Sending Request to the Target: GET /api/projects/
+Sending Request to the Target: GET /api/import/history
+Received Response from the Target: 200 /api/dashboard/pending-actions
 Received Response from the Target: 200 /api/projects/
-Sending Request to the Target: GET /api/stakeholders/
-Received Response from the Target: 200 /api/stakeholders/
-Sending Request to the Target: POST /api/projects/
-Received Response from the Target: 201 /api/projects/
-Sending Request to the Target: POST /api/projects/35/stakeholders
-Received Response from the Target: 201 /api/projects/35/stakeholders
-3:48:31 PM [vite] (client) hmr update /src/views/ProjectsView.vue
-3:50:05 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
-3:50:10 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
-3:50:13 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
-3:50:23 PM [vite] (client) hmr update /src/views/ProjectsView.vue?vue&type=style&index=0&scoped=076d98d6&lang.css
-Sending Request to the Target: POST /api/projects/35/milestones
-Received Response from the Target: 404 /api/projects/35/milestones
+Received Response from the Target: 200 /api/import/history
+Sending Request to the Target: GET /api/admin/stats
+Sending Request to the Target: GET /api/admin/activity
+Sending Request to the Target: GET /api/admin/notifications
+Received Response from the Target: 200 /api/admin/stats
+Sending Request to the Target: GET /api/metrics/
+Received Response from the Target: 200 /api/admin/activity
+Sending Request to the Target: GET /api/admin/system-logs
+Received Response from the Target: 200 /api/admin/notifications
+Received Response from the Target: 200 /api/admin/system-logs
+Received Response from the Target: 200 /api/metrics/

@@ -388,7 +388,7 @@ export default {
 
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -417,7 +417,7 @@ export default {
 }
 
 .forgot-link {
-  color: #005a9c;
+  color: #205493;
   text-decoration: none;
   font-size: 0.9rem;
 }
@@ -428,7 +428,7 @@ export default {
 
 .login-btn {
   width: 100%;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem;
@@ -441,7 +441,7 @@ export default {
 }
 
 .login-btn:hover:not(:disabled) {
-  background: #004080;
+  background: #005E7B;
 }
 
 .login-btn:disabled {
@@ -465,7 +465,7 @@ export default {
 }
 
 .login-footer a {
-  color: #005a9c;
+  color: #205493;
   text-decoration: none;
 }
 
@@ -566,12 +566,12 @@ export default {
 }
 
 .submit-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
 }
 
 .submit-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Responsive Design */

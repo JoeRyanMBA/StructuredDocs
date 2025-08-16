@@ -88,7 +88,7 @@ export default {
 }
 .breadcrumbs a {
   text-decoration: none;
-  color: #005a9c;
+  color: #205493;
 }
 .breadcrumbs a:hover {
   text-decoration: underline;

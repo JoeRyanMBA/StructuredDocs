@@ -136,15 +136,15 @@
             <div class="user-stats">
               <div class="stat-item">
                 <span class="stat-label">Total Users:</span>
-                <span class="stat-value">{{ userStats.total || 0 }}</span>
+                <span class="stat-value">{{ userStats.totalUsers || 0 }}</span>
               </div>
               <div class="stat-item">
                 <span class="stat-label">New This Week:</span>
-                <span class="stat-value">{{ userStats.newThisWeek || 0 }}</span>
+                <span class="stat-value">{{ userStats.newUsersThisWeek || 0 }}</span>
               </div>
               <div class="stat-item">
-                <span class="stat-label">Active Today:</span>
-                <span class="stat-value">{{ userStats.activeToday || 0 }}</span>
+                <span class="stat-label">Active Users:</span>
+                <span class="stat-value">{{ userStats.activeUsers || 0 }}</span>
               </div>
             </div>
             <div class="user-actions">
@@ -210,14 +210,14 @@
       <div class="dashboard-section full-width notification-management">
         <h2>Notification Management</h2>
         <div class="notification-list">
-          <div v-if="notifications.length === 0" class="empty-state">
+          <div v-if="adminNotifications.length === 0" class="empty-state">
             <p>No notifications found.</p>
           </div>
           <div v-else>
-            <div v-for="notification in notifications" :key="notification.id" class="notification-item">
+            <div v-for="notification in adminNotifications" :key="notification.id" class="notification-item">
               <div class="notification-title">{{ notification.title }}</div>
               <div class="notification-message">{{ notification.message }}</div>
-              <div class="notification-meta">{{ formatRelativeTime(notification.created_at) }} • <span :class="{'read': notification.read}">{{ notification.read ? 'Read' : 'Unread' }}</span></div>
+              <div class="notification-meta">{{ formatRelativeTime(notification.date) }} • <span :class="{'read': notification.read}">{{ notification.read ? 'Read' : 'Unread' }}</span></div>
               <div class="notification-actions">
                 <button @click="navigateTo('/notifications/new')" class="section-btn">Create Notification</button>
                 <button @click="deleteNotification(notification.id)" class="section-btn secondary" style="margin-top:.75rem; margin-bottom:.75rem;">Delete</button>
@@ -271,10 +271,15 @@ export default {
       stats: {},
       dbMetrics: {},
       userStats: {},
-      systemMetrics: {},
+      systemMetrics: {
+        cpu: 15,
+        memory: 32,
+        storage: 45
+      },
       recentActivity: [],
       systemLogs: [],
       systemEvents: [],
+      adminNotifications: [],
       newNotification: {
         title: '',
         description: ''
@@ -303,7 +308,7 @@ export default {
       fetch(`/api/notifications/${id}`, { method: 'DELETE' })
         .then(response => {
           if (!response.ok) throw new Error('Failed to delete notification')
-          this.notifications = this.notifications.filter(n => n.id !== id)
+          this.adminNotifications = this.adminNotifications.filter(n => n.id !== id)
         })
         .catch(error => {
           alert('Failed to delete notification: ' + error.message)
@@ -316,7 +321,9 @@ export default {
         await Promise.all([
           this.loadStats(),
           this.loadActivity(),
-          this.loadSystemLogs()
+          this.loadSystemLogs(),
+          this.loadAdminNotifications(),
+          this.loadDbMetrics()
         ])
       } catch (error) {
         console.error('Failed to load admin dashboard:', error)
@@ -374,6 +381,44 @@ export default {
       } catch (error) {
         console.error('Failed to load system logs:', error)
         this.systemLogs = [];
+      }
+    },
+
+    async loadAdminNotifications() {
+      try {
+        // Fetch admin notifications from backend API
+        const response = await fetch('/api/admin/notifications');
+        if (response.ok) {
+          this.adminNotifications = await response.json();
+        } else {
+          this.adminNotifications = [];
+        }
+      } catch (error) {
+        console.error('Failed to load admin notifications:', error)
+        this.adminNotifications = [];
+      }
+    },
+
+    async loadDbMetrics() {
+      try {
+        const response = await fetch('/api/metrics/')
+        if (!response.ok) throw new Error('Failed to fetch database metrics')
+        const data = await response.json()
+        const db = data.database || {}
+        this.dbMetrics = {
+          tables: db.tables || 0,
+          rows: db.totalRecords || 0,
+          size: db.size || '0 MB',
+          lastBackup: db.lastBackup ? new Date(db.lastBackup).toLocaleString() : 'Never'
+        }
+      } catch (error) {
+        console.error('Failed to load database metrics:', error)
+        this.dbMetrics = {
+          tables: 0,
+          rows: 0,
+          size: '0 MB',
+          lastBackup: 'Never'
+        }
       }
     },
 
@@ -517,7 +562,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -566,7 +611,7 @@ export default {
 .metric-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
   margin-bottom: 0.25rem;
 }
@@ -628,8 +673,8 @@ export default {
 }
 
 .action-card:hover {
-  background: #005a9c;
-  border-color: #005a9c;
+  background: #205493;
+  border-color: #205493;
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
@@ -686,7 +731,7 @@ export default {
 }
 
 .tool-btn:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -819,9 +864,9 @@ export default {
 
 .section-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid #005a9c;
+  border: 1px solid #205493;
   border-radius: 4px;
-  background: #005a9c;
+  background: #205493;
   color: white;
   cursor: pointer;
   font-size: 0.875rem;
@@ -829,12 +874,12 @@ export default {
 }
 
 .section-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 .section-btn.secondary {
   background: white;
-  color: #005a9c;
+  color: #205493;
 }
 
 .section-btn.secondary:hover {
@@ -983,7 +1028,7 @@ export default {
 }
 
 .loading-spinner {
-  color: #005a9c;
+  color: #205493;
   font-size: 1.1rem;
 }
 

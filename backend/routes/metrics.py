@@ -17,14 +17,14 @@ def get_performance_metrics():
         print("📊 Fetching performance metrics...")
         
         # Get database metrics
-        db_path = '/workspaces/StructuredDocs/backend/instance/structured_docs.db'
+        db_path = '/workspaces/StructuredDocs/instance/structured_docs.db'
         db_metrics = get_database_metrics(db_path)
         
         # Get basic system metrics (simplified)
         system_metrics = get_basic_system_metrics()
         
         # Get application metrics
-        app_metrics = get_application_metrics(db_path)
+        app_metrics = get_application_metrics('/workspaces/StructuredDocs/instance/structured_docs.db')
         
         # Get storage metrics
         storage_metrics = get_storage_metrics()
@@ -47,8 +47,11 @@ def get_performance_metrics():
 def get_database_metrics(db_path):
     """Get database-specific metrics"""
     try:
+        print(f"🔍 Checking database at: {db_path}")
+        
         # Get database file size
         db_size = os.path.getsize(db_path) if os.path.exists(db_path) else 0
+        print(f"📏 Database size: {db_size} bytes")
         
         # Connect to database and get table info
         conn = sqlite3.connect(db_path)
@@ -57,6 +60,7 @@ def get_database_metrics(db_path):
         # Get table count
         cursor.execute("SELECT COUNT(*) FROM sqlite_master WHERE type='table';")
         table_count = cursor.fetchone()[0]
+        print(f"📋 Table count: {table_count}")
         
         # Get total record count across all tables
         cursor.execute("SELECT name FROM sqlite_master WHERE type='table';")
@@ -70,9 +74,12 @@ def get_database_metrics(db_path):
                     cursor.execute(f"SELECT COUNT(*) FROM `{table_name}`;")
                     count = cursor.fetchone()[0]
                     total_records += count
-                except:
+                    print(f"📊 {table_name}: {count} records")
+                except Exception as table_error:
+                    print(f"⚠️ Error counting {table_name}: {table_error}")
                     continue  # Skip if table has issues
         
+        print(f"📈 Total records across all tables: {total_records}")
         conn.close()
         
         # Format database size
@@ -84,7 +91,7 @@ def get_database_metrics(db_path):
             else:
                 return f"{bytes_val / (1024 * 1024):.1f} MB"
         
-        return {
+        result = {
             'size': format_bytes(db_size),
             'size_bytes': db_size,
             'growth': f"{(db_size * 0.05) / (1024 * 1024):.1f} MB",  # Simulated growth
@@ -96,8 +103,13 @@ def get_database_metrics(db_path):
             'indexHealth': 'good'
         }
         
+        print(f"✅ Database metrics calculated successfully: {result}")
+        return result
+        
     except Exception as e:
         print(f"❌ Error getting database metrics: {str(e)}")
+        import traceback
+        traceback.print_exc()
         return {
             'size': 'Unknown',
             'tables': 0,
@@ -262,8 +274,8 @@ def get_storage_metrics():
         
         # Get size of different components
         db_size = 0
-        if os.path.exists('/workspaces/StructuredDocs/backend/instance/structured_docs.db'):
-            db_size = os.path.getsize('/workspaces/StructuredDocs/backend/instance/structured_docs.db')
+        if os.path.exists('/workspaces/StructuredDocs/instance/structured_docs.db'):
+            db_size = os.path.getsize('/workspaces/StructuredDocs/instance/structured_docs.db')
         
         frontend_size = get_directory_size(os.path.join(workspace_path, 'frontend'))
         backend_size = get_directory_size(os.path.join(workspace_path, 'backend'))

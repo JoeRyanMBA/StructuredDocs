@@ -1,5 +1,10 @@
 <template>
   <div class="tasks-page">
+    <NotificationTicker
+      :notifications="mergedNotifications"
+      contextType="global"
+      @mark-read="markNotificationRead"
+    />
     <!-- Page Header -->
     <div class="page-header">
       <div class="page-header-content">
@@ -389,22 +394,47 @@
           <div class="form-section">
             <h3>Tags (Optional)</h3>
             <div class="tags-input">
-              <input
-                v-model="newTag"
-                @keyup.enter="addTag"
-                type="text"
-                placeholder="Add tag and press Enter"
-                class="form-input"
-              />
-              <div class="tags-list">
-                <span 
-                  v-for="(tag, index) in taskForm.tags" 
-                  :key="index" 
-                  class="tag"
-                >
-                  {{ tag }}
-                  <button type="button" @click="removeTag(index)" class="tag-remove">×</button>
-                </span>
+              <!-- Existing Tags Selector -->
+              <div class="existing-tags-section" v-if="allTags.length > 0">
+                <label>Select from existing tags:</label>
+                <select v-model="selectedExistingTag" @change="addExistingTag" class="form-input">
+                  <option value="">Choose a tag...</option>
+                  <option v-for="tag in allTags" :key="tag" :value="tag" :disabled="taskForm.tags.includes(tag)">
+                    {{ tag }} {{ taskForm.tags.includes(tag) ? '(already selected)' : '' }}
+                  </option>
+                </select>
+              </div>
+              
+              <!-- Add New Tag -->
+              <div class="new-tag-section">
+                <label>Or add a new tag:</label>
+                <div class="new-tag-input-row">
+                  <input
+                    v-model="newTag"
+                    @keyup.enter="addNewTag"
+                    type="text"
+                    placeholder="Enter new tag name"
+                    class="form-input"
+                  />
+                  <button type="button" @click="addNewTag" class="add-tag-btn" :disabled="!newTag.trim()">
+                    Add Tag
+                  </button>
+                </div>
+              </div>
+              
+              <!-- Selected Tags Display -->
+              <div class="tags-list" v-if="taskForm.tags.length > 0">
+                <label>Selected tags:</label>
+                <div class="tags-display">
+                  <span 
+                    v-for="(tag, index) in taskForm.tags" 
+                    :key="index" 
+                    class="tag"
+                  >
+                    {{ tag }}
+                    <button type="button" @click="removeTag(index)" class="tag-remove">×</button>
+                  </span>
+                </div>
               </div>
             </div>
           </div>
@@ -424,8 +454,25 @@
 </template>
 
 <script>
+import NotificationTicker from '../components/NotificationTicker.vue'
+
 export default {
   name: 'TasksView',
+  components: { NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      required: true
+    }
+  },
   data() {
     return {
       // Tasks data
@@ -481,13 +528,64 @@ export default {
       },
       
       // Tags input
-      newTag: ''
+      newTag: '',
+      selectedExistingTag: '',
+      allStoredTags: [] // Tags fetched from the database
     }
   },
   
   computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    },
     hasActiveFilters() {
       return this.searchQuery || this.statusFilter || this.priorityFilter || this.associationFilter
+    },
+    allTags() {
+      // Combine tags from tasks and stored tags from database
+      const tags = new Set()
+      
+      // Add tags from existing tasks
+      this.tasks.forEach(task => {
+        let taskTags = []
+        if (Array.isArray(task.tags)) {
+          taskTags = task.tags
+        } else if (typeof task.tags === 'string') {
+          try {
+            taskTags = JSON.parse(task.tags || '[]')
+          } catch (e) {
+            taskTags = []
+          }
+        }
+        taskTags.forEach(t => tags.add(t))
+      })
+      
+      // Add stored tags from database (extract name from tag objects)
+      this.allStoredTags.forEach(tag => {
+        if (typeof tag === 'object' && tag.name) {
+          tags.add(tag.name)
+        } else if (typeof tag === 'string') {
+          tags.add(tag)
+        }
+      })
+      
+      console.log('All tags computed:', Array.from(tags), 'from tasks:', this.tasks.length, 'from stored:', this.allStoredTags.length)
+      return Array.from(tags).sort()
+    },
+    availableExistingTags() {
+      // This computed property is no longer used in the template, 
+      // but keeping it for backward compatibility
+      const available = this.allTags.filter(tag => !this.taskForm.tags.includes(tag))
+      console.log('Available existing tags:', available, 'allTags:', this.allTags, 'taskForm.tags:', this.taskForm.tags)
+      return available
     }
   },
   
@@ -508,6 +606,19 @@ export default {
         this.error = 'Failed to load tasks. Please try again.'
       } finally {
         this.loading = false
+      }
+    },
+    
+    async fetchAllTags() {
+      try {
+        const response = await fetch('/api/tasks/tags')
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+        this.allStoredTags = await response.json()
+      } catch (error) {
+        console.error('Error fetching tags:', error)
+        this.allStoredTags = []
       }
     },
     
@@ -597,6 +708,7 @@ export default {
         topic_id: task.topic_id,
         tags: Array.isArray(task.tags) ? task.tags : (typeof task.tags === 'string' ? JSON.parse(task.tags || '[]') : [])
       }
+      console.log('Editing task, tags loaded:', this.taskForm.tags)
       this.showEditModal = true
     },
     
@@ -648,9 +760,10 @@ export default {
         const result = await response.json()
         console.log('Task saved successfully:', result)
         
-        // Refresh tasks
+        // Refresh tasks and tags
         await this.fetchTasks()
         await this.fetchTaskSummary()
+        await this.fetchAllTags() // Refresh tags in case new ones were added
         this.closeModal()
         
       } catch (error) {
@@ -741,6 +854,9 @@ export default {
       this.showCreateModal = false
       this.showEditModal = false
       this.resetForm()
+      // Clear tag input fields
+      this.newTag = ''
+      this.selectedExistingTag = ''
     },
     
     resetForm() {
@@ -759,12 +875,21 @@ export default {
         tags: []
       }
       this.newTag = ''
+      this.selectedExistingTag = ''
     },
     
-    addTag() {
-      if (this.newTag.trim() && !this.taskForm.tags.includes(this.newTag.trim())) {
-        this.taskForm.tags.push(this.newTag.trim())
+    addNewTag() {
+      const tag = this.newTag.trim()
+      if (tag && !this.taskForm.tags.includes(tag)) {
+        this.taskForm.tags.push(tag)
         this.newTag = ''
+      }
+    },
+    
+    addExistingTag() {
+      if (this.selectedExistingTag && !this.taskForm.tags.includes(this.selectedExistingTag)) {
+        this.taskForm.tags.push(this.selectedExistingTag)
+        this.selectedExistingTag = ''
       }
     },
     
@@ -843,6 +968,7 @@ export default {
     this.fetchTasks()
     this.fetchTaskSummary()
     this.fetchAssociations()
+    this.fetchAllTags()
   }
 }
 </script>
@@ -955,7 +1081,7 @@ export default {
 .summary-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
 }
 
@@ -1145,7 +1271,7 @@ export default {
 
 .status-badge.in_progress {
   background: #dbeafe;
-  color: #1e40af;
+  color: #205493;
 }
 
 .status-badge.review {
@@ -1175,7 +1301,7 @@ export default {
 
 .priority-badge.medium {
   background: #dbeafe;
-  color: #1e40af;
+  color: #205493;
 }
 
 .priority-badge.low {
@@ -1204,7 +1330,7 @@ export default {
 
 .association-tag.project {
   background: #e0f2fe;
-  color: #0369a1;
+  color: #005E7B;
 }
 
 .association-tag.collection {
@@ -1247,7 +1373,7 @@ export default {
 
 .edit-btn {
   background: #e0f2fe;
-  color: #0369a1;
+  color: #005E7B;
 }
 
 .edit-btn:hover {
@@ -1395,12 +1521,13 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.9rem;
+  font-family: inherit;
   box-sizing: border-box;
 }
 
 .form-input:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -1423,7 +1550,46 @@ export default {
   gap: 1rem;
 }
 
+.existing-tags-section,
+.new-tag-section {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.new-tag-input-row {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+.add-tag-btn {
+  padding: 0.75rem 1rem;
+  background: #205493;
+  color: white;
+  border: none;
+  border-radius: 6px;
+  font-size: 0.9rem;
+  cursor: pointer;
+  white-space: nowrap;
+}
+
+.add-tag-btn:hover:not(:disabled) {
+  background: #005E7B;
+}
+
+.add-tag-btn:disabled {
+  background: #ccc;
+  cursor: not-allowed;
+}
+
 .tags-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.tags-display {
   display: flex;
   flex-wrap: wrap;
   gap: 0.5rem;
@@ -1431,7 +1597,7 @@ export default {
 
 .tag {
   background: #e0f2fe;
-  color: #0369a1;
+  color: #005E7B;
   padding: 0.25rem 0.75rem;
   border-radius: 20px;
   font-size: 0.8rem;
@@ -1443,7 +1609,7 @@ export default {
 .tag-remove {
   background: none;
   border: none;
-  color: #0369a1;
+  color: #005E7B;
   cursor: pointer;
   font-weight: bold;
 }
@@ -1473,7 +1639,7 @@ export default {
 
 .save-btn {
   padding: 0.75rem 1.5rem;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   border-radius: 6px;
@@ -1482,7 +1648,7 @@ export default {
 }
 
 .save-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* States */
@@ -1504,7 +1670,7 @@ export default {
 }
 
 .retry-btn, .create-first-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -1515,7 +1681,7 @@ export default {
 }
 
 .retry-btn:hover, .create-first-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Responsive Design */

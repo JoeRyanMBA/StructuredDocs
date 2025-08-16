@@ -265,7 +265,7 @@ export default {
 }
 
 .work-week-toggle input[type="checkbox"]:checked + .toggle-slider {
-  background: #005a9c;
+  background: #205493;
 }
 
 .work-week-toggle input[type="checkbox"]:checked + .toggle-slider::before {
@@ -297,9 +297,9 @@ export default {
 }
 
 .nav-btn:hover {
-  background: #005a9c;
+  background: #205493;
   color: white;
-  border-color: #005a9c;
+  border-color: #205493;
 }
 
 .calendar-grid {
@@ -351,7 +351,7 @@ export default {
 }
 
 .calendar-date.today .date-number {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border-radius: 50%;
   width: 24px;
@@ -383,7 +383,7 @@ export default {
 }
 
 .event-milestone {
-  background: #059669;
+  background: #009964;
 }
 
 .event-deadline {

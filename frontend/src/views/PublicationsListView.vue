@@ -108,7 +108,7 @@ export default {
   padding: 2rem;
 }
 .publications-list-view h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 2rem;
 }
 .publications-table-wrapper {
@@ -132,7 +132,7 @@ export default {
   color: #495057;
 }
 .table-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   border-radius: 4px;
@@ -143,7 +143,7 @@ export default {
   transition: background 0.2s;
 }
 .table-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 .empty-state {
   text-align: center;
@@ -153,16 +153,16 @@ export default {
 .link-btn {
   background: none;
   border: none;
-  color: #005a9c;
+  color: #205493;
   text-decoration: underline;
   cursor: pointer;
   font-size: inherit;
 }
 .link-btn:hover {
-  color: #004080;
+  color: #005E7B;
 }
 .loading {
-  color: #005a9c;
+  color: #205493;
   font-size: 1.1rem;
   text-align: center;
   margin-top: 2rem;

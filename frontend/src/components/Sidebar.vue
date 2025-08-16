@@ -173,7 +173,7 @@ export default {
   left: 0;
   width: 28px;
   height: 80px;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   border-radius: 0 4px 4px 0;

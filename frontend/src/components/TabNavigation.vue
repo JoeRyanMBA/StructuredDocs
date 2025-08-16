@@ -208,15 +208,15 @@ export default {
 }
 
 .tab:hover {
-  color: #005a9c;
+  color: #205493;
   background: rgba(0, 90, 156, 0.05);
   border-bottom-color: rgba(0, 90, 156, 0.3);
 }
 
 .tab.active {
-  color: #005a9c;
+  color: #205493;
   background: #fff;
-  border-bottom-color: #005a9c;
+  border-bottom-color: #205493;
   font-weight: 600;
   box-shadow: 0 -2px 8px rgba(0, 0, 0, 0.1);
 }

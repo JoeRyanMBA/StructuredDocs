@@ -16,7 +16,7 @@
         <component
           :is="Component"
           v-bind="route.props"
-          :notifications="notifications"
+          :globalNotifications="notifications"
           :markNotificationRead="markNotificationRead"
         />
       </router-view>
@@ -94,7 +94,7 @@ export default {
 
 .login-bg {
   min-height: 100vh;
-  background: linear-gradient(135deg, #005a9c 0%, #0074cc 100%) !important;
+  background: linear-gradient(135deg, #205493 0%, #005E7B 100%) !important;
 }
 
 .login-content {

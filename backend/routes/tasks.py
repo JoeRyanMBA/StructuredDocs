@@ -10,7 +10,7 @@ from datetime import datetime, date
 import json
 
 # Import models
-from models import db, Task, Project, Collection, Topic
+from models import db, Task, Project, Collection, Topic, Tag
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
@@ -123,6 +123,11 @@ def create_task():
             tags=json.dumps(data.get('tags', []))
         )
 
+        # Ensure tags exist in the database
+        tags_list = data.get('tags', [])
+        if tags_list:
+            ensure_tags_exist(tags_list)
+
         db.session.add(task)
         db.session.commit()
 
@@ -219,6 +224,10 @@ def update_task(task_id):
 
         if 'tags' in data:
             task.tags = data['tags'] if isinstance(data['tags'], str) else json.dumps(data['tags'])
+            # Ensure tags exist in the database
+            tags_list = data['tags'] if isinstance(data['tags'], list) else json.loads(data['tags'] or '[]')
+            if tags_list:
+                ensure_tags_exist(tags_list)
 
         # Mark as completed if status changed to completed
         if data.get('status') == 'completed' and task.status != 'completed':
@@ -291,3 +300,121 @@ def get_task_associations():
         })
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@tasks_bp.route('/tags', methods=['GET'])
+def list_tags():
+    """Get all tags with full details"""
+    try:
+        tags = Tag.query.order_by(Tag.name).all()
+        return jsonify([tag.to_dict() for tag in tags])
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+
+@tasks_bp.route('/tags', methods=['POST'])
+def create_tag():
+    """Create a new tag"""
+    try:
+        data = request.get_json()
+        
+        if not data.get('name'):
+            return jsonify({"error": "Tag name is required"}), 400
+            
+        name = data['name'].strip()
+        if not name:
+            return jsonify({"error": "Tag name cannot be empty"}), 400
+            
+        # Check if tag already exists
+        existing_tag = Tag.query.filter_by(name=name).first()
+        if existing_tag:
+            return jsonify({"error": "Tag already exists"}), 400
+            
+        tag = Tag(name=name)
+        db.session.add(tag)
+        db.session.commit()
+        
+        return jsonify(tag.to_dict()), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@tasks_bp.route('/tags/<int:tag_id>', methods=['PUT'])
+def update_tag(tag_id):
+    """Update a tag"""
+    try:
+        tag = Tag.query.get_or_404(tag_id)
+        data = request.get_json()
+        
+        if not data.get('name'):
+            return jsonify({"error": "Tag name is required"}), 400
+            
+        name = data['name'].strip()
+        if not name:
+            return jsonify({"error": "Tag name cannot be empty"}), 400
+            
+        # Check if another tag with this name exists
+        existing_tag = Tag.query.filter(Tag.name == name, Tag.id != tag_id).first()
+        if existing_tag:
+            return jsonify({"error": "Tag with this name already exists"}), 400
+            
+        tag.name = name
+        db.session.commit()
+        
+        return jsonify(tag.to_dict())
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+@tasks_bp.route('/tags/<int:tag_id>', methods=['DELETE'])
+def delete_tag(tag_id):
+    """Delete a tag"""
+    try:
+        tag = Tag.query.get_or_404(tag_id)
+        
+        # Check if tag is used in any tasks
+        tasks_with_tag = Task.query.all()
+        tag_in_use = False
+        for task in tasks_with_tag:
+            try:
+                task_tags = json.loads(task.tags or '[]')
+                if tag.name in task_tags:
+                    tag_in_use = True
+                    break
+            except:
+                continue
+                
+        if tag_in_use:
+            return jsonify({"error": "Cannot delete tag that is currently in use by tasks"}), 400
+            
+        db.session.delete(tag)
+        db.session.commit()
+        
+        return jsonify({"message": "Tag deleted successfully"})
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({"error": str(e)}), 500
+
+
+def ensure_tags_exist(tag_names):
+    """Ensure tags exist in the database, create them if they don't"""
+    if not tag_names:
+        return
+    
+    for tag_name in tag_names:
+        if tag_name.strip():  # Only process non-empty tags
+            existing_tag = Tag.query.filter_by(name=tag_name.strip()).first()
+            if not existing_tag:
+                new_tag = Tag(name=tag_name.strip())
+                db.session.add(new_tag)
+    
+    try:
+        db.session.commit()
+    except Exception as e:
+        db.session.rollback()
+        print(f"Error creating tags: {e}")

@@ -158,7 +158,7 @@ export default {
 }
 
 .title-link:hover .title {
-  color: #005a9c;
+  color: #205493;
 }
 
 .title {

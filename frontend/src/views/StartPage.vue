@@ -47,6 +47,68 @@
           </div>
         </div>
       </div>
+
+      <!-- Quick Actions Section -->
+      <div class="quick-actions-section">
+        <h2>Quick Actions</h2>
+        <p class="section-description">Manage your system data and resources</p>
+        <div class="quick-actions-grid">
+          <router-link to="/all-tasks" class="quick-action-card">
+            <div class="action-icon">📋</div>
+            <div class="action-content">
+              <h3>All Tasks</h3>
+              <p>Manage and organize all tasks across projects</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </router-link>
+
+          <router-link to="/all-tags" class="quick-action-card">
+            <div class="action-icon">🏷️</div>
+            <div class="action-content">
+              <h3>All Tags</h3>
+              <p>Create and manage tags for categorization</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </router-link>
+
+          <router-link to="/all-stakeholders" class="quick-action-card">
+            <div class="action-icon">👥</div>
+            <div class="action-content">
+              <h3>All Stakeholders</h3>
+              <p>Manage stakeholder profiles and information</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </router-link>
+
+          <router-link to="/all-milestones" class="quick-action-card">
+            <div class="action-icon">🎯</div>
+            <div class="action-content">
+              <h3>All Milestones</h3>
+              <p>Track project milestones and deadlines</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </router-link>
+
+          <router-link to="/topics" class="quick-action-card">
+            <div class="action-icon">📝</div>
+            <div class="action-content">
+              <h3>All Topics</h3>
+              <p>View and manage documentation topics</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </router-link>
+
+          <router-link to="/projects" class="quick-action-card">
+            <div class="action-icon">📁</div>
+            <div class="action-content">
+              <h3>All Projects</h3>
+              <p>Manage projects and project settings</p>
+            </div>
+            <div class="action-arrow">→</div>
+          </router-link>
+        </div>
+      </div>
+
       <div class="content-grid">
         <div class="dashboard-section">
           <h2>Projects Overview</h2>
@@ -348,7 +410,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -402,7 +464,7 @@ export default {
 .metric-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
 }
 
@@ -453,7 +515,7 @@ export default {
 }
 
 .project-item:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -491,7 +553,7 @@ export default {
 
 .project-status.completed {
   background: #dbeafe;
-  color: #1e40af;
+  color: #205493;
 }
 
 .project-description {
@@ -528,7 +590,7 @@ export default {
 }
 
 .action-item:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
   cursor: pointer;
 }
@@ -580,6 +642,91 @@ export default {
   color: #6c757d;
 }
 
+/* Quick Actions Section */
+.quick-actions-section {
+  margin: 3rem 0;
+  padding: 2rem;
+  background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%);
+  border-radius: 12px;
+  border: 1px solid #dee2e6;
+}
+
+.quick-actions-section h2 {
+  color: #112e51;
+  margin-bottom: 0.5rem;
+  font-size: 1.5rem;
+  font-weight: 600;
+}
+
+.section-description {
+  color: #6c757d;
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.quick-action-card {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: white;
+  border: 2px solid #e9ecef;
+  border-radius: 8px;
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
+}
+
+.quick-action-card:hover {
+  border-color: #007bff;
+  box-shadow: 0 4px 12px rgba(0, 123, 255, 0.15);
+  transform: translateY(-2px);
+  text-decoration: none;
+  color: inherit;
+}
+
+.quick-action-card .action-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.quick-action-card .action-content {
+  flex: 1;
+}
+
+.quick-action-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: #112e51;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.quick-action-card p {
+  margin: 0;
+  color: #6c757d;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.quick-action-card .action-arrow {
+  font-size: 1.5rem;
+  color: #007bff;
+  margin-left: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.quick-action-card:hover .action-arrow {
+  transform: translateX(4px);
+}
+
 /* Responsive Design */
 @media (max-width: 768px) {
   .dashboard {
@@ -592,6 +739,20 @@ export default {
   
   .metrics-grid {
     grid-template-columns: 1fr;
+  }
+  
+  .quick-actions-grid {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+  
+  .quick-action-card {
+    padding: 1rem;
+  }
+  
+  .quick-action-card .action-icon {
+    font-size: 1.5rem;
+    min-width: 50px;
   }
   
   .project-header {

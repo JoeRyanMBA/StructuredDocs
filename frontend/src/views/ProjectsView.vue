@@ -1,52 +1,3 @@
-/* Milestone Modal Styling */
-.milestone-row {
-  display: flex;
-  align-items: flex-start;
-  gap: 1.5rem;
-  background: #f8fafc;
-  border: 1px solid #e0e7ef;
-  border-radius: 8px;
-  padding: 1rem;
-  margin-bottom: 1rem;
-  min-height: 80px;
-  box-sizing: border-box;
-}
-.milestone-row input[type="text"],
-.milestone-row input[type="date"],
-.milestone-row select {
-  flex: 1 1 0;
-  min-width: 0;
-  height: 44px;
-  margin-right: 0.75rem;
-  padding: 0.75rem 1rem;
-  border: 1px solid #d1d5db;
-  border-radius: 8px;
-  font-size: 1rem;
-  box-sizing: border-box;
-  transition: border-color 0.2s ease;
-}
-.milestone-row input[type="text"]:focus,
-.milestone-row input[type="date"]:focus,
-.milestone-row select:focus {
-  outline: none;
-  border-color: #005a9c;
-  box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
-  margin-left: .5rem;
-}
-.milestone-row select {
-  appearance: none;
-  background: white;
-  padding-right: 2rem;
-}
-.milestone-row .remove-btn {
-  align-self: center;
-  margin-left: 0.75rem;
-  margin-right: 0.25rem;
-}
-.milestone-row .remove-btn {
-  align-self: center;
-  margin-left: 0.5rem;
-}
 <template>
   <NotificationTicker
     :notifications="mergedNotifications"
@@ -55,12 +6,11 @@
   />
   <div class="projects-dashboard">
     <!-- Dashboard Header -->
-      <div class="dashboard-header">
-        <h1>Projects Dashboard</h1>
-        <p class="welcome-text">Manage projects, stakeholders, and review workflows</p>
-      </div>
+    <div class="dashboard-header">
+      <h1>Projects Dashboard</h1>
+      <p class="welcome-text">Manage projects, stakeholders, and review workflows</p>
+    </div>
     <!-- Metrics Overview -->
-
     <div class="metrics-grid">
       <div class="metric-card">
         <div class="metric-icon">📊</div>
@@ -121,13 +71,6 @@
           </div>
         </button>
         
-        <button @click="showTemplateModal = true" class="action-card">
-          <div class="action-icon">📋</div>
-          <div class="action-content">
-            <h3>Use Template</h3>
-            <p>Create from project template</p>
-          </div>
-        </button>
         
         <button @click="exportProjects" class="action-card">
           <div class="action-icon">📤</div>
@@ -217,6 +160,7 @@
             </span>
           </div>
           <p class="project-description">{{ project.description }}</p>
+          
           <!-- Project Summary -->
           <div class="project-summary">
             <div class="summary-item" v-if="project.stakeholders && project.stakeholders.length > 0">
@@ -245,13 +189,9 @@
               +{{ project.milestones.length - 3 }} more milestones
             </div>
           </div>
-          <div class="project-meta">
-            <small>Created: {{ formatDate(project.created_at) }}</small>
-          </div>
-          <div class="project-actions">
-            <button @click="editProject(project)" class="edit-btn">
-              ✏️ Edit
-            </button>
+          <div class="project-card-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem;">
+            <div class="project-meta">Project {{ project.id }} was created on {{ formatDate(project.created_at) }}</div>
+            <button @click="editProject(project)" class="edit-btn">✏️ Edit</button>
           </div>
         </div>
       </div>
@@ -310,7 +250,7 @@
             <button type="button" @click="showCreateModal = false" class="secondary-btn">
               Cancel
             </button>
-            <button type="submit" class="primary-btn" :disabled="creatingProject || (!!confirmationMessage)">Next</button>
+            <button type="submit" class="primary-btn" :disabled="creatingProject || !!confirmationMessage">Next</button>
           </div>
         </form>
       </div>
@@ -412,8 +352,152 @@
       </div>
     </div>
   </div>
+
+  <!-- Edit Project Modal -->
+  <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
+    <div class="modal large-modal" @click.stop>
+      <div class="modal-header">
+        <h2>Edit Project</h2>
+        <button @click="showEditModal = false" class="close-btn">×</button>
+      </div>
+      <form @submit.prevent="handleUpdateProject" class="modal-body">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <h3>Basic Information</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="editProjectName">Project Name *</label>
+              <input
+                id="editProjectName"
+                v-model="editingProject.name"
+                type="text"
+                required
+                placeholder="Enter project name"
+              />
+            </div>
+            <div class="form-group">
+              <label for="editProjectStatus">Status</label>
+              <select id="editProjectStatus" v-model="editingProject.status">
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="editProjectDescription">Description</label>
+            <textarea
+              id="editProjectDescription"
+              v-model="editingProject.description"
+              placeholder="Project description"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <div class="modal-actions">
+          <button type="button" @click="showEditModal = false" class="secondary-btn">
+            Cancel
+          </button>
+          <button type="submit" class="primary-btn">
+            Update Project
+          </button>
+        </div>
+      </form>
+    </div>
+  </div>
 </div>
+
 </template>
+<style scoped>
+.milestone-row input[type="date"] {
+  font-family: inherit;
+  font-size: 1rem;
+  color: #374151;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  box-sizing: border-box;
+}
+.milestone-row input[type="text"],
+.milestone-row input[type="date"],
+.milestone-row select,
+.milestone-row .remove-btn {
+  margin-bottom: 0.75rem;
+}
+.milestone-row input[type="text"]:last-child,
+.milestone-row input[type="date"]:last-child,
+.milestone-row select:last-child,
+.milestone-row .remove-btn:last-child {
+  margin-bottom: 0;
+}
+/* Milestone Modal Styling */
+.milestone-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+.milestone-row input[type="text"],
+.milestone-row input[type="date"],
+.milestone-row select {
+  margin-bottom: 0;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.metric-content {
+  text-align: left;
+}
+
+.metric-content h3 {
+  margin: 0 0 0.25rem 0;
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.metric-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #205493;
+  margin-bottom: 0.15rem;
+}
+
+.metric-detail {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+</style>
 
 <script>
 import Breadcrumbs from '../components/Breadcrumbs.vue'
@@ -566,6 +650,44 @@ export default {
     },
     handleCreateProject() {
       this.createProjectBasic();
+    },
+
+    async handleUpdateProject() {
+      try {
+        const response = await fetch(`/api/projects/${this.editingProject.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: this.editingProject.name,
+            description: this.editingProject.description,
+            status: this.editingProject.status
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const updatedProject = await response.json()
+        
+        // Update the project in the local array
+        const index = this.projects.findIndex(p => p.id === this.editingProject.id)
+        if (index !== -1) {
+          this.projects[index] = {
+            ...this.projects[index],
+            ...updatedProject
+          }
+        }
+
+        this.showEditModal = false
+        this.resetEditingProject()
+        
+      } catch (error) {
+        console.error('Failed to update project:', error)
+        alert('Failed to update project. Please try again.')
+      }
     },
     async fetchProjects() {
       this.loading = true
@@ -1138,7 +1260,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -1167,28 +1289,12 @@ export default {
   align-items: center;
   gap: 1rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
-  background: #fff0f0;
-  color: #dc2626;
-  border: 1.5px solid #dc2626;
-  padding: 0.5rem 1.25rem;
-  border-radius: 8px;
-  cursor: pointer;
-  font-size: 1.1rem;
-  font-weight: 700;
-  transition: background 0.2s, color 0.2s, border-color 0.2s;
-  box-shadow: 0 1px 2px rgba(220,38,38,0.04);
-  margin: 0 0 0.25rem 0;
-  color: #495057;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
 }
 
 .metric-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
   margin-bottom: 0.25rem;
 }
@@ -1240,12 +1346,13 @@ export default {
   background: white;
   color: #374151;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
   cursor: pointer;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -1256,7 +1363,7 @@ export default {
 }
 
 .filter-badge {
-  background: #005a9c;
+  background: #205493;
   color: white;
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
@@ -1304,11 +1411,11 @@ export default {
 }
 
 .action-card:hover {
-  background: #005a9c;
-  border-color: #005a9c;
+  background: #205493;
+  border-color: #205493;
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
+  box-shadow: 0 4px 12px rgba(32, 84, 147, 0.2);
 }
 
 .action-icon {
@@ -1358,7 +1465,7 @@ export default {
 }
 
 .create-first-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -1369,7 +1476,7 @@ export default {
 }
 
 .create-first-btn:hover {
-  background: #004080;
+  background: #005E7B;
   transform: translateY(-1px);
 }
 
@@ -1439,7 +1546,7 @@ export default {
 }
 
 .retry-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -1450,7 +1557,7 @@ export default {
 }
 
 .retry-btn:hover {
-  background: #004080;
+  background: #005E7B;
   transform: translateY(-1px);
 }
 
@@ -1471,7 +1578,7 @@ export default {
 }
 
 .project-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 90, 156, 0.15);
 }
@@ -1527,12 +1634,12 @@ export default {
 }
 
 .milestone-date.completed {
-  color: #059669;
+  color: #009964;
   font-weight: 500;
 }
 
 .milestone-date.in-progress {
-  color: #0369a1;
+  color: #005E7B;
   font-weight: 500;
 }
 
@@ -1545,28 +1652,18 @@ export default {
   color: #6b7280;
 }
 
-.milestone-status {
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-.project-milestones .milestone-more {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.project-description {
-  color: #6b7280;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.project-summary {
+.milestone-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  padding: 1rem;
   margin-bottom: 1rem;
+  min-height: 80px;
+  box-sizing: border-box;
 }
 
 .summary-item {
@@ -1614,7 +1711,7 @@ export default {
 }
 
 .edit-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -1625,7 +1722,7 @@ export default {
 }
 
 .edit-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Modal Styles - Keeping existing modal styles but with updated colors */
@@ -1705,13 +1802,14 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
   box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
 
 .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -1759,7 +1857,7 @@ export default {
   color: #112e51;
   font-size: 1.1rem;
   font-weight: 600;
-  border-bottom: 2px solid #005a9c;
+  border-bottom: 2px solid #205493;
   padding-bottom: 0.5rem;
 }
 
@@ -1803,7 +1901,7 @@ export default {
 
 .stakeholder-selector h4 {
   margin: 0 0 1rem 0;
-  color: #1e40af;
+  color: #205493;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -1821,6 +1919,7 @@ export default {
   border-radius: 6px;
   background: white;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
 }
 
 .stakeholder-info {
@@ -1883,17 +1982,18 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
   box-sizing: border-box;
 }
 
 .stakeholder-input:focus, .collection-input:focus, .document-input:focus, .milestone-input:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 90, 156, 0.1);
 }
 
 .add-btn {
-  background: #059669;
+  background: #009964;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -1905,7 +2005,7 @@ export default {
 }
 
 .add-btn:hover {
-  background: #047857;
+  background: #006548;
 }
 
 .remove-btn {
@@ -1930,7 +2030,7 @@ export default {
 .primary-btn {
   padding: 0.75rem 1.5rem;
   border: none;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border-radius: 8px;
   font-weight: 600;
@@ -1938,8 +2038,14 @@ export default {
   cursor: pointer;
   transition: background 0.2s ease;
 }
+.primary-btn:disabled {
+  background: #cbd5e1;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
 .primary-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 .secondary-btn {
   padding: 0.75rem 1.5rem;

@@ -88,15 +88,9 @@
                 @start="onDragStart"
                 @end="onDragEnd"
                 class="collection-topics-list"
-                :fallback-tolerance="5"
-                :force-fallback="true"
                 :animation="200"
-                :ghost-class="'sortable-ghost'"
-                :chosen-class="'sortable-chosen'"
-                :drag-class="'sortable-drag'"
                 handle=".drag-handle"
-    :move="customMove"
-  >
+              >
     <template #item="{ element: topic, index }">
                   <div 
                     class="topic-wrapper"
@@ -467,12 +461,16 @@ export default {
       }
     },
     customMove(evt, originalEvent) {
-      // Prevent vuedraggable from handling drop if dropping onto a topic row (for subtopic)
-      // Only allow sorting if not dropping onto a topic row
-      if (originalEvent && originalEvent.target && originalEvent.target.classList.contains('collection-topic-item')) {
-        // Let the custom @drop handler handle this
-        return false;
-      }
+      // For debugging
+      console.log('customMove called:', {
+        from: evt.from?.className,
+        to: evt.to?.className,
+        isFromExternal: evt.from !== evt.to,
+        target: originalEvent?.target?.className
+      })
+      
+      // Always allow moves - let vuedraggable handle everything
+      // The custom drop handlers will only trigger for specific hierarchy creation
       return true;
     },
     // Multi-select methods
@@ -721,6 +719,12 @@ export default {
 
     // Topic drop zone handlers
     handleDragOver(targetTopic, event) {
+      // Only handle dragover for hierarchy creation (when dropping onto topics)
+      // Don't interfere with vuedraggable's normal operations
+      if (!this.draggedTopics.length && !this.selectedTopics.size) {
+        return; // No topics being dragged, let vuedraggable handle it
+      }
+      
       event.preventDefault()
       event.stopPropagation()
       
@@ -1719,7 +1723,7 @@ export default {
 }
 
 .publish-btn.publish-html:hover {
-  background-color: #005a9c;
+  background-color: #205493;
 }
 
 .publish-btn.publish-pdf {

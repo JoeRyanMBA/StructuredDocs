@@ -262,7 +262,7 @@ export default {
 }
 
 .export-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -273,7 +273,7 @@ export default {
 }
 
 .export-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 .help-section {

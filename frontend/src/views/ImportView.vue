@@ -631,7 +631,7 @@ input[type="file"] {
 }
 
 .import-btn:hover:not(:disabled) {
-  background: #005a9c;
+  background: #205493;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 122, 204, 0.3);
 }

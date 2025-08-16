@@ -265,7 +265,7 @@ export default {
 }
 
 .publish-btn.publish-html:hover {
-  background-color: #005a9c;
+  background-color: #205493;
 }
 
 .publish-btn.publish-pdf {

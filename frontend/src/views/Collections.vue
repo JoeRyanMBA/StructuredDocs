@@ -41,7 +41,7 @@
         <div v-if="col.id !== undefined && col.id !== null">
           <router-link
             :to="{ name: 'Organize', params: { id: String(col.id) } }"
-            style="text-decoration: none; color: #2563eb; cursor: pointer;"
+            style="text-decoration: none; color: #205493; cursor: pointer;"
           >
             {{ col.name }}
           </router-link>
@@ -165,7 +165,7 @@ export default {
 }
 
 .form-button:hover {
-  background: #005a9c;
+  background: #205493;
 }
 
 .form-help {

@@ -15,8 +15,11 @@
   ✅ Links blueprint registered
   ✅ Stakeholders blueprint registered
   ✅ Tasks blueprint registered
+  ✅ Tags blueprint registered
+  ✅ Milestones blueprint registered
   ✅ Images blueprint registered
   ✅ Dashboard blueprint registered
+  ✅ Admin blueprint registered
 🎉 Flask app creation complete!
 ✅ App instance created successfully!
  * Serving Flask app 'backend.app'
@@ -24,15 +27,19 @@
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.2.64:5050
+ * Running on http://10.0.1.135:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/dashboard/pending-actions HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/dashboard/stats HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:15] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:18] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:18] "GET /api/stakeholders/ HTTP/1.1" 200 -
-127.0.0.1 - - [15/Aug/2025 15:47:39] "[35m[1mPOST /api/projects/ HTTP/1.1[0m" 201 -
-127.0.0.1 - - [15/Aug/2025 15:48:26] "[35m[1mPOST /api/projects/35/stakeholders HTTP/1.1[0m" 201 -
-127.0.0.1 - - [15/Aug/2025 15:57:22] "[33mPOST /api/projects/35/milestones HTTP/1.1[0m" 404 -
+127.0.0.1 - - [16/Aug/2025 02:35:34] "GET /api/metrics/ HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:35:54] "GET /api/admin/stats HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:01] "GET /api/metrics/ HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:06] "GET /api/admin/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:34] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:34] "GET /api/dashboard/stats HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:34] "GET /api/dashboard/pending-actions HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:34] "GET /api/projects/ HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:34] "GET /api/import/history HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:37] "GET /api/admin/stats HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:37] "GET /api/admin/activity HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:37] "GET /api/admin/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:37] "GET /api/admin/system-logs HTTP/1.1" 200 -
+127.0.0.1 - - [16/Aug/2025 02:36:38] "GET /api/metrics/ HTTP/1.1" 200 -

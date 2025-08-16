@@ -1,6 +1,20 @@
 /* src/style.css */
 @import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
 
+:root {
+  /* Updated color scheme */
+  --primary-blue: #205493;
+  --primary-blue-hover: #005E7B;
+  --primary-green: #009964;
+  --primary-green-hover: #006548;
+  
+  /* Legacy color mapping for compatibility */
+  --old-blue: #005a9c;
+  --old-blue-hover: #004080;
+  --old-green: #059669;
+  --old-green-hover: #047857;
+}
+
 html, body {
   font-family: 'Roboto', sans-serif;
   margin: 0;

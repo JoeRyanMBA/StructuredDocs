@@ -751,3 +751,22 @@ class Task(db.Model):
             "collection_name": self.collection.name if self.collection else None,
             "topic_name": self.topic.title if self.topic else None  # Topic uses 'title' not 'name'
         }
+
+
+class Tag(db.Model):
+    __tablename__ = 'tags'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }

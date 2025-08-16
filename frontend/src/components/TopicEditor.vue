@@ -236,7 +236,7 @@ export default {
 /* Save button */
 button {
   padding: 0.75rem 1.5rem;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   cursor: pointer;
@@ -875,7 +875,7 @@ button:disabled {
 }
 
 .btn-primary:hover {
-  background: #005a9c;
+  background: #205493;
 }
 
 .btn-primary:disabled {

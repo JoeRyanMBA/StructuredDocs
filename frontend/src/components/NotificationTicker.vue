@@ -119,7 +119,7 @@ export default {
 .scroll-btn {
   background: none;
   border: none;
-  color: #005a9c;
+  color: #205493;
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0 0.5rem;
