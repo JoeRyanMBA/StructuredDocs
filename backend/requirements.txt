@@ -8,3 +8,5 @@ reportlab
 psutil
 Pillow>=10.0.0
 email-validator
+psycopg2-binary
+Flask-JWT-Extended

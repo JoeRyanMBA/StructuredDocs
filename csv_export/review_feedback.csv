@@ -1,0 +1,2 @@
+id,review_id,feedback_type,section_title,page_number,paragraph_number,line_reference,original_text,suggested_text,comment,rationale,priority,impact,author_response,status,created_at,responded_at
+1,20,technical_correction,Testing major technical correction,,,,This is a test to see what happens when a Reviewer has major technical corrections.,,Testing,Testing,high,moderate,,pending,2025-08-17 21:36:56,

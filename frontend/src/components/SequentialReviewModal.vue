@@ -83,13 +83,6 @@
                 <i class="bi bi-people me-1"></i>Reviewer Sequence
                 <small class="text-muted">(Expert First Strategy)</small>
               </h6>
-              <button 
-                @click="addReviewer" 
-                type="button" 
-                class="btn btn-outline-primary btn-sm"
-              >
-                <i class="bi bi-plus me-1"></i>Add Reviewer
-              </button>
             </div>
             
             <div class="alert alert-info small">
@@ -102,7 +95,6 @@
               <i class="bi bi-person-plus fs-3 d-block mb-2"></i>
               No reviewers added yet. Click "Add Reviewer" to get started.
             </div>
-            
             <div v-for="(reviewer, index) in form.reviewers" :key="index" class="card mb-3">
               <div class="card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
@@ -123,7 +115,6 @@
                     <i class="bi bi-trash"></i>
                   </button>
                 </div>
-                
                 <div class="row">
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Reviewer</label>
@@ -142,7 +133,6 @@
                       </option>
                     </select>
                   </div>
-                  
                   <div class="col-md-6 mb-3">
                     <label class="form-label">Step Name</label>
                     <input 
@@ -153,7 +143,6 @@
                     />
                   </div>
                 </div>
-                
                 <div class="mb-3">
                   <label class="form-label">Special Instructions <span class="text-muted">(Optional)</span></label>
                   <textarea 
@@ -164,6 +153,15 @@
                   ></textarea>
                 </div>
               </div>
+            </div>
+            <div class="d-flex justify-content-center mt-3">
+              <button 
+                @click="addReviewer" 
+                type="button" 
+                class="primary-btn"
+              >
+                <i class="bi bi-plus me-1"></i>Add Reviewer
+              </button>
             </div>
           </div>
           

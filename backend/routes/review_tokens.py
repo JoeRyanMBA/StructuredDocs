@@ -273,7 +273,7 @@ Best regards,
     formatted_template = formatted_template.replace('{{due_date}}', review.due_date.strftime('%B %d, %Y') if review.due_date else 'No specific deadline')
     formatted_template = formatted_template.replace('{{priority}}', review.priority.title())
     formatted_template = formatted_template.replace('{{author_message}}', review.author_message or 'Please review this content and provide your feedback.')
-    formatted_template = formatted_template.replace('{{review_url}}', f'http://localhost:5174/review/{review_token.token}')
+    formatted_template = formatted_template.replace('{{review_url}}', f'http://localhost:5173/review/{review_token.token}')
     formatted_template = formatted_template.replace('{{expires_at}}', review_token.expires_at.strftime('%B %d, %Y'))
     formatted_template = formatted_template.replace('{{max_access}}', str(review_token.max_access_count))
     formatted_template = formatted_template.replace('{{author_name}}', author.name if author else 'Content Author')

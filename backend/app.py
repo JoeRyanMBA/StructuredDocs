@@ -23,12 +23,10 @@ def create_app():
          send_wildcard=True,
          vary_header=False)
     
-    # Configure SQLAlchemy database URI
-    import os
-    # Use the main instance directory for the database
-    project_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    db_path = os.path.join(project_root, 'instance', 'structured_docs.db')
-    app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///' + db_path
+    # Configure SQLAlchemy database URI for PostgreSQL
+    app.config['SQLALCHEMY_DATABASE_URI'] = (
+        'postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs'
+    )
     
     # Configure static files for image serving
     app.config['STATIC_FOLDER'] = os.path.join(app.root_path, 'static')

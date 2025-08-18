@@ -1,0 +1,2 @@
+id,name,email,password_hash,role,active,created_at
+1,Admin User,admin@example.com,scrypt:32768:8:1$47rqcOamVrRdTTua$620aefca729e6ab344dba447f9f5d81e40dc81e2780af45bf10a54bc6877c1f1720f0651a9e85330fbcf0ec96ba098238c54e5441702672f28aed69f83b99ea9,admin,1,2025-08-12 19:46:29

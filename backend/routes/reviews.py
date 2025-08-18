@@ -132,7 +132,7 @@ def request_review():
             if email_sent:
                 print(f"✅ Email notification sent successfully to {reviewer.email}")
                 print(f"📄 Review token: {token.token}")
-                print(f"🔗 Review URL: http://localhost:3000/review/{token.token}")
+                print(f"🔗 Review URL: http://localhost:5173/review/{token.token}")
             else:
                 print(f"⚠️ Failed to send email notification to {reviewer.email}")
                 
