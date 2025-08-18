@@ -1,50 +1,529 @@
 from flask import Blueprint, request, jsonify
-from datetime import datetime
-from models import db, Topic, Collection, ImportDocument
-from sqlalchemy import or_
+from datetime import datetime, timedelta
+from models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ReviewToken
+from sqlalchemy import or_, and_
+from utils.email_service import email_service
+import secrets
 
-reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews/')
+reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews')
 
-# Base GET endpoint for /api/reviews/
+# Base GET endpoint for /api/reviews
 @reviews_bp.route('/', methods=['GET'])
 def reviews_root():
-    """Base endpoint for reviews API - returns real reviews from the database or an empty list if none exist"""
-    # TODO: Implement real review aggregation logic if needed
-    return jsonify([])
-
-@reviews_bp.route('/reviewers', methods=['GET'])
-def get_available_reviewers():
-    """Get list of available reviewers"""
+    """Base endpoint for reviews API - returns all reviews"""
     try:
-        # For now, return a hardcoded list since we don't have User model yet
-        reviewers = [
-            {'id': 1, 'name': 'Dr. Sarah Johnson', 'email': 'sarah.johnson@census.gov'},
-            {'id': 2, 'name': 'Prof. Michael Chen', 'email': 'michael.chen@census.gov'},
-            {'id': 3, 'name': 'Dr. Emily Rodriguez', 'email': 'emily.rodriguez@census.gov'},
-            {'id': 4, 'name': 'James Thompson', 'email': 'james.thompson@census.gov'}
-        ]
-        return jsonify(reviewers)
+        reviews = Review.query.order_by(Review.requested_at.desc()).all()
+        return jsonify([review.to_dict() for review in reviews])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
+@reviews_bp.route('/<int:review_id>', methods=['GET'])
+def get_review_details(review_id):
+    """Get details for a specific review"""
+    try:
+        review = Review.query.get_or_404(review_id)
+        return jsonify(review.to_dict())
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/reviewers', methods=['GET'])
+def get_available_reviewers():
+    """Get list of available reviewers from stakeholders"""
+    try:
+        # Get stakeholders who can review
+        reviewers = Stakeholder.query.filter(
+            and_(
+                Stakeholder.can_review == True,
+                or_(
+                    Stakeholder.role == 'reviewer',
+                    Stakeholder.role == 'subject_matter_expert',
+                    Stakeholder.role == 'stakeholder'
+                )
+            )
+        ).all()
+        
+        return jsonify([{
+            'id': reviewer.id,
+            'name': reviewer.name,
+            'email': reviewer.email,
+            'role': reviewer.role,
+            'division': reviewer.division
+        } for reviewer in reviewers])
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/request', methods=['POST'])
+def request_review():
+    """Request a review for a topic"""
+    try:
+        data = request.get_json()
+        
+        # Validate required fields
+        required_fields = ['topic_id', 'reviewer_id', 'requested_by']
+        for field in required_fields:
+            if field not in data:
+                return jsonify({'error': f'Missing required field: {field}'}), 400
+        
+        # Check if topic exists
+        topic = Topic.query.get_or_404(data['topic_id'])
+        
+        # Check if reviewer exists and can review
+        reviewer = Stakeholder.query.get_or_404(data['reviewer_id'])
+        if not reviewer.can_review:
+            return jsonify({'error': 'Selected stakeholder cannot perform reviews'}), 400
+            
+        # Check if requester exists
+        requester = Stakeholder.query.get_or_404(data['requested_by'])
+        
+        # Calculate due date (default to 7 days from now if not specified)
+        due_date = None
+        if data.get('due_date'):
+            due_date = datetime.fromisoformat(data['due_date'].replace('Z', '+00:00'))
+        else:
+            due_date = datetime.utcnow() + timedelta(days=7)
+        
+        # Create review request
+        review = Review(
+            topic_id=data['topic_id'],
+            requested_by=data['requested_by'],
+            reviewer_id=data['reviewer_id'],
+            priority=data.get('priority', 'medium'),
+            due_date=due_date,
+            author_message=data.get('message', '')
+        )
+        
+        # Update topic status to pending_review
+        topic.status = 'pending_review'
+        topic.updated_at = datetime.utcnow()
+        
+        db.session.add(review)
+        db.session.commit()
+        
+        # Create secure token for external reviewer access
+        token = ReviewToken(
+            token=secrets.token_urlsafe(32),
+            review_id=review.id,
+            reviewer_email=reviewer.email,
+            expires_at=due_date + timedelta(days=7)  # Token expires 7 days after due date
+        )
+        
+        db.session.add(token)
+        db.session.commit()
+        
+        # Send email notification to reviewer
+        print(f"🔍 Starting email notification process...")
+        print(f"📧 Reviewer: {reviewer.name} ({reviewer.email})")
+        print(f"📝 Topic: {topic.title}")
+        print(f"🎫 Review token: {token.token}")
+        
+        try:
+            print(f"📧 Attempting to send email to {reviewer.email} for topic '{topic.title}'")
+            email_sent = email_service.send_review_notification(
+                reviewer_email=reviewer.email,
+                reviewer_name=reviewer.name,
+                topic_title=topic.title,
+                topic_id=topic.id,
+                author_message=review.author_message,
+                due_date=review.due_date,
+                priority=review.priority,
+                review_token=token.token
+            )
+            
+            if email_sent:
+                print(f"✅ Email notification sent successfully to {reviewer.email}")
+                print(f"📄 Review token: {token.token}")
+                print(f"🔗 Review URL: http://localhost:3000/review/{token.token}")
+            else:
+                print(f"⚠️ Failed to send email notification to {reviewer.email}")
+                
+        except Exception as email_error:
+            print(f"❌ Email notification error: {str(email_error)}")
+            import traceback
+            print(f"🔍 Full traceback: {traceback.format_exc()}")
+            # Don't fail the entire request if email fails
+        
+        return jsonify({
+            'message': 'Review requested successfully',
+            'review': review.to_dict()
+        }), 201
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/<int:review_id>/start', methods=['POST'])
+def start_review(review_id):
+    """Mark a review as started"""
+    try:
+        review = Review.query.get_or_404(review_id)
+        
+        if review.status != 'pending':
+            return jsonify({'error': 'Review is not in pending status'}), 400
+            
+        review.status = 'in_progress'
+        review.started_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        return jsonify({
+            'message': 'Review started',
+            'review': review.to_dict()
+        })
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/<int:review_id>/submit', methods=['POST'])
+def submit_review(review_id):
+    """Submit completed review with feedback"""
+    try:
+        review = Review.query.get_or_404(review_id)
+        data = request.get_json()
+        
+        if review.status not in ['pending', 'in_progress']:
+            return jsonify({'error': 'Review cannot be modified in current status'}), 400
+        
+        # Validate required fields
+        if 'recommendation' not in data:
+            return jsonify({'error': 'Recommendation is required'}), 400
+            
+        if data['recommendation'] not in ['approve', 'approve_with_changes', 'reject', 'needs_more_info']:
+            return jsonify({'error': 'Invalid recommendation'}), 400
+        
+        # Update review
+        review.status = 'completed'
+        review.completed_at = datetime.utcnow()
+        review.feedback = data.get('feedback', '')
+        review.recommendation = data['recommendation']
+        review.review_notes = data.get('review_notes', '')
+        
+        # Handle sequence advancement if this is part of a sequence
+        sequence_advanced = False
+        if review.sequence_id:
+            from models import ReviewSequence, ReviewSequenceStep
+            sequence = ReviewSequence.query.get(review.sequence_id)
+            
+            if sequence and sequence.status == 'active':
+                current_step = ReviewSequenceStep.query.filter_by(
+                    sequence_id=sequence.id,
+                    step_order=review.sequence_position
+                ).first()
+                
+                if current_step:
+                    current_step.status = 'completed'
+                    current_step.completed_at = datetime.utcnow()
+                    
+                    # Check if we should auto-advance
+                    should_advance = False
+                    
+                    if data['recommendation'] == 'approve' and sequence.auto_advance_on_approve:
+                        should_advance = True
+                    elif data['recommendation'] in ['approve_with_changes', 'needs_more_info', 'reject']:
+                        if not sequence.pause_on_changes:
+                            should_advance = True
+                        else:
+                            # Pause sequence for author to incorporate changes
+                            sequence.status = 'paused'
+                            sequence.paused_at = datetime.utcnow()
+                    
+                    if should_advance:
+                        # Move to next reviewer
+                        next_position = sequence.current_position + 1
+                        next_step = ReviewSequenceStep.query.filter_by(
+                            sequence_id=sequence.id,
+                            step_order=next_position
+                        ).first()
+                        
+                        if next_step:
+                            # Create review for next reviewer
+                            next_review = Review(
+                                topic_id=sequence.topic_id,
+                                requested_by=sequence.created_by,
+                                reviewer_id=next_step.reviewer_id,
+                                sequence_id=sequence.id,
+                                sequence_position=next_position,
+                                author_message=f'Sequential review (step {next_position + 1} of {len(sequence.reviewers)}). Previous reviewer: {data["recommendation"]}',
+                                priority=review.priority,
+                                due_date=datetime.utcnow() + timedelta(days=5)
+                            )
+                            db.session.add(next_review)
+                            db.session.flush()
+                            
+                            # Update sequence and step
+                            sequence.current_position = next_position
+                            next_step.status = 'active'
+                            next_step.review_id = next_review.id
+                            next_step.assigned_at = datetime.utcnow()
+                            
+                            sequence_advanced = True
+                            
+                            # Send notification to next reviewer
+                            if email_service:
+                                try:
+                                    email_service.send_review_request(
+                                        reviewer_email=next_step.reviewer.email,
+                                        reviewer_name=next_step.reviewer.name,
+                                        topic_title=sequence.topic.title,
+                                        author_name=sequence.creator.name if sequence.creator else 'Unknown',
+                                        due_date=next_review.due_date,
+                                        review_url=f"/reviews/{next_review.id}",
+                                        author_message=next_review.author_message,
+                                        is_sequential=True,
+                                        sequence_position=next_position + 1,
+                                        total_reviewers=len(sequence.reviewers)
+                                    )
+                                except Exception as e:
+                                    print(f"Failed to send email notification: {e}")
+                        else:
+                            # Sequence is complete
+                            sequence.status = 'completed'
+                            sequence.completed_at = datetime.utcnow()
+                            sequence_advanced = True
+        
+        # Update topic status based on recommendation (only if not part of an active sequence)
+        topic = review.topic
+        if not review.sequence_id or not sequence_advanced:
+            if data['recommendation'] == 'approve':
+                topic.status = 'approved'  # Approved for publication, but not yet published
+            elif data['recommendation'] == 'approve_with_changes':
+                topic.status = 'revisions_requested'  # Major changes requested
+            elif data['recommendation'] == 'needs_more_info':
+                topic.status = 'draft'  # Send back to author for more information
+            elif data['recommendation'] == 'reject':
+                topic.status = 'rejected'
+        else:
+            # For sequences, only update status if sequence is complete or paused
+            sequence = ReviewSequence.query.get(review.sequence_id)
+            if sequence.status == 'completed':
+                # All reviewers approved - topic is approved
+                topic.status = 'approved'
+            elif sequence.status == 'paused':
+                # Changes needed - topic needs revisions
+                topic.status = 'revisions_requested'
+                
+        topic.updated_at = datetime.utcnow()
+        
+        db.session.commit()
+        
+        response_data = {
+            'message': 'Review submitted successfully',
+            'review': review.to_dict()
+        }
+        
+        if sequence_advanced:
+            response_data['sequence_advanced'] = True
+            response_data['message'] += ' and sequence advanced to next reviewer'
+        
+        return jsonify(response_data)
+        
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/<int:review_id>/follow-up', methods=['POST'])
+def follow_up_review(review_id):
+    """Send a follow-up reminder for a pending review"""
+    try:
+        # Get the review
+        review = Review.query.get_or_404(review_id)
+        
+        # Check if review is still pending
+        if review.status != 'pending':
+            return jsonify({'error': 'Can only send follow-ups for pending reviews'}), 400
+        
+        # Get reviewer, topic, and review token
+        reviewer = review.reviewer
+        topic = review.topic
+        
+        # Find the review token for this review, or create one if missing
+        review_token = ReviewToken.query.filter_by(review_id=review.id).first()
+        if not review_token:
+            # Create a new token if one doesn't exist
+            print(f"⚠️ No token found for review {review_id}, creating new one")
+            import secrets
+            from datetime import timedelta
+            
+            review_token = ReviewToken(
+                token=secrets.token_urlsafe(32),
+                review_id=review.id,
+                reviewer_email=reviewer.email,
+                expires_at=review.due_date + timedelta(days=7) if review.due_date else datetime.utcnow() + timedelta(days=14)
+            )
+            db.session.add(review_token)
+            db.session.commit()
+            print(f"✅ Created new token for review {review_id}: {review_token.token[:10]}...")
+        
+        # Send follow-up reminder email
+        print(f"🔄 Sending follow-up reminder for review {review_id}")
+        print(f"📧 Reviewer: {reviewer.name} ({reviewer.email})")
+        print(f"📝 Topic: {topic.title}")
+        
+        try:
+            # Use existing reminder email service, but with "Second Request:" prefix
+            email_sent = email_service.send_review_reminder(
+                reviewer_email=reviewer.email,
+                reviewer_name=reviewer.name,
+                topic_title=topic.title,
+                due_date=review.due_date,
+                review_token=review_token.token,
+                is_follow_up=True  # This will modify the subject line
+            )
+            
+            if email_sent:
+                print(f"✅ Follow-up reminder sent successfully to {reviewer.email}")
+                
+                # Update the review to track that a follow-up was sent
+                review.follow_up_sent_at = datetime.utcnow()
+                db.session.commit()
+                
+                return jsonify({
+                    'message': 'Follow-up reminder sent successfully',
+                    'review': review.to_dict()
+                }), 200
+            else:
+                print(f"⚠️ Failed to send follow-up reminder to {reviewer.email}")
+                return jsonify({'error': 'Failed to send follow-up reminder'}), 500
+                
+        except Exception as email_error:
+            print(f"❌ Follow-up email error: {str(email_error)}")
+            return jsonify({'error': 'Failed to send follow-up reminder'}), 500
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/pending', methods=['GET'])
+def get_pending_reviews():
+    """Get all pending reviews for the current user"""
+    try:
+        reviewer_id = request.args.get('reviewer_id', type=int)
+        
+        if reviewer_id:
+            # Get reviews assigned to specific reviewer
+            reviews = Review.query.filter(
+                and_(
+                    Review.reviewer_id == reviewer_id,
+                    Review.status.in_(['pending', 'in_progress'])
+                )
+            ).order_by(Review.due_date.asc()).all()
+        else:
+            # Get all pending reviews
+            reviews = Review.query.filter(
+                Review.status.in_(['pending', 'in_progress'])
+            ).order_by(Review.due_date.asc()).all()
+        
+        return jsonify([review.to_dict() for review in reviews])
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/my-reviews', methods=['GET'])
+def get_my_reviews():
+    """Get reviews requested by the current user"""
+    try:
+        requester_id = request.args.get('requester_id', type=int)
+        
+        if not requester_id:
+            return jsonify({'error': 'requester_id is required'}), 400
+            
+        reviews = Review.query.filter(
+            Review.requested_by == requester_id
+        ).order_by(Review.requested_at.desc()).all()
+        
+        return jsonify([review.to_dict() for review in reviews])
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/topic/<int:topic_id>/reviews', methods=['GET'])
+def get_topic_reviews(topic_id):
+    """Get all reviews for a specific topic"""
+    try:
+        reviews = Review.query.filter(
+            Review.topic_id == topic_id
+        ).order_by(Review.requested_at.desc()).all()
+        
+        return jsonify([review.to_dict() for review in reviews])
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+@reviews_bp.route('/stats', methods=['GET'])
+def get_review_stats():
+    """Get review statistics"""
+    try:
+        # Get overall stats
+        total_reviews = Review.query.count()
+        pending_reviews = Review.query.filter(Review.status == 'pending').count()
+        in_progress_reviews = Review.query.filter(Review.status == 'in_progress').count()
+        completed_reviews = Review.query.filter(Review.status == 'completed').count()
+        
+        # Calculate average completion time for completed reviews
+        completed_with_times = Review.query.filter(
+            and_(
+                Review.status == 'completed',
+                Review.completed_at.isnot(None),
+                Review.requested_at.isnot(None)
+            )
+        ).all()
+        
+        avg_completion_days = 0
+        if completed_with_times:
+            total_days = sum([
+                (review.completed_at - review.requested_at).days 
+                for review in completed_with_times
+            ])
+            avg_completion_days = round(total_days / len(completed_with_times), 1)
+        
+        # Get overdue reviews
+        overdue_reviews = Review.query.filter(
+            and_(
+                Review.status.in_(['pending', 'in_progress']),
+                Review.due_date < datetime.utcnow()
+            )
+        ).count()
+        
+        return jsonify({
+            'total': total_reviews,
+            'pending': pending_reviews,
+            'in_progress': in_progress_reviews,
+            'completed': completed_reviews,
+            'overdue': overdue_reviews,
+            'avg_completion_days': avg_completion_days,
+            'topics': {
+                'total': total_reviews,  # Using review count as proxy
+                'pending_review': pending_reviews,
+                'draft': 0,  # Placeholder
+                'published': completed_reviews
+            },
+            'imports': {
+                'total': 0,
+                'pending': 0,
+                'sme_approved': 0,
+                'final_approved': 0
+            }
+        })
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+# Legacy endpoints for backward compatibility
 @reviews_bp.route('/topics/pending', methods=['GET'])
 def get_pending_topic_reviews():
-    """Get topics that need review"""
+    """Get topics that need review (legacy endpoint)"""
     try:
-        # Get topics that are drafts or need review
-        topics = Topic.query.filter(
-            or_(
-                Topic.status == 'draft',
-                Topic.status == 'pending_review'
-            )
-        ).order_by(Topic.updated_at.desc()).all()
+        # Get topics with pending reviews
+        pending_reviews = Review.query.filter(
+            Review.status.in_(['pending', 'in_progress'])
+        ).all()
         
         result = []
-        for topic in topics:
-            topic_dict = topic.to_dict()
-            # Add review metadata
-            topic_dict['needs_review'] = True
-            topic_dict['review_type'] = 'topic'
+        for review in pending_reviews:
+            topic_dict = review.topic.to_dict()
+            topic_dict['review_id'] = review.id
+            topic_dict['reviewer_name'] = review.reviewer.name
+            topic_dict['due_date'] = review.due_date.isoformat() if review.due_date else None
+            topic_dict['priority'] = review.priority
             result.append(topic_dict)
         
         return jsonify(result)
@@ -55,222 +534,16 @@ def get_pending_topic_reviews():
 def get_pending_collection_reviews():
     """Get collections that need review"""
     try:
-        # Get collections that might need review (you may need to add review status to Collection model)
-        collections = Collection.query.order_by(Collection.created_at.desc()).all()
-        
-        result = []
-        for collection in collections:
-            collection_dict = collection.to_dict()
-            # Add review metadata
-            collection_dict['needs_review'] = True
-            collection_dict['review_type'] = 'collection'
-            result.append(collection_dict)
-        
-        return jsonify(result)
+        # For now, return empty array - collections review system can be implemented later
+        return jsonify([])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/imports/pending', methods=['GET'])
 def get_pending_import_reviews():
-    """Get import documents that need review"""
+    """Get imports that need review"""
     try:
-        # Get imports in review workflow
-        imports = ImportDocument.query.filter(
-            ImportDocument.review_step.in_(['pending', 'sme_approved'])
-        ).order_by(ImportDocument.created_at.desc()).all()
-        
-        result = []
-        for imp in imports:
-            import_dict = imp.to_dict(include_items=True)
-            import_dict['review_type'] = 'import'
-            result.append(import_dict)
-        
-        return jsonify(result)
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@reviews_bp.route('/topic/<int:topic_id>/submit', methods=['POST'])
-def submit_topic_for_review(topic_id):
-    """Submit a topic for review"""
-    try:
-        topic = Topic.query.get_or_404(topic_id)
-        data = request.get_json() or {}
-        
-        # Update topic status
-        topic.status = 'pending_review'
-        topic.updated_at = datetime.utcnow()
-        
-        # Store review metadata in content for now (until we have proper schema)
-        review_info = {
-            'notes': data.get('notes', ''),
-            'assigned_reviewer_id': data.get('assigned_reviewer_id'),
-            'assigned_reviewer_name': data.get('assigned_reviewer_name', ''),
-            'due_date': data.get('due_date'),
-            'submitted_at': datetime.utcnow().isoformat()
-        }
-        
-        # For now, we'll store this as a comment in the topic content
-        # TODO: Move to proper review fields when database is updated
-        if hasattr(topic, 'review_notes'):
-            topic.review_notes = str(review_info)
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Topic submitted for review',
-            'topic': topic.to_dict(),
-            'review_info': review_info
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@reviews_bp.route('/topic/<int:topic_id>/approve', methods=['POST'])
-def approve_topic(topic_id):
-    """Approve a topic review"""
-    try:
-        topic = Topic.query.get_or_404(topic_id)
-        data = request.get_json() or {}
-        
-        reviewer_name = data.get('reviewer', 'Unknown')
-        comments = data.get('comments', '')
-        
-        # Update topic status
-        topic.status = 'published'
-        topic.updated_at = datetime.utcnow()
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Topic approved',
-            'topic': topic.to_dict()
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@reviews_bp.route('/topic/<int:topic_id>/reject', methods=['POST'])
-def reject_topic(topic_id):
-    """Reject a topic review"""
-    try:
-        topic = Topic.query.get_or_404(topic_id)
-        data = request.get_json() or {}
-        
-        reviewer_name = data.get('reviewer', 'Unknown')
-        comments = data.get('comments', '')
-        feedback = data.get('feedback', '')
-        
-        # Update topic status back to draft with feedback
-        topic.status = 'draft'
-        topic.updated_at = datetime.utcnow()
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': 'Topic rejected - returned to draft',
-            'topic': topic.to_dict(),
-            'feedback': feedback
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@reviews_bp.route('/import/<int:import_id>/review', methods=['POST'])
-def review_import(import_id):
-    """Review an import document"""
-    try:
-        import_doc = ImportDocument.query.get_or_404(import_id)
-        data = request.get_json() or {}
-        
-        action = data.get('action')  # 'sme_approve', 'final_approve', 'reject'
-        reviewer = data.get('reviewer', 'Unknown')
-        comments = data.get('comments', '')
-        
-        if action == 'sme_approve':
-            import_doc.review_step = 'sme_approved'
-        elif action == 'final_approve':
-            import_doc.review_step = 'final_approved'
-            import_doc.status = 'approved'
-        elif action == 'reject':
-            import_doc.status = 'rejected'
-            import_doc.review_step = 'pending'
-        
-        import_doc.reviewed_at = datetime.utcnow()
-        import_doc.reviewer = reviewer
-        
-        db.session.commit()
-        
-        return jsonify({
-            'message': f'Import {action}d successfully',
-            'import': import_doc.to_dict()
-        })
-    except Exception as e:
-        db.session.rollback()
-        return jsonify({'error': str(e)}), 500
-
-@reviews_bp.route('/history', methods=['GET'])
-def get_review_history():
-    """Get review history across all content types"""
-    try:
-        # Get recent reviews from different sources
-        history = []
-        
-        # Recent topic reviews
-        reviewed_topics = Topic.query.filter(
-            Topic.status.in_(['published', 'rejected'])
-        ).order_by(Topic.updated_at.desc()).limit(20).all()
-        
-        for topic in reviewed_topics:
-            history.append({
-                'id': topic.id,
-                'type': 'topic',
-                'title': topic.title,
-                'status': topic.status,
-                'reviewed_at': topic.updated_at.isoformat(),
-                'reviewer': 'System'  # You might want to add a reviewer field to Topic model
-            })
-        
-        # Recent import reviews
-        reviewed_imports = ImportDocument.query.filter(
-            ImportDocument.reviewed_at.isnot(None)
-        ).order_by(ImportDocument.reviewed_at.desc()).limit(20).all()
-        
-        for imp in reviewed_imports:
-            history.append({
-                'id': imp.id,
-                'type': 'import',
-                'title': imp.filename,
-                'status': imp.status,
-                'review_step': imp.review_step,
-                'reviewed_at': imp.reviewed_at.isoformat(),
-                'reviewer': imp.reviewer
-            })
-        
-        # Sort by review date
-        history.sort(key=lambda x: x['reviewed_at'], reverse=True)
-        
-        return jsonify(history[:50])  # Return last 50 reviews
-    except Exception as e:
-        return jsonify({'error': str(e)}), 500
-
-@reviews_bp.route('/stats', methods=['GET'])
-def get_review_stats():
-    """Get review statistics"""
-    try:
-        stats = {
-            'topics': {
-                'pending_review': Topic.query.filter_by(status='pending_review').count(),
-                'draft': Topic.query.filter_by(status='draft').count(),
-                'published': Topic.query.filter_by(status='published').count()
-            },
-            'imports': {
-                'pending': ImportDocument.query.filter_by(review_step='pending').count(),
-                'sme_approved': ImportDocument.query.filter_by(review_step='sme_approved').count(),
-                'final_approved': ImportDocument.query.filter_by(review_step='final_approved').count(),
-                'rejected': ImportDocument.query.filter_by(status='rejected').count()
-            }
-        }
-        
-        return jsonify(stats)
+        # For now, return empty array - imports review system can be implemented later
+        return jsonify([])
     except Exception as e:
         return jsonify({'error': str(e)}), 500

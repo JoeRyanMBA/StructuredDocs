@@ -80,7 +80,7 @@
         <div v-for="topic in pendingTopics" :key="topic.id" class="review-item">
           <div class="item-header">
             <h4>{{ topic.title }}</h4>
-            <span class="status-badge" :class="topic.status">{{ topic.status }}</span>
+            <span class="status-badge" :class="topic.status">{{ formatStatus(topic.status) }}</span>
           </div>
           <p class="item-preview">{{ topic.content?.substring(0, 150) }}...</p>
           <div class="item-meta">
@@ -214,6 +214,15 @@ export default {
         this.loading = false
       }
     },
+
+    formatStatus(status) {
+      // Convert status like "pending_review" to "Pending Review"
+      return status
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    },
+
     async reviewTopic(topic, action) {
       try {
         const endpoint = action === 'approve' ? 'approve' : 'reject'

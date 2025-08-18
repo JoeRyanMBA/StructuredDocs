@@ -133,7 +133,7 @@
 
     <!-- Create/Edit Modal -->
     <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="modal" @click.stop>
+      <div class="custom-modal" @click.stop>
         <div class="modal-header">
           <h3>{{ isEditing ? 'Edit Task' : 'Create New Task' }}</h3>
           <button @click="closeModal" class="close-btn">&times;</button>
@@ -302,7 +302,7 @@
 
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click="closeDeleteModal">
-      <div class="modal" @click.stop>
+      <div class="custom-modal" @click.stop>
         <div class="modal-header">
           <h3>Confirm Delete</h3>
           <button @click="closeDeleteModal" class="close-btn">&times;</button>
@@ -954,10 +954,10 @@ export default {
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2500;
 }
 
-.modal {
+.custom-modal {
   background: white;
   border-radius: 8px;
   min-width: 700px;
@@ -1163,7 +1163,7 @@ export default {
     grid-template-columns: 1fr;
   }
   
-  .modal {
+  .custom-modal {
     min-width: 95vw;
   }
 }

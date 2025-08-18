@@ -11,7 +11,6 @@ from flask_migrate import Migrate
 
 def create_app():
 
-    print("  ✅ Reviews blueprint registered")
     print("🚀 Creating Flask app...")
     app = Flask(__name__)
     print("📱 Flask instance created")
@@ -102,6 +101,8 @@ def create_app():
     from routes.images         import images_bp
     from routes.dashboard      import bp as dashboard_bp
     from routes.admin          import admin_bp
+    from routes.review_tokens  import review_tokens_bp
+    from routes.sequences      import sequences_bp
 
     # Register all blueprints once
     print("📋 Registering blueprints...")
@@ -140,6 +141,10 @@ def create_app():
     print("  ✅ Dashboard blueprint registered")
     app.register_blueprint(admin_bp)
     print("  ✅ Admin blueprint registered")
+    app.register_blueprint(review_tokens_bp)
+    print("  ✅ Review tokens blueprint registered")
+    app.register_blueprint(sequences_bp)
+    print("  ✅ Sequences blueprint registered")
 
     print("🎉 Flask app creation complete!")
     # Error handler for JWT errors

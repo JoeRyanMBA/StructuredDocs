@@ -34,8 +34,12 @@
             <select v-model="statusFilter" @change="applyFilters" class="filter-input">
               <option value="">All Statuses</option>
               <option value="draft">Draft</option>
-              <option value="in_review">In Review</option>
+              <option value="pending_review">Pending Review</option>
+              <option value="approved">Approved</option>
+              <option value="revisions_requested">Revisions Requested</option>
               <option value="published">Published</option>
+              <option value="rejected">Rejected</option>
+              <option value="archived">Archived</option>
             </select>
           </div>
           <div class="filter-group">
@@ -74,7 +78,7 @@
           <td>{{ t.title }}</td>
           <td>
             <span :class="`badge badge--${t.status}`">
-              {{ t.status }}
+              {{ formatStatus(t.status) }}
             </span>
           </td>
           <td class="actions-cell">
@@ -91,6 +95,15 @@
               class="btn btn-sm btn-warning"
             >
               <i class="fas fa-eye"></i> Review
+            </button>
+
+            <button
+              v-if="t.status === 'draft'"
+              @click="openSequentialReview(t)"
+              class="btn btn-sm btn-info"
+              title="Set up a sequential review workflow where expert reviewer goes first, then others see the improved version"
+            >
+              <i class="bi bi-arrow-right-circle"></i> Sequential Review
             </button>
 
             <button
@@ -127,23 +140,58 @@
           </div>
 
           <div class="form-group" v-if="reviewData.project_id">
-            <label for="reviewer-select">Assign to Reviewer:</label>
-            <select id="reviewer-select" v-model="reviewData.assigned_stakeholder_id" required>
-              <option value="">Select a reviewer...</option>
-              <option 
-                v-for="stakeholder in projectStakeholders" 
-                :key="stakeholder.id" 
-                :value="stakeholder.id"
-                v-if="stakeholder.can_review !== false"
+            <label for="reviewer-select">Assign to Reviewers (select one or more):</label>
+            <div class="multi-select-container">
+              <div 
+                v-for="stakeholder in safeProjectStakeholders" 
+                :key="stakeholder.id"
+                class="checkbox-item"
               >
-                {{ stakeholder.name }} ({{ stakeholder.role || 'Stakeholder' }})
-              </option>
-            </select>
-            <small v-if="projectStakeholders.length === 0" class="text-muted">
-              Loading stakeholders...
+                <input 
+                  type="checkbox" 
+                  :id="`reviewer-${stakeholder.id}`"
+                  :value="stakeholder.id"
+                  v-model="reviewData.assigned_stakeholder_ids"
+                />
+                <label :for="`reviewer-${stakeholder.id}`" class="checkbox-label">
+                  {{ stakeholder.name }} ({{ stakeholder.role || 'Stakeholder' }}) - {{ stakeholder.division || 'No division' }}
+                </label>
+              </div>
+            </div>
+            <small v-if="!reviewData.project_id" class="text-muted">
+              Please select a project first.
             </small>
-            <small v-else-if="projectStakeholders.filter(s => s.can_review !== false).length === 0" class="text-warning">
-              No stakeholders with review permissions found for this project.
+            <small v-else-if="projectStakeholders.length === 0 && availableReviewers.length === 0" class="text-muted">
+              Loading reviewers...
+            </small>
+            <small v-else-if="safeProjectStakeholders.length === 0" class="text-warning">
+              No reviewers available for this project.
+            </small>
+            <small v-else-if="reviewData.assigned_stakeholder_ids.length === 0" class="text-info">
+              Please select at least one reviewer.
+            </small>
+            <small v-else class="text-success">
+              {{ reviewData.assigned_stakeholder_ids.length }} reviewer(s) selected.
+            </small>
+          </div>
+
+          <!-- Sequential Review Option -->
+          <div class="form-group" v-if="reviewData.assigned_stakeholder_ids.length > 1">
+            <div class="form-check">
+              <input 
+                class="form-check-input" 
+                type="checkbox" 
+                id="sequentialReview" 
+                v-model="reviewData.isSequential"
+              >
+              <label class="form-check-label" for="sequentialReview">
+                <i class="bi bi-arrow-right-circle me-1"></i>
+                <strong>Sequential Review</strong> - Reviewers work one at a time (expert first strategy)
+              </label>
+            </div>
+            <small class="text-muted">
+              When enabled, reviewers will be assigned in the order selected. The first reviewer should be your most expert person.
+              Each subsequent reviewer will only see the improved version after previous changes are incorporated.
             </small>
           </div>
 
@@ -172,32 +220,41 @@
           <div class="debug-info" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 1rem; font-size: 0.75rem;">
             <strong>Form Status:</strong><br>
             Project ID: {{ reviewData.project_id || 'Not selected' }}<br>
-            Stakeholder ID: {{ reviewData.assigned_stakeholder_id || 'Not selected' }}<br>
+            Selected Reviewers: {{ reviewData.assigned_stakeholder_ids.length > 0 ? reviewData.assigned_stakeholder_ids.join(', ') : 'None selected' }}<br>
             Due Date: {{ reviewData.due_date || 'Not set' }}<br>
-            Available Stakeholders: {{ projectStakeholders.length }}<br>
-            Reviewable Stakeholders: {{ projectStakeholders.filter(s => s.can_review !== false).length }}<br>
-            Form Valid: {{ !!(reviewData.project_id && reviewData.assigned_stakeholder_id && reviewData.due_date) }}
+            Project Stakeholders: {{ projectStakeholders.length }}<br>
+            Available Reviewers: {{ availableReviewers.length }}<br>
+            Reviewable Stakeholders: {{ safeProjectStakeholders.length }}<br>
+            Using Fallback Reviewers: {{ projectStakeholders.length === 0 && availableReviewers.length > 0 ? 'Yes' : 'No' }}<br>
+            Form Valid: {{ !!(reviewData.project_id && reviewData.assigned_stakeholder_ids.length > 0 && reviewData.due_date) }}
           </div>
         </div>
 
         <div class="modal-footer">
           <button @click="closeReviewModal" class="btn btn-secondary">Cancel</button>
-          <button @click="confirmSubmitForReview" class="btn btn-primary" :disabled="!reviewData.project_id || !reviewData.assigned_stakeholder_id || !reviewData.due_date">
+          <button @click="confirmSubmitForReview" class="btn btn-primary" :disabled="!reviewData.project_id || reviewData.assigned_stakeholder_ids.length === 0 || !reviewData.due_date">
             Submit for Review
           </button>
         </div>
       </div>
     </div>
+
+    <!-- Sequential Review Modal -->
+    <SequentialReviewModal
+      :topic="selectedTopicForSequence"
+      @sequence-created="onSequenceCreated"
+    />
   </div>
 </template>
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
+import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 
 export default {
   name: 'TopicListView',
-  components: { Breadcrumbs, NotificationTicker },
+  components: { Breadcrumbs, NotificationTicker, SequentialReviewModal },
   props: {
     notifications: {
       type: Array,
@@ -224,19 +281,45 @@ export default {
       error: null,
       showReviewModal: false,
       selectedTopic: null,
+      selectedTopicForSequence: null,
       availableReviewers: [],
       availableProjects: [],
       projectStakeholders: [],
       reviewData: {
         project_id: '',
-        assigned_stakeholder_id: '',
-        due_date: '',
+        assigned_stakeholder_ids: [],  // Changed to array for multiple selection
+        isSequential: false,  // New property for sequential review option
+        due_date: (() => {
+          const d = new Date();
+          d.setDate(d.getDate() + 7);
+          return d.toISOString().split('T')[0];
+        })(),
         submitter_notes: ''
       }
     }
   },
 
   computed: {
+    // Safe stakeholders for template rendering
+    safeProjectStakeholders() {
+      const projectStakeholders = (this.projectStakeholders || []).filter(s => s && s.id && s.name && s.can_review !== false)
+      
+      // If project has specific stakeholders with review permissions, use them
+      if (projectStakeholders.length > 0) {
+        return projectStakeholders
+      }
+      
+      // Otherwise, fall back to general reviewers if project is selected but has no stakeholders
+      if (this.reviewData.project_id && this.availableReviewers.length > 0) {
+        return (this.availableReviewers || []).filter(s => s && s.id && s.name).map(reviewer => ({
+          ...reviewer,
+          can_review: true // Mark general reviewers as able to review
+        }))
+      }
+      
+      return []
+    },
+
     mergedNotifications() {
       // Combine global and dashboard-specific notifications, removing duplicates by id
       const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
@@ -281,6 +364,14 @@ export default {
       } finally {
         this.loading = false
       }
+    },
+
+    formatStatus(status) {
+      // Convert status like "pending_review" to "Pending review"
+      return status
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
     },
 
     applyFilters() {
@@ -343,7 +434,9 @@ export default {
         console.log('Fetching stakeholders for project:', projectId)
         const res = await fetch(`/api/projects/${projectId}/stakeholders`)
         if (!res.ok) throw new Error(`Status ${res.status}`)
-        this.projectStakeholders = await res.json()
+        const stakeholders = await res.json()
+        // Filter out any invalid stakeholder objects
+        this.projectStakeholders = (stakeholders || []).filter(s => s && s.id && s.name)
         console.log('Loaded stakeholders:', this.projectStakeholders)
       } catch (err) {
         console.error('Failed to fetch project stakeholders:', err)
@@ -356,9 +449,10 @@ export default {
       if (this.reviewData.project_id) {
         await this.fetchProjectStakeholders(this.reviewData.project_id)
         // Reset stakeholder selection when project changes
-        this.reviewData.assigned_stakeholder_id = ''
+        this.reviewData.assigned_stakeholder_ids = []
       } else {
         this.projectStakeholders = []
+        this.reviewData.assigned_stakeholder_ids = []
       }
       console.log('Project stakeholders after change:', this.projectStakeholders)
     },
@@ -387,11 +481,14 @@ export default {
       this.selectedTopic = topic
       this.showReviewModal = true
       
-      // Reset form data
+      // Reset form data with default due date (7 days from now)
+      const defaultDueDate = new Date()
+      defaultDueDate.setDate(defaultDueDate.getDate() + 7)
+      
       this.reviewData = {
         project_id: '',
-        assigned_stakeholder_id: '',
-        due_date: '',
+        assigned_stakeholder_ids: [],
+        due_date: defaultDueDate.toISOString().split('T')[0],
         submitter_notes: ''
       }
       
@@ -402,38 +499,152 @@ export default {
     closeReviewModal() {
       this.showReviewModal = false
       this.selectedTopic = null
+      // Reset form data
+      this.reviewData = {
+        project_id: '',
+        assigned_stakeholder_ids: [],
+        isSequential: false,
+        due_date: '',
+        submitter_notes: ''
+      }
+      this.projectStakeholders = []
     },
 
     async confirmSubmitForReview() {
       try {
-        if (!this.selectedTopic || !this.reviewData.project_id) return
-
-        // Submit review to project-based endpoint
-        const reviewPayload = {
-          topic_id: this.selectedTopic.id,
-          assigned_stakeholder_id: this.reviewData.assigned_stakeholder_id,
-          due_date: this.reviewData.due_date,
-          submitter_notes: this.reviewData.submitter_notes
+        console.log('Starting review submission...')
+        console.log('Selected topic:', this.selectedTopic)
+        console.log('Review data:', this.reviewData)
+        
+        if (!this.selectedTopic || !this.reviewData.project_id || this.reviewData.assigned_stakeholder_ids.length === 0) {
+          console.error('Validation failed:', {
+            selectedTopic: !!this.selectedTopic,
+            project_id: this.reviewData.project_id,
+            stakeholder_ids: this.reviewData.assigned_stakeholder_ids
+          })
+          return
         }
 
-        const res = await fetch(`/api/projects/${this.reviewData.project_id}/reviews`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(reviewPayload)
-        })
+        // Check if sequential review was requested
+        if (this.reviewData.isSequential && this.reviewData.assigned_stakeholder_ids.length > 1) {
+          console.log('Creating sequential review...')
+          
+          // Create sequential review
+          const sequencePayload = {
+            topic_id: this.selectedTopic.id,
+            created_by: 1, // TODO: Get current user ID from auth context
+            name: `Review Sequence for ${this.selectedTopic.title}`,
+            description: 'Expert-first sequential review workflow',
+            initial_message: this.reviewData.submitter_notes || `Please review "${this.selectedTopic.title}" for technical accuracy and clarity.`,
+            priority: 'medium',
+            reviewers: this.reviewData.assigned_stakeholder_ids.map((stakeholderId, index) => ({
+              reviewer_id: stakeholderId,
+              step_name: index === 0 ? 'Expert Review' : `Review Step ${index + 1}`,
+              instructions: index === 0 ? 'Focus on technical accuracy and completeness' : 'Focus on clarity and readability after technical improvements'
+            })),
+            auto_advance_on_approve: true,
+            pause_on_changes: true,
+            auto_start: true
+          }
 
-        if (!res.ok) throw new Error(`Submit for review failed (${res.status})`)
+          console.log('Sending sequential review request:', sequencePayload)
 
-        // Close modal and refresh topics
-        this.closeReviewModal()
-        await this.fetchTopics()
-        
-        alert(`"${this.selectedTopic.title}" has been submitted for review successfully!`)
+          const res = await fetch('/api/sequences/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(sequencePayload)
+          })
+
+          if (!res.ok) {
+            const errorData = await res.json()
+            console.error('Sequential review request failed:', errorData)
+            throw new Error(`Sequential review request failed: ${errorData.error || res.status}`)
+          }
+
+          const result = await res.json()
+          console.log('Sequential review created:', result)
+          
+          // Store topic title before closing modal
+          const topicTitle = this.selectedTopic.title
+          
+          // Close modal and refresh topics
+          this.closeReviewModal()
+          await this.fetchTopics()
+          
+          alert(`"${topicTitle}" has been submitted for sequential review! First reviewer has been notified.`)
+          
+        } else {
+          // Regular parallel review process
+          console.log('Creating regular review requests for stakeholders:', this.reviewData.assigned_stakeholder_ids)
+
+          // Create multiple review requests - one for each selected reviewer
+          const reviewPromises = this.reviewData.assigned_stakeholder_ids.map(async (stakeholderId) => {
+            const reviewPayload = {
+              topic_id: this.selectedTopic.id,
+              reviewer_id: stakeholderId,
+              requested_by: 1, // TODO: Get current user ID from auth context
+              priority: 'medium',
+              due_date: this.reviewData.due_date,
+              message: this.reviewData.submitter_notes || `Review requested for: ${this.selectedTopic.title}`
+            }
+
+            console.log('Sending review request:', reviewPayload)
+
+            const res = await fetch('/api/reviews/request', {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify(reviewPayload)
+            })
+
+            console.log('Review request response status:', res.status)
+
+            if (!res.ok) {
+              const errorData = await res.json()
+              console.error('Review request failed:', errorData)
+              throw new Error(`Review request failed: ${errorData.error || res.status}`)
+            }
+
+            return await res.json()
+          })
+
+          // Wait for all review requests to complete
+          console.log('Waiting for all review requests to complete...')
+          const results = await Promise.all(reviewPromises)
+          console.log('All review requests completed:', results)
+          
+          // Store topic title before closing modal (which sets selectedTopic to null)
+          const topicTitle = this.selectedTopic.title
+          const reviewerCount = this.reviewData.assigned_stakeholder_ids.length
+          
+          // Close modal and refresh topics
+          this.closeReviewModal()
+          await this.fetchTopics()
+          
+          alert(`"${topicTitle}" has been submitted for review to ${reviewerCount} reviewer(s) successfully!`)
+        }
 
       } catch (err) {
         console.error('Submit for review failed:', err)
         alert('Failed to submit topic for review. Please try again.')
       }
+    },
+
+    openSequentialReview(topic) {
+      this.selectedTopicForSequence = topic
+      
+      // Open the modal
+      const modal = new bootstrap.Modal(document.getElementById('sequentialReviewModal'))
+      modal.show()
+    },
+
+    onSequenceCreated(sequence) {
+      console.log('Sequence created:', sequence)
+      
+      // Refresh topics to update status
+      this.fetchTopics()
+      
+      // Show success message
+      alert(`Sequential review created for "${sequence.topic_title}"! First reviewer has been notified.`)
     }
   }
 }
@@ -550,6 +761,13 @@ td {
   border-bottom: 1px solid #e0e0e0;
 }
 
+/* Prevent Status column from wrapping */
+th:nth-child(3),
+td:nth-child(3) {
+  white-space: nowrap;
+  min-width: 120px;
+}
+
 .badge {
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
@@ -569,6 +787,22 @@ td {
 .badge--pending_review {
   background: #fff3cd;
   color: #856404;
+}
+
+.badge--approved {
+  background: #c3e6cb;
+  color: #155724;
+}
+
+.badge--revisions_requested {
+  background: #ffeaa7;
+  color: #b8860b;
+  border: 1px solid #ddb867;
+}
+
+.badge--rejected {
+  background: #f5c6cb;
+  color: #721c24;
 }
 
 .badge--archived {
@@ -792,6 +1026,59 @@ td {
 .text-muted {
   color: #6c757d;
   font-size: 0.875rem;
+}
+
+.text-warning {
+  color: #ffc107;
+  font-size: 0.875rem;
+}
+
+.text-info {
+  color: #17a2b8;
+  font-size: 0.875rem;
+}
+
+.text-success {
+  color: #28a745;
+  font-size: 0.875rem;
+}
+
+/* Multi-select checkbox styles */
+.multi-select-container {
+  max-height: 200px;
+  overflow-y: auto;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  padding: 0.5rem;
+  background: white;
+}
+
+.checkbox-item {
+  display: flex;
+  align-items: center;
+  padding: 0.25rem 0;
+  border-bottom: 1px solid #f8f9fa;
+}
+
+.checkbox-item:last-child {
+  border-bottom: none;
+}
+
+.checkbox-item input[type="checkbox"] {
+  margin-right: 0.5rem;
+  margin-top: 0;
+}
+
+.checkbox-label {
+  margin: 0;
+  cursor: pointer;
+  font-weight: normal;
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.checkbox-item:hover {
+  background-color: #f8f9fa;
 }
 
 .text-warning {

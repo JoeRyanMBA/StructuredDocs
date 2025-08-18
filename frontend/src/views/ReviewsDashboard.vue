@@ -45,8 +45,17 @@
         <div class="metric-icon">⚡</div>
         <div class="metric-content">
           <h3>Avg Time</h3>
-          <div class="metric-number">{{ stats.avgDays || 0 }}</div>
+          <div class="metric-number">{{ stats.avg_completion_days || 0 }}</div>
           <div class="metric-detail">Days to complete</div>
+        </div>
+      </div>
+
+      <div class="metric-card">
+        <div class="metric-icon">⚠️</div>
+        <div class="metric-content">
+          <h3>Overdue</h3>
+          <div class="metric-number">{{ stats.overdue || 0 }}</div>
+          <div class="metric-detail">Past due date</div>
         </div>
       </div>
     </div>
@@ -125,16 +134,18 @@
               <div class="card-header">
                 <div class="card-title">
                   <h3>{{ review.topic_title || 'Unknown Topic' }}</h3>
-                  <span class="card-badge">{{ review.type || 'Review' }}</span>
                 </div>
-                <span class="card-status" :class="review.status">{{ formatStatus(review.status) }}</span>
+                <div class="card-status-group">
+                  <span class="card-status" :class="review.status">{{ formatStatus(review.status) }}</span>
+                  <span class="topic-id-subtle">Topic #{{ review.topic_id }}</span>
+                </div>
               </div>
               <div class="card-content">
                 <p class="card-description">
                   <strong>Reviewer:</strong> {{ review.reviewer_name || 'Unknown' }}
                 </p>
                 <p class="card-description">
-                  <strong>Sent:</strong> {{ formatRelativeTime(review.sent_date) }}
+                  <strong>Sent:</strong> {{ formatRelativeTime(review.requested_at) }}
                   <span v-if="review.due_date"> • <strong>Due:</strong> {{ formatDueDate(review.due_date) }}</span>
                 </p>
                 <div class="card-metrics" v-if="review.feedback_count">
@@ -145,10 +156,10 @@
                 </div>
               </div>
               <div class="card-footer">
-                <span class="card-date">Updated {{ formatRelativeTime(review.updated_at || review.created_at) }}</span>
+                <span class="card-date">{{ getLastActivityText(review) }}</span>
                 <div class="card-actions">
                   <button 
-                    v-if="review.status === 'completed'" 
+                    v-if="review.status === 'completed' && review.topic_status === 'revisions_requested'" 
                     @click.stop="incorporateFeedback(review)" 
                     class="card-action-btn primary"
                   >
@@ -205,10 +216,12 @@ export default {
         total: 0,
         pending: 0,
         completed: 0,
-        avgDays: 0
+        overdue: 0,
+        avg_completion_days: 0
       },
       urgentReviews: [],
-      recentReviews: []
+      recentReviews: [],
+      currentUser: JSON.parse(localStorage.getItem('user') || '{}')
     }
   },
 
@@ -246,133 +259,82 @@ export default {
 
     async loadReviews() {
       try {
-        // Fetch real reviews from backend API
-        try {
-          const res = await fetch('/api/reviews/')
-          if (res.ok) {
-            const realReviews = await res.json()
-            this.processReviews(realReviews)
-          } else {
-            this.processReviews([])
-          }
-        } catch {
-          this.processReviews([])
+        // Load reviews from the new reviews API
+        const { getPendingReviews, getMyReviews } = await import('@/api/reviews.js')
+        
+        // Get pending reviews (urgent ones)
+        const pendingReviews = await getPendingReviews()
+        
+        // Filter urgent and overdue reviews
+        const now = new Date()
+        this.urgentReviews = pendingReviews.filter(review => {
+          const isUrgent = review.priority === 'urgent' || review.priority === 'high'
+          const isOverdue = review.due_date && new Date(review.due_date) < now
+          return isUrgent || isOverdue
+        }).slice(0, 5) // Show top 5
+        
+        // Get recent reviews requested by current user
+        if (this.currentUser.id) {
+          this.recentReviews = await getMyReviews(this.currentUser.id)
+          this.recentReviews = this.recentReviews.slice(0, 10) // Show recent 10
         }
         
       } catch (error) {
         console.error('Failed to load reviews:', error)
+        // Fallback to empty arrays
+        this.urgentReviews = []
+        this.recentReviews = []
       }
-    },
-
-    processReviews(reviews) {
-      // Get urgent reviews (pending and overdue or due soon)
-      const now = new Date()
-      const threeDaysFromNow = new Date(now.getTime() + 3 * 24 * 60 * 60 * 1000)
-      
-      this.urgentReviews = reviews.filter(review => {
-        if (review.status !== 'pending') return false
-        if (!review.due_date) return true // No due date = urgent
-        const dueDate = new Date(review.due_date)
-        return dueDate <= threeDaysFromNow // Due within 3 days
-      }).slice(0, 5)
-
-      // Get recent reviews (last 10, sorted by updated_at)
-      this.recentReviews = [...reviews]
-        .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-        .slice(0, 10)
-
-      // Calculate stats
-      this.calculateStats(reviews)
     },
 
     async loadStats() {
-      // Stats are calculated in processReviews for efficiency
     },
 
-    calculateStats(reviews) {
-      const total = reviews.length
-      const pending = reviews.filter(r => r.status === 'pending').length
-      
-      // Count completed this month
-      const oneMonthAgo = new Date()
-      oneMonthAgo.setMonth(oneMonthAgo.getMonth() - 1)
-      const completed = reviews.filter(r => 
-        r.status === 'completed' && 
-        r.updated_at && 
-        new Date(r.updated_at) > oneMonthAgo
-      ).length
-
-      // Calculate average days to complete
-      const completedReviews = reviews.filter(r => r.status === 'completed' && r.sent_date && r.updated_at)
-      let avgDays = 0
-      if (completedReviews.length > 0) {
-        const totalDays = completedReviews.reduce((sum, r) => {
-          const sent = new Date(r.sent_date)
-          const completed = new Date(r.updated_at)
-          const days = Math.floor((completed - sent) / (24 * 60 * 60 * 1000))
-          return sum + days
-        }, 0)
-        avgDays = Math.round(totalDays / completedReviews.length)
-      }
-
-      this.stats = {
-        total,
-        pending,
-        completed,
-        avgDays
-      }
-    },
-
-    async sendNewReview() {
-      // Persist new review action to backend (example: create a new review draft)
+    async loadStats() {
       try {
-        const res = await fetch('/api/reviews/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'start_review' })
-        })
-        if (!res.ok) throw new Error('Failed to start new review')
-        await this.loadReviews()
-      } catch (err) {
-        console.error('Error starting new review:', err)
+        const { getReviewStats } = await import('@/api/reviews.js')
+        this.stats = await getReviewStats()
+      } catch (error) {
+        console.error('Failed to load review stats:', error)
+        // Keep default stats
       }
-      this.$router.push('/reviews/send')
+    },
+
+    sendNewReview() {
+      this.$router.push('/topics')
     },
 
     viewReview(review) {
-      this.$router.push(`/reviews/${review.id}`)
+      if (review.topic_id) {
+        this.$router.push(`/topics/${review.topic_id}/edit`)
+      }
     },
 
-    async incorporateFeedback(review) {
-      // Persist feedback incorporation to backend
-      try {
-        const res = await fetch(`/api/reviews/${review.id}/incorporate`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'incorporate_feedback' })
-        })
-        if (!res.ok) throw new Error('Failed to incorporate feedback')
-        await this.loadReviews()
-      } catch (err) {
-        console.error('Error incorporating feedback:', err)
+    incorporateFeedback(review) {
+      if (review.topic_id) {
+        // Navigate to review feedback page instead of direct edit
+        this.$router.push(`/topics/${review.topic_id}/review-feedback/${review.id}`)
       }
-      this.$router.push(`/reviews/${review.id}/incorporate`)
     },
 
     async followUp(review) {
-      // Persist follow-up action to backend
       try {
-        const res = await fetch(`/api/reviews/${review.id}/followup`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action: 'follow_up' })
-        })
-        if (!res.ok) throw new Error('Failed to follow up')
+        // Import the follow-up API function
+        const { sendFollowUpReminder } = await import('@/api/reviews.js')
+        
+        // Send the follow-up reminder
+        const response = await sendFollowUpReminder(review.id)
+        
+        // Show success message
+        alert(`✅ Follow-up reminder sent to ${review.reviewer_name}!`)
+        
+        // Refresh the reviews list to show updated data
         await this.loadReviews()
-      } catch (err) {
-        console.error('Error following up:', err)
+        
+      } catch (error) {
+        console.error('Error sending follow-up reminder:', error)
+        alert(`❌ Failed to send follow-up reminder: ${error.message}`)
       }
-      this.$router.push(`/reviews/${review.id}/followup`)
     },
 
     navigateTo(path) {
@@ -381,11 +343,10 @@ export default {
 
     formatStatus(status) {
       const statusMap = {
-        'pending': 'Pending',
-        'in_progress': 'In Progress',
-        'completed': 'Completed',
-        'overdue': 'Overdue',
-        'cancelled': 'Cancelled'
+        'pending': 'Review Pending',
+        'in_progress': 'Review In Progress',
+        'completed': 'Review Completed',
+        'declined': 'Review Declined'
       }
       return statusMap[status] || status
     },
@@ -422,6 +383,17 @@ export default {
       if (diffDays < 7) return `${diffDays}d ago`
       
       return time.toLocaleDateString()
+    },
+
+    getLastActivityText(review) {
+      if (review.completed_at) {
+        return `Completed ${this.formatRelativeTime(review.completed_at)}`
+      } else if (review.started_at) {
+        return `Started ${this.formatRelativeTime(review.started_at)}`
+      } else if (review.requested_at) {
+        return `Requested ${this.formatRelativeTime(review.requested_at)}`
+      }
+      return 'No activity'
     }
   }
 }
@@ -819,6 +791,37 @@ export default {
 
 .link-btn:hover {
   color: #005E7B;
+}
+
+.topic-id-badge {
+  background: #205493;
+  color: white;
+  padding: 0.2rem 0.5rem;
+  border-radius: 12px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  margin-left: 0.5rem;
+}
+
+.card-status-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-end;
+  gap: 0.25rem;
+}
+
+.topic-id-subtle {
+  color: #6b7280;
+  font-size: 0.7rem;
+  font-weight: 400;
+  text-align: right;
+}
+
+.topic-id-small {
+  color: #6b7280;
+  font-size: 0.8rem;
+  font-weight: 500;
+  margin-top: 0.2rem;
 }
 
 /* Loading */

@@ -152,79 +152,128 @@ def create_project():
 @projects_bp.route('/<int:project_id>/stakeholders', methods=['GET'])
 def get_project_stakeholders(project_id):
     """Get all stakeholders for a project"""
+    from models import db, ProjectStakeholder, Stakeholder
+    from sqlalchemy.orm import joinedload
     try:
-        # stakeholders = ProjectStakeholder.query.filter_by(project_id=project_id).all()
-        # return jsonify([stakeholder.to_dict() for stakeholder in stakeholders])
+        # Get all project stakeholders with their stakeholder details
+        project_stakeholders = ProjectStakeholder.query.filter_by(project_id=project_id)\
+            .options(joinedload(ProjectStakeholder.stakeholder))\
+            .all()
         
-        # Placeholder - return stakeholders who can review
-        if project_id == 1:
-            return jsonify([
-                {
-                    "id": 1,
-                    "name": "Dr. Sarah Johnson",
-                    "email": "sarah.johnson@census.gov",
-                    "role": "project_manager",
-                    "can_review": True
-                },
-                {
-                    "id": 2,
-                    "name": "Prof. Michael Chen", 
-                    "email": "michael.chen@statistics.gov",
-                    "role": "subject_matter_expert",
-                    "can_review": True
-                },
-                {
-                    "id": 3,
-                    "name": "Dr. Amanda Rodriguez",
-                    "email": "amanda.rodriguez@census.gov", 
-                    "role": "reviewer",
-                    "can_review": True
-                },
-                {
-                    "id": 4,
-                    "name": "Jennifer Kim",
-                    "email": "jennifer.kim@census.gov",
-                    "role": "stakeholder",
-                    "can_review": False
-                }
-            ])
-        else:
-            return jsonify([])
+        result = []
+        for ps in project_stakeholders:
+            result.append({
+                "id": ps.stakeholder.id,
+                "name": ps.stakeholder.name,
+                "email": ps.stakeholder.email,
+                "title": ps.stakeholder.title,
+                "organization": ps.stakeholder.organization,
+                "role": ps.role,
+                "can_review": ps.can_review,
+                "notes": ps.notes,
+                "project_stakeholder_id": ps.id,
+                "created_at": ps.created_at.isoformat() if ps.created_at else None
+            })
+        
+        return jsonify(result)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>/stakeholders', methods=['POST'])
 def add_project_stakeholder(project_id):
     """Add a stakeholder to a project"""
+    from models import db, Project, Stakeholder, ProjectStakeholder
     try:
         data = request.get_json()
+        
+        # Verify project exists
+        project = Project.query.get_or_404(project_id)
+        
         # Support adding by stakeholder_id (existing) or by name/email/role (new)
         if data.get('stakeholder_id'):
-            # Simulate lookup and association for existing stakeholder
+            # Add existing stakeholder to project
+            stakeholder_id = data['stakeholder_id']
+            stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
+            
+            # Check if stakeholder is already associated with this project
+            existing_association = ProjectStakeholder.query.filter_by(
+                project_id=project_id, 
+                stakeholder_id=stakeholder_id
+            ).first()
+            
+            if existing_association:
+                return jsonify({"error": "Stakeholder is already associated with this project"}), 400
+            
+            # Create new project-stakeholder association
+            project_stakeholder = ProjectStakeholder(
+                project_id=project_id,
+                stakeholder_id=stakeholder_id,
+                role=data.get('role', 'stakeholder'),
+                can_review=data.get('can_review', True),
+                notes=data.get('notes')
+            )
+            
+            db.session.add(project_stakeholder)
+            db.session.commit()
+            
             return jsonify({
-                "id": data['stakeholder_id'],
+                "id": project_stakeholder.id,
                 "project_id": project_id,
-                "role": data.get('role', 'stakeholder'),
-                "can_review": data.get('can_review', True),
-                "notes": data.get('notes'),
-                "created_at": datetime.utcnow().isoformat(),
+                "stakeholder_id": stakeholder_id,
+                "name": stakeholder.name,
+                "email": stakeholder.email,
+                "role": project_stakeholder.role,
+                "can_review": project_stakeholder.can_review,
+                "notes": project_stakeholder.notes,
+                "created_at": project_stakeholder.created_at.isoformat(),
                 "existing": True
             }), 201
         else:
+            # Create new stakeholder and add to project
             required_fields = ['name', 'email', 'role']
             for field in required_fields:
                 if not data.get(field):
                     return jsonify({"error": f"{field} is required"}), 400
-            # Simulate creation of new stakeholder and association
+            
+            # Check if stakeholder with this email already exists
+            existing_stakeholder = Stakeholder.query.filter_by(email=data['email']).first()
+            if existing_stakeholder:
+                # Use existing stakeholder
+                stakeholder = existing_stakeholder
+            else:
+                # Create new stakeholder
+                stakeholder = Stakeholder(
+                    name=data['name'],
+                    email=data['email'],
+                    title=data.get('title'),
+                    organization=data.get('organization'),
+                    role=data.get('role', 'stakeholder')
+                )
+                db.session.add(stakeholder)
+                db.session.flush()  # Get the ID
+            
+            # Create project-stakeholder association
+            project_stakeholder = ProjectStakeholder(
+                project_id=project_id,
+                stakeholder_id=stakeholder.id,
+                role=data.get('role', 'stakeholder'),
+                can_review=data.get('can_review', True),
+                notes=data.get('notes')
+            )
+            
+            db.session.add(project_stakeholder)
+            db.session.commit()
+            
             return jsonify({
-                "id": 999,
+                "id": project_stakeholder.id,
                 "project_id": project_id,
-                "name": data['name'],
-                "email": data['email'],
-                "role": data['role'],
-                "can_review": data.get('can_review', True),
-                "notes": data.get('notes'),
-                "created_at": datetime.utcnow().isoformat(),
+                "stakeholder_id": stakeholder.id,
+                "name": stakeholder.name,
+                "email": stakeholder.email,
+                "role": project_stakeholder.role,
+                "can_review": project_stakeholder.can_review,
+                "notes": project_stakeholder.notes,
+                "created_at": project_stakeholder.created_at.isoformat(),
                 "existing": False
             }), 201
     except Exception as e:

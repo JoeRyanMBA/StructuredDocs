@@ -317,7 +317,7 @@
                 <option value="stakeholder">Stakeholder</option>
                 <option value="sponsor">Sponsor</option>
               </select>
-              <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholder.name || !newStakeholder.email || !newStakeholder.role" class="add-btn">
+              <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole" class="add-btn">
                 + Add New Stakeholder
               </button>
             </div>
@@ -410,6 +410,151 @@
               placeholder="Project description"
               rows="3"
             ></textarea>
+          </div>
+        </div>
+
+        <!-- Stakeholders Section -->
+        <div class="form-section">
+          <h3>Stakeholders</h3>
+          
+          <!-- Add from existing stakeholders -->
+          <div class="stakeholder-selector">
+            <h4>Add Existing Stakeholder</h4>
+            <div class="selector-row">
+              <select v-model="selectedStakeholderId" class="stakeholder-select">
+                <option value="">Select a stakeholder...</option>
+                <option 
+                  v-for="stakeholder in availableStakeholders" 
+                  :key="stakeholder.id" 
+                  :value="stakeholder.id"
+                >
+                  {{ stakeholder.name }} ({{ stakeholder.organization }})
+                </option>
+              </select>
+              <select v-model="selectedStakeholderRole" class="role-select">
+                <option value="">Select role...</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <button 
+                type="button" 
+                @click="addExistingStakeholder('edit')" 
+                :disabled="!selectedStakeholderId || !selectedStakeholderRole"
+                class="add-btn"
+              >
+                + Add Selected
+              </button>
+            </div>
+          </div>
+
+          <!-- Current project stakeholders -->
+          <div class="stakeholders-list">
+            <h4>Project Stakeholders</h4>
+            <div v-for="(stakeholder, index) in editingProject.stakeholders" :key="index" class="stakeholder-item">
+              <div class="stakeholder-info">
+                <strong>{{ stakeholder.name }}</strong>
+                <span class="stakeholder-details">{{ stakeholder.email }} | {{ stakeholder.organization }}</span>
+              </div>
+              <select
+                v-model="stakeholder.role"
+                class="stakeholder-role-input"
+              >
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <input
+                v-model="stakeholder.notes"
+                type="text"
+                placeholder="Notes (optional)"
+                class="stakeholder-input"
+              />
+              <button type="button" @click="removeStakeholder(index, 'edit')" class="remove-btn">✕</button>
+            </div>
+            
+            <!-- Add new stakeholder manually -->
+            <div class="add-new-stakeholder">
+              <h4>Or Add New Stakeholder</h4>
+              <div class="new-stakeholder-form">
+                <input
+                  v-model="newStakeholderName"
+                  type="text"
+                  placeholder="Full name"
+                  class="stakeholder-input"
+                />
+                <input
+                  v-model="newStakeholderEmail"
+                  type="email"
+                  placeholder="Email address"
+                  class="stakeholder-input"
+                />
+                <input
+                  v-model="newStakeholderTitle"
+                  type="text"
+                  placeholder="Title"
+                  class="stakeholder-input"
+                />
+                <input
+                  v-model="newStakeholderOrganization"
+                  type="text"
+                  placeholder="Organization"
+                  class="stakeholder-input"
+                />
+                <select v-model="newStakeholderRole" class="stakeholder-input">
+                  <option value="">Select role...</option>
+                  <option value="project_manager">Project Manager</option>
+                  <option value="subject_matter_expert">Subject Matter Expert</option>
+                  <option value="reviewer">Reviewer</option>
+                  <option value="stakeholder">Stakeholder</option>
+                  <option value="sponsor">Sponsor</option>
+                </select>
+                <button 
+                  type="button" 
+                  @click="addNewStakeholder('edit')"
+                  :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
+                  class="add-btn"
+                >
+                  + Add New Stakeholder
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- Milestones Section -->
+        <div class="form-section">
+          <h3>Milestones</h3>
+          <div class="milestones-list">
+            <div v-for="(milestone, index) in editingProject.milestones" :key="index" class="milestone-item">
+              <input
+                v-model="milestone.name"
+                type="text"
+                placeholder="Milestone name"
+                class="milestone-input"
+              />
+              <input
+                v-model="milestone.date"
+                type="date"
+                class="milestone-input"
+                placeholder="Target date"
+              />
+              <select
+                v-model="milestone.status"
+                class="milestone-input"
+              >
+                <option value="planned">Planned</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="delayed">Delayed</option>
+              </select>
+              <button type="button" @click="removeMilestone(index, 'edit')" class="remove-btn">✕</button>
+            </div>
+            <button type="button" @click="addMilestone('edit')" class="add-btn">+ Add Milestone</button>
           </div>
         </div>
 
@@ -565,6 +710,13 @@ export default {
       // New stakeholder form
       newStakeholder: { name: '', email: '', title: '', organization: '', role: '' },
       
+      // Individual new stakeholder properties for form binding
+      newStakeholderName: '',
+      newStakeholderEmail: '',
+      newStakeholderTitle: '',
+      newStakeholderOrganization: '',
+      newStakeholderRole: '',
+      
       newProject: {
         name: '',
         description: '',
@@ -684,6 +836,7 @@ export default {
 
     async handleUpdateProject() {
       try {
+        // First, update the basic project information
         const response = await fetch(`/api/projects/${this.editingProject.id}`, {
           method: 'PUT',
           headers: {
@@ -702,6 +855,46 @@ export default {
 
         const updatedProject = await response.json()
         
+        // Handle stakeholder updates
+        const newStakeholders = this.editingProject.stakeholders.filter(s => s.isNew)
+        for (const stakeholder of newStakeholders) {
+          try {
+            if (stakeholder.stakeholder_id) {
+              // Add existing stakeholder to project
+              await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  stakeholder_id: stakeholder.stakeholder_id,
+                  role: stakeholder.role,
+                  notes: stakeholder.notes
+                })
+              })
+            } else {
+              // Create new stakeholder and add to project
+              await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  name: stakeholder.name,
+                  email: stakeholder.email,
+                  title: stakeholder.title,
+                  organization: stakeholder.organization,
+                  role: stakeholder.role,
+                  notes: stakeholder.notes
+                })
+              })
+            }
+          } catch (stakeholderError) {
+            console.error('Failed to add stakeholder:', stakeholder, stakeholderError)
+            // Continue with other stakeholders even if one fails
+          }
+        }
+        
         // Update the project in the local array
         const index = this.projects.findIndex(p => p.id === this.editingProject.id)
         if (index !== -1) {
@@ -710,6 +903,9 @@ export default {
             ...updatedProject
           }
         }
+
+        // Refresh the projects list to get updated stakeholder information
+        await this.fetchProjects()
 
         this.showEditModal = false
         this.resetEditingProject()
@@ -917,6 +1113,10 @@ export default {
         collections: project.collections ? [...project.collections] : [],
         publishedDocuments: project.publishedDocuments ? [...project.publishedDocuments] : []
       }
+      
+      // Load available stakeholders for adding new ones
+      this.fetchStakeholders()
+      
       this.showEditModal = true
     },
 
@@ -1218,17 +1418,23 @@ export default {
       }
     },
     async addNewStakeholderToProject() {
-      if (!this.createdProjectId || !this.newStakeholder.name || !this.newStakeholder.email || !this.newStakeholder.role) return
+      if (!this.createdProjectId || !this.newStakeholderName || !this.newStakeholderEmail || !this.newStakeholderRole) return
       try {
         const newStakeholder = await createStakeholder({
-          name: this.newStakeholder.name,
-          email: this.newStakeholder.email,
-          title: this.newStakeholder.title,
-          organization: this.newStakeholder.organization
+          name: this.newStakeholderName,
+          email: this.newStakeholderEmail,
+          title: this.newStakeholderTitle,
+          organization: this.newStakeholderOrganization
         })
-        await addStakeholderToProject(this.createdProjectId, newStakeholder.id, this.newStakeholder.role)
-        this.projectStakeholders.push({ ...newStakeholder, role: this.newStakeholder.role })
-        this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' }
+        await addStakeholderToProject(this.createdProjectId, newStakeholder.id, this.newStakeholderRole)
+        this.projectStakeholders.push({ ...newStakeholder, role: this.newStakeholderRole })
+        
+        // Reset individual form fields
+        this.newStakeholderName = ''
+        this.newStakeholderEmail = ''
+        this.newStakeholderTitle = ''
+        this.newStakeholderOrganization = ''
+        this.newStakeholderRole = ''
       } catch (err) {
         alert('Failed to add new stakeholder: ' + err.message)
       }
