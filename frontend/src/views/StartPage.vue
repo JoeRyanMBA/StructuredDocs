@@ -260,10 +260,34 @@ export default {
     async loadStats() {
       try {
         // Fetch real stats from backend API
-        const response = await fetch('/api/dashboard/stats');
+        const response = await fetch('/api/dashboard/stats', {
+          credentials: 'include'  // Include HTTP Basic Auth credentials
+        });
         if (response.ok) {
-          this.stats = await response.json();
+          const data = await response.json();
+          console.log('📊 Received stats data:', data);
+          
+          // Transform backend data to match frontend expectations
+          this.stats = {
+            projects: { 
+              total: data.projects?.total || 0, 
+              active: data.projects?.active || 0 
+            },
+            collections: { 
+              total: data.collections?.total || 0, 
+              new_today: data.collections?.new_today || 0 
+            },
+            topics: { 
+              total: data.topics?.total || 0, 
+              drafts: data.topics?.drafts || 0 
+            },
+            reviews: { 
+              total: data.reviews?.total || 0, 
+              pending: data.reviews?.pending || 0 
+            }
+          };
         } else {
+          console.warn('📊 Stats API returned error:', response.status, response.statusText);
           this.stats = {
             projects: { total: 0, active: 0 },
             collections: { total: 0, new_today: 0 },
@@ -284,10 +308,14 @@ export default {
     
     async loadProjects() {
       try {
-        const response = await fetch('/api/projects/')
+        const response = await fetch('/api/projects/', {
+          credentials: 'include'  // Include HTTP Basic Auth credentials
+        });
         if (response.ok) {
           this.projects = await response.json()
+          console.log('📁 Loaded projects:', this.projects.length);
         } else {
+          console.warn('📁 Projects API returned error:', response.status, response.statusText);
           throw new Error(`HTTP error! status: ${response.status}`)
         }
       } catch (error) {
@@ -300,7 +328,9 @@ export default {
     async loadPendingActions() {
       try {
         // Fetch real pending actions from backend API
-        const response = await fetch('/api/dashboard/pending-actions');
+        const response = await fetch('/api/dashboard/pending-actions', {
+          credentials: 'include'
+        });
         if (response.ok) {
           this.pendingActions = await response.json();
         } else {
@@ -314,7 +344,9 @@ export default {
     
     async loadRecentActivity() {
       try {
-        const res = await fetch('/api/import/history');
+        const res = await fetch('/api/import/history', {
+          credentials: 'include'
+        });
         if (res.ok) {
           this.recentActivity = await res.json();
         }

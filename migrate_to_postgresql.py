@@ -8,8 +8,11 @@ import os
 import sys
 from datetime import datetime
 
-# SQLite database path
-SQLITE_DB = '/workspaces/StructuredDocs/instance/structured_docs.db'
+# SQLite database path - adjust for your PythonAnywhere setup
+# For PythonAnywhere, this should be something like:
+# SQLITE_DB = '/home/JoeRyanMBA/StructuredDocs/instance/structured_docs.db'
+# Or wherever you uploaded the SQLite database file
+SQLITE_DB = '/home/JoeRyanMBA/StructuredDocs/instance/structured_docs.db'
 
 # PostgreSQL connection details
 PG_CONFIG = {
@@ -48,17 +51,36 @@ def migrate_table(sqlite_conn, pg_conn, table_name):
     # Get column names
     columns = get_table_columns(sqlite_conn, table_name)
     
+    # Clear existing data in PostgreSQL table first (to avoid conflicts)
+    pg_cursor = pg_conn.cursor()
+    try:
+        pg_cursor.execute(f"DELETE FROM {table_name}")
+        pg_conn.commit()
+        print(f"  Cleared existing data from {table_name}")
+    except Exception as e:
+        pg_conn.rollback()
+        print(f"  Warning: Could not clear {table_name}: {e}")
+    
     # Prepare PostgreSQL insert statement
     placeholders = ', '.join(['%s'] * len(columns))
     column_names = ', '.join(columns)
     insert_sql = f"INSERT INTO {table_name} ({column_names}) VALUES ({placeholders})"
     
     # Insert data into PostgreSQL
-    pg_cursor = pg_conn.cursor()
     try:
         pg_cursor.executemany(insert_sql, rows)
         pg_conn.commit()
         print(f"  Successfully migrated {len(rows)} rows")
+        
+        # Reset sequence for tables with auto-increment IDs
+        if 'id' in columns:
+            try:
+                pg_cursor.execute(f"SELECT setval(pg_get_serial_sequence('{table_name}', 'id'), (SELECT MAX(id) FROM {table_name}));")
+                pg_conn.commit()
+                print(f"  Reset sequence for {table_name}")
+            except Exception as e:
+                print(f"  Warning: Could not reset sequence for {table_name}: {e}")
+                
     except Exception as e:
         pg_conn.rollback()
         print(f"  Error migrating {table_name}: {e}")
@@ -138,7 +160,37 @@ def main():
     pg_conn.close()
     
     print("✅ Migration completed successfully!")
+    
+    # Verification step
+    print("\n🔍 Verifying migration...")
+    verify_migration()
+    
     return 0
+
+def verify_migration():
+    """Verify that the migration was successful by checking row counts"""
+    try:
+        # Connect to PostgreSQL for verification
+        pg_conn = psycopg2.connect(**PG_CONFIG)
+        pg_cursor = pg_conn.cursor()
+        
+        # Check key tables
+        key_tables = ['topics', 'tasks', 'reviews', 'users', 'stakeholders', 'projects', 'collections']
+        
+        print("Row counts in PostgreSQL after migration:")
+        for table_name in key_tables:
+            try:
+                pg_cursor.execute(f"SELECT COUNT(*) FROM {table_name}")
+                count = pg_cursor.fetchone()[0]
+                print(f"  {table_name}: {count} rows")
+            except Exception as e:
+                print(f"  {table_name}: ERROR - {e}")
+        
+        pg_conn.close()
+        print("✅ Verification completed!")
+        
+    except Exception as e:
+        print(f"❌ Verification failed: {e}")
 
 if __name__ == "__main__":
     sys.exit(main())
