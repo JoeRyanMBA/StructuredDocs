@@ -10,7 +10,7 @@ echo "🚀 Deploying StructuredDocs to PythonAnywhere..."
 cd /home/JoeRyanMBA/StructuredDocs
 
 echo "📥 Pulling latest changes from GitHub..."
-git pull origin main
+git pull origin 4k-updates
 
 echo "📦 Installing/updating Python dependencies..."
 pip3.12 install --user -r backend/requirements.txt
