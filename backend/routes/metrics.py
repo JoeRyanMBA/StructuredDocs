@@ -16,15 +16,27 @@ def get_performance_metrics():
     try:
         print("📊 Fetching performance metrics...")
         
-        # Get database metrics
-        db_path = '/workspaces/StructuredDocs/instance/structured_docs.db'
+        # Get database metrics - adapt path for different environments
+        db_path = os.environ.get('DATABASE_PATH', '/home/JoeRyanMBA/StructuredDocs/instance/structured_docs.db')
+        if not os.path.exists(db_path):
+            # Try alternative paths
+            alternative_paths = [
+                '/workspaces/StructuredDocs/instance/structured_docs.db',
+                'instance/structured_docs.db',
+                '../instance/structured_docs.db'
+            ]
+            for alt_path in alternative_paths:
+                if os.path.exists(alt_path):
+                    db_path = alt_path
+                    break
+        
         db_metrics = get_database_metrics(db_path)
         
         # Get basic system metrics (simplified)
         system_metrics = get_basic_system_metrics()
         
         # Get application metrics
-        app_metrics = get_application_metrics('/workspaces/StructuredDocs/instance/structured_docs.db')
+        app_metrics = get_application_metrics(db_path)
         
         # Get storage metrics
         storage_metrics = get_storage_metrics()
@@ -124,15 +136,25 @@ def get_basic_system_metrics():
     """Get basic system metrics without external dependencies"""
     try:
         # Get disk usage for the workspace using os.statvfs
-        workspace_path = '/workspaces/StructuredDocs'
-        if os.path.exists(workspace_path):
-            stat = os.statvfs(workspace_path)
-            total = stat.f_blocks * stat.f_frsize
-            free = stat.f_bavail * stat.f_frsize
-            used = total - free
-            disk_percent = (used / total) * 100 if total > 0 else 0
-        else:
-            disk_percent = 50  # Default
+        workspace_paths = [
+            '/home/JoeRyanMBA/StructuredDocs',
+            '/workspaces/StructuredDocs',
+            os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
+            '.'
+        ]
+        
+        disk_percent = 50  # Default
+        for workspace_path in workspace_paths:
+            if os.path.exists(workspace_path):
+                try:
+                    stat = os.statvfs(workspace_path)
+                    total = stat.f_blocks * stat.f_frsize
+                    free = stat.f_bavail * stat.f_frsize
+                    used = total - free
+                    disk_percent = (used / total) * 100 if total > 0 else 0
+                    break
+                except:
+                    continue
         
         # Use simulated values for memory and CPU (would need psutil for real values)
         memory_percent = 65.0  # Simulated
@@ -258,7 +280,19 @@ def get_application_metrics(db_path):
 def get_storage_metrics():
     """Get storage breakdown metrics"""
     try:
-        workspace_path = '/workspaces/StructuredDocs'
+        # Try to determine the workspace path dynamically
+        workspace_path = os.environ.get('PROJECT_PATH', '/home/JoeRyanMBA/StructuredDocs')
+        if not os.path.exists(workspace_path):
+            # Try alternative paths
+            alternative_paths = [
+                '/workspaces/StructuredDocs',
+                os.path.dirname(os.path.dirname(os.path.abspath(__file__))),  # Go up from routes/ to project root
+                '.'
+            ]
+            for alt_path in alternative_paths:
+                if os.path.exists(alt_path):
+                    workspace_path = alt_path
+                    break
         
         def get_directory_size(path):
             total = 0
@@ -274,8 +308,15 @@ def get_storage_metrics():
         
         # Get size of different components
         db_size = 0
-        if os.path.exists('/workspaces/StructuredDocs/instance/structured_docs.db'):
-            db_size = os.path.getsize('/workspaces/StructuredDocs/instance/structured_docs.db')
+        db_paths = [
+            os.path.join(workspace_path, 'instance/structured_docs.db'),
+            '/home/JoeRyanMBA/StructuredDocs/instance/structured_docs.db',
+            '/workspaces/StructuredDocs/instance/structured_docs.db'
+        ]
+        for db_path in db_paths:
+            if os.path.exists(db_path):
+                db_size = os.path.getsize(db_path)
+                break
         
         frontend_size = get_directory_size(os.path.join(workspace_path, 'frontend'))
         backend_size = get_directory_size(os.path.join(workspace_path, 'backend'))

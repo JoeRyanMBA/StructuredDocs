@@ -3,48 +3,7 @@
 > vite
 
 
-  VITE v7.1.1  ready in 1052 ms
+  VITE v7.1.1  ready in 561 ms
 
   ➜  Local:   http://localhost:5173/
-  ➜  Network: http://10.0.2.188:5173/
-Sending Request to the Target: GET /api/notifications
-Sending Request to the Target: GET /api/projects/
-Sending Request to the Target: GET /api/dashboard/stats
-Received Response from the Target: 200 /api/dashboard/stats
-Sending Request to the Target: GET /api/dashboard/pending-actions
-Sending Request to the Target: GET /api/import/history
-Received Response from the Target: 200 /api/dashboard/pending-actions
-Received Response from the Target: 200 /api/notifications
-Received Response from the Target: 200 /api/projects/
-Received Response from the Target: 200 /api/import/history
-Sending Request to the Target: GET /api/reviews/pending
-Sending Request to the Target: GET /api/reviews/stats
-Received Response from the Target: 200 /api/reviews/stats
-Received Response from the Target: 200 /api/reviews/pending
-Sending Request to the Target: GET /api/reviews/my-reviews?requester_id=1
-Received Response from the Target: 200 /api/reviews/my-reviews?requester_id=1
-Sending Request to the Target: GET /api/topics/
-Sending Request to the Target: GET /api/reviews/reviewers
-Sending Request to the Target: GET /api/projects/
-Received Response from the Target: 200 /api/topics/
-Received Response from the Target: 200 /api/reviews/reviewers
-Received Response from the Target: 200 /api/projects/
-Sending Request to the Target: GET /api/reviews/reviewers
-Received Response from the Target: 200 /api/reviews/reviewers
-Sending Request to the Target: POST /api/sequences/
-Received Response from the Target: 201 /api/sequences/
-Sending Request to the Target: GET /api/topics/
-Received Response from the Target: 200 /api/topics/
-Sending Request to the Target: GET /api/notifications
-Received Response from the Target: 200 /api/notifications
-Sending Request to the Target: GET /api/projects/
-Received Response from the Target: 200 /api/projects/
-Sending Request to the Target: GET /api/dashboard/pending-actions
-Received Response from the Target: 200 /api/dashboard/pending-actions
-Sending Request to the Target: GET /api/import/history
-Received Response from the Target: 200 /api/import/history
-Sending Request to the Target: GET /api/dashboard/stats
-Received Response from the Target: 200 /api/dashboard/stats
-Sending Request to the Target: GET /api/notifications
-Received Response from the Target: 200 /api/notifications
-1:25:15 PM [vite] (client) hmr update /src/components/SequentialReviewModal.vue
+  ➜  Network: http://10.0.1.202:5173/

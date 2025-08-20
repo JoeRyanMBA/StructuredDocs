@@ -25,12 +25,20 @@ def create_app():
              send_wildcard=True,
              vary_header=False)
         
-        # Configure SQLAlchemy database URI for PostgreSQL  
-        app.config['SQLALCHEMY_DATABASE_URI'] = (
-            'postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs'
-        )
+        # Configure SQLAlchemy database URI - environment aware
+        if os.environ.get('PYTHONANYWHERE_ENVIRONMENT'):
+            # PythonAnywhere PostgreSQL configuration
+            app.config['SQLALCHEMY_DATABASE_URI'] = (
+                'postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs'
+            )
+            print("🐘 Using PostgreSQL database for PythonAnywhere")
+        else:
+            # Local development SQLite configuration
+            db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'instance', 'structured_docs.db')
+            app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
+            print(f"🗄️ Using SQLite database for local development: {db_path}")
         
-        # Local SQLite fallback for development (uncomment if PostgreSQL not accessible)
+        app.config['SQLALCHEMY_TRACK_MODIFICATIONS'] = False        # Local SQLite fallback for development (uncomment if PostgreSQL not accessible)
         # sqlite_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'instance', 'structured_docs.db')
         # app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{sqlite_path}'
         
@@ -61,6 +69,84 @@ def create_app():
         from flask_jwt_extended import JWTManager
         jwt = JWTManager(app)
         print("🔐 JWT Manager initialized")
+        
+        # Register API blueprints
+        print("📋 Registering API blueprints...")
+        
+        # Import and register metrics blueprint
+        try:
+            from routes.metrics import metrics_bp
+            app.register_blueprint(metrics_bp)
+            print("✅ Metrics blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering metrics blueprint: {e}")
+        
+        # Import and register admin blueprint
+        try:
+            from routes.admin import admin_bp
+            app.register_blueprint(admin_bp)
+            print("✅ Admin blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering admin blueprint: {e}")
+        
+        # Import and register other blueprints
+        try:
+            from routes.stakeholders import stakeholders_bp
+            app.register_blueprint(stakeholders_bp)
+            print("✅ Stakeholders blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering stakeholders blueprint: {e}")
+            
+        try:
+            from routes.projects import projects_bp
+            app.register_blueprint(projects_bp)
+            print("✅ Projects blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering projects blueprint: {e}")
+            
+        try:
+            from routes.collections import collections_bp
+            app.register_blueprint(collections_bp)
+            print("✅ Collections blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering collections blueprint: {e}")
+            
+        try:
+            from routes.tasks import tasks_bp
+            app.register_blueprint(tasks_bp)
+            print("✅ Tasks blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering tasks blueprint: {e}")
+            
+        try:
+            from routes.topics import topics_bp
+            app.register_blueprint(topics_bp)
+            print("✅ Topics blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering topics blueprint: {e}")
+            
+        try:
+            from routes.users import users_bp
+            app.register_blueprint(users_bp)
+            print("✅ Users blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering users blueprint: {e}")
+            
+        try:
+            from routes.notifications import notifications_bp
+            app.register_blueprint(notifications_bp)
+            print("✅ Notifications blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering notifications blueprint: {e}")
+            
+        try:
+            from routes.reviews import reviews_bp
+            app.register_blueprint(reviews_bp)
+            print("✅ Reviews blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering reviews blueprint: {e}")
+            
+        print("📋 Blueprint registration complete")
         
     except Exception as e:
         print(f"❌ Configuration error: {str(e)}")

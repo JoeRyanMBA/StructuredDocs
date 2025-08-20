@@ -17,6 +17,7 @@ pip3.12 install --user -r backend/requirements.txt
 
 echo "🗄️  Running database migrations (if any)..."
 cd backend
+export PYTHONANYWHERE_ENVIRONMENT=1
 python3.12 -c "
 try:
     from flask_migrate import upgrade

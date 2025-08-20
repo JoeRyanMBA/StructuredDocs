@@ -19,6 +19,9 @@ if project_home not in sys.path:
 if backend_path not in sys.path:
     sys.path = [backend_path] + sys.path
 
+# Set environment variable for PythonAnywhere
+os.environ['PYTHONANYWHERE_ENVIRONMENT'] = '1'
+
 # Set up the Flask app
 os.chdir(project_home)
 

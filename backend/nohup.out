@@ -1,52 +1,30 @@
-🏗️ Creating app instance...
+📝 Module imported - app instance will be created by WSGI or caller
 🚀 Creating Flask app...
 📱 Flask instance created
-📋 Registering blueprints...
-  ✅ Topics blueprint registered
-  ✅ Imports blueprint registered
-  ✅ Publications blueprint registered
-  ✅ Collections blueprint registered
-  ✅ Reviews blueprint registered
-  ✅ Projects blueprint registered
-  ✅ Users blueprint registered
-  ✅ Metrics blueprint registered
-  ✅ Notifications blueprint registered
-  ✅ Links blueprint registered
-  ✅ Stakeholders blueprint registered
-  ✅ Tasks blueprint registered
-  ✅ Tags blueprint registered
-  ✅ Milestones blueprint registered
-  ✅ Images blueprint registered
-  ✅ Dashboard blueprint registered
-  ✅ Admin blueprint registered
-  ✅ Review tokens blueprint registered
-  ✅ Sequences blueprint registered
-🎉 Flask app creation complete!
-✅ App instance created successfully!
+🗄️ Using SQLite database for local development: /workspaces/StructuredDocs/instance/structured_docs.db
+📊 Database initialized
+🔄 Flask-Migrate configured
+🔐 JWT Manager initialized
+📋 Registering API blueprints...
+✅ Metrics blueprint registered
+✅ Admin blueprint registered
+✅ Stakeholders blueprint registered
+✅ Projects blueprint registered
+✅ Collections blueprint registered
+✅ Tasks blueprint registered
+⚠️ Error registering topics blueprint: cannot import name 'topics_bp' from 'routes.topics' (/workspaces/StructuredDocs/backend/routes/topics.py)
+✅ Users blueprint registered
+✅ Notifications blueprint registered
+✅ Reviews blueprint registered
+📋 Blueprint registration complete
  * Serving Flask app 'backend.app'
  * Debug mode: off
 [31m[1mWARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.[0m
  * Running on all addresses (0.0.0.0)
  * Running on http://127.0.0.1:5050
- * Running on http://10.0.2.188:5050
+ * Running on http://10.0.1.202:5050
 [33mPress CTRL+C to quit[0m
-127.0.0.1 - - [18/Aug/2025 13:16:57] "GET /api/dashboard/stats HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:16:57] "GET /api/dashboard/pending-actions HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:16:57] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:16:57] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:16:57] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:02] "GET /api/reviews/stats HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:02] "GET /api/reviews/pending HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:02] "GET /api/reviews/my-reviews?requester_id=1 HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:08] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:08] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:08] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:17:08] "GET /api/reviews/reviewers HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:20:52] "[35m[1mPOST /api/sequences/ HTTP/1.1[0m" 201 -
-127.0.0.1 - - [18/Aug/2025 13:20:52] "GET /api/topics/ HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:22:32] "GET /api/notifications HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:22:32] "GET /api/projects/ HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:22:32] "GET /api/dashboard/pending-actions HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:22:32] "GET /api/import/history HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:22:32] "GET /api/dashboard/stats HTTP/1.1" 200 -
-127.0.0.1 - - [18/Aug/2025 13:22:52] "GET /api/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [20/Aug/2025 11:41:25] "GET /api/admin/stats HTTP/1.1" 200 -
+127.0.0.1 - - [20/Aug/2025 11:41:32] "GET /api/admin/activity HTTP/1.1" 200 -
+127.0.0.1 - - [20/Aug/2025 11:41:39] "GET /api/admin/notifications HTTP/1.1" 200 -
+127.0.0.1 - - [20/Aug/2025 11:41:45] "GET /api/admin/system-logs HTTP/1.1" 200 -
