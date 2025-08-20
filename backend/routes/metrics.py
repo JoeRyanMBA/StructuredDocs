@@ -240,8 +240,11 @@ def get_sqlite_metrics(db_path):
         }
 
 def get_basic_system_metrics():
-    """Get basic system metrics without external dependencies"""
+    """Get basic system metrics with real data where possible"""
     try:
+        import time
+        import subprocess
+        
         # Get disk usage for the workspace using os.statvfs
         workspace_paths = [
             '/home/JoeRyanMBA/StructuredDocs',
@@ -251,6 +254,9 @@ def get_basic_system_metrics():
         ]
         
         disk_percent = 50  # Default
+        disk_total_gb = 0
+        disk_used_gb = 0
+        
         for workspace_path in workspace_paths:
             if os.path.exists(workspace_path):
                 try:
@@ -259,13 +265,58 @@ def get_basic_system_metrics():
                     free = stat.f_bavail * stat.f_frsize
                     used = total - free
                     disk_percent = (used / total) * 100 if total > 0 else 0
+                    disk_total_gb = total / (1024**3)  # Convert to GB
+                    disk_used_gb = used / (1024**3)
+                    print(f"📊 Disk usage: {disk_used_gb:.2f}GB / {disk_total_gb:.2f}GB ({disk_percent:.1f}%)")
                     break
-                except:
+                except Exception as e:
+                    print(f"⚠️ Error getting disk stats for {workspace_path}: {e}")
                     continue
         
-        # Use simulated values for memory and CPU (would need psutil for real values)
-        memory_percent = 65.0  # Simulated
-        cpu_percent = 35.0     # Simulated
+        # Try to get real memory usage (PythonAnywhere may limit this)
+        memory_percent = 65.0  # Default
+        try:
+            # Try to read /proc/meminfo for memory stats
+            with open('/proc/meminfo', 'r') as f:
+                meminfo = f.read()
+                lines = meminfo.split('\n')
+                memtotal = memavailable = 0
+                
+                for line in lines:
+                    if line.startswith('MemTotal:'):
+                        memtotal = int(line.split()[1])  # in kB
+                    elif line.startswith('MemAvailable:'):
+                        memavailable = int(line.split()[1])  # in kB
+                
+                if memtotal > 0 and memavailable > 0:
+                    memory_used = memtotal - memavailable
+                    memory_percent = (memory_used / memtotal) * 100
+                    print(f"📊 Memory usage: {memory_used/1024:.0f}MB / {memtotal/1024:.0f}MB ({memory_percent:.1f}%)")
+                
+        except Exception as e:
+            print(f"⚠️ Could not read memory info: {e}")
+        
+        # Try to get CPU load average
+        cpu_percent = 35.0  # Default
+        try:
+            # Get load average (1 minute)
+            load_avg = os.getloadavg()[0]  # 1-minute load average
+            # Convert load average to approximate CPU percentage
+            # This is a rough estimate: load of 1.0 ≈ 100% on single core
+            cpu_percent = min(load_avg * 100, 100)  # Cap at 100%
+            print(f"📊 CPU load average (1min): {load_avg:.2f} (~{cpu_percent:.1f}%)")
+        except Exception as e:
+            print(f"⚠️ Could not get CPU load: {e}")
+        
+        # Try to get uptime
+        uptime_hours = 0
+        try:
+            with open('/proc/uptime', 'r') as f:
+                uptime_seconds = float(f.read().split()[0])
+                uptime_hours = uptime_seconds / 3600
+                print(f"📊 System uptime: {uptime_hours:.1f} hours")
+        except Exception as e:
+            print(f"⚠️ Could not get uptime: {e}")
         
         # Determine health status based on usage
         def get_health_status(usage_percent):
@@ -274,15 +325,25 @@ def get_basic_system_metrics():
             elif usage_percent < 90:
                 return 'warning'
             else:
-                return 'error'
+                return 'critical'
+        
+        # Overall system health based on highest usage
+        max_usage = max(memory_percent, cpu_percent, disk_percent)
+        system_health = get_health_status(max_usage)
         
         return {
-            'serverStatus': 'healthy',
-            'databaseStatus': 'healthy',
+            'serverStatus': 'online',
+            'databaseStatus': 'connected',
             'memoryUsage': round(memory_percent, 1),
             'cpuUsage': round(cpu_percent, 1),
             'diskUsage': round(disk_percent, 1),
-            'systemHealth': get_health_status(max(memory_percent, cpu_percent, disk_percent))
+            'systemHealth': system_health,
+            'uptime': f"{uptime_hours:.1f} hours" if uptime_hours > 0 else "Unknown",
+            'diskSpace': {
+                'total': f"{disk_total_gb:.1f} GB",
+                'used': f"{disk_used_gb:.1f} GB",
+                'free': f"{disk_total_gb - disk_used_gb:.1f} GB"
+            } if disk_total_gb > 0 else None
         }
         
     except Exception as e:
