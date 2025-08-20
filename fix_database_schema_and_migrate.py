@@ -5,15 +5,21 @@ Script to create/update PostgreSQL database schema and migrate data
 import psycopg2
 import sqlite3
 import sys
+import os
+from psycopg2 import IntegrityError, ProgrammingError, DatabaseError
 
-# PostgreSQL connection details
+# PostgreSQL connection details (using environment variables for security)
 PG_CONFIG = {
-    'host': 'JoeRyanMBA-4757.postgres.pythonanywhere-services.com',
-    'port': 14757,
-    'database': 'structured_docs',
-    'user': 'super',
-    'password': 'Picklehead1!'
+    'host': os.environ.get('PG_HOST', 'JoeRyanMBA-4757.postgres.pythonanywhere-services.com'),
+    'port': int(os.environ.get('PG_PORT', 14757)),
+    'database': os.environ.get('PG_DATABASE', 'structured_docs'),
+    'user': os.environ.get('PG_USER', 'super'),
+    'password': os.environ.get('PG_PASSWORD', 'Picklehead1!')
 }
+
+# Warn if using default credentials
+if os.environ.get('PG_PASSWORD') is None:
+    print("⚠️  WARNING: Using default database password. Set PG_PASSWORD environment variable for production.")
 
 def check_and_update_schema():
     """Check and update PostgreSQL schema to match SQLite"""
@@ -165,8 +171,18 @@ def migrate_with_better_handling():
             
             try:
                 pg_cursor.execute(f"INSERT INTO topics ({column_names}) VALUES ({placeholders})", topic_data)
+            except IntegrityError as e:
+                print(f"  ⚠️  IntegrityError for topic {topic_data[0]}: {e.__class__.__name__}: {e}")
+                pg_conn.rollback()
+            except ProgrammingError as e:
+                print(f"  ⚠️  ProgrammingError for topic {topic_data[0]}: {e.__class__.__name__}: {e}")
+                pg_conn.rollback()
+            except DatabaseError as e:
+                print(f"  ⚠️  DatabaseError for topic {topic_data[0]}: {e.__class__.__name__}: {e}")
+                pg_conn.rollback()
             except Exception as e:
-                print(f"  ⚠️  Skipping topic {topic_data[0]}: {e}")
+                print(f"  ⚠️  Unexpected error for topic {topic_data[0]}: {e.__class__.__name__}: {e}")
+                pg_conn.rollback()
         
         pg_conn.commit()
         pg_cursor.execute("SELECT COUNT(*) FROM topics")

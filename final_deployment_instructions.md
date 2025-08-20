@@ -2,8 +2,8 @@
 
 ## Files to Deploy
 
-1. **Backend**: `app_final_with_topics_and_notifications_fix.py`
-2. **Frontend**: `frontend_final_with_notifications_fix.zip`
+1. **Backend**: `app_final_with_topics_and_notifications_fix.py` ✅ Available
+2. **Frontend**: `frontend_final_with_notifications_fix.zip` ✅ Available
 
 ## Deployment Steps
 

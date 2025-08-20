@@ -65,7 +65,6 @@ def create_app():
     # Add explicit CORS handling middleware
     @app.before_request
     def handle_preflight():
-        from flask import request
         if request.method == "OPTIONS":
             print(f"🔍 OPTIONS request from origin: {request.headers.get('Origin')}")
             response = jsonify({})
@@ -76,7 +75,6 @@ def create_app():
 
     @app.after_request
     def after_request(response):
-        from flask import request
         print(f"🔍 Request from origin: {request.headers.get('Origin')} - Response: {response.status_code}")
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', '*')
@@ -123,22 +121,19 @@ def create_app():
     def api_test():
         return jsonify({
             "message": "test successful", 
-            "version": "2025-08-19-v2",
-            "timestamp": "2025-08-19 20:45:00"
+            "version": "2025-08-20-with-tasks-v1",
+            "timestamp": "2025-08-20 13:30:00"
         }), 200
 
     @app.route('/api/debug', methods=['GET'])
     def api_debug():
         return jsonify({
-            "message": "debug endpoint working",
-            "version": "2025-08-19-v2",
-            "app_config": {
-                "database_configured": bool(app.config.get('SQLALCHEMY_DATABASE_URI')),
-                "jwt_configured": bool(app.config.get('JWT_SECRET_KEY')),
-                "cors_enabled": True
-            }
+            "message": "debug endpoint", 
+            "environment": "production",
+            "database_configured": True
         }), 200
 
+    # Topics API
     @app.route('/api/topics', methods=['GET'])
     @app.route('/api/topics/', methods=['GET'])
     def api_list_topics():
@@ -148,12 +143,15 @@ def create_app():
             return jsonify([{
                 'id': t.id,
                 'title': t.title,
-                'content': t.content[:200] if t.content else '',
+                'content': t.content[:200] + '...' if len(t.content) > 200 else t.content,
+                'status': t.status,
+                'project_id': t.project_id,
                 'created_at': t.created_at.isoformat() if hasattr(t, 'created_at') and t.created_at else None
             } for t in topics])
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching topics'}), 500
 
+    # Projects API
     @app.route('/api/projects', methods=['GET'])
     @app.route('/api/projects/', methods=['GET'])
     def api_list_projects():
@@ -164,11 +162,13 @@ def create_app():
                 'id': p.id,
                 'name': p.name,
                 'description': p.description,
+                'status': p.status,
                 'created_at': p.created_at.isoformat() if hasattr(p, 'created_at') and p.created_at else None
             } for p in projects])
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching projects'}), 500
 
+    # Collections API
     @app.route('/api/collections', methods=['GET'])
     @app.route('/api/collections/', methods=['GET'])
     def api_list_collections():
@@ -179,11 +179,13 @@ def create_app():
                 'id': c.id,
                 'name': c.name,
                 'description': c.description,
+                'project_id': c.project_id,
                 'created_at': c.created_at.isoformat() if hasattr(c, 'created_at') and c.created_at else None
             } for c in collections])
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching collections'}), 500
 
+    # Users API
     @app.route('/api/users', methods=['GET'])
     def api_list_users():
         try:
@@ -191,14 +193,16 @@ def create_app():
             users = User.query.limit(50).all()
             return jsonify([{
                 'id': u.id,
-                'name': u.name,
+                'username': u.username,
                 'email': u.email,
-                'role': u.role,
-                'active': u.active
+                'role': getattr(u, 'role', 'user'),
+                'active': getattr(u, 'active', True),
+                'created_at': u.created_at.isoformat() if hasattr(u, 'created_at') and u.created_at else None
             } for u in users])
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching users'}), 500
 
+    # Stakeholders API
     @app.route('/api/stakeholders', methods=['GET'])
     @app.route('/api/stakeholders/', methods=['GET'])
     def api_list_stakeholders():
@@ -339,7 +343,7 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching task associations'}), 500
 
-    # Additional API endpoints your frontend needs
+    # Notifications API
     @app.route('/api/notifications', methods=['GET'])
     def api_list_notifications():
         try:
@@ -361,12 +365,6 @@ def create_app():
             from models import Project, Topic, User, Task, Stakeholder
             
             # Safely get counts with fallbacks
-            projects_count = 0
-            topics_count = 0
-            users_count = 0
-            tasks_count = 0
-            stakeholders_count = 0
-            
             try:
                 projects_count = Project.query.count()
             except:
@@ -391,15 +389,14 @@ def create_app():
                 stakeholders_count = Stakeholder.query.count()
             except:
                 stakeholders_count = 0
-            
-            stats = {
+
+            return jsonify({
                 'projects': {'total': projects_count},
                 'topics': {'total': topics_count},
                 'users': {'total': users_count},
                 'tasks': {'total': tasks_count},
                 'stakeholders': {'total': stakeholders_count}
-            }
-            return jsonify(stats)
+            })
         except Exception as e:
             # Return safe fallback data
             return jsonify({
@@ -418,70 +415,25 @@ def create_app():
     def api_import_history():
         return jsonify([])  # Return empty array for now
 
-    # Catch-all route to serve the frontend - TEMPORARILY DISABLED
-    # @app.route('/')
-    # @app.route('/<path:path>')
-    # def serve_frontend(path=''):
-    #     """Serve the Vue.js frontend application"""
-    #     try:
-    #         # If path is a file request, try to serve it
-    #         if path and '.' in path:
-    #             return send_from_directory(app.config['FRONTEND_FOLDER'], path)
-    #         # Otherwise serve index.html for Vue router
-    #         return send_file(os.path.join(app.config['FRONTEND_FOLDER'], 'index.html'))
-    #     except Exception as e:
-    #         return jsonify({'error': 'Frontend not found', 'details': str(e)}), 404
-
-    # Root route and catch-all for frontend routing
-    @app.route('/', defaults={'path': ''})
+    # Catch-all route to serve the frontend
+    @app.route('/')
     @app.route('/<path:path>')
     def serve_frontend(path=''):
-        """Serve the frontend application for all non-API routes"""
-        # API routes should be handled by their specific endpoints
-        if path.startswith('api/'):
-            return jsonify({"error": "API endpoint not found"}), 404
-            
-        # For any other route, serve the frontend index.html
-        frontend_index = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
-        if os.path.exists(frontend_index):
-            return send_file(frontend_index)
-        else:
-            # Fallback if frontend files aren't deployed yet
-            return jsonify({
-                "message": "StructuredDocs API is running!",
-                "status": "online",
-                "note": "Frontend files not yet deployed. Upload frontend/dist/* to /home/JoeRyanMBA/StructuredDocs/frontend/dist/",
-                "database": "PostgreSQL connected",
-                "endpoints": {
-                    "ping": "/api/ping",
-                    "test": "/api/test",
-                    "topics": "/api/topics", 
-                    "projects": "/api/projects",
-                    "stakeholders": "/api/stakeholders",
-                    "dashboard_stats": "/api/dashboard/stats"
-                }
-            })
-    
-    # Error handler for JWT errors
-    from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError
+        try:
+            if path and '.' in path:
+                # If path has an extension, try to serve it as a static file
+                return send_from_directory(app.config['FRONTEND_FOLDER'], path)
+            else:
+                # Otherwise, serve index.html for SPA routing
+                return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
+        except Exception as e:
+            return jsonify({'error': 'Frontend files not found', 'details': str(e)}), 404
 
-    @app.errorhandler(NoAuthorizationError)
-    def handle_no_auth_error(e):
-        return jsonify({"error": "Missing or invalid JWT token."}), 401
-
-    @app.errorhandler(InvalidHeaderError)
-    def handle_invalid_header_error(e):
-        return jsonify({"error": "Invalid JWT header."}), 422
-        
     return app
 
-# instantiate Flask app only when running directly
+# Create app instance for WSGI
+application = create_app()
+
 if __name__ == '__main__':
-    print("🏗️ Creating app instance for development...")
     app = create_app()
-    print("✅ App instance created successfully!")
-    print("🚀 Starting Flask development server...")
     app.run(host='0.0.0.0', port=5050, debug=True)
-else:
-    # For WSGI and imports, don't create the app instance here
-    print("📝 Module imported - app instance will be created by WSGI or caller")

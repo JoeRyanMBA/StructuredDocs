@@ -23,6 +23,9 @@ class EmailService:
         # For development, we'll use a simple debug mode
         self.debug_mode = os.getenv('EMAIL_DEBUG', 'true').lower() == 'true'
         
+        # Set debug email directory relative to current working directory
+        self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
+        
     def send_review_notification(self, reviewer_email, reviewer_name, topic_title, 
                                 topic_id, author_message, due_date, priority, 
                                 review_token, base_url=None):
@@ -160,7 +163,7 @@ class EmailService:
     def _write_debug_email(self, to_email, subject, content):
         """Write email to debug file for development"""
         try:
-            debug_dir = "/workspaces/StructuredDocs/backend/debug_emails"
+            debug_dir = self.debug_email_dir
             os.makedirs(debug_dir, exist_ok=True)
             
             timestamp = datetime.now().strftime("%Y%m%d_%H%M%S")

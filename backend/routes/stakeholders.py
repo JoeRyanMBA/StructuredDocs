@@ -11,6 +11,16 @@ from models import db, Stakeholder, Project, ProjectStakeholder
 
 stakeholders_bp = Blueprint('stakeholders', __name__, url_prefix='/api/stakeholders')
 
+def parse_expertise_areas(expertise_data):
+    """Helper function to parse expertise areas from various input formats"""
+    if isinstance(expertise_data, str):
+        # If it's a string, assume it's newline-separated areas
+        return [area.strip() for area in expertise_data.split('\n') if area.strip()]
+    elif isinstance(expertise_data, list):
+        return expertise_data
+    else:
+        return []
+
 @stakeholders_bp.route('/', methods=['GET'])
 def list_stakeholders():
     """Get all stakeholders"""
@@ -112,12 +122,9 @@ def update_stakeholder(stakeholder_id):
         stakeholder.active = data.get('active', stakeholder.active)
         
         if 'expertise_areas' in data:
-            if isinstance(data['expertise_areas'], str):
-                # If it's a string, assume it's newline-separated areas
-                expertise_list = [area.strip() for area in data['expertise_areas'].split('\n') if area.strip()]
-                stakeholder.expertise_areas = json.dumps(expertise_list)
-            elif isinstance(data['expertise_areas'], list):
-                stakeholder.expertise_areas = json.dumps(data['expertise_areas'])
+            parsed_expertise = parse_expertise_areas(data['expertise_areas'])
+            if parsed_expertise is not None:
+                stakeholder.expertise_areas = json.dumps(parsed_expertise)
         
         db.session.commit()
         return jsonify(stakeholder.to_dict())

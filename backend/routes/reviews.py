@@ -4,6 +4,10 @@ from models import db, Topic, Collection, ImportDocument, Review, Stakeholder, R
 from sqlalchemy import or_, and_
 from utils.email_service import email_service
 import secrets
+import logging
+
+# Set up logging
+logger = logging.getLogger(__name__)
 
 reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews')
 
@@ -111,13 +115,13 @@ def request_review():
         db.session.commit()
         
         # Send email notification to reviewer
-        print(f"🔍 Starting email notification process...")
-        print(f"📧 Reviewer: {reviewer.name} ({reviewer.email})")
-        print(f"📝 Topic: {topic.title}")
-        print(f"🎫 Review token: {token.token}")
+        logger.info(f"Starting email notification process for review {review.id}")
+        logger.info(f"Reviewer: {reviewer.name} ({reviewer.email})")
+        logger.info(f"Topic: {topic.title}")
+        logger.debug(f"Review token: {token.token}")
         
         try:
-            print(f"📧 Attempting to send email to {reviewer.email} for topic '{topic.title}'")
+            logger.info(f"Attempting to send email to {reviewer.email} for topic '{topic.title}'")
             email_sent = email_service.send_review_notification(
                 reviewer_email=reviewer.email,
                 reviewer_name=reviewer.name,

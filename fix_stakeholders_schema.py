@@ -4,15 +4,21 @@ Quick fix for stakeholders table schema
 """
 import psycopg2
 import sys
+import os
+from psycopg2 import sql
 
-# PostgreSQL connection details
+# PostgreSQL connection details (using environment variables for security)
 PG_CONFIG = {
-    'host': 'JoeRyanMBA-4757.postgres.pythonanywhere-services.com',
-    'port': 14757,
-    'database': 'structured_docs',
-    'user': 'super',
-    'password': 'Picklehead1!'
+    'host': os.environ.get('PG_HOST', 'JoeRyanMBA-4757.postgres.pythonanywhere-services.com'),
+    'port': int(os.environ.get('PG_PORT', 14757)),
+    'database': os.environ.get('PG_DATABASE', 'structured_docs'),
+    'user': os.environ.get('PG_USER', 'super'),
+    'password': os.environ.get('PG_PASSWORD', 'Picklehead1!')
 }
+
+# Warn if using default credentials
+if os.environ.get('PG_PASSWORD') is None:
+    print("⚠️  WARNING: Using default database password. Set PG_PASSWORD environment variable for production.")
 
 def fix_stakeholders_table():
     """Fix the stakeholders table schema"""
@@ -45,7 +51,11 @@ def fix_stakeholders_table():
         for column_name, column_type in missing_columns:
             if column_name not in [col[0] for col in current_columns]:
                 try:
-                    cursor.execute(f"ALTER TABLE stakeholders ADD COLUMN {column_name} {column_type};")
+                    # Use parameterized query construction for safety
+                    cursor.execute(
+                        sql.SQL("ALTER TABLE stakeholders ADD COLUMN {} {};")
+                        .format(sql.Identifier(column_name), sql.SQL(column_type))
+                    )
                     conn.commit()
                     print(f"  ✅ Added {column_name} column")
                 except Exception as e:
