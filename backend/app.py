@@ -359,12 +359,54 @@ def create_app():
             except:
                 stakeholders_count = 0
             
+            # Add system performance metrics
+            try:
+                import sys
+                import os
+                sys.path.append(os.path.join(os.path.dirname(__file__), 'routes'))
+                from metrics import get_basic_system_metrics, get_database_metrics
+                
+                # Get real system performance metrics
+                system_performance = get_basic_system_metrics()
+                db_metrics = get_database_metrics(None)
+                
+                performance_metrics = {
+                    'cpuUsage': system_performance.get('cpuUsage', 0),
+                    'memoryUsage': system_performance.get('memoryUsage', 0),
+                    'diskUsage': system_performance.get('diskUsage', 0),
+                    'systemHealth': system_performance.get('systemHealth', 'unknown')
+                }
+                
+                database_metrics = {
+                    'size': db_metrics.get('size', 'Unknown'),
+                    'tables': db_metrics.get('tables', 0),
+                    'totalRecords': db_metrics.get('totalRecords', 0),
+                    'lastBackup': db_metrics.get('lastBackup', 'Never')
+                }
+                
+            except Exception as e:
+                print(f"⚠️ Error getting metrics for dashboard: {e}")
+                performance_metrics = {
+                    'cpuUsage': 0,
+                    'memoryUsage': 0,
+                    'diskUsage': 0,
+                    'systemHealth': 'unknown'
+                }
+                database_metrics = {
+                    'size': 'Unknown',
+                    'tables': 0,
+                    'totalRecords': 0,
+                    'lastBackup': 'Never'
+                }
+            
             stats = {
                 'projects': {'total': projects_count},
                 'topics': {'total': topics_count},
                 'users': {'total': users_count},
                 'tasks': {'total': tasks_count},
-                'stakeholders': {'total': stakeholders_count}
+                'stakeholders': {'total': stakeholders_count},
+                'performanceMetrics': performance_metrics,
+                'databaseMetrics': database_metrics
             }
             return jsonify(stats)
         except Exception as e:
