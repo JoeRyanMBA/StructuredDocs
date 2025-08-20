@@ -57,6 +57,6 @@ export default {
 .db-metric-value {
   font-size: 1.5rem;
   font-weight: bold;
-  color: #007acc;
+  color: #205493;
 }
 </style>

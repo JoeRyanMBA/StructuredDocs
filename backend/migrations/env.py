@@ -35,7 +35,7 @@ def get_engine_url():
 # for 'autogenerate' support
 # from myapp import mymodel
 # target_metadata = mymodel.Base.metadata
-config.set_main_option('sqlalchemy.url', 'sqlite:////workspaces/StructuredDocs/backend/knowledge_base.db')
+config.set_main_option('sqlalchemy.url', 'postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs')
 target_db = current_app.extensions['migrate'].db
 
 # other values from the config, defined by the needs of env.py,

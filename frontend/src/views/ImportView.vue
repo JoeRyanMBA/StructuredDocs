@@ -89,6 +89,13 @@
     </div>
 
     <!-- Loading indicator -->
+    <div v-if="preparingImport" class="loading-overlay">
+      <div class="loading-content">
+        <div class="spinner"></div>
+        <h3>Preparing to import your document...</h3>
+        <p>Reading file and preparing for upload. Please wait...</p>
+      </div>
+    </div>
     <div v-if="isUploading" class="loading-overlay">
       <div class="loading-content">
         <div class="spinner"></div>
@@ -161,7 +168,8 @@ export default {
     return {
       source: 'markdown',
       error: null,
-      isUploading: false,
+  isUploading: false,
+  preparingImport: false,
       importType: 'topics',
       collectionName: '',
       collectionFormNumber: '',
@@ -216,14 +224,18 @@ export default {
 
     onFileSelected(event) {
       this.error = null
-      
       const file = event.target.files[0]
       if (!file) {
         this.selectedFile = null
+        this.preparingImport = false
         return
       }
-
       this.selectedFile = file
+      this.preparingImport = true
+      // Simulate a short delay for UX (remove if not desired)
+      setTimeout(() => {
+        this.preparingImport = false
+      }, 800)
     },
 
     clearFile() {
@@ -241,6 +253,7 @@ export default {
     },
 
     async startImport() {
+      this.preparingImport = false
       if (!this.selectedFile) {
         this.error = 'Please select a file to import'
         return
@@ -355,7 +368,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -397,7 +410,7 @@ export default {
 }
 
 .radio-option:hover {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8fcff;
 }
 
@@ -407,11 +420,11 @@ export default {
 }
 
 .radio-option input[type="radio"]:checked + .radio-label {
-  color: #007acc;
+  color: #205493;
 }
 
 .radio-option:has(input[type="radio"]:checked) {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8fcff;
 }
 
@@ -474,7 +487,7 @@ export default {
 .form-group input:focus,
 .form-group textarea:focus {
   outline: 0;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 0.2rem rgba(0, 122, 204, 0.25);
 }
 
@@ -549,7 +562,7 @@ input[type="file"] {
   width: 40px;
   height: 40px;
   border: 4px solid #f3f3f3;
-  border-top: 4px solid #007acc;
+  border-top: 4px solid #205493;
   border-radius: 50%;
   animation: spin 1s linear infinite;
   margin: 0 auto;
@@ -603,7 +616,7 @@ input[type="file"] {
 }
 
 .import-btn {
-  background: #007acc;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -618,7 +631,7 @@ input[type="file"] {
 }
 
 .import-btn:hover:not(:disabled) {
-  background: #005a9c;
+  background: #205493;
   transform: translateY(-1px);
   box-shadow: 0 2px 8px rgba(0, 122, 204, 0.3);
 }

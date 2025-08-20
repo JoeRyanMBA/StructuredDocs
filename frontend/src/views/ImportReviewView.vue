@@ -259,7 +259,7 @@ export default {
 .primary-action {
   padding:0.75rem 1.5rem;
   border:none;
-  background:#28a745;
+  background:#009964;
   color:#fff;
   cursor:pointer;
   border-radius:4px;
@@ -267,7 +267,7 @@ export default {
 }
 
 .primary-action:hover {
-  background:#218838;
+  background:#006548;
 }
 
 .reject-action {

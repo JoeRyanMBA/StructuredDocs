@@ -6,11 +6,10 @@
   />
   <div class="projects-dashboard">
     <!-- Dashboard Header -->
-     <div class="dashboard-header">
-        <h1>Projects Dashboard</h1>
-        <p class="welcome-text">Manage projects, stakeholders, and review workflows</p>
-  </div>
-
+    <div class="dashboard-header">
+      <h1>Projects Dashboard</h1>
+      <p class="welcome-text">Manage projects, stakeholders, and review workflows</p>
+    </div>
     <!-- Metrics Overview -->
     <div class="metrics-grid">
       <div class="metric-card">
@@ -72,13 +71,6 @@
           </div>
         </button>
         
-        <button @click="showTemplateModal = true" class="action-card">
-          <div class="action-icon">📋</div>
-          <div class="action-content">
-            <h3>Use Template</h3>
-            <p>Create from project template</p>
-          </div>
-        </button>
         
         <button @click="exportProjects" class="action-card">
           <div class="action-icon">📤</div>
@@ -103,6 +95,40 @@
       <CalendarWidget :events="calendarEvents" />
     </div>
 
+    <!-- Filters -->
+    <div class="filters-section">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Search:</label>
+          <input
+            v-model="searchQuery"
+            type="text"
+            placeholder="Search projects..."
+            class="filter-input"
+            @input="applyFilters"
+          />
+        </div>
+        <div class="filter-group">
+          <label>Status:</label>
+          <select v-model="statusFilter" @change="applyFilters" class="filter-input">
+            <option value="">All Statuses</option>
+            <option value="planning">Planning</option>
+            <option value="active">Active</option>
+            <option value="on_hold">On Hold</option>
+            <option value="completed">Completed</option>
+          </select>
+        </div>
+        <div class="filter-group">
+          <div class="button-group">
+            <button @click="applyFilters" class="btn btn-primary btn-sm">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button @click="clearFilter" class="btn btn-secondary btn-sm">Clear Filters</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
     <!-- Projects List -->
     <!-- Projects List -->
     <div class="section-card" ref="projectsSection">
@@ -111,34 +137,12 @@
           {{ statusFilter ? `${formatStatus(statusFilter)} Projects` : 'All Projects' }}
           <span v-if="statusFilter" class="filter-badge">{{ filteredProjects.length }}</span>
         </h2>
-        <div class="filter-controls">
-          <select v-model="statusFilter" @change="applyFilters" class="filter-select">
-            <option value="">All Statuses</option>
-            <option value="planning">Planning</option>
-            <option value="active">Active</option>
-            <option value="on_hold">On Hold</option>
-            <option value="completed">Completed</option>
-          </select>
-          <button 
-            v-if="statusFilter" 
-            @click="clearFilter" 
-            class="clear-filter-btn"
-            title="Clear filter"
-          >
-            ✕ Clear Filter
-          </button>
-        </div>
       </div>
       
       <!-- Loading State -->
       <div v-if="loading" class="loading-state">
-        <div class="loading-content">
-          <div class="loading-icon">⏳</div>
-          <h3>Loading Projects...</h3>
-          <p>Please wait while we fetch your projects.</p>
-        </div>
+        <p>Please wait while we fetch your projects.</p>
       </div>
-      
       <!-- Error State -->
       <div v-else-if="error" class="error-state">
         <div class="error-content">
@@ -148,7 +152,6 @@
           <button @click="fetchProjects" class="retry-btn">🔄 Retry</button>
         </div>
       </div>
-      
       <!-- Empty State -->
       <div v-else-if="filteredProjects.length === 0" class="empty-state">
         <div class="empty-content">
@@ -159,7 +162,9 @@
             ➕ {{ projects.length === 0 ? 'Create Your First Project' : 'Create New Project' }}
           </button>
         </div>
-      </div>      <div v-else class="projects-grid">
+      </div>
+      <!-- Projects List -->
+      <div v-else class="projects-grid">
         <div
           v-for="project in filteredProjects"
           :key="project.id"
@@ -188,7 +193,6 @@
               <span>{{ project.publishedDocuments.length }} Document{{ project.publishedDocuments.length > 1 ? 's' : '' }}</span>
             </div>
           </div>
-
           <!-- Milestone Dates -->
           <div class="project-milestones" v-if="hasActiveMilestones(project)">
             <div class="milestone-item" v-for="milestone in project.milestones.slice(0, 3)" :key="milestone.name">
@@ -202,14 +206,9 @@
               +{{ project.milestones.length - 3 }} more milestones
             </div>
           </div>
-
-          <div class="project-meta">
-            <small>Created: {{ formatDate(project.created_at) }}</small>
-          </div>
-          <div class="project-actions">
-            <button @click="editProject(project)" class="edit-btn">
-              ✏️ Edit
-            </button>
+          <div class="project-card-footer" style="display: flex; justify-content: space-between; align-items: center; margin-top: 1.25rem;">
+            <div class="project-meta">Project {{ project.id }} was created on {{ formatDate(project.created_at) }}</div>
+            <button @click="editProject(project)" class="edit-btn">✏️ Edit</button>
           </div>
         </div>
       </div>
@@ -222,10 +221,16 @@
           <h2>Create New Project</h2>
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
-        <form @submit.prevent="createProject" class="modal-body">
+    <form @submit.prevent="handleCreateProject" class="modal-body">
           <!-- Basic Information -->
           <div class="form-section">
             <h3>Basic Information</h3>
+            <div v-if="confirmationMessage" class="confirmation-message" style="margin-bottom:1rem; color: #155724; background: #d4edda; border: 1px solid #c3e6cb; padding: 0.75rem; border-radius: 4px;">
+              {{ confirmationMessage }}
+              <div style="margin-top: 1rem; text-align: right;">
+                <button type="button" class="primary-btn" @click="proceedToStakeholders">OK</button>
+              </div>
+            </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="projectName">Project Name *</label>
@@ -258,25 +263,249 @@
             </div>
           </div>
 
-          <!-- Stakeholders -->
+          <div class="modal-actions">
+            <button type="button" @click="showCreateModal = false" class="secondary-btn">
+              Cancel
+            </button>
+            <button type="submit" class="primary-btn" :disabled="creatingProject || !!confirmationMessage">Next</button>
+          </div>
+        </form>
+      </div>
+
+    <!-- Stakeholder Modal (Step 2) -->
+    <div v-if="showStakeholderModal" class="modal-overlay" @click="showStakeholderModal = false">
+      <div class="modal large-modal" @click.stop>
+        <div class="modal-header">
+          <h2>Add Stakeholders to Project</h2>
+          <button @click="showStakeholderModal = false" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
           <div class="form-section">
-            <h3>Stakeholders</h3>
+            <h3>Add Existing Stakeholder</h3>
+            <div class="selector-row">
+              <select v-model="selectedStakeholderId" class="stakeholder-select">
+                <option value="">Select a stakeholder...</option>
+                <option v-for="stakeholder in availableStakeholders" :key="stakeholder.id" :value="stakeholder.id">
+                  {{ stakeholder.name }} ({{ stakeholder.organization }})
+                </option>
+              </select>
+              <select v-model="selectedStakeholderRole" class="role-select">
+                <option value="">Select role...</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="add-btn">
+                + Add Selected
+              </button>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3>Or Add New Stakeholder</h3>
+            <div class="form-row">
+              <input v-model="newStakeholder.name" type="text" placeholder="Name *" required class="stakeholder-input" />
+              <input v-model="newStakeholder.email" type="email" placeholder="Email *" required class="stakeholder-input" />
+              <input v-model="newStakeholder.title" type="text" placeholder="Title" class="stakeholder-input" />
+              <input v-model="newStakeholder.organization" type="text" placeholder="Organization" class="stakeholder-input" />
+              <select v-model="newStakeholder.role" class="role-select stakeholder-input" required>
+                <option value="">Select role...</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole" class="add-btn">
+                + Add New Stakeholder
+              </button>
+            </div>
+          </div>
+          <div class="form-section">
+            <h3>Current Project Stakeholders</h3>
+            <ul>
+              <li v-for="s in projectStakeholders" :key="s.id || s.email">
+                {{ s.name }} ({{ s.role }}) <span v-if="s.email">- {{ s.email }}</span>
+              </li>
+            </ul>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="primary-btn" @click="proceedToMilestones">Add Stakeholders</button>
+            <button type="button" class="secondary-btn" @click="skipStakeholders" style="margin-left: 1rem;">Not Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Milestone Modal (Step 3) -->
+    <div v-if="showMilestoneModal" class="modal-overlay" @click="showMilestoneModal = false">
+      <div class="modal large-modal" @click.stop>
+        <div class="modal-header">
+          <h2>Add Project Milestones</h2>
+          <button @click="showMilestoneModal = false" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <div class="form-section">
+            <h3>Milestones</h3>
+            <div v-for="(milestone, idx) in newMilestones" :key="idx" class="milestone-row">
+              <input v-model="milestone.name" type="text" placeholder="Milestone Name *" required class="milestone-input" />
+              <input v-model="milestone.date" type="date" placeholder="Due Date" class="milestone-input" />
+              <select v-model="milestone.status" class="milestone-input">
+                <option value="planned">Planned</option>
+                <option value="in-progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="overdue">Overdue</option>
+              </select>
+              <button type="button" @click="removeMilestone(idx)" class="remove-btn">×</button>
+            </div>
+            <button type="button" @click="addMilestoneRow" class="add-btn">+ Add Milestone</button>
+          </div>
+          <div class="modal-actions">
+            <button type="button" class="primary-btn" @click="saveMilestonesAndFinish">Add Milestones</button>
+            <button type="button" class="secondary-btn" @click="skipMilestones" style="margin-left: 1rem;">Not Now</button>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- Edit Project Modal -->
+  <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
+    <div class="modal large-modal" @click.stop>
+      <div class="modal-header">
+        <h2>Edit Project</h2>
+        <button @click="showEditModal = false" class="close-btn">×</button>
+      </div>
+      <form @submit.prevent="handleUpdateProject" class="modal-body">
+        <!-- Basic Information -->
+        <div class="form-section">
+          <h3>Basic Information</h3>
+          <div class="form-row">
+            <div class="form-group">
+              <label for="editProjectName">Project Name *</label>
+              <input
+                id="editProjectName"
+                v-model="editingProject.name"
+                type="text"
+                required
+                placeholder="Enter project name"
+              />
+            </div>
+            <div class="form-group">
+              <label for="editProjectStatus">Status</label>
+              <select id="editProjectStatus" v-model="editingProject.status">
+                <option value="planning">Planning</option>
+                <option value="active">Active</option>
+                <option value="on_hold">On Hold</option>
+                <option value="completed">Completed</option>
+              </select>
+            </div>
+          </div>
+          <div class="form-group">
+            <label for="editProjectDescription">Description</label>
+            <textarea
+              id="editProjectDescription"
+              v-model="editingProject.description"
+              placeholder="Project description"
+              rows="3"
+            ></textarea>
+          </div>
+        </div>
+
+        <!-- Stakeholders Section -->
+        <div class="form-section">
+          <h3>Stakeholders</h3>
+          
+          <!-- Add from existing stakeholders -->
+          <div class="stakeholder-selector">
+            <h4>Add Existing Stakeholder</h4>
+            <div class="selector-row">
+              <select v-model="selectedStakeholderId" class="stakeholder-select">
+                <option value="">Select a stakeholder...</option>
+                <option 
+                  v-for="stakeholder in availableStakeholders" 
+                  :key="stakeholder.id" 
+                  :value="stakeholder.id"
+                >
+                  {{ stakeholder.name }} ({{ stakeholder.organization }})
+                </option>
+              </select>
+              <select v-model="selectedStakeholderRole" class="role-select">
+                <option value="">Select role...</option>
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <button 
+                type="button" 
+                @click="addExistingStakeholder('edit')" 
+                :disabled="!selectedStakeholderId || !selectedStakeholderRole"
+                class="add-btn"
+              >
+                + Add Selected
+              </button>
+            </div>
+          </div>
+
+          <!-- Current project stakeholders -->
+          <div class="stakeholders-list">
+            <h4>Project Stakeholders</h4>
+            <div v-for="(stakeholder, index) in editingProject.stakeholders" :key="index" class="stakeholder-item">
+              <div class="stakeholder-info">
+                <strong>{{ stakeholder.name }}</strong>
+                <span class="stakeholder-details">{{ stakeholder.email }} | {{ stakeholder.organization }}</span>
+              </div>
+              <select
+                v-model="stakeholder.role"
+                class="stakeholder-role-input"
+              >
+                <option value="project_manager">Project Manager</option>
+                <option value="subject_matter_expert">Subject Matter Expert</option>
+                <option value="reviewer">Reviewer</option>
+                <option value="stakeholder">Stakeholder</option>
+                <option value="sponsor">Sponsor</option>
+              </select>
+              <input
+                v-model="stakeholder.notes"
+                type="text"
+                placeholder="Notes (optional)"
+                class="stakeholder-input"
+              />
+              <button type="button" @click="removeStakeholder(index, 'edit')" class="remove-btn">✕</button>
+            </div>
             
-            <!-- Add from existing stakeholders -->
-            <div class="stakeholder-selector">
-              <h4>Add Existing Stakeholder</h4>
-              <div class="selector-row">
-                <select v-model="selectedStakeholderId" class="stakeholder-select">
-                  <option value="">Select a stakeholder...</option>
-                  <option 
-                    v-for="stakeholder in availableStakeholders" 
-                    :key="stakeholder.id" 
-                    :value="stakeholder.id"
-                  >
-                    {{ stakeholder.name }} ({{ stakeholder.organization }})
-                  </option>
-                </select>
-                <select v-model="selectedStakeholderRole" class="role-select">
+            <!-- Add new stakeholder manually -->
+            <div class="add-new-stakeholder">
+              <h4>Or Add New Stakeholder</h4>
+              <div class="new-stakeholder-form">
+                <input
+                  v-model="newStakeholderName"
+                  type="text"
+                  placeholder="Full name"
+                  class="stakeholder-input"
+                />
+                <input
+                  v-model="newStakeholderEmail"
+                  type="email"
+                  placeholder="Email address"
+                  class="stakeholder-input"
+                />
+                <input
+                  v-model="newStakeholderTitle"
+                  type="text"
+                  placeholder="Title"
+                  class="stakeholder-input"
+                />
+                <input
+                  v-model="newStakeholderOrganization"
+                  type="text"
+                  placeholder="Organization"
+                  class="stakeholder-input"
+                />
+                <select v-model="newStakeholderRole" class="stakeholder-input">
                   <option value="">Select role...</option>
                   <option value="project_manager">Project Manager</option>
                   <option value="subject_matter_expert">Subject Matter Expert</option>
@@ -286,361 +515,160 @@
                 </select>
                 <button 
                   type="button" 
-                  @click="addExistingStakeholder('new')" 
-                  :disabled="!selectedStakeholderId || !selectedStakeholderRole"
+                  @click="addNewStakeholder('edit')"
+                  :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
                   class="add-btn"
                 >
-                  + Add Selected
+                  + Add New Stakeholder
                 </button>
               </div>
             </div>
-
-            <!-- Current project stakeholders -->
-            <div class="stakeholders-list">
-              <h4>Project Stakeholders</h4>
-              <div v-for="(stakeholder, index) in newProject.stakeholders" :key="index" class="stakeholder-item">
-                <div class="stakeholder-info">
-                  <strong>{{ stakeholder.name }}</strong>
-                  <span class="stakeholder-details">{{ stakeholder.email }} | {{ stakeholder.organization }}</span>
-                </div>
-                <select
-                  v-model="stakeholder.role"
-                  class="stakeholder-role-input"
-                >
-                  <option value="project_manager">Project Manager</option>
-                  <option value="subject_matter_expert">Subject Matter Expert</option>
-                  <option value="reviewer">Reviewer</option>
-                  <option value="stakeholder">Stakeholder</option>
-                  <option value="sponsor">Sponsor</option>
-                </select>
-                <input
-                  v-model="stakeholder.notes"
-                  type="text"
-                  placeholder="Notes (optional)"
-                  class="stakeholder-input"
-                />
-                <button type="button" @click="removeStakeholder(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              
-              <!-- Add new stakeholder manually -->
-              <div class="add-new-stakeholder">
-                <h4>Or Add New Stakeholder</h4>
-                <div class="new-stakeholder-form">
-                  <input
-                    v-model="newStakeholderName"
-                    type="text"
-                    placeholder="Full name"
-                    class="stakeholder-input"
-                  />
-                  <input
-                    v-model="newStakeholderEmail"
-                    type="email"
-                    placeholder="Email address"
-                    class="stakeholder-input"
-                  />
-                  <input
-                    v-model="newStakeholderTitle"
-                    type="text"
-                    placeholder="Title"
-                    class="stakeholder-input"
-                  />
-                  <input
-                    v-model="newStakeholderOrganization"
-                    type="text"
-                    placeholder="Organization"
-                    class="stakeholder-input"
-                  />
-                  <select v-model="newStakeholderRole" class="stakeholder-input">
-                    <option value="">Select role...</option>
-                    <option value="project_manager">Project Manager</option>
-                    <option value="subject_matter_expert">Subject Matter Expert</option>
-                    <option value="reviewer">Reviewer</option>
-                    <option value="stakeholder">Stakeholder</option>
-                    <option value="sponsor">Sponsor</option>
-                  </select>
-                  <button 
-                    type="button" 
-                    @click="addNewStakeholder('new')"
-                    :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
-                    class="add-btn"
-                  >
-                    + Add New Stakeholder
-                  </button>
-                </div>
-              </div>
-            </div>
           </div>
-
-          <!-- Milestones -->
-          <div class="form-section">
-            <h3>Milestones</h3>
-            <div class="milestones-list">
-              <div v-for="(milestone, index) in newProject.milestones" :key="index" class="milestone-item">
-                <input
-                  v-model="milestone.name"
-                  type="text"
-                  placeholder="Milestone name"
-                  class="milestone-input"
-                />
-                <input
-                  v-model="milestone.date"
-                  type="date"
-                  class="milestone-input"
-                  placeholder="Target date"
-                />
-                <select
-                  v-model="milestone.status"
-                  class="milestone-input"
-                >
-                  <option value="planned">Planned</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <button type="button" @click="removeMilestone(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addMilestone('new')" class="add-btn">+ Add Milestone</button>
-            </div>
-          </div>
-
-          <!-- Collections -->
-          <div class="form-section">
-            <h3>Collections</h3>
-            <div class="collections-list">
-              <div v-for="(collection, index) in newProject.collections" :key="index" class="collection-item">
-                <input
-                  v-model="collection.name"
-                  type="text"
-                  placeholder="Collection name"
-                  class="collection-input"
-                />
-                <textarea
-                  v-model="collection.description"
-                  placeholder="Description"
-                  rows="2"
-                  class="collection-input"
-                ></textarea>
-                <button type="button" @click="removeCollection(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addCollection('new')" class="add-btn">+ Add Collection</button>
-            </div>
-          </div>
-
-          <!-- Published Documents -->
-          <div class="form-section">
-            <h3>Published Documents</h3>
-            <div class="documents-list">
-              <div v-for="(document, index) in newProject.publishedDocuments" :key="index" class="document-item">
-                <input
-                  v-model="document.title"
-                  type="text"
-                  placeholder="Document title"
-                  class="document-input"
-                />
-                <input
-                  v-model="document.url"
-                  type="url"
-                  placeholder="Document URL"
-                  class="document-input"
-                />
-                <select v-model="document.type" class="document-input">
-                  <option value="">Select type</option>
-                  <option value="pdf">PDF</option>
-                  <option value="docx">Word Document</option>
-                  <option value="html">HTML</option>
-                  <option value="markdown">Markdown</option>
-                  <option value="other">Other</option>
-                </select>
-                <button type="button" @click="removeDocument(index, 'new')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addDocument('new')" class="add-btn">+ Add Document</button>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="showCreateModal = false" class="cancel-btn">
-              Cancel
-            </button>
-            <button type="submit" class="create-btn">Create Project</button>
-          </div>
-        </form>
-      </div>
-    </div>
-
-    <!-- Edit Project Modal -->
-    <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
-      <div class="modal large-modal" @click.stop>
-        <div class="modal-header">
-          <h2>Edit Project</h2>
-          <button @click="showEditModal = false" class="close-btn">×</button>
         </div>
-        <form @submit.prevent="updateProject" class="modal-body">
-          <!-- Basic Information -->
-          <div class="form-section">
-            <h3>Basic Information</h3>
-            <div class="form-row">
-              <div class="form-group">
-                <label for="editProjectName">Project Name *</label>
-                <input
-                  id="editProjectName"
-                  v-model="editingProject.name"
-                  type="text"
-                  required
-                  placeholder="Enter project name"
-                />
-              </div>
-              <div class="form-group">
-                <label for="editProjectStatus">Status</label>
-                <select id="editProjectStatus" v-model="editingProject.status">
-                  <option value="planning">Planning</option>
-                  <option value="active">Active</option>
-                  <option value="on_hold">On Hold</option>
-                  <option value="completed">Completed</option>
-                </select>
-              </div>
-            </div>
-            <div class="form-group">
-              <label for="editProjectDescription">Description</label>
-              <textarea
-                id="editProjectDescription"
-                v-model="editingProject.description"
-                placeholder="Project description"
-                rows="3"
-              ></textarea>
-            </div>
-          </div>
 
-          <!-- Stakeholders -->
-          <div class="form-section">
-            <h3>Stakeholders</h3>
-            <div class="stakeholders-list">
-              <div v-for="(stakeholder, index) in editingProject.stakeholders" :key="index" class="stakeholder-item">
-                <input
-                  v-model="stakeholder.name"
-                  type="text"
-                  placeholder="Stakeholder name"
-                  class="stakeholder-input"
-                />
-                <input
-                  v-model="stakeholder.role"
-                  type="text"
-                  placeholder="Role/Title"
-                  class="stakeholder-input"
-                />
-                <input
-                  v-model="stakeholder.email"
-                  type="email"
-                  placeholder="Email"
-                  class="stakeholder-input"
-                />
-                <button type="button" @click="removeStakeholder(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addStakeholder('edit')" class="add-btn">+ Add Stakeholder</button>
+        <!-- Milestones Section -->
+        <div class="form-section">
+          <h3>Milestones</h3>
+          <div class="milestones-list">
+            <div v-for="(milestone, index) in editingProject.milestones" :key="index" class="milestone-item">
+              <input
+                v-model="milestone.name"
+                type="text"
+                placeholder="Milestone name"
+                class="milestone-input"
+              />
+              <input
+                v-model="milestone.date"
+                type="date"
+                class="milestone-input"
+                placeholder="Target date"
+              />
+              <select
+                v-model="milestone.status"
+                class="milestone-input"
+              >
+                <option value="planned">Planned</option>
+                <option value="in_progress">In Progress</option>
+                <option value="completed">Completed</option>
+                <option value="delayed">Delayed</option>
+              </select>
+              <button type="button" @click="removeMilestone(index, 'edit')" class="remove-btn">✕</button>
             </div>
+            <button type="button" @click="addMilestone('edit')" class="add-btn">+ Add Milestone</button>
           </div>
+        </div>
 
-          <!-- Milestones -->
-          <div class="form-section">
-            <h3>Milestones</h3>
-            <div class="milestones-list">
-              <div v-for="(milestone, index) in editingProject.milestones" :key="index" class="milestone-item">
-                <input
-                  v-model="milestone.name"
-                  type="text"
-                  placeholder="Milestone name"
-                  class="milestone-input"
-                />
-                <input
-                  v-model="milestone.date"
-                  type="date"
-                  class="milestone-input"
-                  placeholder="Target date"
-                />
-                <select
-                  v-model="milestone.status"
-                  class="milestone-input"
-                >
-                  <option value="planned">Planned</option>
-                  <option value="in-progress">In Progress</option>
-                  <option value="completed">Completed</option>
-                  <option value="overdue">Overdue</option>
-                </select>
-                <button type="button" @click="removeMilestone(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addMilestone('edit')" class="add-btn">+ Add Milestone</button>
-            </div>
-          </div>
-
-          <!-- Collections -->
-          <div class="form-section">
-            <h3>Collections</h3>
-            <div class="collections-list">
-              <div v-for="(collection, index) in editingProject.collections" :key="index" class="collection-item">
-                <input
-                  v-model="collection.name"
-                  type="text"
-                  placeholder="Collection name"
-                  class="collection-input"
-                />
-                <textarea
-                  v-model="collection.description"
-                  placeholder="Description"
-                  rows="2"
-                  class="collection-input"
-                ></textarea>
-                <button type="button" @click="removeCollection(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addCollection('edit')" class="add-btn">+ Add Collection</button>
-            </div>
-          </div>
-
-          <!-- Published Documents -->
-          <div class="form-section">
-            <h3>Published Documents</h3>
-            <div class="documents-list">
-              <div v-for="(document, index) in editingProject.publishedDocuments" :key="index" class="document-item">
-                <input
-                  v-model="document.title"
-                  type="text"
-                  placeholder="Document title"
-                  class="document-input"
-                />
-                <input
-                  v-model="document.url"
-                  type="url"
-                  placeholder="Document URL"
-                  class="document-input"
-                />
-                <select v-model="document.type" class="document-input">
-                  <option value="">Select type</option>
-                  <option value="pdf">PDF</option>
-                  <option value="docx">Word Document</option>
-                  <option value="html">HTML</option>
-                  <option value="markdown">Markdown</option>
-                  <option value="other">Other</option>
-                </select>
-                <button type="button" @click="removeDocument(index, 'edit')" class="remove-btn">✕</button>
-              </div>
-              <button type="button" @click="addDocument('edit')" class="add-btn">+ Add Document</button>
-            </div>
-          </div>
-
-          <div class="modal-actions">
-            <button type="button" @click="showEditModal = false" class="cancel-btn">
-              Cancel
-            </button>
-            <button type="submit" class="create-btn">Update Project</button>
-          </div>
-        </form>
-      </div>
+        <div class="modal-actions">
+          <button type="button" @click="showEditModal = false" class="secondary-btn">
+            Cancel
+          </button>
+          <button type="submit" class="primary-btn">
+            Update Project
+          </button>
+        </div>
+      </form>
     </div>
   </div>
+</div>
+
 </template>
+<style scoped>
+.milestone-row input[type="date"] {
+  font-family: inherit;
+  font-size: 1rem;
+  color: #374151;
+  padding: 0.75rem 1rem;
+  border-radius: 8px;
+  border: 1px solid #d1d5db;
+  background: #fff;
+  box-sizing: border-box;
+}
+.milestone-row input[type="text"],
+.milestone-row input[type="date"],
+.milestone-row select,
+.milestone-row .remove-btn {
+  margin-bottom: 0.75rem;
+}
+.milestone-row input[type="text"]:last-child,
+.milestone-row input[type="date"]:last-child,
+.milestone-row select:last-child,
+.milestone-row .remove-btn:last-child {
+  margin-bottom: 0;
+}
+/* Milestone Modal Styling */
+.milestone-row {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+  min-height: 80px;
+  box-sizing: border-box;
+}
+.milestone-row input[type="text"],
+.milestone-row input[type="date"],
+.milestone-row select {
+  margin-bottom: 0;
+}
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.metric-card {
+  background: white;
+  border: 1px solid #e9ecef;
+  border-radius: 8px;
+  padding: 1.5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.metric-icon {
+  font-size: 2.5rem;
+  min-width: 60px;
+  text-align: center;
+}
+
+.metric-content {
+  text-align: left;
+}
+
+.metric-content h3 {
+  margin: 0 0 0.25rem 0;
+  color: #495057;
+  font-size: 0.875rem;
+  font-weight: 600;
+}
+
+.metric-number {
+  font-size: 2rem;
+  font-weight: 700;
+  color: #205493;
+  margin-bottom: 0.15rem;
+}
+
+.metric-detail {
+  font-size: 0.95rem;
+  color: #64748b;
+}
+</style>
 
 <script>
 import Breadcrumbs from '../components/Breadcrumbs.vue'
 import CalendarWidget from '../components/CalendarWidget.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
+import { createStakeholder, addStakeholderToProject } from '../api/stakeholders';
+import { getCollections, updateCollection } from '../api/collections';
+import { createPublication, deletePublication, updatePublication } from '../api/publications';
+import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
 
 export default {
   components: { Breadcrumbs, CalendarWidget, NotificationTicker },
@@ -666,6 +694,7 @@ export default {
       error: null,
       showEditModal: false,
       statusFilter: '',
+      searchQuery: '',
       calendarView: '',
       showCreateModal: false,
       showTemplateModal: false,
@@ -679,6 +708,9 @@ export default {
       selectedStakeholderRole: '',
       
       // New stakeholder form
+      newStakeholder: { name: '', email: '', title: '', organization: '', role: '' },
+      
+      // Individual new stakeholder properties for form binding
       newStakeholderName: '',
       newStakeholderEmail: '',
       newStakeholderTitle: '',
@@ -703,7 +735,16 @@ export default {
         milestones: [],
         collections: [],
         publishedDocuments: []
-      }
+      },
+      // Multi-step project creation
+      createProjectStep: 1,
+      createdProjectId: null,
+      createdProjectName: '',
+      showStakeholderModal: false,
+      showMilestoneModal: false,
+      confirmationMessage: '',
+      projectStakeholders: [],
+      newMilestones: [{ name: '', date: '', status: 'planned' }],
     }
   },
   computed: {
@@ -734,10 +775,22 @@ export default {
       }
     },
     filteredProjects() {
-      if (!this.statusFilter) {
-        return this.projects
+      let filtered = [...this.projects]
+      
+      if (this.searchQuery) {
+        const query = this.searchQuery.toLowerCase()
+        filtered = filtered.filter(project =>
+          project.name.toLowerCase().includes(query) ||
+          (project.description && project.description.toLowerCase().includes(query)) ||
+          (project.project_manager && project.project_manager.toLowerCase().includes(query))
+        )
       }
-      return this.projects.filter(project => project.status === this.statusFilter)
+      
+      if (this.statusFilter) {
+        filtered = filtered.filter(project => project.status === this.statusFilter)
+      }
+      
+      return filtered
     },
     calendarEvents() {
       const events = []
@@ -773,6 +826,95 @@ export default {
     }
   },
   methods: {
+    proceedToStakeholders() {
+      this.confirmationMessage = '';
+      this.showStakeholderModal = true;
+    },
+    handleCreateProject() {
+      this.createProjectBasic();
+    },
+
+    async handleUpdateProject() {
+      try {
+        // First, update the basic project information
+        const response = await fetch(`/api/projects/${this.editingProject.id}`, {
+          method: 'PUT',
+          headers: {
+            'Content-Type': 'application/json'
+          },
+          body: JSON.stringify({
+            name: this.editingProject.name,
+            description: this.editingProject.description,
+            status: this.editingProject.status
+          })
+        })
+
+        if (!response.ok) {
+          throw new Error(`HTTP error! status: ${response.status}`)
+        }
+
+        const updatedProject = await response.json()
+        
+        // Handle stakeholder updates
+        const newStakeholders = this.editingProject.stakeholders.filter(s => s.isNew)
+        for (const stakeholder of newStakeholders) {
+          try {
+            if (stakeholder.stakeholder_id) {
+              // Add existing stakeholder to project
+              await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  stakeholder_id: stakeholder.stakeholder_id,
+                  role: stakeholder.role,
+                  notes: stakeholder.notes
+                })
+              })
+            } else {
+              // Create new stakeholder and add to project
+              await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+                method: 'POST',
+                headers: {
+                  'Content-Type': 'application/json'
+                },
+                body: JSON.stringify({
+                  name: stakeholder.name,
+                  email: stakeholder.email,
+                  title: stakeholder.title,
+                  organization: stakeholder.organization,
+                  role: stakeholder.role,
+                  notes: stakeholder.notes
+                })
+              })
+            }
+          } catch (stakeholderError) {
+            console.error('Failed to add stakeholder:', stakeholder, stakeholderError)
+            // Continue with other stakeholders even if one fails
+          }
+        }
+        
+        // Update the project in the local array
+        const index = this.projects.findIndex(p => p.id === this.editingProject.id)
+        if (index !== -1) {
+          this.projects[index] = {
+            ...this.projects[index],
+            ...updatedProject
+          }
+        }
+
+        // Refresh the projects list to get updated stakeholder information
+        await this.fetchProjects()
+
+        this.showEditModal = false
+        this.resetEditingProject()
+        
+      } catch (error) {
+        console.error('Failed to update project:', error)
+        alert('Failed to update project. Please try again.')
+      }
+    },
     async fetchProjects() {
       this.loading = true
       this.error = null
@@ -847,24 +989,37 @@ export default {
       }
     },
 
-    async createProject() {
+    async createProjectBasic() {
       try {
-        const project = {
-          id: Date.now(),
+        const payload = {
           name: this.newProject.name,
           description: this.newProject.description,
           status: this.newProject.status,
-          stakeholders: [...this.newProject.stakeholders],
-          milestones: [...this.newProject.milestones],
-          collections: [...this.newProject.collections],
-          publishedDocuments: [...this.newProject.publishedDocuments],
-          created_at: new Date().toISOString()
+          start_date: this.newProject.start_date || null,
+          target_completion: this.newProject.target_completion || null
         }
-        this.projects.push(project)
-        this.showCreateModal = false
-        this.resetNewProject()
+        const response = await fetch('/api/projects/', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to create project: ${response.status} ${errorText}`)
+        }
+        const createdProject = await response.json()
+  this.createdProjectId = createdProject.id
+  this.createdProjectName = createdProject.name
+  this.confirmationMessage = `Project #${createdProject.id} (${createdProject.name}) was created successfully!`;
+  this.createProjectStep = 2
+  // Only close the modal after user clicks OK (handled in proceedToStakeholders)
+  // this.showStakeholderModal = true
+  // this.showCreateModal = false
+  // Optionally, store createdProject in newProject for later steps
+  this.newProject.id = createdProject.id
       } catch (error) {
         console.error('Failed to create project:', error)
+        alert('Failed to create project: ' + error.message)
       }
     },
     filterByStatus(status) {
@@ -893,7 +1048,8 @@ export default {
 
     clearFilter() {
       this.statusFilter = ''
-      console.log('Filter cleared - showing all projects')
+      this.searchQuery = ''
+      console.log('Filters cleared - showing all projects')
     },
 
     applyFilters() {
@@ -957,32 +1113,14 @@ export default {
         collections: project.collections ? [...project.collections] : [],
         publishedDocuments: project.publishedDocuments ? [...project.publishedDocuments] : []
       }
+      
+      // Load available stakeholders for adding new ones
+      this.fetchStakeholders()
+      
       this.showEditModal = true
     },
 
-    async updateProject() {
-      try {
-        // Find and update the project in the array
-        const index = this.projects.findIndex(p => p.id === this.editingProject.id)
-        if (index !== -1) {
-          this.projects[index] = {
-            ...this.projects[index],
-            name: this.editingProject.name,
-            description: this.editingProject.description,
-            status: this.editingProject.status,
-            stakeholders: [...this.editingProject.stakeholders],
-            milestones: [...this.editingProject.milestones],
-            collections: [...this.editingProject.collections],
-            publishedDocuments: [...this.editingProject.publishedDocuments]
-          }
-        }
-        
-        this.showEditModal = false
-        this.resetEditingProject()
-      } catch (error) {
-        console.error('Failed to update project:', error)
-      }
-    },
+
 
     resetEditingProject() {
       this.editingProject = {
@@ -1073,48 +1211,154 @@ export default {
     },
 
     // Collection management methods
-    addCollection(type) {
+    async addCollection(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.collections.push({
-        name: '',
-        description: ''
-      })
+      // Call backend to create collection
+      try {
+        const payload = {
+          name: '',
+          description: '',
+          project_id: this.newProject.id || this.editingProject.id
+        }
+        const res = await fetch('/api/collections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!res.ok) throw new Error(await res.text())
+        const newCollection = await res.json()
+        target.collections.push(newCollection)
+      } catch (error) {
+        alert('Failed to add collection: ' + error.message)
+      }
     },
 
-    removeCollection(index, type) {
+    async removeCollection(index, type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.collections.splice(index, 1)
+      const collection = target.collections[index]
+      if (!collection || !collection.id) {
+        target.collections.splice(index, 1)
+        return
+      }
+      try {
+        const res = await fetch(`/api/collections/${collection.id}`, {
+          method: 'DELETE'
+        })
+        if (!res.ok) throw new Error(await res.text())
+        target.collections.splice(index, 1)
+      } catch (error) {
+        alert('Failed to remove collection: ' + error.message)
+      }
+    },
+
+    async updateCollectionField(index, field, value, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      const collection = target.collections[index]
+      if (!collection || !collection.id) {
+        collection[field] = value
+        return
+      }
+      try {
+        collection[field] = value
+        await updateCollection(collection.id, { [field]: value })
+      } catch (error) {
+        alert('Failed to update collection: ' + error.message)
+      }
     },
 
     // Document management methods
-    addDocument(type) {
+    async addDocument(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.publishedDocuments.push({
-        title: '',
-        url: '',
-        type: ''
-      })
+      try {
+        const payload = {
+          title: '',
+          url: '',
+          type: '',
+          project_id: this.newProject.id || this.editingProject.id
+        }
+        const newDoc = await createPublication(payload)
+        target.publishedDocuments.push(newDoc)
+      } catch (error) {
+        alert('Failed to add document: ' + error.message)
+      }
     },
 
-    removeDocument(index, type) {
+    async removeDocument(index, type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.publishedDocuments.splice(index, 1)
+      const doc = target.publishedDocuments[index]
+      if (!doc || !doc.id) {
+        target.publishedDocuments.splice(index, 1)
+        return
+      }
+      try {
+        await deletePublication(doc.id)
+        target.publishedDocuments.splice(index, 1)
+      } catch (error) {
+        alert('Failed to remove document: ' + error.message)
+      }
+    },
+
+    async updateDocumentField(index, field, value, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      const doc = target.publishedDocuments[index]
+      if (!doc || !doc.id) {
+        doc[field] = value
+        return
+      }
+      try {
+        doc[field] = value
+        await updatePublication(doc.id, { [field]: value })
+      } catch (error) {
+        alert('Failed to update document: ' + error.message)
+      }
     },
 
     // Milestone management methods
-    addMilestone(type) {
+    async addMilestone(type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.milestones.push({
-        name: '',
-        date: '',
-        status: 'planned'
-      })
-      this.sortMilestones(type)
+      try {
+        const payload = {
+          name: '',
+          date: '',
+          status: 'planned',
+          project_id: this.newProject.id || this.editingProject.id
+        }
+        const newMilestone = await createMilestone(payload)
+        target.milestones.push(newMilestone)
+        this.sortMilestones(type)
+      } catch (error) {
+        alert('Failed to add milestone: ' + error.message)
+      }
     },
 
-    removeMilestone(index, type) {
+    async removeMilestone(index, type) {
       const target = type === 'new' ? this.newProject : this.editingProject
-      target.milestones.splice(index, 1)
+      const milestone = target.milestones[index]
+      if (!milestone || !milestone.id) {
+        target.milestones.splice(index, 1)
+        return
+      }
+      try {
+        await deleteMilestone(milestone.id)
+        target.milestones.splice(index, 1)
+      } catch (error) {
+        alert('Failed to remove milestone: ' + error.message)
+      }
+    },
+
+    async updateMilestoneField(index, field, value, type) {
+      const target = type === 'new' ? this.newProject : this.editingProject
+      const milestone = target.milestones[index]
+      if (!milestone || !milestone.id) {
+        milestone[field] = value
+        return
+      }
+      try {
+        milestone[field] = value
+        await updateMilestone(milestone.id, { [field]: value })
+      } catch (error) {
+        alert('Failed to update milestone: ' + error.message)
+      }
     },
 
     sortMilestones(type) {
@@ -1129,7 +1373,109 @@ export default {
     hasActiveMilestones(project) {
       if (!project.milestones || !Array.isArray(project.milestones)) return false
       return project.milestones.some(milestone => milestone.date)
-    }
+    },
+
+    proceedToMilestones() {
+      // Validate that at least one stakeholder is added, unless skipping
+      if (!this.projectStakeholders || this.projectStakeholders.length === 0) {
+        alert('Please add at least one stakeholder before proceeding, or click Not Now to skip.');
+        return;
+      }
+      this.showStakeholderModal = false;
+      this.showMilestoneModal = true;
+    },
+
+    skipStakeholders() {
+      // Always proceed to milestones, regardless of validation
+      this.showStakeholderModal = false;
+      this.showMilestoneModal = true;
+    },
+
+    skipMilestones() {
+      // Always finish project creation, regardless of milestones
+      this.showMilestoneModal = false;
+      this.confirmationMessage = `Project #${this.createdProjectId} (${this.createdProjectName}) was created successfully!`;
+      this.createProjectStep = 1;
+      this.createdProjectId = null;
+      this.createdProjectName = '';
+      this.projectStakeholders = [];
+      this.newMilestones = [{ name: '', date: '', status: 'planned' }];
+      alert(this.confirmationMessage);
+    },
+
+    async addSelectedStakeholderToProject() {
+      if (!this.createdProjectId || !this.selectedStakeholderId || !this.selectedStakeholderRole) return
+      try {
+        await addStakeholderToProject(this.createdProjectId, this.selectedStakeholderId, this.selectedStakeholderRole)
+        const stakeholder = this.availableStakeholders.find(s => s.id === this.selectedStakeholderId)
+        if (stakeholder) {
+          this.projectStakeholders.push({ ...stakeholder, role: this.selectedStakeholderRole })
+        }
+        this.selectedStakeholderId = ''
+        this.selectedStakeholderRole = ''
+      } catch (err) {
+        alert('Failed to add stakeholder: ' + err.message)
+      }
+    },
+    async addNewStakeholderToProject() {
+      if (!this.createdProjectId || !this.newStakeholderName || !this.newStakeholderEmail || !this.newStakeholderRole) return
+      try {
+        const newStakeholder = await createStakeholder({
+          name: this.newStakeholderName,
+          email: this.newStakeholderEmail,
+          title: this.newStakeholderTitle,
+          organization: this.newStakeholderOrganization
+        })
+        await addStakeholderToProject(this.createdProjectId, newStakeholder.id, this.newStakeholderRole)
+        this.projectStakeholders.push({ ...newStakeholder, role: this.newStakeholderRole })
+        
+        // Reset individual form fields
+        this.newStakeholderName = ''
+        this.newStakeholderEmail = ''
+        this.newStakeholderTitle = ''
+        this.newStakeholderOrganization = ''
+        this.newStakeholderRole = ''
+      } catch (err) {
+        alert('Failed to add new stakeholder: ' + err.message)
+      }
+    },
+    addMilestoneRow() {
+      this.newMilestones.push({ name: '', date: '', status: 'planned' })
+    },
+    removeMilestone(idx) {
+      this.newMilestones.splice(idx, 1)
+    },
+    async saveMilestonesAndFinish() {
+      if (!this.createdProjectId) return
+      try {
+        for (const m of this.newMilestones) {
+          if (m.name) {
+            await fetch(`/api/projects/${this.createdProjectId}/milestones`, {
+              method: 'POST',
+              headers: { 'Content-Type': 'application/json' },
+              body: JSON.stringify({
+                name: m.name,
+                date: m.date,
+                status: m.status
+              })
+            })
+          }
+        }
+        // Close all modals and reset state, return to dashboard
+        this.showMilestoneModal = false
+        this.showStakeholderModal = false
+        this.showCreateModal = false
+        this.confirmationMessage = ''
+        this.createProjectStep = 1
+        this.createdProjectId = null
+        this.createdProjectName = ''
+        this.projectStakeholders = []
+        this.newMilestones = [{ name: '', date: '', status: 'planned' }]
+        // Optionally, you could show a toast here if desired
+      } catch (err) {
+        alert('Failed to add milestones: ' + err.message)
+      }
+    },
   },
   mounted() {
     // Fetch projects and stakeholders from API
@@ -1151,7 +1497,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -1161,6 +1507,53 @@ export default {
   color: #6c757d;
   font-size: 1.1rem;
   margin: 0;
+}
+
+/* Filters */
+.filters-section {
+  background: white;
+  padding: 1rem;
+  border-radius: 8px;
+  margin-bottom: 2rem;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+}
+
+.filter-group label {
+  font-weight: 600;
+  color: #495057;
+  font-size: 0.9rem;
+}
+
+.filter-input {
+  padding: 0.5rem;
+  border: 1px solid #ced4da;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: white;
+}
+
+.filter-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.button-group {
+  display: flex;
+  gap: 0.5rem;
 }
 
 /* Metrics Grid */
@@ -1182,25 +1575,10 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
-.metric-icon {
-  font-size: 2.5rem;
-  min-width: 60px;
-  text-align: center;
-}
-
-.metric-content h3 {
-  margin: 0 0 0.25rem 0;
-  color: #495057;
-  font-size: 0.875rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
-}
-
 .metric-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
   margin-bottom: 0.25rem;
 }
@@ -1252,12 +1630,13 @@ export default {
   background: white;
   color: #374151;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
   cursor: pointer;
 }
 
 .filter-select:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -1268,7 +1647,7 @@ export default {
 }
 
 .filter-badge {
-  background: #005a9c;
+  background: #205493;
   color: white;
   font-size: 0.75rem;
   padding: 0.25rem 0.5rem;
@@ -1316,11 +1695,11 @@ export default {
 }
 
 .action-card:hover {
-  background: #005a9c;
-  border-color: #005a9c;
+  background: #205493;
+  border-color: #205493;
   color: white;
   transform: translateY(-1px);
-  box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
+  box-shadow: 0 4px 12px rgba(32, 84, 147, 0.2);
 }
 
 .action-icon {
@@ -1370,7 +1749,7 @@ export default {
 }
 
 .create-first-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -1381,7 +1760,7 @@ export default {
 }
 
 .create-first-btn:hover {
-  background: #004080;
+  background: #005E7B;
   transform: translateY(-1px);
 }
 
@@ -1451,7 +1830,7 @@ export default {
 }
 
 .retry-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -1462,7 +1841,7 @@ export default {
 }
 
 .retry-btn:hover {
-  background: #004080;
+  background: #005E7B;
   transform: translateY(-1px);
 }
 
@@ -1483,7 +1862,7 @@ export default {
 }
 
 .project-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   transform: translateY(-2px);
   box-shadow: 0 8px 25px rgba(0, 90, 156, 0.15);
 }
@@ -1539,12 +1918,12 @@ export default {
 }
 
 .milestone-date.completed {
-  color: #059669;
+  color: #009964;
   font-weight: 500;
 }
 
 .milestone-date.in-progress {
-  color: #0369a1;
+  color: #005E7B;
   font-weight: 500;
 }
 
@@ -1557,28 +1936,18 @@ export default {
   color: #6b7280;
 }
 
-.milestone-status {
-  font-size: 0.75rem;
-  opacity: 0.8;
-}
-
-.project-milestones .milestone-more {
-  font-size: 0.75rem;
-  color: #9ca3af;
-  font-style: italic;
-}
-
-.project-description {
-  color: #6b7280;
-  margin-bottom: 1rem;
-  line-height: 1.5;
-}
-
-.project-summary {
+.milestone-row {
   display: flex;
-  flex-wrap: wrap;
-  gap: 0.5rem;
+  flex-direction: row;
+  align-items: flex-start;
+  gap: 1rem;
+  background: #f8fafc;
+  border: 1px solid #e0e7ef;
+  border-radius: 8px;
+  padding: 1rem;
   margin-bottom: 1rem;
+  min-height: 80px;
+  box-sizing: border-box;
 }
 
 .summary-item {
@@ -1626,7 +1995,7 @@ export default {
 }
 
 .edit-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -1637,7 +2006,7 @@ export default {
 }
 
 .edit-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Modal Styles - Keeping existing modal styles but with updated colors */
@@ -1717,13 +2086,14 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 6px;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
   box-sizing: border-box;
   transition: border-color 0.2s ease;
 }
 
 .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -1771,7 +2141,7 @@ export default {
   color: #112e51;
   font-size: 1.1rem;
   font-weight: 600;
-  border-bottom: 2px solid #005a9c;
+  border-bottom: 2px solid #205493;
   padding-bottom: 0.5rem;
 }
 
@@ -1815,7 +2185,7 @@ export default {
 
 .stakeholder-selector h4 {
   margin: 0 0 1rem 0;
-  color: #1e40af;
+  color: #205493;
   font-size: 1rem;
   font-weight: 600;
 }
@@ -1833,6 +2203,7 @@ export default {
   border-radius: 6px;
   background: white;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
 }
 
 .stakeholder-info {
@@ -1895,17 +2266,18 @@ export default {
   border: 1px solid #d1d5db;
   border-radius: 4px;
   font-size: 0.9rem;
+  font-family: 'Roboto', sans-serif;
   box-sizing: border-box;
 }
 
 .stakeholder-input:focus, .collection-input:focus, .document-input:focus, .milestone-input:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 90, 156, 0.1);
 }
 
 .add-btn {
-  background: #059669;
+  background: #009964;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -1917,22 +2289,62 @@ export default {
 }
 
 .add-btn:hover {
-  background: #047857;
+  background: #006548;
 }
 
 .remove-btn {
   background: #dc2626;
   color: white;
   border: none;
-  padding: 0.25rem 0.5rem;
+  padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
-  font-size: 0.8rem;
+  font-size: 0.9rem;
+  font-weight: 500;
   transition: background 0.2s ease;
+  margin-left: .5rem;
 }
 
 .remove-btn:hover {
   background: #b91c1c;
+  color: #fff;
+  border-color: #b91c1c;
+}
+
+.primary-btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  background: #205493;
+  color: white;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+.primary-btn:disabled {
+  background: #cbd5e1;
+  color: #6b7280;
+  cursor: not-allowed;
+  opacity: 0.7;
+}
+.primary-btn:hover {
+  background: #005E7B;
+}
+.secondary-btn {
+  padding: 0.75rem 1.5rem;
+  border: 1px solid #d1d5db;
+  background: white;
+  color: #374151;
+  border-radius: 8px;
+  font-weight: 600;
+  font-size: 1rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.secondary-btn:hover {
+  background: #f3f4f6;
+  border-color: #9ca3af;
 }
 
 /* Responsive Design */

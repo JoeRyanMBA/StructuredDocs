@@ -1,6 +1,6 @@
 <template>
   <NotificationTicker
-    :notifications="notifications"
+    :notifications="mergedNotifications"
     contextType="publish"
     @mark-read="markNotificationRead"
   />
@@ -172,6 +172,10 @@ export default {
       type: Array,
       default: () => []
     },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
     markNotificationRead: {
       type: Function,
       required: true
@@ -191,6 +195,21 @@ export default {
       recentPublications: []
     }
   },
+  
+  computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    }
+  },
+  
   async created() {
     await this.loadDashboardData()
   },
@@ -267,9 +286,18 @@ export default {
     editPublication(publication) {
       this.$router.push(`/publications/${publication.id}/edit`)
     },
-    publishNow(publication) {
-      // Implement publish functionality
-      console.log('Publishing:', publication.title)
+    async publishNow(publication) {
+      // Persist publish action to backend
+      try {
+        const res = await fetch(`/api/publications/${publication.id}/publish`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' }
+        })
+        if (!res.ok) throw new Error('Failed to publish')
+        await this.loadPublications()
+      } catch (err) {
+        console.error('Error publishing:', err)
+      }
     },
     downloadPublication(publication) {
       // Implement download functionality
@@ -331,7 +359,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -380,7 +408,7 @@ export default {
 .metric-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
   margin-bottom: 0.25rem;
 }
@@ -442,8 +470,8 @@ export default {
 }
 
 .action-card:hover {
-  background: #005a9c;
-  border-color: #005a9c;
+  background: #205493;
+  border-color: #205493;
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
@@ -500,7 +528,7 @@ export default {
 }
 
 .template-btn:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -527,7 +555,7 @@ export default {
 }
 
 .publication-item:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -575,7 +603,7 @@ export default {
 }
 
 .publication-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 4px 12px rgba(0,90,156,0.15);
 }
 
@@ -662,18 +690,18 @@ export default {
 }
 
 .card-action-btn:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
 .card-action-btn.primary {
-  background: #005a9c;
+  background: #205493;
   color: white;
-  border-color: #005a9c;
+  border-color: #205493;
 }
 
 .card-action-btn.primary:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Empty States */
@@ -690,7 +718,7 @@ export default {
 .link-btn {
   background: none;
   border: none;
-  color: #005a9c;
+  color: #205493;
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
@@ -698,7 +726,7 @@ export default {
 }
 
 .link-btn:hover {
-  color: #004080;
+  color: #005E7B;
 }
 
 /* Loading */
@@ -716,7 +744,7 @@ export default {
 }
 
 .loading-spinner {
-  color: #005a9c;
+  color: #205493;
   font-size: 1.1rem;
 }
 

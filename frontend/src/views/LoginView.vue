@@ -4,7 +4,7 @@
       <div class="login-header">
         <div class="census-logo">
           <div class="logo-icon">🏛️</div>
-          <h1>Census Bureau</h1>
+          <h1>Structured Docs</h1>
           <p class="system-title">Structured Documentation System</p>
         </div>
       </div>
@@ -307,7 +307,7 @@ export default {
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background: linear-gradient(135deg, #005a9c 0%, #0074cc 100%);
+  background:radial-gradient( #e6e2e2ff 0%, #ffffff 100%);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -388,7 +388,7 @@ export default {
 
 .form-group input:focus, .form-group select:focus, .form-group textarea:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -417,7 +417,7 @@ export default {
 }
 
 .forgot-link {
-  color: #005a9c;
+  color: #205493;
   text-decoration: none;
   font-size: 0.9rem;
 }
@@ -428,7 +428,7 @@ export default {
 
 .login-btn {
   width: 100%;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem;
@@ -441,7 +441,7 @@ export default {
 }
 
 .login-btn:hover:not(:disabled) {
-  background: #004080;
+  background: #005E7B;
 }
 
 .login-btn:disabled {
@@ -465,7 +465,7 @@ export default {
 }
 
 .login-footer a {
-  color: #005a9c;
+  color: #205493;
   text-decoration: none;
 }
 
@@ -566,12 +566,12 @@ export default {
 }
 
 .submit-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
 }
 
 .submit-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Responsive Design */

@@ -1,0 +1,7 @@
+id,name,email,title,organization,department,phone,expertise_areas,bio,active,created_at,updated_at,division,role,can_review
+1,Joe Ryan,joseph.b.ryan.jr@census.gov,Program Analyst & Team Lead,"US Census Bureau, Field Division, SCCMB",,,"[""[]""]",,0,2025-08-15 13:28:41,2025-08-16 11:34:16,,stakeholder,1
+2,Katie Hall,Kate.B.Hall@Census.gov,Instructional Systems Specialist,"U.S. Census Bureau, Field Division, SCCMB",,,[],,1,2025-08-15 14:34:24,2025-08-15 14:34:24,,stakeholder,1
+3,Theresa Atkins-Bailey,teresa@example.com,Program Analyst,"US Census Bureau, Field Division, SCCMB",,,[],,1,2025-08-15 21:56:25,2025-08-15 21:56:25,,stakeholder,1
+4,Test User,joe@joe-ryan.net,Test Manager,Test Organization,Test Department,(555) 123-4567,"[""[]""]",,0,2025-08-16 14:35:19,2025-08-17 23:40:53,Test Division,stakeholder,1
+5,Joe Test,joe@joe-ryan.mba,Some Title,U.S. Census Bureau,SCCMB,202-000-0000,"[""\""Test expertise\""""]",Test bio,1,2025-08-16 15:35:18,2025-08-17 23:40:39,Field,stakeholder,1
+6,J Test,joe@ryan-family.us,Test,Test,,,,,1,2025-08-17 16:24:37,2025-08-17 16:24:37,,reviewer,1

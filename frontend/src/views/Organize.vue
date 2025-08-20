@@ -88,15 +88,9 @@
                 @start="onDragStart"
                 @end="onDragEnd"
                 class="collection-topics-list"
-                :fallback-tolerance="5"
-                :force-fallback="true"
                 :animation="200"
-                :ghost-class="'sortable-ghost'"
-                :chosen-class="'sortable-chosen'"
-                :drag-class="'sortable-drag'"
                 handle=".drag-handle"
-    :move="customMove"
-  >
+              >
     <template #item="{ element: topic, index }">
                   <div 
                     class="topic-wrapper"
@@ -266,7 +260,7 @@
               <div style="margin-left: auto; display: flex; align-items: center;">
                 <button class="preview-icon-btn" @click.stop="previewTopic(element)" title="Preview this topic">
                   <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4C5 4 1.73 8.11 1.08 9.01a1.5 1.5 0 0 0 0 1.98C1.73 11.89 5 16 10 16s8.27-4.11 8.92-5.01a1.5 1.5 0 0 0 0-1.98C18.27 8.11 15 4 10 4Zm0 10c-3.87 0-6.82-3.13-7.7-4C3.18 9.13 6.13 6 10 6s6.82 3.13 7.7 4c-.88.87-3.83 4-7.7 4Zm0-7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" fill="#007acc"/>
+                    <path d="M10 4C5 4 1.73 8.11 1.08 9.01a1.5 1.5 0 0 0 0 1.98C1.73 11.89 5 16 10 16s8.27-4.11 8.92-5.01a1.5 1.5 0 0 0 0-1.98C18.27 8.11 15 4 10 4Zm0 10c-3.87 0-6.82-3.13-7.7-4C3.18 9.13 6.13 6 10 6s6.82 3.13 7.7 4c-.88.87-3.83 4-7.7 4Zm0-7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" fill="#205493"/>
                   </svg>
                 </button>
               </div>
@@ -390,17 +384,34 @@ export default {
     // Check if we're in edit mode
     this.isEditMode = this.$route.query.edit === 'true'
     
-    const [collections, topics, projects] = await Promise.all([
-      getCollections(),
-      getTopics(),
-      getProjects()
-    ])
-    this.allCollections = collections
-    this.topics = topics
-    this.projects = projects
+    try {
+      // Load collections and topics (critical)
+      const [collections, topics] = await Promise.all([
+        getCollections(),
+        getTopics()
+      ])
+      this.allCollections = collections
+      this.topics = topics
+      
+      // Load projects separately with error handling (non-critical for viewing)
+      try {
+        const projects = await getProjects()
+        this.projects = projects
+      } catch (projectError) {
+        console.warn('Failed to load projects, but continuing with collection view:', projectError)
+        this.projects = [] // Default to empty array
+      }
+    } catch (error) {
+      console.error('Failed to load critical data:', error)
+      return
+    }
     
     // Find the specific collection being organized
     this.currentCollection = this.findCollectionById(this.allCollections, parseInt(this.id))
+    console.log('🔍 Collection ID being searched:', this.id)
+    console.log('🔍 All collections:', this.allCollections)
+    console.log('🔍 Found collection:', this.currentCollection)
+    
     if (!this.currentCollection) {
       console.error(`Collection with ID ${this.id} not found`)
       this.$router.push({ name: 'Collections' })
@@ -409,7 +420,11 @@ export default {
     
     // Ensure all topics have proper structure for nesting
     if (this.currentCollection.topics) {
+      console.log('🔍 Collection topics before processing:', this.currentCollection.topics.length)
       this.currentCollection.topics = this.currentCollection.topics.map(topic => this.ensureTopicStructure(topic))
+      console.log('🔍 Collection topics after processing:', this.currentCollection.topics.length)
+    } else {
+      console.log('🔍 No topics found in currentCollection')
     }
     
     this.unassignedTopics = this.getUnassignedTopics()
@@ -467,12 +482,16 @@ export default {
       }
     },
     customMove(evt, originalEvent) {
-      // Prevent vuedraggable from handling drop if dropping onto a topic row (for subtopic)
-      // Only allow sorting if not dropping onto a topic row
-      if (originalEvent && originalEvent.target && originalEvent.target.classList.contains('collection-topic-item')) {
-        // Let the custom @drop handler handle this
-        return false;
-      }
+      // For debugging
+      console.log('customMove called:', {
+        from: evt.from?.className,
+        to: evt.to?.className,
+        isFromExternal: evt.from !== evt.to,
+        target: originalEvent?.target?.className
+      })
+      
+      // Always allow moves - let vuedraggable handle everything
+      // The custom drop handlers will only trigger for specific hierarchy creation
       return true;
     },
     // Multi-select methods
@@ -721,6 +740,12 @@ export default {
 
     // Topic drop zone handlers
     handleDragOver(targetTopic, event) {
+      // Only handle dragover for hierarchy creation (when dropping onto topics)
+      // Don't interfere with vuedraggable's normal operations
+      if (!this.draggedTopics.length && !this.selectedTopics.size) {
+        return; // No topics being dragged, let vuedraggable handle it
+      }
+      
       event.preventDefault()
       event.stopPropagation()
       
@@ -1245,7 +1270,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -1308,7 +1333,7 @@ export default {
 }
 
 .current-collection .node {
-  border: 2px solid #007acc;
+  border: 2px solid #205493;
   border-radius: .5rem;
   padding: 1rem;
   background: #f0f8ff;
@@ -1317,14 +1342,14 @@ export default {
 .collection-topics-list {
   min-height: 100px;
   padding: 8px;
-  border: 1px dashed #007acc;
+  border: 1px dashed #205493;
   border-radius: 4px;
   background: #fafbfc;
 }
 
 .collection-topics-list:empty::after {
   content: "Drag topics here to add them to this collection";
-  color: #007acc;
+  color: #205493;
   font-style: italic;
   text-align: center;
   display: block;
@@ -1393,12 +1418,12 @@ export default {
 }
 
 .move-btn {
-  background: #28a745;
+  background: #009964;
   color: white;
 }
 
 .move-btn:hover:not(:disabled) {
-  background: #218838;
+  background: #006548;
 }
 
 .move-btn:disabled {
@@ -1419,7 +1444,7 @@ export default {
 
 .move-target-select:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -1436,17 +1461,17 @@ export default {
 
 .expand-btn {
   padding: 0.25rem 0.5rem;
-  border: 1px solid #007acc;
+  border: 1px solid #205493;
   border-radius: 4px;
   background: white;
-  color: #007acc;
+  color: #205493;
   cursor: pointer;
   font-size: 0.8rem;
   transition: all 0.2s ease;
 }
 
 .expand-btn:hover {
-  background: #007acc;
+  background: #205493;
   color: white;
 }
 
@@ -1632,7 +1657,7 @@ export default {
 }
 
 .unassigned-topic-item:hover {
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 2px 4px rgba(0, 122, 204, 0.1);
 }
 
@@ -1672,13 +1697,13 @@ export default {
 /* Drag and drop visual feedback */
 .sortable-ghost {
   opacity: 0.5;
-  background: #007acc !important;
+  background: #205493 !important;
   color: white !important;
 }
 
 .sortable-chosen {
   background: #e3f2fd !important;
-  border-color: #007acc !important;
+  border-color: #205493 !important;
 }
 
 .sortable-drag {
@@ -1714,12 +1739,12 @@ export default {
 }
 
 .publish-btn.publish-html {
-  background-color: #007acc;
+  background-color: #205493;
   color: white;
 }
 
 .publish-btn.publish-html:hover {
-  background-color: #005a9c;
+  background-color: #205493;
 }
 
 .publish-btn.publish-pdf {
@@ -1795,7 +1820,7 @@ export default {
 
 .edit-input:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 

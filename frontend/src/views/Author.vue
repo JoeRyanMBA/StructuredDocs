@@ -1,4 +1,9 @@
 <template>
+  <NotificationTicker
+    :notifications="mergedNotifications"
+    contextType="global"
+    @mark-read="markNotificationRead"
+  />
   <div class="author-view">
     <Breadcrumbs />
     <h2>✏️ Author</h2>
@@ -8,10 +13,38 @@
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
+import NotificationTicker from '../components/NotificationTicker.vue'
 
 export default {
   name: 'Author',
-  components: { Breadcrumbs }
+  components: { Breadcrumbs, NotificationTicker },
+  props: {
+    notifications: {
+      type: Array,
+      default: () => []
+    },
+    globalNotifications: {
+      type: Array,
+      default: () => []
+    },
+    markNotificationRead: {
+      type: Function,
+      default: () => {}
+    }
+  },
+  computed: {
+    mergedNotifications() {
+      // Combine global and dashboard-specific notifications, removing duplicates by id
+      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
+      const seen = new Set()
+      return all.filter(n => {
+        if (!n || !n.id) return true
+        if (seen.has(n.id)) return false
+        seen.add(n.id)
+        return true
+      })
+    }
+  }
 }
 </script>
 

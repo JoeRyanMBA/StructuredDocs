@@ -303,6 +303,69 @@ export default {
   },
 
   methods: {
+    async updateCollection(collection) {
+      try {
+        const payload = {
+          name: collection.name,
+          form_number: collection.form_number,
+          description: collection.description,
+          status: collection.status,
+          project_id: collection.projectId
+        }
+        const response = await fetch(`/api/collections/${collection.id}`, {
+          method: 'PATCH',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to update collection: ${response.status} ${errorText}`)
+        }
+        await this.loadCollections()
+      } catch (error) {
+        alert('Failed to update collection: ' + error.message)
+      }
+    },
+
+    async deleteCollection(collectionId) {
+      try {
+        const response = await fetch(`/api/collections/${collectionId}`, {
+          method: 'DELETE'
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to delete collection: ${response.status} ${errorText}`)
+        }
+        await this.loadCollections()
+      } catch (error) {
+        alert('Failed to delete collection: ' + error.message)
+      }
+    },
+    async submitNewCollection() {
+      try {
+        const payload = {
+          name: this.newCollection.name,
+          form_number: this.newCollection.form_number,
+          description: this.newCollection.description,
+          status: this.newCollection.status,
+          project_id: this.newCollection.projectId
+        }
+        const response = await fetch('/api/collections', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(payload)
+        })
+        if (!response.ok) {
+          const errorText = await response.text()
+          throw new Error(`Failed to create collection: ${response.status} ${errorText}`)
+        }
+        await this.loadCollections()
+        this.showCreateModal = false
+        this.resetNewCollection()
+      } catch (error) {
+        alert('Failed to create collection: ' + error.message)
+      }
+    },
     // Helper to assign projectName to collections based on projectId
     assignProjectNames(collections) {
       if (!this.projects || this.projects.length === 0) return collections;
@@ -507,7 +570,7 @@ export default {
 }
 
 .dashboard-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -556,7 +619,7 @@ export default {
 .metric-number {
   font-size: 2rem;
   font-weight: 700;
-  color: #005a9c;
+  color: #205493;
   line-height: 1;
   margin-bottom: 0.25rem;
 }
@@ -626,8 +689,8 @@ export default {
 }
 
 .action-card:hover {
-  background: #005a9c;
-  border-color: #005a9c;
+  background: #205493;
+  border-color: #205493;
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
@@ -666,7 +729,7 @@ export default {
 }
 
 .collection-item:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -714,7 +777,7 @@ export default {
 }
 
 .collection-project-info .project-name {
-  color: #005a9c;
+  color: #205493;
   font-weight: 500;
   margin-left: 0.25rem;
 }
@@ -757,7 +820,7 @@ export default {
 }
 
 .collection-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 4px 12px rgba(0,90,156,0.15);
 }
 
@@ -797,7 +860,7 @@ export default {
   padding: 0.5rem;
   background: #f8f9fa;
   border-radius: 4px;
-  border-left: 3px solid #005a9c;
+  border-left: 3px solid #205493;
 }
 
 .project-label {
@@ -810,7 +873,7 @@ export default {
 
 .project-name {
   font-size: 0.875rem;
-  color: #005a9c;
+  color: #205493;
   font-weight: 500;
   margin-left: 0.5rem;
 }
@@ -843,18 +906,18 @@ export default {
 }
 
 .card-action-btn:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
 .card-action-btn.primary {
-  background: #005a9c;
+  background: #205493;
   color: white;
-  border-color: #005a9c;
+  border-color: #205493;
 }
 
 .card-action-btn.primary:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Empty States */
@@ -871,7 +934,7 @@ export default {
 .link-btn {
   background: none;
   border: none;
-  color: #005a9c;
+  color: #205493;
   text-decoration: underline;
   cursor: pointer;
   padding: 0;
@@ -879,7 +942,7 @@ export default {
 }
 
 .link-btn:hover {
-  color: #004080;
+  color: #005E7B;
 }
 
 /* Loading */
@@ -897,7 +960,7 @@ export default {
 }
 
 .loading-spinner {
-  color: #005a9c;
+  color: #205493;
   font-size: 1.1rem;
 }
 
@@ -983,7 +1046,7 @@ export default {
 
 .form-group input:focus, .form-group textarea:focus, .form-group select:focus {
   outline: none;
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 0 0 3px rgba(0, 90, 156, 0.1);
 }
 
@@ -1023,12 +1086,12 @@ export default {
 }
 
 .create-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
 }
 
 .create-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 /* Responsive Design */

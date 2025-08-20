@@ -4,7 +4,9 @@
   "private": true,
   "scripts": {
     "start": "launch.bat",
-    "health-check": "curl http://localhost:5000/ping"
+    "health-check": "curl http://localhost:5000/ping",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
   },
   "description": "",
   "main": "index.js",
@@ -15,5 +17,8 @@
   "dependencies": {
     "marked": "^16.1.1",
     "vue-draggable-nested-tree": "^2.2.3"
+  },
+  "devDependencies": {
+    "cypress": "^14.5.4"
   }
 }

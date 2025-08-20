@@ -135,7 +135,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -227,7 +227,7 @@ export default {
 
 .publication-card:hover {
   box-shadow: 0 4px 12px rgba(0, 0, 0, 0.1);
-  border-color: #007acc;
+  border-color: #205493;
 }
 
 .card-header {
@@ -262,7 +262,7 @@ export default {
 }
 
 .export-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
@@ -273,7 +273,7 @@ export default {
 }
 
 .export-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 .help-section {

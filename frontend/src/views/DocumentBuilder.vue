@@ -864,7 +864,7 @@ status: "draft"
 }
 
 .builder-header h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 0.5rem;
   font-size: 2.5rem;
   font-weight: 300;
@@ -925,12 +925,12 @@ status: "draft"
 }
 
 .collection-item:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
 .collection-item.active {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #e7f3ff;
 }
 
@@ -955,7 +955,7 @@ status: "draft"
 }
 
 .collection-project {
-  color: #005a9c;
+  color: #205493;
   font-weight: 500;
 }
 
@@ -1019,7 +1019,7 @@ status: "draft"
   font-size: 0.8rem;
   font-weight: 600;
   background: #e7f3ff;
-  color: #005a9c;
+  color: #205493;
 }
 
 .workspace-actions {
@@ -1059,7 +1059,7 @@ status: "draft"
 }
 
 .topic-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -1154,7 +1154,7 @@ status: "draft"
 }
 
 .available-topic-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -1162,7 +1162,7 @@ status: "draft"
   position: absolute;
   top: 0.5rem;
   right: 0.5rem;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   border-radius: 4px;
@@ -1202,7 +1202,7 @@ status: "draft"
 
 .link-item:hover {
   background: #f8f9fa;
-  border-color: #005a9c;
+  border-color: #205493;
 }
 
 .link-icon {
@@ -1242,7 +1242,7 @@ status: "draft"
 }
 
 .image-item:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
@@ -1254,7 +1254,7 @@ status: "draft"
 
 /* Buttons */
 .btn-primary {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1rem;
@@ -1265,7 +1265,7 @@ status: "draft"
 }
 
 .btn-primary:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
 .btn-secondary {
@@ -1285,8 +1285,8 @@ status: "draft"
 
 .btn-outline {
   background: transparent;
-  color: #005a9c;
-  border: 1px solid #005a9c;
+  color: #205493;
+  border: 1px solid #205493;
   padding: 0.75rem 1rem;
   border-radius: 6px;
   font-weight: 600;
@@ -1295,23 +1295,28 @@ status: "draft"
 }
 
 .btn-outline:hover {
-  background: #005a9c;
+  background: #205493;
   color: white;
 }
 
 .btn-success {
-  background: #28a745;
+  background: #009964;
   color: white;
   border: none;
-  padding: 0.75rem 1rem;
-  border-radius: 6px;
-  font-weight: 600;
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
   cursor: pointer;
-  transition: background 0.2s ease;
+  font-size: 0.9rem;
+  font-weight: 500;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  transition: background-color 0.2s;
 }
 
 .btn-success:hover {
-  background: #218838;
+  background: #006548;
 }
 
 .btn-icon {
@@ -1460,7 +1465,7 @@ status: "draft"
 
 .link-details .link-code {
   background: #e7f3ff;
-  color: #005a9c;
+  color: #205493;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.8rem;
@@ -1500,7 +1505,7 @@ status: "draft"
 }
 
 .image-card:hover {
-  border-color: #005a9c;
+  border-color: #205493;
   box-shadow: 0 2px 8px rgba(0,0,0,0.1);
 }
 
@@ -1529,7 +1534,7 @@ status: "draft"
 
 .btn-copy {
   width: 100%;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem;

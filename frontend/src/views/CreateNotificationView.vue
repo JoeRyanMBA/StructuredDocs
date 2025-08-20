@@ -88,7 +88,7 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 .create-notification-view h1 {
-  color: #005a9c;
+  color: #205493;
   font-size: 2rem;
   margin-bottom: 1.5rem;
 }
@@ -110,7 +110,7 @@ input, textarea, select {
   margin-bottom: 0.25rem;
 }
 button.section-btn {
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.75rem 1.5rem;
@@ -119,6 +119,6 @@ button.section-btn {
   cursor: pointer;
 }
 button.section-btn:hover {
-  background: #004080;
+  background: #005E7B;
 }
 </style>

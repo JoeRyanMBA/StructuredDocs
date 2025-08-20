@@ -85,7 +85,7 @@ export default {
   box-shadow: 0 2px 10px rgba(0,0,0,0.1);
 }
 h1 {
-  color: #005a9c;
+  color: #205493;
   margin-bottom: 1.5rem;
   font-size: 1.8rem;
   font-weight: 400;
@@ -131,11 +131,11 @@ h1 {
   border: none;
 }
 .btn-primary {
-  background-color: #005a9c;
+  background-color: #205493;
   color: white;
 }
 .btn-primary:hover {
-  background-color: #004a80;
+  background-color: #005E7B;
 }
 .btn-primary:disabled {
   background-color: #7ab5e0;

@@ -1,0 +1,20 @@
+name: Simple Deploy to PythonAnywhere
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  notify-deploy:
+    runs-on: ubuntu-latest
+    steps:
+    - name: 🔔 Trigger PythonAnywhere Reload
+      run: |
+        # Simple webhook to reload web app
+        curl -X POST \
+          -H "Authorization: Token ${{ secrets.PYTHONANYWHERE_API_TOKEN }}" \
+          https://www.pythonanywhere.com/api/v0/user/JoeRyanMBA/webapps/joeryanmba.pythonanywhere.com/reload/
+        
+        echo "✅ Deployment notification sent to PythonAnywhere"
+        echo "ℹ️  You may need to manually pull changes on PythonAnywhere console"

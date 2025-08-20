@@ -116,9 +116,9 @@ input, textarea, select {
 }
 .section-btn {
   padding: 0.5rem 1rem;
-  border: 1px solid #005a9c;
+  border: 1px solid #205493;
   border-radius: 4px;
-  background: #005a9c;
+  background: #205493;
   color: white;
   cursor: pointer;
   font-size: 0.875rem;
@@ -127,7 +127,7 @@ input, textarea, select {
 }
 .section-btn.secondary {
   background: white;
-  color: #005a9c;
+  color: #205493;
 }
 .section-btn.secondary:hover {
   background: #f8f9fa;

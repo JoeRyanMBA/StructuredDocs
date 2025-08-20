@@ -150,9 +150,9 @@ class Topic(db.Model):
     content = db.Column(db.Text, nullable=True)
     frontmatter = db.Column(db.Text, nullable=True)  # YAML frontmatter
 
-    # Draft → Published → Archived
+    # Draft → Pending Review → [Revisions Requested] → Approved → Published → Archived
     status = db.Column(
-        Enum('draft', 'pending_review', 'published', 'rejected', 'archived', name='topic_status'),
+        Enum('draft', 'pending_review', 'revisions_requested', 'approved', 'published', 'rejected', 'archived', name='topic_status'),
         nullable=False,
         default='draft',
         server_default='draft'
@@ -490,10 +490,18 @@ class Stakeholder(db.Model):
     email = db.Column(db.String(120), nullable=False, unique=True)
     title = db.Column(db.String(200), nullable=True)
     organization = db.Column(db.String(200), nullable=True)
+    division = db.Column(db.String(200), nullable=True)
     department = db.Column(db.String(200), nullable=True)
     phone = db.Column(db.String(20), nullable=True)
     expertise_areas = db.Column(db.Text, nullable=True)  # JSON string of expertise areas
     bio = db.Column(db.Text, nullable=True)
+    role = db.Column(
+        Enum('author', 'reviewer', 'subject_matter_expert', 'stakeholder', 'admin', name='stakeholder_role'),
+        nullable=False,
+        default='stakeholder',
+        server_default='stakeholder'
+    )
+    can_review = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
     active = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
     created_at = db.Column(
         db.DateTime,
@@ -514,10 +522,13 @@ class Stakeholder(db.Model):
             "email": self.email,
             "title": self.title,
             "organization": self.organization,
+            "division": self.division,
             "department": self.department,
             "phone": self.phone,
             "expertise_areas": self.expertise_areas,
             "bio": self.bio,
+            "role": self.role,
+            "can_review": self.can_review,
             "active": self.active,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None
@@ -725,6 +736,11 @@ class Task(db.Model):
     topic = relationship('Topic', backref='tasks')
 
     def to_dict(self):
+        import json
+        try:
+            tags = json.loads(self.tags) if self.tags else []
+        except Exception:
+            tags = []
         return {
             "id": self.id,
             "title": self.title,
@@ -738,11 +754,368 @@ class Task(db.Model):
             "topic_id": self.topic_id,
             "assigned_to": self.assigned_to,
             "created_by": self.created_by,
-            "tags": self.tags,
+            "tags": tags,
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "updated_at": self.updated_at.isoformat() if self.updated_at else None,
             # Include related object names for display
             "project_name": self.project.name if self.project else None,
             "collection_name": self.collection.name if self.collection else None,
             "topic_name": self.topic.title if self.topic else None  # Topic uses 'title' not 'name'
+        }
+
+
+class Tag(db.Model):
+    __tablename__ = 'tags'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(100), nullable=False, unique=True)
+    created_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "name": self.name,
+            "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class Review(db.Model):
+    """Review model for tracking topic reviews and feedback"""
+    __tablename__ = 'reviews'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # What's being reviewed
+    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=False)
+    
+    # Who requested the review (author)
+    requested_by = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=False)
+    
+    # Who should do the review
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=False)
+    
+    # Review status
+    status = db.Column(
+        Enum('pending', 'in_progress', 'completed', 'declined', name='review_status'),
+        nullable=False,
+        default='pending',
+        server_default='pending'
+    )
+    
+    # Review priority
+    priority = db.Column(
+        Enum('low', 'medium', 'high', 'urgent', name='review_priority'),
+        nullable=False,
+        default='medium',
+        server_default='medium'
+    )
+    
+    # Timing
+    requested_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        nullable=False
+    )
+    due_date = db.Column(db.DateTime, nullable=True)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    follow_up_sent_at = db.Column(db.DateTime, nullable=True)  # Track when follow-up reminder was sent
+    
+    # Feedback
+    feedback = db.Column(db.Text, nullable=True)
+    recommendation = db.Column(
+        Enum('approve', 'approve_with_changes', 'reject', 'needs_more_info', name='review_recommendation'),
+        nullable=True
+    )
+    
+    # Additional context
+    review_notes = db.Column(db.Text, nullable=True)  # Private notes from reviewer
+    author_message = db.Column(db.Text, nullable=True)  # Message from author when requesting
+    edited_content = db.Column(db.Text, nullable=True)  # Edited content from WYSIWYG editor
+    
+    # Sequential review tracking
+    sequence_id = db.Column(db.Integer, db.ForeignKey('review_sequences.id'), nullable=True)
+    sequence_position = db.Column(db.Integer, nullable=True)  # Position in the sequence (0-based)
+    
+    # Relationships
+    topic = relationship('Topic', backref='reviews')
+    requester = relationship('Stakeholder', foreign_keys=[requested_by], backref='requested_reviews')
+    reviewer = relationship('Stakeholder', foreign_keys=[reviewer_id], backref='assigned_reviews')
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "topic_id": self.topic_id,
+            "topic_title": self.topic.title if self.topic else None,
+            "topic_status": self.topic.status if self.topic else None,
+            "requested_by": self.requested_by,
+            "requester_name": self.requester.name if self.requester else None,
+            "reviewer_id": self.reviewer_id,
+            "reviewer_name": self.reviewer.name if self.reviewer else None,
+            "status": self.status,
+            "priority": self.priority,
+            "requested_at": self.requested_at.isoformat() if self.requested_at else None,
+            "due_date": self.due_date.isoformat() if self.due_date else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "follow_up_sent_at": self.follow_up_sent_at.isoformat() if self.follow_up_sent_at else None,
+            "feedback": self.feedback,
+            "recommendation": self.recommendation,
+            "review_notes": self.review_notes,
+            "author_message": self.author_message,
+            "edited_content": self.edited_content,
+            "sequence_id": self.sequence_id,
+            "sequence_position": self.sequence_position
+        }
+
+
+class ReviewToken(db.Model):
+    """Secure tokens for external reviewer access without authentication"""
+    __tablename__ = 'review_tokens'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    review_id = db.Column(db.Integer, ForeignKey('reviews.id'), nullable=False)
+    reviewer_email = db.Column(db.String(120), nullable=False)
+    
+    # Token lifecycle
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    accessed_at = db.Column(db.DateTime, nullable=True)
+    used_at = db.Column(db.DateTime, nullable=True)
+    
+    # Security
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    access_count = db.Column(db.Integer, default=0, nullable=False)
+    max_access_count = db.Column(db.Integer, default=10, nullable=False)
+    
+    # Relationships
+    review = relationship("Review", backref="tokens")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "token": self.token,
+            "review_id": self.review_id,
+            "reviewer_email": self.reviewer_email,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "accessed_at": self.accessed_at.isoformat() if self.accessed_at else None,
+            "used_at": self.used_at.isoformat() if self.used_at else None,
+            "is_active": self.is_active,
+            "access_count": self.access_count,
+            "max_access_count": self.max_access_count
+        }
+    
+    def is_valid(self):
+        """Check if token is still valid for use"""
+        if not self.is_active:
+            return False, "Token has been deactivated"
+        
+        if datetime.now() > self.expires_at:
+            return False, "Token has expired"
+            
+        if self.access_count >= self.max_access_count:
+            return False, "Token access limit exceeded"
+            
+        return True, "Token is valid"
+
+
+class ReviewFeedback(db.Model):
+    """Structured feedback and change suggestions from reviewers"""
+    __tablename__ = 'review_feedback'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    review_id = db.Column(db.Integer, ForeignKey('reviews.id'), nullable=False)
+    
+    # Feedback categorization
+    feedback_type = db.Column(
+        Enum('general_comment', 'text_edit', 'text_addition', 'text_deletion', 
+             'structural_change', 'technical_correction', 'style_suggestion', 
+             name='feedback_type'),
+        nullable=False,
+        default='general_comment'
+    )
+    
+    # Content targeting
+    section_title = db.Column(db.String(200), nullable=True)
+    page_number = db.Column(db.Integer, nullable=True)
+    paragraph_number = db.Column(db.Integer, nullable=True)
+    line_reference = db.Column(db.String(100), nullable=True)
+    
+    # Feedback content
+    original_text = db.Column(db.Text, nullable=True)
+    suggested_text = db.Column(db.Text, nullable=True)
+    comment = db.Column(db.Text, nullable=False)
+    rationale = db.Column(db.Text, nullable=True)
+    
+    # Priority and impact
+    priority = db.Column(
+        Enum('low', 'medium', 'high', 'critical', name='feedback_priority'),
+        nullable=False,
+        default='medium'
+    )
+    impact = db.Column(
+        Enum('minor', 'moderate', 'major', name='feedback_impact'),
+        nullable=False,
+        default='moderate'
+    )
+    
+    # Author response
+    author_response = db.Column(db.Text, nullable=True)
+    status = db.Column(
+        Enum('pending', 'accepted', 'rejected', 'modified', name='feedback_status'),
+        nullable=False,
+        default='pending'
+    )
+    
+    # Timing
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    responded_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    review = relationship("Review", backref="feedback_items")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "review_id": self.review_id,
+            "feedback_type": self.feedback_type,
+            "section_title": self.section_title,
+            "page_number": self.page_number,
+            "paragraph_number": self.paragraph_number,
+            "line_reference": self.line_reference,
+            "original_text": self.original_text,
+            "suggested_text": self.suggested_text,
+            "comment": self.comment,
+            "rationale": self.rationale,
+            "priority": self.priority,
+            "impact": self.impact,
+            "author_response": self.author_response,
+            "status": self.status,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "responded_at": self.responded_at.isoformat() if self.responded_at else None
+        }
+
+
+class ReviewSequence(db.Model):
+    """Review sequence model for managing sequential review workflows"""
+    __tablename__ = 'review_sequences'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # What's being reviewed
+    topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=False)
+    
+    # Who created this sequence (usually the author)
+    created_by = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=False)
+    
+    # Sequence metadata
+    name = db.Column(db.String(200), nullable=True)  # Optional name like "Technical Review"
+    description = db.Column(db.Text, nullable=True)  # Optional description
+    
+    # Status of the entire sequence
+    status = db.Column(
+        Enum('active', 'completed', 'paused', 'cancelled', name='sequence_status'),
+        nullable=False,
+        default='active',
+        server_default='active'
+    )
+    
+    # Current position in sequence (0-based index)
+    current_position = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    
+    # Workflow settings
+    auto_advance_on_approve = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
+    pause_on_changes = db.Column(db.Boolean, nullable=False, default=True, server_default='1')  # Pause when changes needed
+    
+    # Timing
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    paused_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    topic = relationship('Topic', backref='review_sequences')
+    creator = relationship('Stakeholder', foreign_keys=[created_by], backref='created_sequences')
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "topic_id": self.topic_id,
+            "topic_title": self.topic.title if self.topic else None,
+            "created_by": self.created_by,
+            "creator_name": self.creator.name if self.creator else None,
+            "name": self.name,
+            "description": self.description,
+            "status": self.status,
+            "current_position": self.current_position,
+            "auto_advance_on_approve": self.auto_advance_on_approve,
+            "pause_on_changes": self.pause_on_changes,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "paused_at": self.paused_at.isoformat() if self.paused_at else None,
+            "reviewers": [reviewer.to_dict() for reviewer in self.reviewers],
+            "total_reviewers": len(self.reviewers) if self.reviewers else 0
+        }
+
+
+class ReviewSequenceStep(db.Model):
+    """Individual steps in a review sequence"""
+    __tablename__ = 'review_sequence_steps'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    
+    # Which sequence this belongs to
+    sequence_id = db.Column(db.Integer, db.ForeignKey('review_sequences.id', ondelete='CASCADE'), nullable=False)
+    
+    # Order in the sequence (0-based)
+    step_order = db.Column(db.Integer, nullable=False)
+    
+    # Who should review at this step
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=False)
+    
+    # Optional step metadata
+    step_name = db.Column(db.String(200), nullable=True)  # e.g., "Technical Review", "Editorial Review"
+    instructions = db.Column(db.Text, nullable=True)  # Special instructions for this reviewer
+    
+    # Step status
+    status = db.Column(
+        Enum('pending', 'active', 'completed', 'skipped', name='step_status'),
+        nullable=False,
+        default='pending',
+        server_default='pending'
+    )
+    
+    # Link to actual review when assigned
+    review_id = db.Column(db.Integer, db.ForeignKey('reviews.id'), nullable=True)
+    
+    # Timing
+    assigned_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    
+    # Relationships
+    sequence = relationship('ReviewSequence', backref='reviewers')
+    reviewer = relationship('Stakeholder', foreign_keys=[reviewer_id])
+    review = relationship('Review', backref='sequence_step')
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "sequence_id": self.sequence_id,
+            "step_order": self.step_order,
+            "reviewer_id": self.reviewer_id,
+            "reviewer_name": self.reviewer.name if self.reviewer else None,
+            "reviewer_email": self.reviewer.email if self.reviewer else None,
+            "step_name": self.step_name,
+            "instructions": self.instructions,
+            "status": self.status,
+            "review_id": self.review_id,
+            "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None
         }

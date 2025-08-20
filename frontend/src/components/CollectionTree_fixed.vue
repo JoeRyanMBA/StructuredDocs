@@ -232,12 +232,12 @@ export default {
 }
 
 .publish-btn.publish-html {
-  background-color: #007acc;
+  background-color: #205493;
   color: white;
 }
 
 .publish-btn.publish-html:hover {
-  background-color: #005a9c;
+  background-color: #205493;
 }
 
 .publish-btn.publish-pdf {

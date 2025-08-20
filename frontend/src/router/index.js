@@ -147,6 +147,15 @@ const routes = [
     props: route => ({ topicId: parseInt(route.params.id, 10) })
   },
   {
+    path: '/topics/:topicId/review-feedback/:reviewId',
+    name: 'ReviewFeedback',
+    component: () => import('@/views/ReviewFeedbackView.vue'),
+    props: route => ({ 
+      topicId: parseInt(route.params.topicId, 10),
+      reviewId: parseInt(route.params.reviewId, 10)
+    })
+  },
+  {
     path: '/author-history',
     name: 'AuthorHistory',
     component: () => import('@/views/AuthorHistory.vue')
@@ -165,6 +174,46 @@ const routes = [
     path: '/tasks',
     name: 'Tasks',
     component: () => import('@/views/TasksView.vue')
+  },
+  {
+    path: '/all-tasks',
+    name: 'AllTasks',
+    component: () => import('@/views/AllTasksView.vue')
+  },
+  {
+    path: '/all-tags',
+    name: 'AllTags',
+    component: () => import('@/views/AllTagsView.vue')
+  },
+  {
+    path: '/all-stakeholders',
+    name: 'AllStakeholders',
+    component: () => import('@/views/AllStakeholdersView.vue')
+  },
+  {
+    path: '/all-milestones',
+    name: 'AllMilestones',
+    component: () => import('@/views/AllMilestonesView.vue')
+  },
+  {
+    path: '/all-tasks',
+    name: 'AllTasks',
+    component: () => import('@/views/AllTasksView.vue')
+  },
+  {
+    path: '/all-tags',
+    name: 'AllTags',
+    component: () => import('@/views/AllTagsView.vue')
+  },
+  {
+    path: '/all-stakeholders',
+    name: 'AllStakeholders',
+    component: () => import('@/views/AllStakeholdersView.vue')
+  },
+  {
+    path: '/all-milestones',
+    name: 'AllMilestones',
+    component: () => import('@/views/AllMilestonesView.vue')
   },
   {
     path: '/organize/:id',
@@ -231,6 +280,11 @@ const routes = [
     component: () => import('@/views/ReviewsDashboard.vue')
   },
   {
+    path: '/reviews/tasks',
+    name: 'ReviewTasks',
+    component: () => import('@/views/ReviewsListView.vue')
+  },
+  {
     path: '/reviews/send',
     name: 'SMEReviews',
     component: () => import('@/views/SMEReviews.vue')
@@ -244,6 +298,15 @@ const routes = [
     path: '/reviews/history',
     name: 'ReviewHistory',
     component: () => import('@/views/ReviewHistory.vue')
+  },
+  
+  // 🔗 External Review Portal (Token-based access)
+  {
+    path: '/review/:token',
+    name: 'ReviewPortal',
+    component: () => import('@/views/ReviewPortal.vue'),
+    props: true,
+    meta: { requiresAuth: false }
   },
 
   // 🔒 Admin Section
@@ -270,7 +333,7 @@ function isAuthenticated() {
 // Navigation guard to protect routes
 router.beforeEach((to, from, next) => {
   // Routes that don't require authentication
-  const publicRoutes = ['Login']
+  const publicRoutes = ['Login', 'ReviewPortal']
   
   if (publicRoutes.includes(to.name)) {
     // If already logged in and trying to access login, redirect to dashboard

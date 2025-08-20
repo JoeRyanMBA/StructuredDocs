@@ -1,0 +1,25 @@
+Feature,User Story
+Project Management,As a user, I want to create new documentation projects, so I can organize and manage my work.
+Project Management,As a user, I want to view a dashboard listing all my projects, so I can quickly access and monitor them.
+Project Management,As a user, I want to filter projects by status (planning, active, on hold, completed), so I can focus on relevant work.
+Project Management,As a user, I want to edit project details, so I can keep information up to date.
+Project Management,As a user, I want to see project metrics (total, active, completed, stakeholders), so I can track progress at a glance.
+Stakeholder Management,As a user, I want to add stakeholders to a project, so I can track who is involved.
+Stakeholder Management,As a user, I want to select existing stakeholders or create new ones, so I can avoid duplicates and save time.
+Stakeholder Management,As a user, I want to assign roles to stakeholders (e.g., Project Manager, Reviewer), so responsibilities are clear.
+Stakeholder Management,As a user, I want to edit or remove stakeholders from a project, so I can manage team changes.
+Milestone Management,As a user, I want to add milestones to a project, so I can track key deliverables and deadlines.
+Milestone Management,As a user, I want to edit or remove milestones, so I can adjust plans as needed.
+Milestone Management,As a user, I want to see milestone status and dates, so I can monitor project progress.
+Collection Management,As a user, I want to add collections to a project, so I can organize related documents and topics.
+Collection Management,As a user, I want to edit or remove collections, so I can keep my project structure relevant.
+Publication Management,As a user, I want to add published documents to a project, so I can track outputs and deliverables.
+Publication Management,As a user, I want to edit or remove published documents, so I can manage project outputs.
+Authentication & Authorization,As a user, I want to log in securely, so only authorized users can access project data.
+Authentication & Authorization,As an admin, I want to manage user accounts and roles, so I can control access and permissions.
+Dashboard & Navigation,As a user, I want a dashboard with quick actions (create project, use template, export data), so I can work efficiently.
+Dashboard & Navigation,As a user, I want to see a project calendar with milestones and events, so I can plan ahead.
+Dashboard & Navigation,As a user, I want to navigate between projects, collections, topics, and other modules easily.
+Notifications,As a user, I want to see notifications for important events, so I stay informed about project updates.
+Notifications,As a user, I want to mark notifications as read, so I can manage my attention.
+End-to-End Testing,As a developer, I want automated E2E tests for project creation and dashboard functionality, so I can ensure reliability.

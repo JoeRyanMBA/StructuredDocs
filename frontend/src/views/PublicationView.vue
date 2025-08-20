@@ -101,7 +101,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -144,7 +144,7 @@ export default {
 .actions button {
   padding: 0.75rem 1.25rem; 
   border: none; 
-  background: #005a9c; 
+  background: #205493; 
   color: white; 
   border-radius: 4px;
   cursor: pointer; 
@@ -153,15 +153,15 @@ export default {
 }
 
 .actions button:hover {
-  background: #004080;
+  background: #005E7B;
 }
 
-.mobile-kb-btn {
-  background: #28a745 !important;
+.publish-button {
+  background: #009964 !important;
 }
 
-.mobile-kb-btn:hover {
-  background: #218838 !important;
+.publish-button:hover {
+  background: #006548 !important;
 }
 
 .preview-btn {

@@ -1,0 +1,24 @@
+To: joseph.b.ryan.jr@census.gov
+Subject: Sequential Review Request (Step 1 of 1): Introduction to Special Census
+Timestamp: 2025-08-17T23:59:48.945598
+--------------------------------------------------
+
+Review Request
+
+Hello Joe Ryan,
+
+You have been requested to review the following topic:
+
+Title: Introduction to Special Census
+Requested by: Joe Ryan
+Due Date: August 22, 2025
+
+Sequential Review: This is step 1 of 1 in a sequential review process.
+
+To access the review, please visit:
+http://localhost:5173/reviews/24
+
+Thank you for your time and expertise.
+
+Best regards,
+StructuredDocs Review System

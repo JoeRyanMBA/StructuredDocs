@@ -359,7 +359,7 @@ export default {
 }
 
 .step-number {
-  background: #005a9c;
+  background: #205493;
   color: white;
   width: 2rem;
   height: 2rem;

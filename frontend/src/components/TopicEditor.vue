@@ -7,7 +7,169 @@
       <div v-html="abbreviatedHtml" class="topic-preview-content"></div>
     </template>
     <template v-else>
-      <!-- ...existing editor UI goes here... -->
+      <!-- Topic Editor UI -->
+      <div class="editor-container">
+        <div class="editor-header">
+          <h2 class="page-heading">{{ pageTitle }}</h2>
+          
+          <!-- Save Status -->
+          <div v-if="saveSuccess" class="save-status success">
+            ✅ {{ saveSuccess }}
+          </div>
+          
+          <!-- Title Field -->
+          <div class="form-group">
+            <label for="title">Title</label>
+            <input 
+              id="title"
+              v-model="title" 
+              type="text" 
+              class="form-input title-input"
+              placeholder="Enter topic title..."
+              required
+            />
+          </div>
+        </div>
+
+        <!-- Editor Mode Toggle -->
+        <div class="editor-mode-toggle">
+          <button 
+            @click="editorMode = 'markdown'" 
+            :class="{ active: editorMode === 'markdown' }"
+            class="mode-btn"
+          >
+            📝 Markdown
+          </button>
+          <button 
+            @click="editorMode = 'wysiwyg'" 
+            :class="{ active: editorMode === 'wysiwyg' }"
+            class="mode-btn"
+          >
+            📄 WYSIWYG
+          </button>
+          <button 
+            @click="editorMode = 'preview'" 
+            :class="{ active: editorMode === 'preview' }"
+            class="mode-btn"
+          >
+            👁️ Preview
+          </button>
+        </div>
+
+        <!-- Content Editor -->
+        <div class="editor-content">
+          <!-- Markdown Mode -->
+          <div v-if="editorMode === 'markdown'" class="markdown-editor">
+            <div class="toolbar">
+              <button @click="insertMarkdown('**', '**')" class="toolbar-btn">𝐁 Bold</button>
+              <button @click="insertMarkdown('*', '*')" class="toolbar-btn">𝐼 Italic</button>
+              <button @click="insertMarkdown('`', '`')" class="toolbar-btn">⟨⟩ Code</button>
+              <button @click="insertMarkdown('## ', '')" class="toolbar-btn">𝐇𝟐 Header</button>
+              <button @click="insertMarkdown('- ', '')" class="toolbar-btn">• List</button>
+              <button @click="showLinkModal = true" class="toolbar-btn">🔗 Link</button>
+              <button @click="showImageModal = true" class="toolbar-btn">🖼️ Image</button>
+            </div>
+            <textarea 
+              ref="markdownEditor"
+              v-model="content" 
+              class="markdown-textarea"
+              placeholder="Write your content in Markdown..."
+              rows="20"
+            ></textarea>
+          </div>
+
+          <!-- WYSIWYG Mode -->
+          <div v-if="editorMode === 'wysiwyg'" class="wysiwyg-editor">
+            <div class="toolbar">
+              <button @click="execCommand('bold')" class="toolbar-btn">𝐁 Bold</button>
+              <button @click="execCommand('italic')" class="toolbar-btn">𝐼 Italic</button>
+              <button @click="execCommand('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
+              <button @click="execCommand('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
+              <button @click="execCommand('insertUnorderedList')" class="toolbar-btn">• List</button>
+              <button @click="showLinkModal = true" class="toolbar-btn">🔗 Link</button>
+              <button @click="showImageModal = true" class="toolbar-btn">🖼️ Image</button>
+            </div>
+            <div 
+              ref="wysiwygEditor"
+              @input="onWysiwygInput"
+              contenteditable="true" 
+              class="wysiwyg-content"
+              :innerHTML="renderedMarkdown"
+            ></div>
+          </div>
+
+          <!-- Preview Mode -->
+          <div v-if="editorMode === 'preview'" class="preview-mode">
+            <div class="preview-content" v-html="renderedMarkdown"></div>
+          </div>
+        </div>
+
+        <!-- Actions -->
+        <div class="editor-actions">
+          <button 
+            @click="saveTopic" 
+            :disabled="isSaving || !title.trim()"
+            class="btn btn-primary"
+          >
+            {{ isSaving ? 'Saving...' : (topicId ? 'Update Topic' : 'Create Topic') }}
+          </button>
+          
+          <button 
+            @click="$router.go(-1)" 
+            class="btn btn-secondary"
+          >
+            Cancel
+          </button>
+        </div>
+      </div>
+
+      <!-- Link Modal -->
+      <div v-if="showLinkModal" class="modal-overlay" @click="showLinkModal = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>Insert Link</h3>
+            <button @click="showLinkModal = false" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Link Text</label>
+              <input v-model="linkText" type="text" class="form-input" placeholder="Display text">
+            </div>
+            <div class="form-group">
+              <label>URL</label>
+              <input v-model="linkUrl" type="url" class="form-input" placeholder="https://example.com">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="insertLink" class="btn btn-primary">Insert Link</button>
+            <button @click="showLinkModal = false" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
+
+      <!-- Image Modal -->
+      <div v-if="showImageModal" class="modal-overlay" @click="showImageModal = false">
+        <div class="modal-content" @click.stop>
+          <div class="modal-header">
+            <h3>Insert Image</h3>
+            <button @click="showImageModal = false" class="close-btn">&times;</button>
+          </div>
+          <div class="modal-body">
+            <div class="form-group">
+              <label>Image URL</label>
+              <input v-model="imageUrl" type="url" class="form-input" placeholder="https://example.com/image.jpg">
+            </div>
+            <div class="form-group">
+              <label>Alt Text</label>
+              <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
+            </div>
+          </div>
+          <div class="modal-footer">
+            <button @click="insertImage" class="btn btn-primary">Insert Image</button>
+            <button @click="showImageModal = false" class="btn btn-secondary">Cancel</button>
+          </div>
+        </div>
+      </div>
     </template>
   </div>
 </template>
@@ -67,6 +229,14 @@ export default {
     }
   },
   computed: {
+    markdownPreview() {
+      if (!this.content) return ''
+      // Use marked library if available, otherwise return plain text
+      if (typeof marked !== 'undefined') {
+        return marked(this.content)
+      }
+      return this.content.replace(/\n/g, '<br>')
+    },
     renderedMarkdown() {
       return marked(this.content || '')
     },
@@ -110,23 +280,195 @@ export default {
     }
   },
   methods: {
+    async saveTopic() {
+      if (!this.title.trim()) return
+      
+      this.isSaving = true
+      this.saveSuccess = null
+      
+      try {
+        const payload = {
+          title: this.title,
+          content: this.content,
+          frontmatter: this.frontmatter
+        }
+        
+        let response
+        if (this.topicId) {
+          // Update existing topic
+          response = await fetch(`/api/topics/${this.topicId}`, {
+            method: 'PUT',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        } else {
+          // Create new topic
+          response = await fetch('/api/topics/', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(payload)
+          })
+        }
+        
+        if (!response.ok) {
+          throw new Error(`Save failed: ${response.status}`)
+        }
+        
+        const result = await response.json()
+        
+        if (!this.topicId && result.id) {
+          // New topic created, emit the ID
+          this.$emit('update:topicId', result.id)
+        } else {
+          // Existing topic updated
+          this.$emit('save', result)
+        }
+        
+        this.saveSuccess = this.topicId ? 'Topic updated successfully!' : 'Topic created successfully!'
+        
+        // Redirect to Review Dashboard after successful save
+        setTimeout(() => { 
+          this.saveSuccess = null
+          if (this.topicId) {
+            // For updates, navigate to Review Dashboard
+            this.$router.push('/dashboard')
+          } else {
+            // For new topics, stay on the edit page with the new ID
+            // The parent component will handle this via the update:topicId emit
+          }
+        }, 1500) // Reduced timeout for better UX
+        
+      } catch (error) {
+        console.error('Save error:', error)
+        alert('Failed to save topic. Please try again.')
+      } finally {
+        this.isSaving = false
+      }
+    },
 
-    updateContentFromWysiwyg(event) {
-      // ...existing code for WYSIWYG update...
+    insertMarkdown(before, after) {
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+      
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = textarea.value.substring(start, end)
+      const replacement = before + selectedText + after
+      
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end)
+      this.content = textarea.value
+      
+      // Reset cursor position
+      const newCursorPos = start + before.length + selectedText.length + after.length
+      this.$nextTick(() => {
+        textarea.focus()
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      })
     },
-    handleWysiwygPaste(event) {
-      // ...existing code for paste...
+
+    execCommand(command, value = null) {
+      if (this.editorMode === 'wysiwyg') {
+        document.execCommand(command, false, value)
+        this.updateContentFromWysiwyg()
+      }
     },
-    handleWysiwygKeydown(event) {
-      // ...existing code for keydown...
+
+    onWysiwygInput() {
+      if (this.wysiwygUpdateTimeout) {
+        clearTimeout(this.wysiwygUpdateTimeout)
+      }
+      this.wysiwygUpdateTimeout = setTimeout(() => {
+        this.updateContentFromWysiwyg()
+      }, 300)
     },
-    save() {
-      // Stub save method to resolve errors
-      this.saveSuccess = 'Saved (stub)!';
-      setTimeout(() => { this.saveSuccess = null }, 1000);
+
+    insertLink() {
+      if (!this.linkText || !this.linkUrl) return
+      
+      const linkMarkdown = `[${this.linkText}](${this.linkUrl})`
+      
+      if (this.editorMode === 'markdown') {
+        this.insertMarkdown(linkMarkdown, '')
+      } else if (this.editorMode === 'wysiwyg') {
+        this.execCommand('createLink', this.linkUrl)
+      }
+      
+      // Reset modal
+      this.linkText = ''
+      this.linkUrl = ''
+      this.showLinkModal = false
     },
+
+    insertImage() {
+      if (!this.imageUrl) return
+      
+      const imageMarkdown = `![${this.imageAlt || 'Image'}](${this.imageUrl})`
+      
+      if (this.editorMode === 'markdown') {
+        this.insertMarkdown(imageMarkdown, '')
+      }
+      
+      // Reset modal
+      this.imageUrl = ''
+      this.imageAlt = ''
+      this.showImageModal = false
+    },
+
+    updateContentFromWysiwyg() {
+      if (this.$refs.wysiwygEditor) {
+        const html = this.$refs.wysiwygEditor.innerHTML
+        this.content = this.htmlToMarkdown(html)
+      }
+    },
+
     htmlToMarkdown(html) {
-      // ...existing code for htmlToMarkdown...
+      // Basic HTML to Markdown conversion
+      return html
+        .replace(/<h1[^>]*>/gi, '# ')
+        .replace(/<\/h1>/gi, '\n\n')
+        .replace(/<h2[^>]*>/gi, '## ')
+        .replace(/<\/h2>/gi, '\n\n')
+        .replace(/<h3[^>]*>/gi, '### ')
+        .replace(/<\/h3>/gi, '\n\n')
+        .replace(/<strong[^>]*>|<b[^>]*>/gi, '**')
+        .replace(/<\/strong>|<\/b>/gi, '**')
+        .replace(/<em[^>]*>|<i[^>]*>/gi, '*')
+        .replace(/<\/em>|<\/i>/gi, '*')
+        .replace(/<code[^>]*>/gi, '`')
+        .replace(/<\/code>/gi, '`')
+        .replace(/<p[^>]*>/gi, '')
+        .replace(/<\/p>/gi, '\n\n')
+        .replace(/<br[^>]*>/gi, '\n')
+        .replace(/<div[^>]*>/gi, '')
+        .replace(/<\/div>/gi, '\n')
+        .replace(/&nbsp;/gi, ' ')
+        .replace(/&amp;/gi, '&')
+        .replace(/&lt;/gi, '<')
+        .replace(/&gt;/gi, '>')
+        .trim()
+    },
+
+    handleWysiwygPaste(event) {
+      // Basic paste handling
+      event.preventDefault()
+      const text = event.clipboardData.getData('text/plain')
+      document.execCommand('insertText', false, text)
+    },
+
+    handleWysiwygKeydown(event) {
+      // Handle keyboard shortcuts
+      if (event.ctrlKey || event.metaKey) {
+        switch (event.key) {
+          case 'b':
+            event.preventDefault()
+            this.execCommand('bold')
+            break
+          case 'i':
+            event.preventDefault()
+            this.execCommand('italic')
+            break
+        }
+      }
     }
   }
 }
@@ -151,7 +493,7 @@ export default {
 /* Guidance text for new topics */
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -160,17 +502,119 @@ export default {
   line-height: 1.5;
 }
 
+/* Form styling */
+.form-group {
+  margin-bottom: 1.5rem;
+}
+
+.form-group label {
+  display: block;
+  margin-bottom: 0.5rem;
+  font-weight: 600;
+  color: #495057;
+  font-size: 14px;
+}
+
+.form-input {
+  width: 100%;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.5;
+  box-sizing: border-box;
+  background: white;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.form-input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.1);
+}
+
+.title-input {
+  font-weight: 500;
+}
+
+/* Editor content styling */
+.markdown-textarea {
+  width: 100%;
+  min-height: 400px;
+  padding: 1.25rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-family: 'Courier New', 'Monaco', 'Menlo', monospace;
+  font-size: 14px;
+  line-height: 1.6;
+  background: white;
+  resize: vertical;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.markdown-textarea:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.1);
+}
+
+.wysiwyg-content {
+  width: 100%;
+  min-height: 400px;
+  padding: 1.25rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  font-size: 14px;
+  line-height: 1.6;
+  background: white;
+  overflow-y: auto;
+  cursor: text;
+  box-sizing: border-box;
+  transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wysiwyg-content:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.1);
+}
+
+/* Editor actions styling */
+.editor-actions {
+  /* margin-top: 2rem; */
+  padding-top: 1.5rem;
+  border-top: 1px solid #e9ecef;
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+}
+
 /* Title input styling */
 .title-label {
   display: block;
-  margin-bottom: 1rem;
+  margin-bottom: 1.5rem;
+  font-weight: 600;
+  color: #495057;
 }
 
 .title-label input {
   width: 100%;
-  padding: 0.5rem;
+  padding: 0.75rem;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  font-size: 16px;
+  line-height: 1.5;
   box-sizing: border-box;
-  margin-top: 0.25rem;
+  margin-top: 0.5rem;
+  background: white;
+}
+
+.title-label input:focus {
+  outline: none;
+  border-color: #205493;
+  box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
 /* Preview label styling */
@@ -229,18 +673,20 @@ export default {
   display: flex;
   flex-direction: column;
   align-items: flex-start;
-  gap: 0.5rem;
+  gap: 0.75rem;
   margin-bottom: 2rem;
 }
 
 /* Save button */
 button {
   padding: 0.75rem 1.5rem;
-  background: #005a9c;
+  background: #205493;
   color: white;
   border: none;
   cursor: pointer;
   border-radius: 4px;
+  margin-right: 0.75rem;
+  margin-bottom: 0.5rem;
 }
 button:disabled {
   opacity: 0.6;
@@ -333,7 +779,7 @@ button:disabled {
 }
 
 .cheatsheet-link {
-  color: #007acc;
+  color: #205493;
   text-decoration: none;
   font-size: 0.875rem;
 }
@@ -377,7 +823,7 @@ button:disabled {
 
 .frontmatter-textarea:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -397,7 +843,7 @@ button:disabled {
 /* Content toolbar styles */
 .content-toolbar {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   padding: 0.75rem;
   background: #f8f9fa;
   border: 1px solid #dee2e6;
@@ -409,7 +855,7 @@ button:disabled {
 
 .toolbar-group {
   display: flex;
-  gap: 0.25rem;
+  gap: 0.5rem;
   align-items: center;
 }
 
@@ -445,9 +891,9 @@ button:disabled {
 }
 
 .toolbar-btn.active {
-  background: #007acc;
+  background: #205493;
   color: white;
-  border-color: #007acc;
+  border-color: #205493;
 }
 
 .mode-btn {
@@ -512,18 +958,19 @@ button:disabled {
 .content-textarea {
   width: 100%;
   min-height: 300px;
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid #dee2e6;
   border-radius: 4px;
   font-family: 'Courier New', monospace;
   font-size: 14px;
   line-height: 1.5;
   resize: vertical;
+  box-sizing: border-box;
 }
 
 .content-textarea:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -531,7 +978,7 @@ button:disabled {
 .wysiwyg-textarea {
   width: 100%;
   min-height: 300px;
-  padding: 1rem;
+  padding: 1.25rem;
   border: 1px solid #dee2e6;
   border-radius: 4px;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
@@ -540,11 +987,12 @@ button:disabled {
   background: white;
   overflow-y: auto;
   cursor: text;
+  box-sizing: border-box;
 }
 
 .wysiwyg-textarea:focus {
   outline: none;
-  border-color: #007acc;
+  border-color: #205493;
   box-shadow: 0 0 0 2px rgba(0, 122, 204, 0.1);
 }
 
@@ -700,9 +1148,9 @@ button:disabled {
 }
 
 .tab-btn.active {
-  background: #007acc;
+  background: #205493;
   color: white;
-  border-color: #007acc;
+  border-color: #205493;
   font-weight: 600;
 }
 
@@ -761,7 +1209,7 @@ button:disabled {
 }
 
 .image-item:hover {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8f9fa;
 }
 
@@ -829,7 +1277,7 @@ button:disabled {
 }
 
 .link-item:hover {
-  border-color: #007acc;
+  border-color: #205493;
   background: #f8f9fa;
   box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
@@ -841,7 +1289,7 @@ button:disabled {
 }
 
 .link-url {
-  color: #007acc;
+  color: #205493;
   font-size: 0.875rem;
   margin-bottom: 0.25rem;
   word-break: break-all;
@@ -865,17 +1313,19 @@ button:disabled {
 
 /* Button styles */
 .btn-primary {
-  background: #007acc;
+  background: #205493;
   color: white;
   border: none;
   padding: 0.5rem 1rem;
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.5rem;
 }
 
 .btn-primary:hover {
-  background: #005a9c;
+  background: #174a7e;
 }
 
 .btn-primary:disabled {
@@ -951,7 +1401,7 @@ button:disabled {
 
 .table-actions {
   display: flex;
-  gap: 0.5rem;
+  gap: 0.75rem;
   justify-content: flex-end;
 }
 
@@ -963,6 +1413,7 @@ button:disabled {
   border-radius: 4px;
   cursor: pointer;
   font-size: 0.875rem;
+  margin-left: 0.5rem;
 }
 
 .btn-secondary:hover {

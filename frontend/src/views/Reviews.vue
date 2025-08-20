@@ -80,7 +80,7 @@
         <div v-for="topic in pendingTopics" :key="topic.id" class="review-item">
           <div class="item-header">
             <h4>{{ topic.title }}</h4>
-            <span class="status-badge" :class="topic.status">{{ topic.status }}</span>
+            <span class="status-badge" :class="topic.status">{{ formatStatus(topic.status) }}</span>
           </div>
           <p class="item-preview">{{ topic.content?.substring(0, 150) }}...</p>
           <div class="item-meta">
@@ -214,6 +214,15 @@ export default {
         this.loading = false
       }
     },
+
+    formatStatus(status) {
+      // Convert status like "pending_review" to "Pending Review"
+      return status
+        .split('_')
+        .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+        .join(' ')
+    },
+
     async reviewTopic(topic, action) {
       try {
         const endpoint = action === 'approve' ? 'approve' : 'reject'
@@ -292,7 +301,7 @@ export default {
 
 .guidance-text {
   background: #f8f9fa;
-  border-left: 4px solid #007acc;
+  border-left: 4px solid #205493;
   border-radius: .75rem;
   padding: 1rem;
   margin-bottom: 2rem;
@@ -380,12 +389,12 @@ export default {
 }
 
 .tab-btn:hover {
-  color: #007acc;
+  color: #205493;
 }
 
 .tab-btn.active {
-  color: #007acc;
-  border-bottom-color: #007acc;
+  color: #205493;
+  border-bottom-color: #205493;
   font-weight: 500;
 }
 
@@ -507,12 +516,12 @@ export default {
 }
 
 .btn-approve {
-  background: #28a745;
+  background: #009964;
   color: white;
 }
 
 .btn-approve:hover {
-  background: #218838;
+  background: #006548;
 }
 
 .btn-reject {
@@ -525,7 +534,7 @@ export default {
 }
 
 .btn-edit {
-  background: #007acc;
+  background: #205493;
   color: white;
 }
 

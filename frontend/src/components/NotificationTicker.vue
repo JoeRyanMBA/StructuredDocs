@@ -9,7 +9,7 @@
       >
         <a :href="notification.link" @click="markAsRead(notification)" class="notification-link">
           <span class="notification-message">{{ notification.message }}</span>
-          <span class="notification-date">{{ formatDate(notification.date) }}</span>
+          <span class="notification-date">{{ formatDate(notification.created_at) }}</span>
         </a>
       </div>
     </div>
@@ -66,8 +66,18 @@ export default {
       }
     },
     formatDate(dateStr) {
-      const d = new Date(dateStr)
-      return d.toLocaleDateString()
+      if (!dateStr) {
+        return 'Recently'
+      }
+      try {
+        const d = new Date(dateStr)
+        if (isNaN(d.getTime())) {
+          return 'Recently'
+        }
+        return d.toLocaleDateString()
+      } catch (error) {
+        return 'Recently'
+      }
     }
   }
 }
@@ -119,7 +129,7 @@ export default {
 .scroll-btn {
   background: none;
   border: none;
-  color: #005a9c;
+  color: #205493;
   font-size: 1.2rem;
   cursor: pointer;
   padding: 0 0.5rem;
