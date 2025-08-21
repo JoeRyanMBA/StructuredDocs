@@ -20,3 +20,18 @@ html, body {
   margin: 0;
   padding: 0;
 }
+
+/* Universal Modal Fix - Override Bootstrap with higher specificity */
+div.modal,
+div.modal.fade,
+div.modal.show,
+.modal,
+.modal.fade,
+.modal.show {
+  display: block !important;
+}
+
+/* Also ensure modal dialog is visible */
+.modal .modal-dialog {
+  display: block !important;
+}

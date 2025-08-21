@@ -1,0 +1,40 @@
+# PythonAnywhere Space Optimization - Phase 2
+# Run these commands to save an additional ~280MB
+
+echo "=== Phase 2 Cleanup - Removing Git, Venv, and Temp Files ==="
+
+# Remove Git repository (202MB) - not needed on production
+echo "Removing Git repository (202MB)..."
+rm -rf .git
+
+# Remove virtual environment (72MB) - PythonAnywhere manages this
+echo "Removing virtual environment (72MB)..." 
+rm -rf venv
+
+# Remove temporary file (42MB)
+echo "Removing temporary file (42MB)..."
+rm -f tmpac4jellb
+
+# Remove frontend node_modules if it exists
+echo "Removing frontend node_modules..."
+rm -rf frontend/node_modules
+
+# Check what's in the static directory
+echo "=== Checking static directory ==="
+if [ -d "static" ]; then
+    echo "Static directory contents:"
+    du -sh static/*
+    ls -la static/
+fi
+
+# Remove development files
+echo "=== Removing remaining development files ==="
+rm -f test_*.py final_*.py check_*.py
+rm -f *.csv
+rm -f *.zip
+
+echo "=== Space usage after cleanup ==="
+du -sh * | sort -hr | head -10
+echo ""
+echo "Total size:"
+du -sh .

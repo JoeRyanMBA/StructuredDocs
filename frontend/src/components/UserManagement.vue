@@ -2,7 +2,7 @@
   <div class="user-management">
     <div class="header">
       <h2>User Management</h2>
-      <button @click="showAddUser = true" class="btn btn-primary">
+      <button @click="addUser" class="btn btn-primary">
         Add User
       </button>
     </div>
@@ -40,6 +40,15 @@
                 Edit
               </button>
               <button 
+                v-if="!user.password_hash && user.active"
+                @click="resendSetupEmail(user)" 
+                class="btn btn-sm btn-info"
+                :disabled="loading"
+                title="Resend password setup email"
+              >
+                Send Setup Email
+              </button>
+              <button 
                 @click="deleteUser(user)" 
                 class="btn btn-sm btn-danger"
                 :disabled="user.role === 'admin' && adminCount <= 1"
@@ -53,8 +62,8 @@
     </div>
 
     <!-- Add/Edit User Modal -->
-    <div v-if="showAddUser || editingUser" class="modal-overlay" @click="closeModal">
-      <div class="modal" @click.stop>
+    <div v-if="showAddUser || editingUser" class="modal-overlay" @click="closeModal" style="display: block !important;">
+      <div class="modal" @click.stop style="display: block !important;">
         <div class="modal-header">
           <h3>{{ editingUser ? 'Edit User' : 'Add User' }}</h3>
           <button @click="closeModal" class="close-btn">&times;</button>
@@ -82,6 +91,9 @@
                 required 
                 :disabled="loading"
               />
+              <small v-if="!editingUser" class="form-help">
+                The user will receive an email with instructions to set their password.
+              </small>
             </div>
             
             <div class="form-group">
@@ -188,7 +200,42 @@ export default {
       }
     },
     
+    addUser() {
+      console.log('🔘 UserManagement - Add User button clicked')
+      console.log('🔘 UserManagement - Current showAddUser state:', this.showAddUser)
+      console.log('🔘 UserManagement - Current editingUser state:', this.editingUser)
+      
+      this.showAddUser = true
+      
+      console.log('🔘 UserManagement - After setting showAddUser=true:', this.showAddUser)
+      console.log('🔘 UserManagement - Modal should now be visible')
+      
+      // Force Vue to update the DOM
+      this.$nextTick(() => {
+        console.log('🔘 UserManagement - nextTick - showAddUser:', this.showAddUser)
+        const modalOverlay = document.querySelector('.modal-overlay')
+        const modal = document.querySelector('.modal')
+        console.log('🔘 UserManagement - Modal overlay element:', modalOverlay)
+        console.log('🔘 UserManagement - Modal element:', modal)
+        
+        if (modalOverlay) {
+          console.log('✅ UserManagement - Modal overlay found in DOM')
+          console.log('🔘 UserManagement - Modal overlay styles:', window.getComputedStyle(modalOverlay))
+        } else {
+          console.log('❌ UserManagement - Modal overlay NOT found in DOM')
+        }
+        
+        if (modal) {
+          console.log('✅ UserManagement - Modal found in DOM')
+          console.log('🔘 UserManagement - Modal styles:', window.getComputedStyle(modal))
+        } else {
+          console.log('❌ UserManagement - Modal NOT found in DOM')
+        }
+      })
+    },
+    
     editUser(user) {
+      console.log('✏️ UserManagement - Edit user clicked:', user)
       this.editingUser = user
       this.userForm = {
         name: user.name,
@@ -196,6 +243,8 @@ export default {
         role: user.role,
         active: user.active
       }
+      console.log('✏️ UserManagement - editingUser set:', this.editingUser)
+      console.log('✏️ UserManagement - userForm populated:', this.userForm)
     },
     
     async saveUser() {
@@ -218,7 +267,13 @@ export default {
           console.log('➕ Creating new user')
           const response = await axios.post('/api/users', this.userForm)
           console.log('✅ User creation response:', response.data)
-          this.success = 'User created successfully'
+          
+          // Show message about password setup email
+          if (response.data.password_setup_required) {
+            this.success = response.data.message || 'User created successfully. Password setup email sent.'
+          } else {
+            this.success = 'User created successfully'
+          }
         }
         
         this.closeModal()
@@ -273,6 +328,9 @@ export default {
     },
     
     closeModal() {
+      console.log('❌ UserManagement - Close modal called')
+      console.log('❌ UserManagement - Before: showAddUser=', this.showAddUser, 'editingUser=', this.editingUser)
+      
       this.showAddUser = false
       this.editingUser = null
       this.userForm = {
@@ -280,6 +338,40 @@ export default {
         email: '',
         role: 'author',
         active: true
+      }
+      
+      console.log('❌ UserManagement - After: showAddUser=', this.showAddUser, 'editingUser=', this.editingUser)
+    },
+    
+    async resendSetupEmail(user) {
+      if (!confirm(`Resend password setup email to ${user.name} (${user.email})?`)) {
+        return
+      }
+      
+      this.loading = true
+      this.error = ''
+      
+      try {
+        console.log('📧 Resending setup email for user:', user.id)
+        const response = await axios.post(`/api/users/${user.id}/resend-setup-email`)
+        console.log('✅ Setup email response:', response.data)
+        
+        this.success = response.data.message || 'Password setup email sent successfully'
+        
+        // Clear success message after 5 seconds
+        setTimeout(() => {
+          this.success = ''
+        }, 5000)
+        
+      } catch (error) {
+        console.error('❌ Error resending setup email:', error)
+        if (error.response?.data?.error) {
+          this.error = error.response.data.error
+        } else {
+          this.error = 'Failed to resend setup email'
+        }
+      } finally {
+        this.loading = false
       }
     },
     
@@ -419,6 +511,15 @@ td {
   background: #c82333;
 }
 
+.btn-info {
+  background: #17a2b8;
+  color: white;
+}
+
+.btn-info:hover:not(:disabled) {
+  background: #138496;
+}
+
 .btn-sm {
   padding: 6px 12px;
   font-size: 12px;
@@ -444,6 +545,10 @@ td {
   max-width: 500px;
   max-height: 90vh;
   overflow-y: auto;
+  z-index: 1001;
+  position: relative;
+  /* FIX: Ensure modal content is always visible when overlay is shown */
+  display: block !important;
 }
 
 .modal-header {
@@ -506,6 +611,14 @@ td {
 .form-group input[type="checkbox"] {
   width: auto;
   margin-right: 8px;
+}
+
+.form-help {
+  display: block;
+  margin-top: 5px;
+  font-size: 12px;
+  color: #6c757d;
+  font-style: italic;
 }
 
 .form-actions {

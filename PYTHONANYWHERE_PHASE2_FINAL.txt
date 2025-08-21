@@ -1,0 +1,44 @@
+# PythonAnywhere Phase 2 Cleanup - Final Optimization
+# Copy and paste these commands to save ~280MB and get to 40% usage
+
+echo "=== Phase 2: Major Space Optimization ==="
+
+# Remove Git repository (202MB) - biggest space saver
+echo "Removing Git repository (202MB)..."
+rm -rf .git
+
+# Remove virtual environment (72MB) - not needed on PythonAnywhere  
+echo "Removing virtual environment (72MB)..."
+rm -rf venv
+
+# Remove temporary file (42MB)
+echo "Removing temporary file (42MB)..."
+rm -f tmpac4jellb
+
+# Remove frontend development dependencies
+echo "Removing frontend node_modules..."
+rm -rf frontend/node_modules
+
+# Remove development and test files
+echo "Removing development files..."
+rm -f test_*.py final_*.py check_*.py
+rm -f *.csv *.zip
+
+# Optional: Check for large images in static/images
+echo "=== Checking for large images (optional cleanup) ==="
+echo "Large images in static/images:"
+find static/images -type f -size +2M -exec ls -lh {} \; 2>/dev/null
+
+echo ""
+echo "If you see large test/sample images above, you can remove them with:"
+echo "find static/images -type f -size +5M -exec rm {} \;"
+
+echo ""
+echo "=== Final Results ==="
+du -sh * | sort -hr | head -8
+echo ""
+echo "Total size:"
+du -sh .
+
+echo ""
+echo "Expected result: ~400MB (40% of 1GB limit)"

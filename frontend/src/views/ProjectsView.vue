@@ -374,7 +374,7 @@
   <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
     <div class="modal large-modal" @click.stop>
       <div class="modal-header">
-        <h2>Edit Project</h2>
+        <h2>Edit Project: {{ editingProject.name || 'Loading...' }}</h2>
         <button @click="showEditModal = false" class="close-btn">×</button>
       </div>
       <form @submit.prevent="handleUpdateProject" class="modal-body">
@@ -1103,6 +1103,9 @@ export default {
     },
 
     editProject(project) {
+      console.log('🔧 Edit Project clicked:', project)
+      console.log('🔧 Current showEditModal:', this.showEditModal)
+      
       this.editingProject = {
         id: project.id,
         name: project.name,
@@ -1114,10 +1117,16 @@ export default {
         publishedDocuments: project.publishedDocuments ? [...project.publishedDocuments] : []
       }
       
+      console.log('🔧 Editing project data:', this.editingProject)
+      
       // Load available stakeholders for adding new ones
       this.fetchStakeholders()
       
       this.showEditModal = true
+      console.log('🔧 showEditModal set to:', this.showEditModal)
+      
+      // Force Vue to re-render
+      this.$forceUpdate()
     },
 
 
@@ -2016,11 +2025,11 @@ export default {
   left: 0;
   right: 0;
   bottom: 0;
-  background: rgba(0, 0, 0, 0.5);
+  background: rgba(0, 0, 0, 0.8);
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 9999;
 }
 
 .modal {
@@ -2031,6 +2040,7 @@ export default {
   max-height: 90vh;
   overflow-y: auto;
   box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  border: 3px solid #ff0000; /* Temporary red border for debugging */
 }
 
 .modal-header {

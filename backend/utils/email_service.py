@@ -114,6 +114,45 @@ class EmailService:
         except Exception as e:
             logger.error(f"Failed to send review request: {str(e)}")
             return False
+
+    def send_password_setup_email(self, user_email, user_name, setup_url, 
+                                 created_by_admin=True, admin_name=None):
+        """Send password setup email to new users"""
+        try:
+            subject = "Welcome to StructuredDocs - Set Your Password"
+            
+            html_content = self._create_password_setup_email_html(
+                user_name, setup_url, created_by_admin, admin_name
+            )
+            
+            text_content = self._create_password_setup_email_text(
+                user_name, setup_url, created_by_admin, admin_name
+            )
+            
+            return self._send_email(user_email, subject, html_content, text_content)
+            
+        except Exception as e:
+            logger.error(f"Failed to send password setup email: {str(e)}")
+            return False
+
+    def send_password_reset_email(self, user_email, user_name, reset_url):
+        """Send password reset email to existing users"""
+        try:
+            subject = "StructuredDocs Password Reset Request"
+            
+            html_content = self._create_password_reset_email_html(
+                user_name, reset_url
+            )
+            
+            text_content = self._create_password_reset_email_text(
+                user_name, reset_url
+            )
+            
+            return self._send_email(user_email, subject, html_content, text_content)
+            
+        except Exception as e:
+            logger.error(f"Failed to send password reset email: {str(e)}")
+            return False
     
     def _send_email(self, to_email, subject, html_content, text_content):
         """Send email using SMTP or debug mode"""
@@ -415,6 +454,163 @@ Thank you for your time and expertise.
 
 Best regards,
 StructuredDocs Review System
+"""
+
+    def _create_password_setup_email_html(self, user_name, setup_url, created_by_admin=True, admin_name=None):
+        """Create HTML email content for password setup"""
+        greeting = f"Hello {user_name}," if user_name else "Hello,"
+        
+        if created_by_admin and admin_name:
+            intro = f"An administrator ({admin_name}) has created an account for you on StructuredDocs."
+        elif created_by_admin:
+            intro = "An administrator has created an account for you on StructuredDocs."
+        else:
+            intro = "Welcome to StructuredDocs! Your account has been created."
+        
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2>Welcome to StructuredDocs</h2>
+            
+            <p>{greeting}</p>
+            
+            <p>{intro}</p>
+            
+            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #2e7d32;">Set Your Password</h3>
+                <p>To complete your account setup and start using StructuredDocs, you need to create a password.</p>
+            </div>
+            
+            <p>Click the link below to set your password:</p>
+            <p><a href="{setup_url}" style="background-color: #007bff; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Set My Password</a></p>
+            
+            <p>Or copy and paste this URL into your browser:<br>
+            <code style="background-color: #f8f9fa; padding: 5px; border-radius: 3px;">{setup_url}</code></p>
+            
+            <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
+                <p><strong>Important:</strong> This link will expire in 24 hours for security reasons. If the link expires, please contact an administrator to resend the setup email.</p>
+            </div>
+            
+            <h3>About StructuredDocs</h3>
+            <p>StructuredDocs is a collaborative documentation platform that helps teams create, review, and manage structured documents. Once you set your password, you'll be able to:</p>
+            <ul>
+                <li>Create and edit documents and topics</li>
+                <li>Participate in collaborative review processes</li>
+                <li>Manage projects and collections</li>
+                <li>Track document workflows and approvals</li>
+            </ul>
+            
+            <p>If you have any questions or need assistance, please contact your system administrator.</p>
+            
+            <p>Best regards,<br>
+            StructuredDocs Team</p>
+        </body>
+        </html>
+        """
+
+    def _create_password_setup_email_text(self, user_name, setup_url, created_by_admin=True, admin_name=None):
+        """Create plain text email content for password setup"""
+        greeting = f"Hello {user_name}," if user_name else "Hello,"
+        
+        if created_by_admin and admin_name:
+            intro = f"An administrator ({admin_name}) has created an account for you on StructuredDocs."
+        elif created_by_admin:
+            intro = "An administrator has created an account for you on StructuredDocs."
+        else:
+            intro = "Welcome to StructuredDocs! Your account has been created."
+        
+        return f"""
+Welcome to StructuredDocs
+
+{greeting}
+
+{intro}
+
+SET YOUR PASSWORD
+To complete your account setup and start using StructuredDocs, you need to create a password.
+
+Click the link below to set your password:
+{setup_url}
+
+IMPORTANT: This link will expire in 24 hours for security reasons. If the link expires, please contact an administrator to resend the setup email.
+
+ABOUT STRUCTUREDDOCS
+StructuredDocs is a collaborative documentation platform that helps teams create, review, and manage structured documents. Once you set your password, you'll be able to:
+
+- Create and edit documents and topics
+- Participate in collaborative review processes  
+- Manage projects and collections
+- Track document workflows and approvals
+
+If you have any questions or need assistance, please contact your system administrator.
+
+Best regards,
+StructuredDocs Team
+"""
+
+    def _create_password_reset_email_html(self, user_name, reset_url):
+        """Create HTML email content for password reset"""
+        greeting = f"Hello {user_name}," if user_name else "Hello,"
+        
+        return f"""
+        <html>
+        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
+            <h2>Password Reset Request</h2>
+            
+            <p>{greeting}</p>
+            
+            <p>We received a request to reset your password for your StructuredDocs account.</p>
+            
+            <div style="background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 20px 0;">
+                <h3 style="margin-top: 0; color: #856404;">Reset Your Password</h3>
+                <p>Click the link below to create a new password for your account.</p>
+            </div>
+            
+            <p><a href="{reset_url}" style="background-color: #ffc107; color: black; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset My Password</a></p>
+            
+            <p>Or copy and paste this URL into your browser:<br>
+            <code style="background-color: #f8f9fa; padding: 5px; border-radius: 3px;">{reset_url}</code></p>
+            
+            <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
+                <p><strong>Security Notice:</strong></p>
+                <ul>
+                    <li>This link will expire in 1 hour for security reasons</li>
+                    <li>If you didn't request this password reset, please ignore this email</li>
+                    <li>Your password won't be changed until you click the link and set a new one</li>
+                </ul>
+            </div>
+            
+            <p>If you continue to have problems accessing your account, please contact your system administrator.</p>
+            
+            <p>Best regards,<br>
+            StructuredDocs Team</p>
+        </body>
+        </html>
+        """
+
+    def _create_password_reset_email_text(self, user_name, reset_url):
+        """Create plain text email content for password reset"""
+        greeting = f"Hello {user_name}," if user_name else "Hello,"
+        
+        return f"""
+Password Reset Request
+
+{greeting}
+
+We received a request to reset your password for your StructuredDocs account.
+
+To reset your password, click the link below:
+{reset_url}
+
+SECURITY NOTICE:
+- This link will expire in 1 hour for security reasons
+- If you didn't request this password reset, please ignore this email
+- Your password won't be changed until you click the link and set a new one
+
+If you continue to have problems accessing your account, please contact your system administrator.
+
+Best regards,
+StructuredDocs Team
 """
 
 # Global email service instance

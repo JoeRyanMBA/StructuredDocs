@@ -146,6 +146,13 @@ def create_app():
         except Exception as e:
             print(f"⚠️ Error registering reviews blueprint: {e}")
             
+        try:
+            from routes.publications import pubs_bp
+            app.register_blueprint(pubs_bp)
+            print("✅ Publications blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering publications blueprint: {e}")
+            
         print("📋 Blueprint registration complete")
         
     except Exception as e:

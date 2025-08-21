@@ -110,6 +110,20 @@ const routes = [
     name: 'Login',
     component: LoginView
   },
+  {
+    path: '/auth/setup-password/:token',
+    name: 'PasswordSetup',
+    component: () => import('@/views/PasswordSetupView.vue'),
+    props: true,
+    meta: { requiresAuth: false }
+  },
+  {
+    path: '/auth/reset-password/:token',
+    name: 'PasswordReset',
+    component: () => import('@/views/PasswordSetupView.vue'),
+    props: true,
+    meta: { requiresAuth: false }
+  },
 
   // ▶️ Dashboard / Home
   {
@@ -214,6 +228,16 @@ const routes = [
     path: '/all-milestones',
     name: 'AllMilestones',
     component: () => import('@/views/AllMilestonesView.vue')
+  },
+  {
+    path: '/all-images',
+    name: 'AllImages',
+    component: () => import('@/views/AllImagesView.vue')
+  },
+  {
+    path: '/all-links',
+    name: 'AllLinks',
+    component: () => import('@/views/AllLinksView.vue')
   },
   {
     path: '/organize/:id',
@@ -333,7 +357,7 @@ function isAuthenticated() {
 // Navigation guard to protect routes
 router.beforeEach((to, from, next) => {
   // Routes that don't require authentication
-  const publicRoutes = ['Login', 'ReviewPortal']
+  const publicRoutes = ['Login', 'ReviewPortal', 'PasswordSetup', 'PasswordReset']
   
   if (publicRoutes.includes(to.name)) {
     // If already logged in and trying to access login, redirect to dashboard

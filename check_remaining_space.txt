@@ -1,0 +1,29 @@
+# Commands to check remaining space usage on PythonAnywhere
+# Copy and paste these into your PythonAnywhere bash console
+
+echo "=== Current Space Usage ==="
+du -sh * | sort -hr | head -15
+
+echo ""
+echo "=== Frontend Directory Size ==="
+du -sh frontend/*
+
+echo ""
+echo "=== Backend Directory Size ==="
+du -sh backend/* | sort -hr | head -10
+
+echo ""
+echo "=== Check for any remaining large files ==="
+find . -type f -size +5M -exec ls -lh {} \; 2>/dev/null
+
+echo ""
+echo "=== Check backend static directory ==="
+if [ -d "backend/static" ]; then
+    du -sh backend/static/*
+    echo "Large files in static:"
+    find backend/static -type f -size +1M -exec ls -lh {} \; 2>/dev/null
+fi
+
+echo ""
+echo "=== Total directory size ==="
+du -sh .
