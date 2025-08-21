@@ -1671,15 +1671,18 @@ export default {
 .topic-btn.down,
 .topic-btn.left,
 .topic-btn.right {
-  color: #333;
+  color: #333 !important;
+  background: #f0f0f0 !important;
+  border: 1px solid #ccc !important;
 }
 
 .topic-btn.up:hover,
 .topic-btn.down:hover,
 .topic-btn.left:hover,
 .topic-btn.right:hover {
-  color: #000;
-  background: #e6e6e6;
+  color: #000 !important;
+  background: #e6e6e6 !important;
+  border-color: #999 !important;
 }
 
 .collection-topic-item:hover {

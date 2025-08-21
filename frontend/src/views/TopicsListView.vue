@@ -343,6 +343,7 @@ export default {
   },
 
   created() {
+    console.log('TopicsListView created - initializing data')
     this.fetchTopics()
     this.fetchProjects()
     this.fetchReviewers()
@@ -352,14 +353,16 @@ export default {
     async fetchTopics() {
       this.loading = true
       this.error = null
+      console.log('Fetching topics from API...')
 
       try {
         const res = await fetch('/api/topics/')
         if (!res.ok) throw new Error(`Status ${res.status}`)
         this.topics = await res.json()
+        console.log('Topics loaded successfully:', this.topics.length, 'topics')
         this.applyFilters() // Initialize filtered data
       } catch (err) {
-        console.error(err)
+        console.error('API fetch failed, using sample data:', err)
         // Provide mock data when backend is unavailable
         this.topics = [
           {
@@ -386,8 +389,15 @@ export default {
         ]
         this.applyFilters()
         this.error = 'Using sample data - backend unavailable'
+        console.log('Sample topics loaded:', this.topics)
       } finally {
         this.loading = false
+        console.log('Loading complete. Final state:', {
+          loading: this.loading,
+          topicsCount: this.topics.length,
+          filteredCount: this.filteredTopics.length,
+          error: this.error
+        })
       }
     },
 
@@ -677,7 +687,7 @@ export default {
 
 <style scoped>
 .topics-list {
-  padding: 70px 2rem 2rem 2rem; /* Top padding to account for fixed header */
+  padding: 1rem 2rem 2rem 2rem; /* Reduced top padding to match other pages */
 }
 
 .guidance-text {

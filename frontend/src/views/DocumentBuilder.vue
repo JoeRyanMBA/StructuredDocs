@@ -799,13 +799,13 @@ status: "draft"
     },
     
     createNewLink() {
-      // Navigate to link creation or open inline form
-      this.showMessage('Link creation feature coming soon')
+      // Open the Links modal for management
+      this.showLinksModal = true
     },
     
     editLink(link) {
-      // Navigate to link editing
-      this.showMessage('Link editing feature coming soon')
+      // Open the Links modal for editing
+      this.showLinksModal = true
     },
     
     handleImageError(event) {
