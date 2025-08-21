@@ -95,6 +95,8 @@
               v-if="t.status === 'draft'"
               @click="submitForReview(t.id)"
               class="btn btn-sm btn-warning"
+              style="position: relative; z-index: 10;"
+              title="Click to submit for review"
             >
               <i class="fas fa-eye"></i> Review
             </button>
@@ -499,6 +501,9 @@ export default {
     },
 
     async submitForReview(id) {
+      console.log('🔥 submitForReview called with ID:', id)
+      alert(`Submit for review clicked! Topic ID: ${id}`)
+      
       // Find the topic and open the modal
       const topic = this.topics.find(t => t.id === id)
       if (!topic) {

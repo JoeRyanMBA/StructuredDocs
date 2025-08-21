@@ -1,0 +1,100 @@
+<!DOCTYPE html>
+<html>
+<head>
+    <title>Debug Topics Page Buttons</title>
+    <style>
+        .debug-info {
+            background: #f0f0f0;
+            padding: 10px;
+            margin: 10px 0;
+            border: 1px solid #ccc;
+        }
+        .btn {
+            padding: 5px 10px;
+            margin: 5px;
+            border: 1px solid #ccc;
+            background: #007bff;
+            color: white;
+            cursor: pointer;
+        }
+        .btn:hover {
+            background: #0056b3;
+        }
+    </style>
+</head>
+<body>
+    <h1>Debug Topics Page Button Issue</h1>
+    
+    <div class="debug-info">
+        <h3>Test 1: Basic HTML Button</h3>
+        <button class="btn" onclick="alert('Basic HTML button works!')">Test Basic Button</button>
+    </div>
+
+    <div class="debug-info">
+        <h3>Test 2: Check for CSS Overlays</h3>
+        <p>If this button doesn't work, there might be a CSS overlay issue:</p>
+        <button class="btn" onclick="testCSSOverlay()">Test CSS Overlay</button>
+    </div>
+
+    <div class="debug-info">
+        <h3>Test 3: Console Inspection</h3>
+        <p>Open browser console (F12) and check for:</p>
+        <ul>
+            <li>JavaScript errors (red text)</li>
+            <li>Failed network requests</li>
+            <li>Vue component mounting issues</li>
+        </ul>
+        <button class="btn" onclick="debugConsole()">Log Debug Info</button>
+    </div>
+
+    <div class="debug-info">
+        <h3>Test 4: Element Inspector</h3>
+        <p>Instructions for debugging on actual Topics page:</p>
+        <ol>
+            <li>Go to your Topics page</li>
+            <li>Right-click on a non-working button</li>
+            <li>Select "Inspect Element"</li>
+            <li>Check if the button has proper event listeners in the "Event Listeners" tab</li>
+            <li>Look for any overlapping elements with higher z-index</li>
+        </ol>
+    </div>
+
+    <script>
+        function testCSSOverlay() {
+            const overlay = document.createElement('div');
+            overlay.style.position = 'fixed';
+            overlay.style.top = '0';
+            overlay.style.left = '0';
+            overlay.style.width = '100%';
+            overlay.style.height = '100%';
+            overlay.style.background = 'rgba(255,0,0,0.3)';
+            overlay.style.zIndex = '9999';
+            overlay.innerHTML = '<div style="position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:white;padding:20px;">CSS overlay detected! Click anywhere to close.</div>';
+            overlay.onclick = () => document.body.removeChild(overlay);
+            document.body.appendChild(overlay);
+        }
+
+        function debugConsole() {
+            console.log('=== DEBUG INFO ===');
+            console.log('URL:', window.location.href);
+            console.log('User Agent:', navigator.userAgent);
+            console.log('Vue available?', typeof Vue !== 'undefined');
+            console.log('jQuery available?', typeof $ !== 'undefined');
+            console.log('Bootstrap available?', typeof bootstrap !== 'undefined');
+            
+            // Check for common Vue errors
+            const vueElements = document.querySelectorAll('[data-v-]');
+            console.log('Vue components found:', vueElements.length);
+            
+            // Check for event listeners
+            const buttons = document.querySelectorAll('button');
+            console.log('Total buttons found:', buttons.length);
+            buttons.forEach((btn, i) => {
+                console.log(`Button ${i}:`, btn.outerHTML.substring(0, 100));
+            });
+            
+            alert('Debug info logged to console - check F12 developer tools');
+        }
+    </script>
+</body>
+</html>
