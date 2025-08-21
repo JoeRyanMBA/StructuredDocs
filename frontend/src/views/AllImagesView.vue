@@ -295,7 +295,36 @@ export default {
 
       } catch (error) {
         console.error('Failed to load images:', error)
-        this.error = 'Failed to load images. Please try again.'
+        // Provide mock data for testing when backend is unavailable
+        this.allImages = [
+          {
+            id: 1,
+            filename: 'sample-chart.png',
+            source: 'static',
+            public_url: '/images/sample-chart.png',
+            file_size: 45600,
+            alt_text: 'Sample chart showing data visualization'
+          },
+          {
+            id: 2,
+            filename: 'workflow-diagram.svg',
+            source: 'static', 
+            public_url: '/images/workflow-diagram.svg',
+            file_size: 12300,
+            alt_text: 'Process workflow diagram'
+          },
+          {
+            id: 3,
+            filename: 'logo-placeholder.jpg',
+            source: 'import',
+            document_id: 1,
+            public_url: '/images/logo-placeholder.jpg',
+            file_size: 89200,
+            alt_text: 'Company logo placeholder'
+          }
+        ]
+        this.applyFilters()
+        this.error = 'Using sample data - backend unavailable.'
       } finally {
         this.loading = false
       }

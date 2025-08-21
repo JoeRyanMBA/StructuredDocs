@@ -360,7 +360,32 @@ export default {
         this.applyFilters() // Initialize filtered data
       } catch (err) {
         console.error(err)
-        this.error = 'Failed to load topics'
+        // Provide mock data when backend is unavailable
+        this.topics = [
+          {
+            id: 1,
+            title: 'Sample Topic 1',
+            status: 'draft',
+            summary: 'This is a sample topic for testing',
+            collection_name: 'Test Collection'
+          },
+          {
+            id: 2,
+            title: 'Sample Topic 2',
+            status: 'pending_review',
+            summary: 'Another sample topic',
+            collection_name: 'Test Collection'
+          },
+          {
+            id: 3,
+            title: 'Sample Topic 3',
+            status: 'approved',
+            summary: 'Final sample topic',
+            collection_name: 'Sample Collection'
+          }
+        ]
+        this.applyFilters()
+        this.error = 'Using sample data - backend unavailable'
       } finally {
         this.loading = false
       }
