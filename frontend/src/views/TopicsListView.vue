@@ -10,17 +10,6 @@
     <Breadcrumbs />
     <h2>All Topics</h2>
     
-    <!-- DEBUG INFO -->
-    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
-      <strong>DEBUG:</strong> 
-      loading: {{ loading }}, 
-      error: {{ error }}, 
-      topics.length: {{ topics.length }}, 
-      filteredTopics.length: {{ filteredTopics.length }}
-      <br>
-      <span class="text-success">✅ Buttons are working! Modal overlay issue resolved.</span>
-    </div>
-    
     <p class="guidance-text">
       These are all the available topics. This page allows you to edit a topic or publish a single topic.
     </p>
