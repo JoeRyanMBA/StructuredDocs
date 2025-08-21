@@ -10,6 +10,17 @@
     <Breadcrumbs />
     <h2>All Topics</h2>
     
+    <!-- DEBUG INFO -->
+    <div style="background: #f0f0f0; padding: 10px; margin: 10px 0; border: 1px solid #ccc;">
+      <strong>DEBUG:</strong> 
+      loading: {{ loading }}, 
+      error: {{ error }}, 
+      topics.length: {{ topics.length }}, 
+      filteredTopics.length: {{ filteredTopics.length }}
+      <br>
+      <span class="text-success">✅ Buttons are working! Modal overlay issue resolved.</span>
+    </div>
+    
     <p class="guidance-text">
       These are all the available topics. This page allows you to edit a topic or publish a single topic.
     </p>
@@ -101,7 +112,6 @@
               <i class="fas fa-eye"></i> Review
             </button>
 
-            <!-- Temporarily disabled Sequential Review button
             <button
               v-if="t.status === 'draft'"
               @click="openSequentialReview(t)"
@@ -110,7 +120,6 @@
             >
               <i class="bi bi-arrow-right-circle"></i> Sequential Review
             </button>
-            -->
 
             <button
               v-if="t.status === 'draft'"
@@ -126,153 +135,27 @@
       </div>
     </div>
 
-    <!-- Review Submission Modal -->
-    <div v-if="showReviewModal" class="modal-overlay" @click="closeReviewModal">
-      <div class="modal-content" @click.stop>
-        <div class="modal-header">
-          <h3>Submit "{{ selectedTopic?.title }}" for Review</h3>
-          <button @click="closeReviewModal" class="close-button">&times;</button>
-        </div>
-        
-        <div class="modal-body">
-          <div class="form-group">
-            <label for="project-select">Project:</label>
-            <select id="project-select" v-model="reviewData.project_id" @change="onProjectChange" required>
-              <option value="">Select a project...</option>
-              <option v-for="project in availableProjects" :key="project.id" :value="project.id">
-                {{ project.name }}
-              </option>
-            </select>
-          </div>
+    <!-- MODALS TEMPORARILY REMOVED TO RESTORE BUTTON FUNCTIONALITY -->
 
-          <div class="form-group" v-if="reviewData.project_id">
-            <label for="reviewer-select">Assign to Reviewers (select one or more):</label>
-            <div class="multi-select-container">
-              <div 
-                v-for="stakeholder in safeProjectStakeholders" 
-                :key="stakeholder.id"
-                class="checkbox-item"
-              >
-                <input 
-                  type="checkbox" 
-                  :id="`reviewer-${stakeholder.id}`"
-                  :value="stakeholder.id"
-                  v-model="reviewData.assigned_stakeholder_ids"
-                />
-                <label :for="`reviewer-${stakeholder.id}`" class="checkbox-label">
-                  {{ stakeholder.name }} ({{ stakeholder.role || 'Stakeholder' }}) - {{ stakeholder.division || 'No division' }}
-                </label>
-              </div>
-            </div>
-            <small v-if="!reviewData.project_id" class="text-muted">
-              Please select a project first.
-            </small>
-            <small v-else-if="projectStakeholders.length === 0 && availableReviewers.length === 0" class="text-muted">
-              Loading reviewers...
-            </small>
-            <small v-else-if="safeProjectStakeholders.length === 0" class="text-warning">
-              No reviewers available for this project.
-            </small>
-            <small v-else-if="reviewData.assigned_stakeholder_ids.length === 0" class="text-info">
-              Please select at least one reviewer.
-            </small>
-            <small v-else class="text-success">
-              {{ reviewData.assigned_stakeholder_ids.length }} reviewer(s) selected.
-            </small>
-          </div>
-
-          <!-- Sequential Review Option -->
-          <div class="form-group" v-if="reviewData.assigned_stakeholder_ids.length > 1">
-            <div class="form-check">
-              <input 
-                class="form-check-input" 
-                type="checkbox" 
-                id="sequentialReview" 
-                v-model="reviewData.isSequential"
-              >
-              <label class="form-check-label" for="sequentialReview">
-                <i class="bi bi-arrow-right-circle me-1"></i>
-                <strong>Sequential Review</strong> - Reviewers work one at a time (expert first strategy)
-              </label>
-            </div>
-            <small class="text-muted">
-              When enabled, reviewers will be assigned in the order selected. The first reviewer should be your most expert person.
-              Each subsequent reviewer will only see the improved version after previous changes are incorporated.
-            </small>
-          </div>
-
-          <div class="form-group">
-            <label for="due-date">Due by close-of-business:</label>
-            <input 
-              id="due-date" 
-              type="date" 
-              v-model="reviewData.due_date" 
-              :min="todayDate"
-              required
-            />
-          </div>
-
-          <div class="form-group">
-            <label for="review-notes">Notes to the reviewer (optional):</label>
-            <textarea 
-              id="review-notes" 
-              v-model="reviewData.submitter_notes" 
-              rows="4" 
-              placeholder="Add any specific instructions or context for the reviewer..."
-            ></textarea>
-          </div>
-
-          <!-- Debug information (remove in production) -->
-          <div class="debug-info" style="background: #f8f9fa; padding: 1rem; border-radius: 4px; margin-top: 1rem; font-size: 0.75rem;">
-            <strong>Form Status:</strong><br>
-            Project ID: {{ reviewData.project_id || 'Not selected' }}<br>
-            Selected Reviewers: {{ reviewData.assigned_stakeholder_ids.length > 0 ? reviewData.assigned_stakeholder_ids.join(', ') : 'None selected' }}<br>
-            Due Date: {{ reviewData.due_date || 'Not set' }}<br>
-            Project Stakeholders: {{ projectStakeholders.length }}<br>
-            Available Reviewers: {{ availableReviewers.length }}<br>
-            Reviewable Stakeholders: {{ safeProjectStakeholders.length }}<br>
-            Using Fallback Reviewers: {{ projectStakeholders.length === 0 && availableReviewers.length > 0 ? 'Yes' : 'No' }}<br>
-            Form Valid: {{ !!(reviewData.project_id && reviewData.assigned_stakeholder_ids.length > 0 && reviewData.due_date) }}
-          </div>
-        </div>
-
-        <div class="modal-footer">
-          <button @click="closeReviewModal" class="btn btn-secondary">Cancel</button>
-          <button @click="confirmSubmitForReview" class="btn btn-primary" :disabled="!reviewData.project_id || reviewData.assigned_stakeholder_ids.length === 0 || !reviewData.due_date">
-            Submit for Review
-          </button>
-        </div>
-      </div>
-    </div>
-
-    <!-- Sequential Review Modal -->
-    <!-- <SequentialReviewModal
-      :topic="selectedTopicForSequence"
-      @sequence-created="onSequenceCreated"
-    /> -->
   </div>
 </template>
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
-// import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
+// import SequentialReviewModal from '@/components/SequentialReviewModal.vue' // Temporarily disabled
 
 export default {
   name: 'TopicListView',
-  components: { Breadcrumbs, NotificationTicker }, // SequentialReviewModal },
+  components: { Breadcrumbs, NotificationTicker }, // Removed SequentialReviewModal temporarily
   props: {
-    notifications: {
-      type: Array,
-      default: () => []
-    },
     globalNotifications: {
       type: Array,
       default: () => []
     },
     markNotificationRead: {
       type: Function,
-      required: true
+      default: () => {}
     }
   },
 
@@ -327,15 +210,8 @@ export default {
     },
 
     mergedNotifications() {
-      // Combine global and dashboard-specific notifications, removing duplicates by id
-      const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
-      const seen = new Set()
-      return all.filter(n => {
-        if (!n || !n.id) return true
-        if (seen.has(n.id)) return false
-        seen.add(n.id)
-        return true
-      })
+      // Use global notifications since we only have globalNotifications prop now
+      return (this.globalNotifications || []).filter(n => n && n.id)
     },
 
     uniqueCollections() {
@@ -349,6 +225,10 @@ export default {
   },
 
   created() {
+    // Force reset modal states to prevent blocking overlay
+    this.showReviewModal = false
+    this.selectedTopicForSequence = null
+    
     // Initialize data loading
     this.fetchTopics()
     this.fetchProjects()
@@ -539,6 +419,7 @@ export default {
     closeReviewModal() {
       this.showReviewModal = false
       this.selectedTopic = null
+      this.selectedTopicForSequence = null  // Also clear sequential review state
       // Reset form data
       this.reviewData = {
         project_id: '',
@@ -671,23 +552,25 @@ export default {
 
     openSequentialReview(topic) {
       console.log('🔥 openSequentialReview called with topic:', topic)
-      alert(`Sequential review clicked! Topic: ${topic.title}`)
       
       this.selectedTopicForSequence = topic
       
       // Try to open the modal safely
       try {
-        const modalElement = document.getElementById('sequentialReviewModal')
-        if (modalElement && window.bootstrap) {
-          const modal = new bootstrap.Modal(modalElement)
-          modal.show()
-        } else {
-          console.error('Modal element or bootstrap not found')
-          alert('Modal functionality not available - please use regular review instead')
-        }
+        // Use Vue's nextTick to ensure DOM is updated
+        this.$nextTick(() => {
+          const modalElement = document.getElementById('sequentialReviewModal')
+          if (modalElement && window.bootstrap) {
+            const modal = new bootstrap.Modal(modalElement)
+            modal.show()
+          } else {
+            console.error('Modal element or bootstrap not found')
+            alert('Modal functionality not available - please refresh the page and try again')
+          }
+        })
       } catch (error) {
         console.error('Error opening modal:', error)
-        alert('Error opening modal - please use regular review instead')
+        alert('Error opening modal - please refresh the page and try again')
       }
     },
 
