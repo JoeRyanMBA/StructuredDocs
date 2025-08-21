@@ -135,8 +135,7 @@
       </div>
     </div>
 
-    <!-- MODALS TEMPORARILY REMOVED TO RESTORE BUTTON FUNCTIONALITY -->
-
+    <!-- Modals removed to fix button functionality -->
   </div>
 </template>
 
