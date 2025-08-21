@@ -362,6 +362,81 @@
       </div>
     </div>
 
+    <!-- Create Link Modal -->
+    <div v-if="showCreateLinkModal" class="modal-overlay" @click="showCreateLinkModal = false">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>➕ Create New Link</h3>
+          <button class="btn-close" @click="showCreateLinkModal = false">✕</button>
+        </div>
+        <div class="modal-body">
+          <form @submit.prevent="saveNewLink">
+            <div class="form-group">
+              <label for="linkTitle">Title *</label>
+              <input
+                id="linkTitle"
+                v-model="linkForm.title"
+                type="text"
+                class="form-input"
+                placeholder="Enter link title"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="linkUrl">URL *</label>
+              <input
+                id="linkUrl"
+                v-model="linkForm.url"
+                type="url"
+                class="form-input"
+                placeholder="https://example.com"
+                required
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="linkDescription">Description</label>
+              <textarea
+                id="linkDescription"
+                v-model="linkForm.description"
+                class="form-input"
+                rows="3"
+                placeholder="Optional description"
+              ></textarea>
+            </div>
+            
+            <div class="form-group">
+              <label for="linkCode">Reference Code</label>
+              <input
+                id="linkCode"
+                v-model="linkForm.reference_code"
+                type="text"
+                class="form-input"
+                placeholder="e.g., AB-123"
+              />
+            </div>
+            
+            <div class="form-group">
+              <label for="linkType">Link Type</label>
+              <select id="linkType" v-model="linkForm.link_type" class="form-input">
+                <option value="external">External Link</option>
+                <option value="internal">Internal Link</option>
+                <option value="form">Form</option>
+                <option value="document">Document</option>
+                <option value="resource">Resource</option>
+              </select>
+            </div>
+            
+            <div class="form-actions">
+              <button type="submit" class="btn btn-primary">Create Link</button>
+              <button type="button" class="btn btn-secondary" @click="showCreateLinkModal = false">Cancel</button>
+            </div>
+          </form>
+        </div>
+      </div>
+    </div>
+
     <!-- Success/Error Messages -->
     <div v-if="message" :class="['message', messageType]">
       {{ message }}
@@ -425,6 +500,14 @@ export default {
       recentLinks: [],
       showLinksModal: false,
       linksSearch: '',
+      showCreateLinkModal: false,
+      linkForm: {
+        title: '',
+        url: '',
+        description: '',
+        reference_code: '',
+        link_type: 'external'
+      },
       
       // Images
       allImages: [],
@@ -799,8 +882,40 @@ status: "draft"
     },
     
     createNewLink() {
-      // Navigate to link creation or open inline form
-      this.showMessage('Link creation feature coming soon')
+      // Reset form and show modal
+      this.linkForm = {
+        title: '',
+        url: '',
+        description: '',
+        reference_code: '',
+        link_type: 'external'
+      }
+      this.showCreateLinkModal = true
+    },
+
+    async saveNewLink() {
+      try {
+        const response = await fetch('/api/links', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify(this.linkForm)
+        })
+
+        if (response.ok) {
+          const newLink = await response.json()
+          this.allLinks.unshift(newLink)
+          this.recentLinks = this.allLinks.slice(0, 5)
+          this.showCreateLinkModal = false
+          this.showMessage('Link created successfully!')
+        } else {
+          throw new Error('Failed to create link')
+        }
+      } catch (error) {
+        console.error('Failed to create link:', error)
+        this.showMessage('Failed to create link', 'error')
+      }
     },
     
     editLink(link) {
@@ -1357,7 +1472,7 @@ status: "draft"
   display: flex;
   align-items: center;
   justify-content: center;
-  z-index: 1000;
+  z-index: 2000;
 }
 
 .modal {
@@ -1367,6 +1482,7 @@ status: "draft"
   max-width: 90vw;
   max-height: 90vh;
   overflow: auto;
+  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
 }
 
 .modal.large {
@@ -1416,6 +1532,24 @@ status: "draft"
   justify-content: flex-end;
   gap: 0.5rem;
   margin-top: 1.5rem;
+}
+
+.btn {
+  padding: 0.75rem 1.5rem;
+  border: none;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 /* Links Manager */

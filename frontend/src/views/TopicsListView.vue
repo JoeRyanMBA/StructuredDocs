@@ -1,10 +1,10 @@
 <template>
+  <NotificationTicker
+    :notifications="mergedNotifications"
+    contextType="global"
+    @mark-read="markNotificationRead"
+  />
   <div class="topics-list">
-    <NotificationTicker
-      :notifications="mergedNotifications"
-      contextType="global"
-      @mark-read="markNotificationRead"
-    />
     <Breadcrumbs />
     <h2>All Topics</h2>
     
@@ -652,7 +652,7 @@ export default {
 
 <style scoped>
 .topics-list {
-  padding: 70px 2rem 2rem 2rem; /* Top padding to account for fixed header */
+  padding: 1rem 2rem 2rem 2rem; /* Reduced top padding to match other pages */
 }
 
 .guidance-text {
