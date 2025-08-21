@@ -233,6 +233,14 @@
       </div>
       <div class="topics-panel">
         <h2>Available Topics</h2>
+        
+        <!-- Multi-select controls for Available Topics -->
+        <div v-if="selectedAvailableTopics.size > 0" class="multi-select-controls">
+          <span class="selected-count">{{ selectedAvailableTopics.size }} topic(s) selected</span>
+          <button @click="clearAvailableSelection" class="clear-btn">Clear Selection</button>
+          <button @click="addSelectedToCollection" class="move-btn">Add to Collection</button>
+        </div>
+        
         <draggable
           :list="unassignedTopics"
           group="topics"
@@ -241,8 +249,13 @@
           class="unassigned-list"
           handle=".drag-handle"
         >
-          <template #item="{ element }">
-            <div class="unassigned-topic-item">
+          <template #item="{ element, index }">
+            <div 
+              class="unassigned-topic-item"
+              :class="{ 'selected': selectedAvailableTopics.has(element.id) }"
+              @click="handleAvailableTopicClick(element, index, $event)"
+              @contextmenu="handleAvailableTopicRightClick(element, index, $event)"
+            >
               <div class="drag-handle">
                 <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
                   <circle cx="2" cy="2" r="1" fill="#999"/>
@@ -358,7 +371,9 @@ export default {
       confirmation: '',
       isEditMode: false, // Track if we're in edit mode
       selectedTopics: new Set(), // Track selected topic IDs
+      selectedAvailableTopics: new Set(), // Track selected available topic IDs
       lastSelectedIndex: -1, // Track last selected index for shift+click
+      lastSelectedAvailableIndex: -1, // Track last selected index for shift+click in available topics
       moveTargetId: '', // Track target topic for hierarchy moves
       draggedTopics: [], // Track topics being dragged
       expandedTopics: new Set(), // Track which topics are expanded
@@ -585,6 +600,85 @@ export default {
       this.selectedTopics.clear()
       this.lastSelectedIndex = -1
       this.moveTargetId = ''
+    },
+
+    clearAvailableSelection() {
+      this.selectedAvailableTopics.clear()
+      this.lastSelectedAvailableIndex = -1
+    },
+
+    // Available Topics selection methods
+    handleAvailableTopicClick(topic, index, event) {
+      event.preventDefault()
+      event.stopPropagation()
+      
+      if (event.shiftKey && this.lastSelectedAvailableIndex !== -1) {
+        // Shift+click: select range
+        this.selectAvailableRange(this.lastSelectedAvailableIndex, index)
+      } else if (event.ctrlKey || event.metaKey) {
+        // Ctrl+click: toggle individual selection
+        this.toggleAvailableTopicSelection(topic.id)
+      } else {
+        // Regular click: select only this topic
+        this.clearAvailableSelection()
+        this.selectAvailableTopic(topic.id)
+        this.lastSelectedAvailableIndex = index
+      }
+    },
+
+    handleAvailableTopicRightClick(topic, index, event) {
+      event.preventDefault()
+      
+      // If right-clicking on unselected topic, select it
+      if (!this.selectedAvailableTopics.has(topic.id)) {
+        this.clearAvailableSelection()
+        this.selectAvailableTopic(topic.id)
+        this.lastSelectedAvailableIndex = index
+      }
+      
+      // You can add context menu functionality here if needed
+    },
+
+    selectAvailableTopic(topicId) {
+      this.selectedAvailableTopics.add(topicId)
+    },
+
+    toggleAvailableTopicSelection(topicId) {
+      if (this.selectedAvailableTopics.has(topicId)) {
+        this.selectedAvailableTopics.delete(topicId)
+      } else {
+        this.selectedAvailableTopics.add(topicId)
+      }
+    },
+
+    selectAvailableRange(startIndex, endIndex) {
+      const start = Math.min(startIndex, endIndex)
+      const end = Math.max(startIndex, endIndex)
+      
+      for (let i = start; i <= end && i < this.unassignedTopics.length; i++) {
+        this.selectedAvailableTopics.add(this.unassignedTopics[i].id)
+      }
+    },
+
+    async addSelectedToCollection() {
+      if (this.selectedAvailableTopics.size === 0) return
+      
+      const selectedTopicsToAdd = this.unassignedTopics.filter(topic => 
+        this.selectedAvailableTopics.has(topic.id)
+      )
+      
+      // Add selected topics to the collection
+      this.currentCollection.topics.push(...selectedTopicsToAdd)
+      
+      // Clear selection
+      this.clearAvailableSelection()
+      
+      // Save changes and refresh
+      await this.saveChanges()
+      this.unassignedTopics = this.getUnassignedTopics()
+      
+      this.confirmation = `Added ${selectedTopicsToAdd.length} topic(s) to collection!`
+      setTimeout(() => { this.confirmation = '' }, 1500)
     },
 
     // Enhanced move methods
@@ -1557,7 +1651,35 @@ export default {
   margin-right: 0;
   box-sizing: border-box;
   cursor: pointer;
-  transition: background 0.2s, border 0.2s;
+  transition: background 0.2s, border 0.2s, color 0.2s;
+  color: #333;
+}
+
+.topic-btn:hover {
+  background: #e6e6e6;
+  border-color: #999;
+  color: #000;
+}
+
+.topic-btn:active {
+  background: #ddd;
+  border-color: #888;
+}
+
+/* Ensure all arrow buttons have consistent styling */
+.topic-btn.up,
+.topic-btn.down,
+.topic-btn.left,
+.topic-btn.right {
+  color: #333;
+}
+
+.topic-btn.up:hover,
+.topic-btn.down:hover,
+.topic-btn.left:hover,
+.topic-btn.right:hover {
+  color: #000;
+  background: #e6e6e6;
 }
 
 .collection-topic-item:hover {
@@ -1654,6 +1776,12 @@ export default {
   border-radius: 4px;
   cursor: grab;
   transition: all 0.2s ease;
+}
+
+.unassigned-topic-item.selected {
+  background: #e3f2fd;
+  border-color: #2196f3;
+  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
 }
 
 .unassigned-topic-item:hover {

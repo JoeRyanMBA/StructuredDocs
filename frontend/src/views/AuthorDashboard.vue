@@ -80,6 +80,29 @@
             </div>
           </button>
         </div>
+        <div class="quick-actions-grid" style="margin-top: 1rem;">
+          <button class="action-card resource-card" @click="navigateTo('/all-images')">
+            <div class="action-icon">🖼️</div>
+            <div class="action-content">
+              <h3>Browse Images</h3>
+              <p>Find reusable images for content</p>
+            </div>
+          </button>
+          <button class="action-card resource-card" @click="navigateTo('/all-links')">
+            <div class="action-icon">🔗</div>
+            <div class="action-content">
+              <h3>Browse Links</h3>
+              <p>Find reusable links for content</p>
+            </div>
+          </button>
+          <button class="action-card" @click="navigateTo('/document-builder')">
+            <div class="action-icon">🔨</div>
+            <div class="action-content">
+              <h3>Document Builder</h3>
+              <p>Create complete documents</p>
+            </div>
+          </button>
+        </div>
       </div>
 
       <!-- Recent Topics -->
@@ -597,6 +620,19 @@ export default {
   color: white;
   transform: translateY(-1px);
   box-shadow: 0 4px 12px rgba(0, 90, 156, 0.2);
+}
+
+.action-card.resource-card {
+  background: #fff8e1;
+  border-color: #ffcc02;
+}
+
+.action-card.resource-card:hover {
+  background: #ff9800;
+  border-color: #ff9800;
+  color: white;
+  transform: translateY(-1px);
+  box-shadow: 0 4px 12px rgba(255, 152, 0, 0.2);
 }
 
 .action-icon {

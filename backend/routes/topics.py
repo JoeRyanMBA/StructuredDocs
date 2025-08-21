@@ -3,11 +3,11 @@
 from flask import Blueprint, request, jsonify, current_app
 from models import db, Topic
 
-topics = Blueprint('topics', __name__, url_prefix='/api/topics')
+topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
 
 # GET /api/topics → List all topics
-@topics.route('', methods=['GET'])
-@topics.route('/', methods=['GET'])
+@topics_bp.route('', methods=['GET'])
+@topics_bp.route('/', methods=['GET'])
 def list_topics():
     try:
         all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
@@ -17,8 +17,8 @@ def list_topics():
         return jsonify({'error': str(e)}), 500
 
 # POST /api/topics → Create a new topic (defaults to draft)
-@topics.route('', methods=['POST'])
-@topics.route('/', methods=['POST'])
+@topics_bp.route('', methods=['POST'])
+@topics_bp.route('/', methods=['POST'])
 def create_topic():
     data = request.get_json() or {}
     try:
@@ -37,7 +37,7 @@ def create_topic():
         return jsonify({'error': str(e)}), 500
 
 # GET /api/topics/<id> → Fetch a single topic
-@topics.route('/<int:topic_id>', methods=['GET'])
+@topics_bp.route('/<int:topic_id>', methods=['GET'])
 def get_topic(topic_id):
     topic = Topic.query.get(topic_id)
     if topic:
@@ -45,7 +45,7 @@ def get_topic(topic_id):
     return jsonify({'error': 'Topic not found'}), 404
 
 # PUT /api/topics/<id> → Update a topic
-@topics.route('/<int:topic_id>', methods=['PUT'])
+@topics_bp.route('/<int:topic_id>', methods=['PUT'])
 def update_topic(topic_id):
     data = request.get_json() or {}
     topic = Topic.query.get(topic_id)
@@ -67,7 +67,7 @@ def update_topic(topic_id):
         return jsonify({'error': str(e)}), 500
 
 # POST /api/topics/<id>/publish → Publish a draft
-@topics.route('/<int:topic_id>/publish', methods=['POST'])
+@topics_bp.route('/<int:topic_id>/publish', methods=['POST'])
 def publish_topic(topic_id):
     topic = Topic.query.get(topic_id)
     if not topic:

@@ -7,10 +7,10 @@ set -e
 echo "🚀 Deploying StructuredDocs to PythonAnywhere..."
 
 # Navigate to project directory
-cd /home/JoeRyanMBA/StructuredDocs
+cd /home/JoeRyanMBA/mysite
 
 echo "📥 Pulling latest changes from GitHub..."
-git pull origin 4k-updates
+git pull origin v0.1
 
 echo "📦 Installing/updating Python dependencies..."
 pip3.12 install --user -r backend/requirements.txt

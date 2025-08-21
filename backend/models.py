@@ -1119,3 +1119,57 @@ class ReviewSequenceStep(db.Model):
             "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None
         }
+
+
+class PasswordResetToken(db.Model):
+    """Secure tokens for password reset and initial password setup"""
+    __tablename__ = 'password_reset_tokens'
+    
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    user_id = db.Column(db.Integer, db.ForeignKey('users.id', ondelete='CASCADE'), nullable=False)
+    
+    # Token type - setup for new users, reset for existing users
+    token_type = db.Column(
+        Enum('setup', 'reset', name='token_type'),
+        nullable=False,
+        default='reset'
+    )
+    
+    # Token lifecycle
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    used_at = db.Column(db.DateTime, nullable=True)
+    
+    # Security
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    created_by_admin = db.Column(db.Boolean, default=False, nullable=False)  # Track if created by admin
+    
+    # Relationships
+    user = relationship("User", backref="password_tokens")
+    
+    def to_dict(self):
+        return {
+            "id": self.id,
+            "token": self.token,
+            "user_id": self.user_id,
+            "token_type": self.token_type,
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "expires_at": self.expires_at.isoformat() if self.expires_at else None,
+            "used_at": self.used_at.isoformat() if self.used_at else None,
+            "is_active": self.is_active,
+            "created_by_admin": self.created_by_admin
+        }
+    
+    def is_valid(self):
+        """Check if token is still valid for use"""
+        if not self.is_active:
+            return False, "Token has been deactivated"
+        
+        if self.used_at:
+            return False, "Token has already been used"
+        
+        if datetime.now() > self.expires_at:
+            return False, "Token has expired"
+            
+        return True, "Token is valid"
