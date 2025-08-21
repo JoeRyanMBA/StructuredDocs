@@ -1999,28 +1999,7 @@ export default {
   z-index: 999;
 }
 
-.topic-btn {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  min-height: 28px;
-  max-width: 28px;
-  max-height: 28px;
-  font-size: 1rem;
-  font-family: inherit;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-left: 2px;
-  margin-right: 0;
-  box-sizing: border-box;
-  cursor: pointer;
-  transition: background 0.2s, border 0.2s;
-}
+
 
 .topic-actions {
   display: flex;
