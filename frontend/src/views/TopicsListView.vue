@@ -1,10 +1,12 @@
 <template>
   <div class="topics-list">
-    <NotificationTicker
-      :notifications="mergedNotifications"
-      contextType="global"
-      @mark-read="markNotificationRead"
-    />
+    <div class="full-width" style="margin-bottom:1.5rem;">
+      <NotificationTicker
+        :notifications="mergedNotifications"
+        contextType="global"
+        @mark-read="markNotificationRead"
+      />
+    </div>
     <Breadcrumbs />
     <h2>All Topics</h2>
     
