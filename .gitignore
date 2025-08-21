@@ -181,6 +181,13 @@ cython_debug/
 .cursorindexingignore
 
 # Node.js and frontend dependencies
+node_modules/
 frontend/node_modules/
 frontend/dist/
-node_modules/
+dist/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+package-lock.json
+yarn.lock
