@@ -423,9 +423,6 @@ export default {
     
     // Find the specific collection being organized
     this.currentCollection = this.findCollectionById(this.allCollections, parseInt(this.id))
-    console.log('🔍 Collection ID being searched:', this.id)
-    console.log('🔍 All collections:', this.allCollections)
-    console.log('🔍 Found collection:', this.currentCollection)
     
     if (!this.currentCollection) {
       console.error(`Collection with ID ${this.id} not found`)
@@ -435,12 +432,10 @@ export default {
     
     // Ensure all topics have proper structure for nesting
     if (this.currentCollection.topics) {
-      console.log('🔍 Collection topics before processing:', this.currentCollection.topics.length)
       this.currentCollection.topics = this.currentCollection.topics.map(topic => this.ensureTopicStructure(topic))
-      console.log('🔍 Collection topics after processing:', this.currentCollection.topics.length)
-    } else {
-      console.log('🔍 No topics found in currentCollection')
     }
+    
+    this.unassignedTopics = this.getUnassignedTopics()
     
     this.unassignedTopics = this.getUnassignedTopics()
   },

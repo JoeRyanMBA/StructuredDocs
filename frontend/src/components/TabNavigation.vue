@@ -100,13 +100,10 @@ export default {
       const tabs = this.TABS.filter(tab => {
         if (tab.adminOnly) {
           const isAdmin = this.currentUser.role === 'admin'
-          console.log(`🔍 TabNavigation - Tab ${tab.label} (adminOnly): visible = ${isAdmin}`)
-          console.log(`🔍 TabNavigation - Current user role: ${this.currentUser.role}`)
           return isAdmin
         }
         return true
       })
-      console.log('🔍 TabNavigation - Visible tabs:', tabs.map(t => t.label))
       return tabs
     }
   },
@@ -119,8 +116,6 @@ export default {
     
     // Listen for a custom event that we'll emit after login
     window.addEventListener('userUpdated', this.handleUserUpdate)
-    
-    console.log('🔍 TabNavigation - Component mounted, initial user check')
   },
   beforeUnmount() {
     window.removeEventListener('storage', this.handleStorageChange)
@@ -129,13 +124,10 @@ export default {
   methods: {
     updateCurrentUser() {
       try {
-        const user = JSON.parse(localStorage.getItem('user') || '{}')
+        const userStr = localStorage.getItem('user')
+        const user = userStr ? JSON.parse(userStr) : {}
         this.currentUser = user
-        console.log('🔍 TabNavigation - Updated current user:', user)
-        console.log('🔍 TabNavigation - User role:', user.role)
-        console.log('🔍 TabNavigation - Is admin:', user.role === 'admin')
       } catch {
-        console.log('🔍 TabNavigation - Failed to parse user data')
         this.currentUser = {}
       }
     },
@@ -145,12 +137,10 @@ export default {
     handleStorageChange() {
       // Force reactivity update when localStorage changes from another window
       this.updateCurrentUser()
-      console.log('🔍 TabNavigation - Storage changed, triggering update')
     },
     handleUserUpdate() {
       // Handle custom event when user logs in/out in same window
       this.updateCurrentUser()
-      console.log('🔍 TabNavigation - User update event received')
     }
   }
 }

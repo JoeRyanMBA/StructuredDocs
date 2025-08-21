@@ -99,7 +99,6 @@ export default {
     },
     handleUserUpdated() {
       // Handle the custom userUpdated event from login
-      console.log('🔍 HeaderBar - Received userUpdated event')
       this.updateCurrentUser()
       this.$forceUpdate() // Force Vue to re-render and check computed properties
     },

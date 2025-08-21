@@ -401,7 +401,6 @@ export default {
         }
         
         const data = await response.json()
-        console.log('🔍 Collections data received:', data)
         this.collections = data
         
         // Get recent collections (last 5, sorted by updated_at)
@@ -440,7 +439,6 @@ export default {
         console.error('Failed to load stats from backend, falling back to frontend calculation:', error)
         
         // Fallback to frontend calculation with hierarchical support
-        console.log('🔍 Calculating stats from collections:', this.collections)
         
         // Helper function to recursively count all collections and topics
         const countCollectionsAndTopics = (collections) => {
