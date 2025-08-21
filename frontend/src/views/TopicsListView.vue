@@ -101,6 +101,7 @@
               <i class="fas fa-eye"></i> Review
             </button>
 
+            <!-- Temporarily disabled Sequential Review button
             <button
               v-if="t.status === 'draft'"
               @click="openSequentialReview(t)"
@@ -109,6 +110,7 @@
             >
               <i class="bi bi-arrow-right-circle"></i> Sequential Review
             </button>
+            -->
 
             <button
               v-if="t.status === 'draft'"
@@ -244,21 +246,21 @@
     </div>
 
     <!-- Sequential Review Modal -->
-    <SequentialReviewModal
+    <!-- <SequentialReviewModal
       :topic="selectedTopicForSequence"
       @sequence-created="onSequenceCreated"
-    />
+    /> -->
   </div>
 </template>
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
-import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
+// import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 
 export default {
   name: 'TopicListView',
-  components: { Breadcrumbs, NotificationTicker, SequentialReviewModal },
+  components: { Breadcrumbs, NotificationTicker }, // SequentialReviewModal },
   props: {
     notifications: {
       type: Array,
@@ -488,15 +490,20 @@ export default {
     },
 
     async publish(id) {
+      console.log('🔥 publish called with ID:', id)
+      alert(`Publish clicked! Topic ID: ${id}`)
+      
       try {
         const res = await fetch(`/api/topics/${id}/publish`, {
           method: 'POST'
         })
         if (!res.ok) throw new Error(`Publish failed (${res.status})`)
         await this.fetchTopics()
+        alert('Topic published successfully!')
       } catch (err) {
         console.error(err)
         this.error = 'Publish action failed'
+        alert('Publish failed - backend not available')
       }
     },
 
@@ -663,11 +670,25 @@ export default {
     },
 
     openSequentialReview(topic) {
+      console.log('🔥 openSequentialReview called with topic:', topic)
+      alert(`Sequential review clicked! Topic: ${topic.title}`)
+      
       this.selectedTopicForSequence = topic
       
-      // Open the modal
-      const modal = new bootstrap.Modal(document.getElementById('sequentialReviewModal'))
-      modal.show()
+      // Try to open the modal safely
+      try {
+        const modalElement = document.getElementById('sequentialReviewModal')
+        if (modalElement && window.bootstrap) {
+          const modal = new bootstrap.Modal(modalElement)
+          modal.show()
+        } else {
+          console.error('Modal element or bootstrap not found')
+          alert('Modal functionality not available - please use regular review instead')
+        }
+      } catch (error) {
+        console.error('Error opening modal:', error)
+        alert('Error opening modal - please use regular review instead')
+      }
     },
 
     onSequenceCreated(sequence) {
