@@ -207,18 +207,11 @@ export default {
           role: authenticatedUser.role || 'author',
           loginTime: new Date().toISOString()
         }
-        
-        console.log('🔍 Login - Storing user data:', userData)
-        console.log('🔍 Login - User role:', userData.role)
-        
         localStorage.setItem('isAuthenticated', 'true')
         localStorage.setItem('user', JSON.stringify(userData))
         
-        console.log('🔍 Login - Stored in localStorage:', JSON.parse(localStorage.getItem('user')))
-        
         // Emit custom event to notify components of user update
         window.dispatchEvent(new CustomEvent('userUpdated'))
-        console.log('🔍 Login - Dispatched userUpdated event')
         
         // Redirect to dashboard
         this.$router.push('/')

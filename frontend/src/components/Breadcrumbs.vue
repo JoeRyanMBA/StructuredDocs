@@ -14,12 +14,10 @@ export default {
 
   // Log once when component is created
   created() {
-    console.log('🔍 Breadcrumbs created')
   },
 
   // Log once after mount
   mounted() {
-    console.log('🔍 Breadcrumbs mounted')
   },
 
   // Log before every update

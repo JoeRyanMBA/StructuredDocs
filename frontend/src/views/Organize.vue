@@ -423,9 +423,6 @@ export default {
     
     // Find the specific collection being organized
     this.currentCollection = this.findCollectionById(this.allCollections, parseInt(this.id))
-    console.log('🔍 Collection ID being searched:', this.id)
-    console.log('🔍 All collections:', this.allCollections)
-    console.log('🔍 Found collection:', this.currentCollection)
     
     if (!this.currentCollection) {
       console.error(`Collection with ID ${this.id} not found`)
@@ -435,12 +432,10 @@ export default {
     
     // Ensure all topics have proper structure for nesting
     if (this.currentCollection.topics) {
-      console.log('🔍 Collection topics before processing:', this.currentCollection.topics.length)
       this.currentCollection.topics = this.currentCollection.topics.map(topic => this.ensureTopicStructure(topic))
-      console.log('🔍 Collection topics after processing:', this.currentCollection.topics.length)
-    } else {
-      console.log('🔍 No topics found in currentCollection')
     }
+    
+    this.unassignedTopics = this.getUnassignedTopics()
     
     this.unassignedTopics = this.getUnassignedTopics()
   },
@@ -1671,15 +1666,18 @@ export default {
 .topic-btn.down,
 .topic-btn.left,
 .topic-btn.right {
-  color: #333;
+  color: #333 !important;
+  background: #f0f0f0 !important;
+  border: 1px solid #ccc !important;
 }
 
 .topic-btn.up:hover,
 .topic-btn.down:hover,
 .topic-btn.left:hover,
 .topic-btn.right:hover {
-  color: #000;
-  background: #e6e6e6;
+  color: #000 !important;
+  background: #e6e6e6 !important;
+  border-color: #999 !important;
 }
 
 .collection-topic-item:hover {
@@ -1999,28 +1997,7 @@ export default {
   z-index: 999;
 }
 
-.topic-btn {
-  width: 28px;
-  height: 28px;
-  min-width: 28px;
-  min-height: 28px;
-  max-width: 28px;
-  max-height: 28px;
-  font-size: 1rem;
-  font-family: inherit;
-  padding: 0;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  background: #f0f0f0;
-  border: 1px solid #ccc;
-  border-radius: 4px;
-  margin-left: 2px;
-  margin-right: 0;
-  box-sizing: border-box;
-  cursor: pointer;
-  transition: background 0.2s, border 0.2s;
-}
+
 
 .topic-actions {
   display: flex;

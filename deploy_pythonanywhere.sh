@@ -7,7 +7,7 @@ set -e
 echo "🚀 Deploying StructuredDocs to PythonAnywhere..."
 
 # Navigate to project directory
-cd /home/JoeRyanMBA/mysite
+cd /home/JoeRyanMBA/StructuredDocs
 
 echo "📥 Pulling latest changes from GitHub..."
 git pull origin v0.1

@@ -180,7 +180,7 @@ cython_debug/
 .cursorignore
 .cursorindexingignore
 
-# Node.js
+# Node.js and frontend dependencies
 node_modules/
 frontend/node_modules/
 *.log
