@@ -1,15 +1,16 @@
 <template>
-  <div class="modal fade" id="sequentialReviewModal" tabindex="-1" aria-labelledby="sequentialReviewModalLabel" aria-hidden="true">
-    <div class="modal-dialog modal-lg">
-      <div class="modal-content">
-        <div class="modal-header">
-          <h5 class="modal-title" id="sequentialReviewModalLabel">
+  <!-- Vue-controlled modal overlay (safer than Bootstrap modal) -->
+  <div class="modal-overlay" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; display: flex; align-items: center; justify-content: center;">
+    <div class="modal-dialog modal-lg" style="background: white; border-radius: 8px; max-width: 800px; max-height: 90vh; overflow-y: auto; margin: 20px;">
+      <div class="modal-content" style="border: none;">
+        <div class="modal-header" style="padding: 1rem; border-bottom: 1px solid #dee2e6;">
+          <h5 class="modal-title">
             <i class="bi bi-arrow-right-circle me-2"></i>Set Up Sequential Review
           </h5>
-          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+          <button type="button" class="btn-close" @click="closeModal" aria-label="Close"></button>
         </div>
         
-        <div class="modal-body">
+        <div class="modal-body" style="padding: 1rem;">
           <div v-if="error" class="alert alert-danger" role="alert">
             {{ error }}
           </div>
@@ -201,8 +202,8 @@
           </div>
         </div>
         
-        <div class="modal-footer">
-          <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">
+        <div class="modal-footer" style="padding: 1rem; border-top: 1px solid #dee2e6;">
+          <button type="button" class="btn btn-secondary" @click="closeModal">
             Cancel
           </button>
           <button 
@@ -268,6 +269,10 @@ export default {
     }
   },
   methods: {
+    closeModal() {
+      this.$emit('close')
+    },
+
     async checkExistingSequences() {
       try {
         if (this.topic?.id) {

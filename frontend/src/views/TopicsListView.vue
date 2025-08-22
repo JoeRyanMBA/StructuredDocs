@@ -124,18 +124,26 @@
       </div>
     </div>
 
-    <!-- Modals removed to fix button functionality -->
+    <!-- Sequential Review Modal - Using Vue reactivity instead of Bootstrap modal events -->
+    <SequentialReviewModal
+      v-if="showSequentialModal"
+      :topic="selectedTopicForSequence"
+      :availableReviewers="availableReviewers"
+      :availableProjects="availableProjects"
+      @sequence-created="onSequenceCreated"
+      @close="closeSequentialModal"
+    />
   </div>
 </template>
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
-// import SequentialReviewModal from '@/components/SequentialReviewModal.vue' // Temporarily disabled due to overlay issues
+import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 
 export default {
   name: 'TopicListView',
-  components: { Breadcrumbs, NotificationTicker }, // Removed SequentialReviewModal to fix interaction blocking
+  components: { Breadcrumbs, NotificationTicker, SequentialReviewModal },
   props: {
     globalNotifications: {
       type: Array,
@@ -542,33 +550,14 @@ export default {
     openSequentialReview(topic) {
       console.log('🔥 openSequentialReview called with topic:', topic)
       
-      // Simple alternative to modal - use confirm dialog to avoid overlay issues
-      const confirmed = confirm(
-        `Set up Sequential Review for "${topic.title}"?\n\n` +
-        `This will create a multi-stage review process where:\n` +
-        `1. Expert reviewer reviews first\n` +
-        `2. Other reviewers see the improved version\n\n` +
-        `Click OK to proceed or Cancel to abort.`
-      )
-      
-      if (confirmed) {
-        this.createSequentialReview(topic)
-      }
+      // Use Vue reactivity instead of Bootstrap modal to avoid overlay issues
+      this.selectedTopicForSequence = topic
+      this.showSequentialModal = true
     },
 
-    async createSequentialReview(topic) {
-      try {
-        console.log('Creating sequential review for topic:', topic.id)
-        
-        // Simple implementation - just submit for regular review for now
-        // TODO: Implement full sequential review logic when modal overlay issues are resolved
-        await this.submitForReview(topic.id)
-        
-        alert(`Sequential review process started for "${topic.title}".\n\nNote: This is a simplified implementation. Full sequential review features will be restored in a future update.`)
-      } catch (error) {
-        console.error('Error creating sequential review:', error)
-        alert('Error creating sequential review - please try again')
-      }
+    closeSequentialModal() {
+      this.showSequentialModal = false
+      this.selectedTopicForSequence = null
     },
 
     fallbackSequentialReview(topic) {
