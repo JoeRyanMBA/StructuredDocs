@@ -2,7 +2,7 @@ name: Deploy to PythonAnywhere
 
 on:
   push:
-    branches: [ main, 4k-updates ]  # Deploy when pushing to these branches
+    branches: [ main, v0.1 ]  # Deploy when pushing to these branches
   
   # Allow manual triggering
   workflow_dispatch:
