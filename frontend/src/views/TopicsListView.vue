@@ -124,18 +124,24 @@
       </div>
     </div>
 
-    <!-- Modals removed to fix button functionality -->
+    <!-- Sequential Review Modal -->
+    <SequentialReviewModal
+      :topic="selectedTopicForSequence"
+      :availableReviewers="availableReviewers"
+      :availableProjects="availableProjects"
+      @sequenceCreated="onSequenceCreated"
+    />
   </div>
 </template>
 
 <script>
 import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import NotificationTicker from '../components/NotificationTicker.vue'
-// import SequentialReviewModal from '@/components/SequentialReviewModal.vue' // Temporarily disabled
+import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 
 export default {
   name: 'TopicListView',
-  components: { Breadcrumbs, NotificationTicker }, // Removed SequentialReviewModal temporarily
+  components: { Breadcrumbs, NotificationTicker, SequentialReviewModal },
   props: {
     globalNotifications: {
       type: Array,
@@ -541,7 +547,33 @@ export default {
     openSequentialReview(topic) {
       console.log('🔥 openSequentialReview called with topic:', topic)
       
-      // Simple alternative to modal - use confirm dialog for now
+      this.selectedTopicForSequence = topic
+      
+      // Use Vue's nextTick to ensure DOM is updated
+      this.$nextTick(() => {
+        try {
+          const modalElement = document.getElementById('sequentialReviewModal')
+          if (modalElement && window.bootstrap) {
+            const modal = new bootstrap.Modal(modalElement, {
+              backdrop: true,
+              keyboard: true,
+              focus: true
+            })
+            modal.show()
+          } else {
+            console.error('Modal element or bootstrap not found')
+            // Fallback to simple confirmation
+            this.fallbackSequentialReview(topic)
+          }
+        } catch (error) {
+          console.error('Error opening modal:', error)
+          // Fallback to simple confirmation
+          this.fallbackSequentialReview(topic)
+        }
+      })
+    },
+
+    fallbackSequentialReview(topic) {
       const confirmed = confirm(
         `Set up Sequential Review for "${topic.title}"?\n\n` +
         `This will create a multi-stage review process where:\n` +
