@@ -1038,30 +1038,31 @@ class ReviewSequence(db.Model):
     started_at = db.Column(db.DateTime, nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
     paused_at = db.Column(db.DateTime, nullable=True)
-    
-    # Relationships
-    topic = relationship('Topic', backref='review_sequences')
-    creator = relationship('Stakeholder', foreign_keys=[created_by], backref='created_sequences')
-    
+
+
+# Feedback reports collected from frontend widget
+class FeedbackReport(db.Model):
+    __tablename__ = 'feedback_reports'
+
+    id = db.Column(db.Integer, primary_key=True)
+    report_type = db.Column(db.String(64), nullable=False, default='bug')
+    page = db.Column(db.String(256), nullable=True)
+    component = db.Column(db.String(128), nullable=True)
+    user_contact = db.Column(db.String(128), nullable=True)
+    message = db.Column(db.Text, nullable=False)
+    metadata_json = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+
     def to_dict(self):
         return {
-            "id": self.id,
-            "topic_id": self.topic_id,
-            "topic_title": self.topic.title if self.topic else None,
-            "created_by": self.created_by,
-            "creator_name": self.creator.name if self.creator else None,
-            "name": self.name,
-            "description": self.description,
-            "status": self.status,
-            "current_position": self.current_position,
-            "auto_advance_on_approve": self.auto_advance_on_approve,
-            "pause_on_changes": self.pause_on_changes,
-            "created_at": self.created_at.isoformat() if self.created_at else None,
-            "started_at": self.started_at.isoformat() if self.started_at else None,
-            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
-            "paused_at": self.paused_at.isoformat() if self.paused_at else None,
-            "reviewers": [reviewer.to_dict() for reviewer in self.reviewers],
-            "total_reviewers": len(self.reviewers) if self.reviewers else 0
+            'id': self.id,
+            'report_type': self.report_type,
+            'page': self.page,
+            'component': self.component,
+            'user_contact': self.user_contact,
+            'message': self.message,
+            'metadata_json': self.metadata_json,
+            'created_at': self.created_at.isoformat() if self.created_at else None
         }
 
 
