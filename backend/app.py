@@ -26,14 +26,31 @@ def create_app():
              vary_header=False)
         
         # Configure SQLAlchemy database URI - environment aware
-        if os.environ.get('PYTHONANYWHERE_ENVIRONMENT'):
+        db_url = os.environ.get('DATABASE_URL')
+        if db_url:
+            # Normalize relative sqlite paths to absolute paths to avoid duplicate 'instance/instance' issues
+            if db_url.startswith('sqlite'):
+                if db_url.startswith('sqlite:////'):
+                    normalized = db_url
+                else:
+                    path_part = db_url.split('sqlite://')[-1]
+                    path_part = path_part.lstrip('/').lstrip('./')
+                    repo_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                    abs_path = os.path.abspath(os.path.join(repo_root, path_part))
+                    normalized = f'sqlite:///{abs_path}'
+                app.config['SQLALCHEMY_DATABASE_URI'] = normalized
+                print(f"🐘 Using normalized SQLITE DATABASE_URL: {normalized}")
+            else:
+                app.config['SQLALCHEMY_DATABASE_URI'] = db_url
+                print(f"🐘 Using DATABASE_URL from environment: {db_url}")
+        elif os.environ.get('PYTHONANYWHERE_ENVIRONMENT'):
             # PythonAnywhere PostgreSQL configuration
             app.config['SQLALCHEMY_DATABASE_URI'] = (
                 'postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs'
             )
             print("🐘 Using PostgreSQL database for PythonAnywhere")
         else:
-            # Local development SQLite configuration
+            # Local development SQLite configuration (fallback)
             db_path = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), 'instance', 'structured_docs.db')
             app.config['SQLALCHEMY_DATABASE_URI'] = f'sqlite:///{db_path}'
             print(f"🗄️ Using SQLite database for local development: {db_path}")
