@@ -3,12 +3,13 @@
   <head>
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width,initial-scale=1.0" />
-    <link rel="stylesheet" src="./src/style.css">
-        <link rel="shortcut icon" sizes="32x32" href="https://www.census.gov/etc.clientlibs/census/clientlibs/common-site/resources/icons/favicon.ico"/>
-    <title>Structured Docs</title>
+  <link rel="stylesheet" href="./src/style.css">
+  <link rel="shortcut icon" sizes="32x32" href="https://www.census.gov/etc.clientlibs/census/clientlibs/common-site/resources/icons/favicon.ico"/>
+  <!-- Load TinyMCE from a CDN so we can remove vendored files from public/tinymce if desired -->
+  <script src="https://unpkg.com/tinymce@8/tinymce.min.js"></script>
+  <!-- Load Font Awesome from CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.0/css/all.min.css">
+  <title>Structured Docs</title>
   </head>
   <body>
-    <div id="app"></div>
-    <script type="module" src="/src/main.js"></script>
-  </body>
-</html>
+    <!-- inline MutationObserver shim removed; durable guard implemented in quill source -->
