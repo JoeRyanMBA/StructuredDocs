@@ -485,6 +485,7 @@ def create_app():
                 'stakeholders': {'total': 0}
             })
 
+    # ...existing code...
     @app.route('/api/dashboard/pending-actions', methods=['GET'])
     def api_dashboard_pending_actions():
         return jsonify([])  # Return empty array for now
@@ -492,6 +493,8 @@ def create_app():
     @app.route('/api/import/history', methods=['GET'])
     def api_import_history():
         return jsonify([])  # Return empty array for now
+
+    # ...temporary endpoints removed; backend API routes continue below...
 
     # Catch-all route to serve the frontend - TEMPORARILY DISABLED
     # @app.route('/')
