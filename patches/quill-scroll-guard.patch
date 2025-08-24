@@ -1,0 +1,17 @@
+--- a/blots/scroll.js
++++ b/blots/scroll.js
+@@
+   this.observer = new MutationObserver(mutations => this.update(mutations));
+   const OBSERVER_CONFIG = { childList: true, characterData: true, subtree: true };
+ - this.observer.observe(this.domNode, OBSERVER_CONFIG);
+ + try {
+ +  if (typeof Node !== 'undefined' && this.domNode instanceof Node) {
+ +    this.observer.observe(this.domNode, OBSERVER_CONFIG);
+ +  } else {
+ +    // Defensive: some environments may pass non-Node targets; skip observing to avoid exceptions
+ +    // and fallback to an alternative update strategy.
+ +    console.warn('[Quill] ScrollBlot: domNode is not a Node, skipping MutationObserver.observe');
+ +  }
+ +} catch (err) {
+ +  console.warn('[Quill] ScrollBlot: MutationObserver.observe threw', err);
+ +}

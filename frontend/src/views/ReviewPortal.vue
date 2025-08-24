@@ -413,7 +413,10 @@ export default {
     },
 
     initializeQuillEditor() {
-      if (this.$refs.quillEditor && !this.quillEditor) {
+  // Only initialize Quill when the ref exists, is a DOM Node, and is connected to document.
+  // This prevents third-party code (Parchment/Quill) from calling MutationObserver.observe
+  // with a non-Node target during race conditions.
+  if (this.$refs.quillEditor && !this.quillEditor && this.$refs.quillEditor instanceof Node && (this.$refs.quillEditor.isConnected || document.contains(this.$refs.quillEditor))) {
         const toolbarOptions = [
           [{ 'header': [1, 2, 3, false] }],
           ['bold', 'italic', 'underline'],
@@ -423,7 +426,8 @@ export default {
           ['clean']
         ]
 
-        this.quillEditor = new Quill(this.$refs.quillEditor, {
+  // Durably guarded in the quill package source; temporary init-time monkeypatch removed.
+  this.quillEditor = new Quill(this.$refs.quillEditor, {
           modules: {
             toolbar: toolbarOptions
           },
