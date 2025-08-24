@@ -89,7 +89,7 @@ def create_app():
         
         # Register API blueprints
         print("📋 Registering API blueprints...")
-        
+
         # Import and register metrics blueprint
         try:
             from routes.metrics import metrics_bp
@@ -97,7 +97,7 @@ def create_app():
             print("✅ Metrics blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering metrics blueprint: {e}")
-        
+
         # Import and register admin blueprint
         try:
             from routes.admin import admin_bp
@@ -105,7 +105,7 @@ def create_app():
             print("✅ Admin blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering admin blueprint: {e}")
-        
+
         # Import and register other blueprints
         try:
             from routes.stakeholders import stakeholders_bp
@@ -113,63 +113,71 @@ def create_app():
             print("✅ Stakeholders blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering stakeholders blueprint: {e}")
-            
+
         try:
             from routes.projects import projects_bp
             app.register_blueprint(projects_bp)
             print("✅ Projects blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering projects blueprint: {e}")
-            
+
         try:
             from routes.collections import collections_bp
             app.register_blueprint(collections_bp)
             print("✅ Collections blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering collections blueprint: {e}")
-            
+
         try:
             from routes.tasks import tasks_bp
             app.register_blueprint(tasks_bp)
             print("✅ Tasks blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering tasks blueprint: {e}")
-            
+
         try:
             from routes.topics import topics_bp
             app.register_blueprint(topics_bp)
             print("✅ Topics blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering topics blueprint: {e}")
-            
+
         try:
             from routes.users import users_bp
             app.register_blueprint(users_bp)
             print("✅ Users blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering users blueprint: {e}")
-            
+
         try:
             from routes.notifications import notifications_bp
             app.register_blueprint(notifications_bp)
             print("✅ Notifications blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering notifications blueprint: {e}")
-            
+
         try:
             from routes.reviews import reviews_bp
             app.register_blueprint(reviews_bp)
             print("✅ Reviews blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering reviews blueprint: {e}")
-            
+
         try:
             from routes.publications import pubs_bp
             app.register_blueprint(pubs_bp)
             print("✅ Publications blueprint registered")
         except Exception as e:
             print(f"⚠️ Error registering publications blueprint: {e}")
-            
+
+        # Import and register feedback blueprint (new feature)
+        try:
+            from routes.feedback import feedback_bp
+            app.register_blueprint(feedback_bp)
+            print("✅ Feedback blueprint registered")
+        except Exception as e:
+            print(f"⚠️ Error registering feedback blueprint: {e}")
+
         print("📋 Blueprint registration complete")
         
     except Exception as e:

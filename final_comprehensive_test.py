@@ -2,9 +2,10 @@
 """
 Final comprehensive fix for notifications and complete database test
 """
-import psycopg2
 import sys
 from datetime import datetime
+import pytest
+import socket
 
 # PostgreSQL connection details
 PG_CONFIG = {
@@ -19,6 +20,18 @@ def test_complete_database():
     """Test complete database functionality with proper field handling"""
     print("🧪 Testing complete database functionality...")
     
+    # psycopg2 might not be installed in this environment (CI/dev container)
+    try:
+        import psycopg2
+    except Exception:
+        pytest.skip("psycopg2 not installed; skipping DB integration test")
+
+    # Skip the test early if the Postgres host is unreachable in this environment
+    try:
+        socket.create_connection((PG_CONFIG['host'], PG_CONFIG['port']), timeout=2).close()
+    except Exception:
+        pytest.skip("Postgres host unreachable in this environment; skipping DB integration test")
+
     try:
         conn = psycopg2.connect(**PG_CONFIG)
         cursor = conn.cursor()
@@ -95,11 +108,8 @@ def test_complete_database():
         for entity_name, query, entity_id in verification_queries:
             cursor.execute(query, (entity_id,))
             count = cursor.fetchone()[0]
-            if count == 1:
-                print(f"     ✅ {entity_name} data retrieved successfully")
-            else:
-                print(f"     ❌ {entity_name} data retrieval failed")
-                return False
+            assert count == 1, f"{entity_name} data retrieval failed"
+            print(f"     ✅ {entity_name} data retrieved successfully")
         
         print("  8️⃣ Testing foreign key relationships...")
         # Test that foreign key relationships work
@@ -113,14 +123,10 @@ def test_complete_database():
                 WHERE r.id = %s
             """, (test_entities['review_id'],))
             result = cursor.fetchone()
-            if result:
-                print(f"     ✅ Foreign key relationships working: Review {result[0]} for topic '{result[1]}' requested by {result[2]}, reviewed by {result[3]}")
-            else:
-                print("     ❌ Foreign key relationship test failed")
-                return False
+            assert result, "Foreign key relationship test failed"
+            print(f"     ✅ Foreign key relationships working: Review {result[0]} for topic '{result[1]}' requested by {result[2]}, reviewed by {result[3]}")
         except Exception as e:
-            print(f"     ❌ Foreign key relationship test error: {e}")
-            return False
+            raise AssertionError(f"Foreign key relationship test error: {e}")
         
         print("  9️⃣ Cleaning up test data...")
         # Clean up in reverse dependency order
@@ -139,10 +145,10 @@ def test_complete_database():
         
         conn.commit()
         print("     ✅ All test data cleaned up successfully")
-        
+
         conn.close()
-        return True
-        
+        # test passes if no exceptions raised
+
     except Exception as e:
         print(f"  ❌ Database test failed: {e}")
         if 'conn' in locals():
@@ -151,13 +157,19 @@ def test_complete_database():
                 conn.close()
             except:
                 pass
-        return False
+        raise
 
 def show_final_database_state():
     """Show the final state of the database"""
     print("\n📊 Final Database State:")
     
     try:
+        try:
+            import psycopg2
+        except Exception:
+            print("psycopg2 not installed; cannot show final DB state")
+            return
+
         conn = psycopg2.connect(**PG_CONFIG)
         cursor = conn.cursor()
         
@@ -196,9 +208,10 @@ def main():
     print("🏁 FINAL COMPREHENSIVE DATABASE TEST")
     print("=" * 45)
     
-    if test_complete_database():
+    try:
+        test_complete_database()
         show_final_database_state()
-        
+
         print("\n🎉 DATABASE IS FULLY CONFIGURED AND TESTED!")
         print("\n✅ Verification Complete:")
         print("  ✅ All tables exist with proper structure")
@@ -221,9 +234,9 @@ def main():
         print("  1. Test your live website - topics should now load!")
         print("  2. Upload app_final_with_notifications_fix.py if not done already")
         print("  3. Verify all functionality works as expected")
-        
+
         return 0
-    else:
+    except Exception:
         print("\n❌ Database test failed - please check the errors above")
         return 1
 
