@@ -1,0 +1,28 @@
+{
+  "include": [
+    "."
+  ],
+  "exclude": [
+    "**/node_modules",
+    "**/__pycache__",
+    "**/.venv",
+    "**/venv_py313",
+    "**/backend/.venv"
+  ],
+  "pythonVersion": "3.12",
+  "pythonPlatform": "Linux",
+  "executionEnvironments": [
+    {
+      "root": ".",
+      "pythonVersion": "3.12",
+      "pythonPlatform": "Linux",
+      "extraPaths": [
+        "./backend"
+      ]
+    }
+  ],
+  "typeCheckingMode": "standard",
+  "useLibraryCodeForTypes": true,
+  "reportMissingImports": "warning",
+  "reportMissingTypeStubs": "warning"
+}

@@ -1,6 +1,5 @@
 <template>
   <div class="organize-view">
-    <Breadcrumbs />
     <div class="organize-header">
       <h1>{{ isEditMode ? '✏️ Edit Collection' : '📋 Organize Collection' }}</h1>
       <p class="guidance-text">
@@ -343,7 +342,6 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import CollectionTree from '@/components/CollectionTree.vue'
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
@@ -360,7 +358,7 @@ export default {
       required: true
     }
   },
-  components: { Breadcrumbs, CollectionTree, TopicItem, draggable, TopicEditor },
+  components: { CollectionTree, TopicItem, draggable, TopicEditor },
   data() {
     return {
       currentCollection: null, // The specific collection being organized

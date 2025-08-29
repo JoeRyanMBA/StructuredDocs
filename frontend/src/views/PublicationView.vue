@@ -1,6 +1,5 @@
 <template>
   <div class="publication-view">
-    <Breadcrumbs />
     
     <div v-if="loading" class="loading">Loading publication...</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -31,12 +30,11 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import PublicationNodeView from '@/components/PublicationNodeView.vue'
 
 export default {
   name: 'PublicationView',
-  components: { Breadcrumbs, PublicationNodeView },
+  components: { PublicationNodeView },
   props: {
     id: { type: [String, Number], required: true }
   },

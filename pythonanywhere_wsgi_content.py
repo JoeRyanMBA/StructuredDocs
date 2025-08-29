@@ -16,6 +16,9 @@ if project_home not in sys.path:
 # Set the working directory
 os.chdir(project_home)
 
+# Set environment variables
+os.environ['FRONTEND_URL'] = 'https://structureddocs.joe-ryan.mba'
+
 # Import your Flask app - using the corrected app file
 try:
     from app_final_with_notifications_fix import create_app

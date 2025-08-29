@@ -1,6 +1,5 @@
 <template>
   <div class="publish-mobile-kb">
-    <Breadcrumbs />
     <h2>Publish Mobile Knowledge Base</h2>
     <p class="description">
       Create mobile-first knowledge bases optimized for field staff on iPhones and iPads.
@@ -91,11 +90,9 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
   name: 'PublishMobileKB',
-  components: { Breadcrumbs },
   data() {
     return {
       publications: [],

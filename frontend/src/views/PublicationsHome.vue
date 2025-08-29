@@ -1,4 +1,6 @@
-<template>
+<   <div class="publications-home">
+    <h2>Publications</h2>iv class="publications-home">
+    <h2>Publications</h2>plate>
   <div class="publications-home">
     <Breadcrumbs />
     <h2>All Publications</h2>
@@ -28,11 +30,9 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
   name: 'PublicationsHome',
-  components: { Breadcrumbs },
   data() {
     return { 
       publications: [],

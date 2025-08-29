@@ -3,12 +3,7 @@
     <HeaderBar />
     <div class="page-content">
       <div class="page-header">
-        <div class="breadcrumb">
-          <router-link to="/admin" class="breadcrumb-link">Admin Dashboard</router-link>
-          <span class="breadcrumb-separator">></span>
-          <span class="breadcrumb-current">User Management</span>
-        </div>
-        <h1>User List</h1>
+        <h1>User Management</h1>
         <p class="page-description">Manage user accounts, roles, and permissions</p>
       </div>
       

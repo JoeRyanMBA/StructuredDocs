@@ -653,13 +653,13 @@ export default {
 }
 
 .status-badge.active {
-  background-color: #e8f5e8;
-  color: var(--success-mint-green);
+  background-color: #d4edda; /* success-light-green */
+  color: #155724; /* success-dark-green for contrast */
 }
 
 .status-badge.inactive {
-  background-color: #fff3e0;
-  color: var(--warning-amber);
+  background-color: #fff3cd; /* warning-light-yellow */
+  color: #856404; /* warning-dark-yellow for contrast */
 }
 
 .actions-cell {

@@ -1,6 +1,5 @@
 <template>
   <div class="reviews-list-view">
-    <Breadcrumbs />
     <div class="page-header">
       <h1>📝 Review Tasks</h1>
       <p>Review topics and provide feedback to authors</p>
@@ -59,14 +58,12 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import ReviewCard from '@/components/ReviewCard.vue'
 import { getPendingReviews, getReviews } from '@/api/reviews.js'
 
 export default {
   name: 'ReviewsListView',
   components: { 
-    Breadcrumbs,
     ReviewCard
   },
   

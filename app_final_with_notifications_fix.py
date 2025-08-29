@@ -6,7 +6,7 @@ import os
 backend_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'backend')
 sys.path.insert(0, backend_dir)
 
-from flask import Flask, jsonify, send_from_directory, send_file
+from flask import Flask, jsonify, send_from_directory, send_file, request
 from flask_cors import CORS
 from flask_migrate import Migrate
 
@@ -204,6 +204,35 @@ def create_app():
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching users'}), 500
 
+    # Login endpoint
+    @app.route('/api/users/login', methods=['POST'])
+    def api_login():
+        try:
+            from backend.models import User, Tag
+            from werkzeug.security import check_password_hash
+            from flask_jwt_extended import create_access_token
+            
+            data = request.get_json()
+            # Normalize input to avoid case/whitespace mismatches
+            email = (data.get('email') or '').strip().lower()
+            password = data.get('password', None)
+
+            user = User.query.filter_by(email=email).first()
+            # Fail fast if no user or no password set
+            if not user or not user.password_hash:
+                return jsonify({"msg": "Bad email or password"}), 401
+
+            try:
+                if check_password_hash(user.password_hash, password):
+                    access_token = create_access_token(identity=user.id)
+                    return jsonify(access_token=access_token, user=user.to_dict())
+            except Exception as e:
+                # Avoid 500s on malformed hashes; treat as invalid credentials
+                print(f"❌ Login error for {email}: {e}")
+            return jsonify({"msg": "Bad email or password"}), 401
+        except Exception as e:
+            return jsonify({'error': str(e), 'message': 'Login failed'}), 500
+
     @app.route('/api/stakeholders', methods=['GET'])
     @app.route('/api/stakeholders/', methods=['GET'])
     def api_list_stakeholders():
@@ -240,7 +269,7 @@ def create_app():
     @app.route('/api/dashboard/stats', methods=['GET'])
     def api_dashboard_stats():
         try:
-            from backend.models import Project, Topic, User, Task, Stakeholder
+            from backend.models import Project, Topic, User, Task, Stakeholder, Tag
             
             # Safely get counts with fallbacks
             projects_count = 0
@@ -296,9 +325,151 @@ def create_app():
     def api_dashboard_pending_actions():
         return jsonify([])  # Return empty array for now
 
+    # Tags endpoints
+    @app.route('/api/tags', methods=['GET'])
+    def api_tags():
+        """Get all tags"""
+        try:
+            from backend.models import Tag
+            tags = Tag.query.order_by(Tag.name).all()
+            return jsonify([tag.to_dict() for tag in tags])
+        except Exception as e:
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tags', methods=['POST'])
+    def api_create_tag():
+        """Create a new tag"""
+        try:
+            from backend.models import Tag
+            data = request.get_json()
+            
+            if not data.get('name'):
+                return jsonify({"error": "Tag name is required"}), 400
+                
+            name = data['name'].strip()
+            if not name:
+                return jsonify({"error": "Tag name cannot be empty"}), 400
+                
+            # Check if tag already exists
+            existing_tag = Tag.query.filter_by(name=name).first()
+            if existing_tag:
+                return jsonify({"error": "Tag already exists"}), 400
+                
+            tag = Tag(name=name)
+            db.session.add(tag)
+            db.session.commit()
+            
+            return jsonify(tag.to_dict()), 201
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tags/<int:tag_id>', methods=['PUT'])
+    def api_update_tag(tag_id):
+        """Update a tag"""
+        try:
+            from backend.models import Tag
+            tag = Tag.query.get_or_404(tag_id)
+            data = request.get_json()
+            
+            if not data.get('name'):
+                return jsonify({"error": "Tag name is required"}), 400
+                
+            name = data['name'].strip()
+            if not name:
+                return jsonify({"error": "Tag name cannot be empty"}), 400
+                
+            # Check if another tag with this name exists
+            existing_tag = Tag.query.filter_by(name=name).first()
+            if existing_tag and existing_tag.id != tag_id:
+                return jsonify({"error": "Tag already exists"}), 400
+                
+            tag.name = name
+            db.session.commit()
+            
+            return jsonify(tag.to_dict())
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
+    @app.route('/api/tags/<int:tag_id>', methods=['DELETE'])
+    def api_delete_tag(tag_id):
+        """Delete a tag"""
+        try:
+            from backend.models import Tag
+            tag = Tag.query.get_or_404(tag_id)
+            db.session.delete(tag)
+            db.session.commit()
+            
+            return jsonify({"message": "Tag deleted successfully"})
+            
+        except Exception as e:
+            db.session.rollback()
+            return jsonify({"error": str(e)}), 500
+
     @app.route('/api/import/history', methods=['GET'])
     def api_import_history():
         return jsonify([])  # Return empty array for now
+
+    # Feedback API endpoints
+    @app.route('/api/feedback', methods=['GET'])
+    def api_get_feedback():
+        """Get all feedback reports"""
+        try:
+            from backend.models import FeedbackReport
+            feedback_reports = FeedbackReport.query.order_by(FeedbackReport.created_at.desc()).all()
+            return jsonify([report.to_dict() for report in feedback_reports])
+        except Exception as e:
+            return jsonify({'error': str(e), 'message': 'Error fetching feedback'}), 500
+
+    @app.route('/api/feedback', methods=['POST'])
+    def api_create_feedback():
+        """Create a new feedback report"""
+        from backend.models import db
+        
+        try:
+            data = request.get_json()
+            if not data:
+                return jsonify({'error': 'No data provided'}), 400
+                
+            # Map frontend fields to database fields
+            feedback_type = data.get('type', 'other')
+            if feedback_type == 'general':
+                feedback_type = 'other'  # Map general to other
+            elif feedback_type == 'praise':
+                feedback_type = 'other'  # Map praise to other
+            elif feedback_type not in ['suggestion', 'bug', 'other']:
+                feedback_type = 'other'  # Default to other for unknown types
+            
+            # Use raw SQL to insert the feedback report
+            from sqlalchemy import text
+            with db.engine.connect() as connection:
+                sql = text("""
+                INSERT INTO feedback_reports (report_type, page, message, status)
+                VALUES (:report_type, :page, :message, :status)
+                RETURNING id
+                """)
+                
+                result = connection.execute(sql, {
+                    'report_type': feedback_type,
+                    'page': data.get('page', ''),
+                    'message': data.get('message', ''),
+                    'status': 'new'
+                })
+                
+                feedback_id = result.fetchone()[0]
+                connection.commit()
+            
+            return jsonify({
+                'message': 'Feedback submitted successfully',
+                'id': feedback_id
+            }), 201
+            
+        except Exception as e:
+            # Note: We don't use db.session.rollback() here since we're using raw SQL
+            return jsonify({'error': str(e), 'message': 'Error creating feedback'}), 500
 
     # Catch-all route to serve the frontend - TEMPORARILY DISABLED
     # @app.route('/')

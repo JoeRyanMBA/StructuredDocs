@@ -125,6 +125,16 @@ export default {
   padding: 0 0.5rem;
   font-size: 1em;
   align-self: center;
+  transition: opacity 0.2s ease;
+}
+
+.scroll-btn:disabled {
+  opacity: 0.3;
+  cursor: not-allowed;
+}
+
+.scroll-btn:hover:not(:disabled) {
+  color: #495057;
 }
 
 .scroll-btn.up {

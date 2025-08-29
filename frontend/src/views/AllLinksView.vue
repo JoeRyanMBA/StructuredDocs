@@ -1,6 +1,5 @@
 <template>
   <div class="all-links">
-    <Breadcrumbs />
     <div class="page-header">
       <h1>🔗 All Links</h1>
       <p class="guidance-text">
@@ -322,13 +321,9 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
   name: 'AllLinksView',
-  components: {
-    Breadcrumbs
-  },
   data() {
     return {
       allLinks: [],

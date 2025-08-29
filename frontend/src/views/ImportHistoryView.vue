@@ -1,6 +1,5 @@
 <template>
   <div class="import-history">
-    <Breadcrumbs />
     <h2>Import History</h2>
     
     <p class="guidance-text">
@@ -50,11 +49,9 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
   name: 'ImportHistoryView',
-  components: { Breadcrumbs },
 
   data() {
     return {

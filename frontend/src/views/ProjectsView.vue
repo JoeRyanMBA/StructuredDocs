@@ -95,11 +95,11 @@
   <!-- Projects List -->
   <div class="section-card" id="projectsSection" ref="projectsSection">
       <div class="section-header">
-        <h2 class="section-title">Project List</h2>
+        <h2 class="section-title">Projects List</h2>
       </div>
-      
-      <!-- Filters -->
-      <div class="filters-section">
+
+      <!-- Combined Search/Filter Panel -->
+      <div class="projects-list-panel">
         <div class="filter-row">
           <div class="filter-group">
             <label>Search:</label>
@@ -123,10 +123,10 @@
           </div>
           <div class="filter-group">
             <div class="button-group">
-              <button @click="applyFilters" class="btn btn-primary btn-sm">
+              <button @click="applyFilters" class="btn btn-primary btn-sm search-btn">
                 <i class="fas fa-search"></i> Search
               </button>
-              <button @click="clearFilter" class="btn btn-secondary btn-sm">Clear Filters</button>
+              <button @click="clearFilter" class="btn btn-secondary btn-sm clear-btn">Clear Filters</button>
             </div>
           </div>
         </div>

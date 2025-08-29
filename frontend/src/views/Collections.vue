@@ -1,6 +1,5 @@
 <template>
   <div class="collections-view">
-    <Breadcrumbs />
     <h2>📁 Collections</h2>
     
     <p class="guidance-text">
@@ -55,14 +54,13 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 import CollectionTree from '@/components/CollectionTree.vue'
 import { getCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 
 export default {
   name: 'CollectionsTree',
-  components: { Breadcrumbs, CollectionTree },
+  components: { CollectionTree },
   data() {
     return {
       collections: [],

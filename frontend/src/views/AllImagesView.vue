@@ -1,6 +1,5 @@
 <template>
   <div class="all-images">
-    <Breadcrumbs />
     <div class="page-header">
       <h1>🖼️ All Images</h1>
       <p class="subtitle">
@@ -215,13 +214,9 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
   name: 'AllImagesView',
-  components: {
-    Breadcrumbs
-  },
   data() {
     return {
       allImages: [],

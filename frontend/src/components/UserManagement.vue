@@ -1,11 +1,13 @@
 <template>
   <div class="user-management">
     <div class="header">
-      <h2>User Management</h2>
+      <h1>User Management</h1>
       <button @click="addUser" class="btn btn-primary">
-        Add User
+        <i class="fas fa-plus"></i> Add User
       </button>
     </div>
+
+    <h2>User List</h2>
 
     <!-- Users Table -->
     <div class="users-table">
@@ -36,25 +38,32 @@
             </td>
             <td>{{ formatDate(user.created_at) }}</td>
             <td class="actions">
-              <button @click="editUser(user)" class="btn btn-sm btn-secondary">
-                Edit
-              </button>
-              <button 
-                v-if="!user.password_hash && user.active"
-                @click="resendSetupEmail(user)" 
-                class="btn btn-sm btn-info"
-                :disabled="loading"
-                title="Resend password setup email"
-              >
-                Send Setup Email
-              </button>
-              <button 
-                @click="deleteUser(user)" 
-                class="btn btn-sm btn-danger"
-                :disabled="user.role === 'admin' && adminCount <= 1"
-              >
-                Delete
-              </button>
+              <div class="action-buttons">
+                <button 
+                  @click="editUser(user)" 
+                  class="btn-icon btn-secondary"
+                  title="Edit user details"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button 
+                  v-if="!user.password_hash && user.active"
+                  @click="resendSetupEmail(user)" 
+                  class="btn-icon btn-info"
+                  :disabled="loading"
+                  title="Resend password setup email"
+                >
+                  <i class="fas fa-envelope"></i>
+                </button>
+                <button 
+                  @click="deleteUser(user)" 
+                  class="btn-icon btn-danger"
+                  :disabled="user.role === 'admin' && adminCount <= 1"
+                  title="Delete user"
+                >
+                  <i class="fas fa-trash"></i>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -433,7 +442,7 @@ td {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
 }
 
@@ -451,7 +460,7 @@ td {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 600;
+  font-weight: 400;
 }
 
 .status-badge.active {
@@ -679,6 +688,64 @@ td {
   cursor: pointer;
   padding: 0;
   margin-left: auto;
+}
+
+/* Icon button styling */
+.action-buttons {
+  display: flex;
+  gap: 0.5rem;
+  justify-content: center;
+}
+
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+}
+
+.btn-icon:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.btn-icon:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.btn-icon.btn-secondary {
+  background-color: #6c757d;
+  color: white;
+}
+
+.btn-icon.btn-secondary:hover:not(:disabled) {
+  background-color: #5a6268;
+}
+
+.btn-icon.btn-info {
+  background-color: #17a2b8;
+  color: white;
+}
+
+.btn-icon.btn-info:hover:not(:disabled) {
+  background-color: #138496;
+}
+
+.btn-icon.btn-danger {
+  background-color: #dc3545;
+  color: white;
+}
+
+.btn-icon.btn-danger:hover:not(:disabled) {
+  background-color: #c82333;
 }
 
 @media (max-width: 768px) {

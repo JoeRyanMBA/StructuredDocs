@@ -10,15 +10,19 @@ echo "🚀 Deploying StructuredDocs to PythonAnywhere..."
 cd /home/JoeRyanMBA/StructuredDocs
 
 echo "📥 Pulling latest changes from GitHub..."
-git pull origin main
+if [ -d .git ]; then
+    git pull origin main || git pull || true
+else
+    echo "(No .git repo in project directory; skipping git pull)"
+fi
 
 echo "📦 Installing/updating Python dependencies..."
-pip3.12 install --user -r backend/requirements.txt
+pip3 install --user -r backend/requirements.txt || pip3.12 install --user -r backend/requirements.txt || true
 
 echo "🗄️  Running database migrations (if any)..."
 cd backend
 export PYTHONANYWHERE_ENVIRONMENT=1
-python3.12 -c "
+python3 -c "
 try:
     from flask_migrate import upgrade
     from app import create_app
@@ -31,7 +35,7 @@ except Exception as e:
 "
 
 echo "👤 Creating admin user..."
-python3.12 create_admin.py
+python3 create_admin.py || python3.12 create_admin.py || true
 cd ..
 
 echo "🧹 Clearing Python cache..."

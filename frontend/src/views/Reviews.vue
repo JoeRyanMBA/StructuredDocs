@@ -1,6 +1,5 @@
 <template>
   <div class="reviews">
-    <Breadcrumbs />
     <h2>Review Dashboard</h2>
     
     <p class="guidance-text">
@@ -171,11 +170,9 @@
 </template>
 
 <script>
-import Breadcrumbs from '@/components/Breadcrumbs.vue'
 
 export default {
   name: 'Reviews',
-  components: { Breadcrumbs },
   data() {
     return {
       activeTab: 'topics',

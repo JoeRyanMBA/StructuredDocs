@@ -1108,7 +1108,7 @@ class FeedbackReport(db.Model):
 
     id = db.Column(db.Integer, primary_key=True)
     report_type = db.Column(
-        Enum('suggestion', 'bug', 'other', name='feedback_type'),
+        db.String(20),
         nullable=False,
         default='other'
     )
@@ -1118,7 +1118,7 @@ class FeedbackReport(db.Model):
     message = db.Column(db.Text, nullable=False)
     metadata_json = db.Column(db.Text, nullable=True)  # For storing extra JSON data
     status = db.Column(
-        Enum('new', 'in_progress', 'resolved', 'wont_fix', name='feedback_status'),
+        db.String(20),
         nullable=False,
         default='new'
     )

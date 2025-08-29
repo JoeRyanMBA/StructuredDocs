@@ -50,8 +50,31 @@
 /* Badge font weight standardization */
 .card-badge,
 .status-badge,
-.priority-badge {
+.priority-badge,
+.role-badge,
+.tag-badge {
     font-weight: 400 !important;
+}
+
+/* Card badge contrast improvement */
+.card-badge {
+    background-color: var(--primary-light-teal) !important;
+    color: white !important;
+    border: 1px solid var(--primary-teal) !important;
+}
+
+/* Collections Dashboard Grid Layout */
+.content-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 2rem;
+    margin-top: 2rem;
+}
+
+/* Active status badge contrast improvement */
+.status-badge.active {
+    color: var(--primary-teal) !important;
+    background-color: var(--success-bg-light-green) !important;
 }
 
 /* Standardized Loading State */
@@ -94,4 +117,84 @@
 @keyframes spin {
   from { transform: rotate(0deg); }
   to { transform: rotate(360deg); }
+}
+
+/* Projects List Panel Styling */
+.projects-list-panel {
+  background-color: var(--bg-light-mist-gray);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  margin-bottom: 1.5rem;
+}
+
+.projects-list-panel .filter-row {
+  display: flex;
+  gap: 1rem;
+  align-items: end;
+  flex-wrap: wrap;
+}
+
+.projects-list-panel .filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 200px;
+}
+
+.projects-list-panel .filter-group label {
+  font-weight: 500;
+  margin-bottom: 0.5rem;
+  color: var(--text-secondary-cool-gray);
+}
+
+.projects-list-panel .filter-input {
+  padding: 0.5rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+}
+
+.projects-list-panel .button-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: end;
+}
+
+/* Centralized Button Styling */
+.search-btn, .clear-btn {
+  padding: 0.5rem 1rem;
+  border-radius: var(--border-radius-md);
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  border: 1px solid transparent;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  min-height: 36px;
+}
+
+.search-btn {
+  background-color: var(--primary-teal);
+  color: white;
+  border-color: var(--primary-teal);
+}
+
+.search-btn:hover {
+  background-color: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-1px);
+}
+
+.clear-btn {
+  background-color: var(--secondary-light-gray);
+  color: var(--text-primary-dark-gray);
+  border-color: var(--border-light-gray);
+}
+
+.clear-btn:hover {
+  background-color: var(--secondary-medium-gray);
+  border-color: var(--border-medium-gray);
+  transform: translateY(-1px);
 }

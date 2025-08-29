@@ -6,7 +6,7 @@
       Comprehensive task management view. Create, edit, and organize all tasks across projects, collections, and topics.
     </p>
 
-    <div class="page-actions">
+    <div class="page-actions" style="margin-top: 2rem;">
       <button @click="openCreateModal" class="btn btn-primary">
         <i class="fas fa-plus"></i> Create New Task
       </button>
@@ -665,6 +665,10 @@ export default {
   margin: 0 auto;
 }
 
+.all-tasks > .subtitle {
+  margin-bottom: 1rem; /* add space below subtitle */
+}
+
 .guidance-text {
   color: #666;
   margin-bottom: 2rem;
@@ -814,7 +818,7 @@ export default {
   padding: 0.25rem 0.5rem;
   border-radius: 12px;
   font-size: 0.8rem;
-  font-weight: 600;
+  font-weight: 400;
   text-transform: uppercase;
 }
 

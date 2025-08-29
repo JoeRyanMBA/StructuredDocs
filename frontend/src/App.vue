@@ -38,6 +38,16 @@ export default {
     }
   },
   computed: {
+    // Ensure deduplicated notifications (by id+message) for ticker and children
+    uniqueNotifications() {
+      const seen = new Set()
+      return (this.notifications || []).filter(n => {
+        const key = `${n?.id ?? 'x'}|${n?.message ?? ''}`
+        if (seen.has(key)) return false
+        seen.add(key)
+        return true
+      })
+    },
     isLoginPage() {
       return this.$route.name === 'Login';
     }
@@ -115,15 +125,6 @@ export default {
   max-width: 100vw;
   padding: 0;
   margin-left: 0;
-}
-
-.ticker-bar {
-  position: fixed;
-  top: var(--header-height);
-  left: var(--sidebar-width);
-  right: 0;
-  z-index: 998; /* Below header, above content */
-  background-color: #fff;
 }
 
 @media (max-width: 768px) {

@@ -596,7 +596,7 @@ export default {
 
 .content-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
+  grid-template-columns: 1fr 1fr; /* 50/50 split on desktop */
   gap: 1.5rem;
 }
 
@@ -701,11 +701,12 @@ export default {
 }
 
 .card-badge {
-  background: var(--extended-sky-blue);
-  color: var(--primary-deep-teal);
+  background: var(--primary-teal);
+  color: white;
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-size: 0.875rem;
+  font-weight: 500;
 }
 
 .card-description {
@@ -856,7 +857,7 @@ export default {
 }
 
 /* Responsive Design */
-@media (max-width: 768px) {
+@media (max-width: 900px) {
   .collections-dashboard {
     padding: 1rem;
   }
@@ -867,7 +868,7 @@ export default {
   }
   
   .content-grid {
-    grid-template-columns: 1fr;
+    grid-template-columns: 1fr; /* stack on smaller screens */
     gap: 1.5rem;
   }
   
