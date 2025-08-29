@@ -1,0 +1,1062 @@
+/* src/style.css */
+@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+
+/* 🎨 Structured Docs Color Palette */
+
+:root {
+  /* Primary Palette */
+  --primary-deep-teal: #005B6E;
+  --primary-medium-teal: #008C9E;
+  --primary-light-teal: #4FC3C9;
+
+  /* Background Palette */
+  --bg-light-mist-gray: #F5F9FA;
+  --bg-dark-slate-blue-gray: #1F2A30;
+  /* Common white background used for cards */
+  --bg-primary-white: #FFFFFF;
+  /* Alias commonly used in SFCs */
+  --bg-white: var(--bg-primary-white);
+
+  /* Text Palette */
+  --text-primary-charcoal: #2C3E50;
+  --text-secondary-cool-gray: #7F8C8D;
+  /* Additional text tokens used across SFCs */
+  --text-dark-gray: #495057;
+  --text-medium-gray: #6C757D;
+  --text-light-gray: #ADB5BD;
+
+  /* System Feedback Palette */
+  --success-mint-green: #2ECC71;
+  --warning-amber: #F39C12;
+  --error-coral-red: #E74C3C;
+  /* Darker shade for success states (hover) */
+  --success-dark-mint: #27AE60;
+
+  /* Extended Harmonious Palette */
+  --extended-sky-blue: #5DADE2;
+  --extended-seafoam-green: #48C9B0;
+  --extended-lavender-gray: #AAB7B8;
+  --extended-steel-blue: #4682B4;
+  --extended-dusty-rose: #D98880;
+  --extended-goldenrod: #F4D03F;
+  --extended-plum: #8E44AD;
+  --extended-cool-mint: #A3E4D7;
+  --extended-slate-purple: #6C5B7B;
+  --extended-warm-taupe: #D5BFA3;
+  /* Cool gray used for subtle hovers */
+  --extended-cool-gray: #BDC3C7;
+
+  /* Neutral Borders */
+  --border-color-gray: var(--extended-lavender-gray);
+  /* Lighter gray often used for subtle section/card borders */
+  --border-light-gray: #E9ECEF;
+
+  /* Border Radii */
+  --border-radius-sm: 4px;
+  --border-radius-md: 8px;
+  --border-radius-lg: 12px;
+  --border-radius-xl: 16px;
+  --border-radius-pill: 999px;
+
+  /* Shadows */
+  --shadow-sm: 0 1px 2px rgba(0, 0, 0, 0.06);
+  --shadow-md: 0 4px 12px rgba(0, 0, 0, 0.08);
+  --shadow-lg: 0 10px 24px rgba(0, 0, 0, 0.12);
+  /* Aliases used by some components */
+  --box-shadow-sm: var(--shadow-sm);
+  --box-shadow-md: var(--shadow-md);
+  --box-shadow-lg: var(--shadow-lg);
+
+  /* Transparent accent for focus rings */
+  --primary-light-teal-t: rgba(79, 195, 201, 0.4);
+
+  /* Status/feedback extended tokens used in SFCs */
+  --success-light-green: #D4EDDA;
+  --success-dark-green: #155724;
+  --warning-light-yellow: #FFF3CD;
+  --warning-dark-yellow: #856404;
+  --info-light-blue: #D1ECF1;
+  --info-dark-blue: #0C5460;
+  --error-light-red: #F8D7DA;
+  --error-dark-red: #721C24;
+  --primary-light-blue: #CFE2FF;
+  --primary-dark-blue: #084298;
+  
+  /* Layout heights */
+  --header-height: 60px;  /* Matches HeaderBar.vue */
+  --tabs-height: 56px;    /* Standardized TabNavigation height */
+  --ticker-height: 40px;  /* Standardized NotificationTicker height */
+}
+
+/* General Body and Typography */
+body {
+  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  background-color: var(--bg-light-mist-gray);
+  color: var(--text-primary-charcoal);
+  line-height: 1.6;
+  margin: 0;
+  padding: 0;
+}
+
+h1, h2, h3, h4, h5, h6 {
+  color: var(--primary-deep-teal);
+  font-weight: 500;
+}
+
+a {
+  color: var(--primary-medium-teal);
+  text-decoration: none;
+  transition: color 0.3s ease;
+}
+
+a:hover {
+  color: var(--primary-light-teal);
+}
+
+/* Global subtitle text (used under page titles) */
+.subtitle {
+  color: var(--text-secondary-cool-gray);
+  font-size: 1.1rem;
+  margin: 0;
+}
+
+/* Base button styles - consistent across all button types */
+.btn, button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 36px;
+  box-sizing: border-box;
+  vertical-align: middle;
+}
+
+/* Normalize any button groups across the app */
+.button-group {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.button-group > * {
+  align-self: center;
+}
+
+/* Base button styles for consistent alignment */
+.btn, .primary-btn, .secondary-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.5rem;
+  padding: 0.5rem 1rem;
+  font-size: 0.9rem;
+  font-weight: 500;
+  border: none;
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+  min-height: 36px; /* Ensure consistent height */
+  box-sizing: border-box;
+}
+
+.btn-primary, .primary-btn {
+  background-color: var(--primary-deep-teal);
+  color: white;
+}
+
+.btn-primary:hover, .primary-btn:hover {
+  background-color: var(--primary-medium-teal);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary, .secondary-btn {
+  background-color: var(--border-light-gray);
+  color: var(--primary-deep-teal);
+  border: 1px solid var(--border-light-gray);
+}
+
+.btn-secondary:hover, .secondary-btn:hover {
+  background-color: var(--extended-seafoam-green);
+  border-color: var(--extended-seafoam-green);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-danger {
+  background-color: var(--error-coral-red);
+  color: white;
+}
+
+.btn-danger:hover {
+  background-color: #c0392b; /* A darker shade of coral red */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Small buttons - maintain consistent alignment */
+.btn-sm, .primary-btn.btn-sm, .secondary-btn.btn-sm {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  border-radius: 4px;
+  line-height: 1.2;
+  min-height: 32px;
+  gap: 0.375rem;
+}
+
+/* Icon alignment inside buttons */
+.btn i {
+  flex-shrink: 0;
+  width: 1em;                     /* keeps icons from collapsing */
+  line-height: 1;
+}
+
+/* Micro-adjust icon in small buttons for perfect baseline alignment */
+.btn-sm i {
+  position: relative;
+  top: -1px; /* nudge icon up slightly to match text baseline */
+}
+
+/* Fine-tune: search icon tends to sit high; push it down a bit for balance */
+.btn-sm i.fa-search,
+.btn-sm i.fas.fa-search,
+.btn-sm i.fa-solid.fa-search {
+  top: 1px;
+}
+
+/* Info buttons - unify across app */
+.btn-info {
+  background-color: var(--info-dark-blue);
+  color: var(--bg-white);
+}
+
+.btn-info:hover:not(:disabled) {
+  background-color: var(--primary-medium-teal); /* Changed to match app's primary color */
+}
+
+/* Keep small buttons anchored (no lift on hover) to avoid misalignment in toolbars */
+.btn-sm:hover,
+.btn-sm:active {
+  transform: none;
+}
+
+/* Consistent hover effects for all buttons */
+.btn-primary:hover, .primary-btn:hover,
+.btn-primary.btn-sm:hover, .primary-btn.btn-sm:hover {
+  background-color: var(--primary-medium-teal);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+.btn-secondary:hover, .secondary-btn:hover,
+.btn-secondary.btn-sm:hover, .secondary-btn.btn-sm:hover {
+  background-color: var(--extended-seafoam-green);
+  border-color: var(--extended-seafoam-green);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Inline Edit button: improve contrast using org colors */
+.edit-inline-btn {
+  background-color: var(--primary-deep-teal) !important;
+  color: var(--bg-white) !important;
+  border: 1px solid var(--primary-deep-teal) !important;
+}
+
+.edit-inline-btn:hover:not(:disabled) {
+  background-color: var(--primary-medium-teal) !important;
+  border-color: var(--primary-medium-teal) !important;
+}
+
+.edit-inline-btn:focus-visible {
+  outline: 2px solid var(--primary-light-teal);
+  outline-offset: 2px;
+}
+
+/* === CENTRALIZED BUTTON SYSTEM === */
+
+/* Close buttons - for modal close actions */
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary-cool-gray);
+  padding: 0.25rem;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+  width: auto;
+  min-width: auto;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.close-btn:hover {
+  color: var(--primary-deep-teal);
+  background: var(--bg-light-mist-gray);
+}
+
+/* Cancel buttons - for cancel/dismiss actions */
+.cancel-btn {
+  background: var(--bg-light-mist-gray);
+  color: var(--text-primary-charcoal);
+  border: 1px solid var(--extended-lavender-gray);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.cancel-btn:hover:not(:disabled) {
+  background: var(--extended-lavender-gray);
+  border-color: var(--border-light-gray);
+}
+
+/* Create buttons - for create/new actions */
+.create-btn, .create-first-btn {
+  background: var(--primary-deep-teal);
+  color: white;
+  border: 1px solid var(--primary-deep-teal);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.create-btn:hover:not(:disabled),
+.create-first-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-2px);
+}
+
+/* Login buttons - for authentication actions */
+.login-btn {
+  width: 100%;
+  background: var(--primary-deep-teal);
+  color: white;
+  border: none;
+  padding: 0.75rem;
+  border-radius: 6px;
+  font-size: 1rem;
+  font-weight: 600;
+  cursor: pointer;
+  transition: background 0.2s ease;
+}
+
+.login-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+}
+
+.login-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+/* Submit buttons - for form submission */
+.submit-btn {
+  background: var(--primary-deep-teal);
+  color: white;
+  border: 1px solid var(--primary-deep-teal);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+
+.submit-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-2px);
+}
+
+/* Export buttons - for download/export actions */
+.export-btn {
+  background: var(--primary-deep-teal);
+  color: white;
+  border: 1px solid var(--primary-deep-teal);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.export-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-1px);
+}
+
+/* Section buttons - for navigation between sections */
+.section-btn {
+  background: var(--primary-deep-teal);
+  color: white;
+  border: 1px solid var(--primary-deep-teal);
+  padding: 0.75rem 1.5rem;
+  border-radius: 6px;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.section-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-2px);
+}
+
+/* Link buttons - for link-style actions */
+.link-btn {
+  background: none;
+  border: none;
+  color: var(--primary-deep-teal);
+  cursor: pointer;
+  text-decoration: underline;
+  font-size: inherit;
+  font-weight: inherit;
+  padding: 0;
+  transition: color 0.2s ease;
+}
+
+.link-btn:hover:not(:disabled) {
+  color: var(--primary-medium-teal);
+  text-decoration: none;
+}
+
+/* Card action buttons - for actions within cards */
+.card-action-btn {
+  background: var(--primary-deep-teal);
+  color: white;
+  border: 1px solid var(--primary-deep-teal);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.card-action-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-1px);
+}
+
+/* Toggle buttons - for on/off toggle actions */
+.toggle-btn {
+  background: var(--bg-light-mist-gray);
+  color: var(--text-primary-charcoal);
+  border: 1px solid var(--extended-lavender-gray);
+  padding: 0.5rem 1rem;
+  border-radius: 4px;
+  font-size: 0.9rem;
+  font-weight: 500;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.toggle-btn:hover:not(:disabled) {
+  background: var(--extended-lavender-gray);
+  border-color: var(--border-light-gray);
+}
+
+.toggle-btn.active {
+  background: var(--primary-deep-teal);
+  color: white;
+  border-color: var(--primary-deep-teal);
+}
+
+.toggle-btn.active:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+}
+
+/* Remove buttons - for delete/remove actions */
+.remove-btn {
+  background: var(--error-coral-red);
+  color: white;
+  border: 1px solid var(--error-coral-red);
+  padding: 0.25rem 0.5rem;
+  border-radius: 50%;
+  font-size: 1rem;
+  font-weight: bold;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 24px;
+  height: 24px;
+  min-width: 24px;
+}
+
+.remove-btn:hover:not(:disabled) {
+  background: #c0392b;
+  border-color: #c0392b;
+  transform: scale(1.1);
+}
+
+/* Disabled state for all buttons */
+.close-btn:disabled,
+.cancel-btn:disabled,
+.create-btn:disabled,
+.create-first-btn:disabled,
+.login-btn:disabled,
+.submit-btn:disabled,
+.export-btn:disabled,
+.section-btn:disabled,
+.link-btn:disabled,
+.card-action-btn:disabled,
+.toggle-btn:disabled,
+.remove-btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none !important;
+}
+
+/* Focus states for accessibility */
+.close-btn:focus-visible,
+.cancel-btn:focus-visible,
+.create-btn:focus-visible,
+.create-first-btn:focus-visible,
+.login-btn:focus-visible,
+.submit-btn:focus-visible,
+.export-btn:focus-visible,
+.section-btn:focus-visible,
+.link-btn:focus-visible,
+.card-action-btn:focus-visible,
+.toggle-btn:focus-visible,
+.remove-btn:focus-visible {
+  outline: 2px solid var(--primary-light-teal);
+  outline-offset: 2px;
+}
+
+/* === LOADING AND MESSAGE STYLES === */
+
+/* Loading messages - standardized across the app */
+.loading-message {
+  background: var(--primary-deep-teal);
+  color: white;
+  padding: 10px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.1);
+}
+
+.loading-message::before {
+  content: '';
+  width: 16px;
+  height: 16px;
+  border: 2px solid rgba(255, 255, 255, 0.3);
+  border-top: 2px solid white;
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
+}
+
+/* Loading overlays - for full-screen loading states */
+.loading-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: rgba(255, 255, 255, 0.9);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  backdrop-filter: blur(2px);
+}
+
+/* Loading containers - for component-specific loading states */
+.loading-container {
+  text-align: center;
+  padding: 4rem 2rem;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 1rem;
+}
+
+.loading-spinner {
+  width: 40px;
+  height: 40px;
+  border: 4px solid var(--primary-light-blue);
+  border-top: 4px solid var(--primary-deep-teal);
+  border-radius: 50%;
+  animation: spin 1s linear infinite;
+}
+
+.loading-text {
+  color: var(--text-secondary-cool-gray);
+  font-size: 1rem;
+  margin: 0;
+}
+
+/* Success messages - standardized positioning and styling */
+.success-message {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: var(--success-dark-green);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Error messages - standardized positioning and styling */
+.error-message {
+  position: fixed;
+  top: 80px;
+  right: 20px;
+  background: var(--error-coral-red);
+  color: white;
+  padding: 15px 20px;
+  border-radius: 4px;
+  font-weight: 500;
+  z-index: 1001;
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  max-width: 400px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+}
+
+/* Close buttons for messages */
+.message-close-btn {
+  background: none;
+  border: none;
+  color: white;
+  font-size: 18px;
+  cursor: pointer;
+  padding: 0;
+  margin-left: auto;
+  opacity: 0.8;
+  transition: opacity 0.2s ease;
+}
+
+.message-close-btn:hover {
+  opacity: 1;
+}
+
+/* Icon buttons - for icon-only actions */
+.btn-icon {
+  border: none;
+  background: none;
+  cursor: pointer;
+  padding: 0.25rem;
+  border-radius: 3px;
+  width: 24px;
+  height: 24px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 0.75rem;
+  transition: background-color 0.2s;
+  color: var(--text-secondary-cool-gray);
+}
+
+.btn-icon:hover {
+  background: var(--bg-light-mist-gray);
+  color: var(--text-primary-charcoal);
+}
+
+.btn-icon.btn-danger {
+  color: white;
+  background-color: var(--error-coral-red);
+}
+
+.btn-icon.btn-danger:hover {
+  background-color: #c82333;
+  color: white;
+}
+
+.btn-icon:focus-visible {
+  outline: 2px solid var(--primary-light-teal);
+  outline-offset: 2px;
+}
+
+/* Forms */
+input, select, textarea {
+  width: 100%;
+  padding: 10px;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: 5px;
+  font-size: 1rem;
+  background-color: white;
+  color: var(--text-primary-charcoal);
+}
+
+input:focus, select:focus, textarea:focus {
+  outline: none;
+  border-color: var(--primary-light-teal);
+  box-shadow: 0 0 5px var(--primary-light-teal-t); /* You might need to define a transparent version */
+}
+
+/* Cards and Modals */
+.card, .modal {
+  background-color: white;
+  border-radius: 8px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
+  padding: 1.5rem;
+  border: 1px solid var(--border-light-gray);
+}
+
+/* Shared quick actions wrapper (matches Start Page) */
+.quick-actions-section {
+  margin: 0.5rem 0;
+  padding: 2rem;
+  background: linear-gradient(135deg, var(--bg-white) 0%, var(--bg-light-mist-gray) 100%);
+  border-radius: var(--border-radius-xl);
+  border: 1px solid var(--border-light-gray);
+}
+
+/* heading styles centralized below */
+
+.section-description {
+  color: var(--text-medium-gray);
+  margin-bottom: 2rem;
+  font-size: 1rem;
+}
+
+.quick-actions-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
+}
+
+.modal-header {
+  border-bottom: 1px solid var(--extended-lavender-gray);
+  padding-bottom: 1rem;
+  margin-bottom: 1rem;
+}
+
+/* Header and Navigation */
+.header-bar {
+  background-color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.tab-navigation {
+  background-color: white;
+}
+
+.tab-navigation .nav-link {
+  color: var(--primary-deep-teal);
+}
+
+.tab-navigation .nav-link.router-link-active {
+  background-color: var(--primary-deep-teal);
+  border-bottom-color: var(--primary-light-teal);
+  color: white;
+}
+
+/* Alerts */
+.alert-success {
+  background-color: var(--success-mint-green);
+  color: white;
+}
+
+.alert-warning {
+  background-color: var(--warning-amber);
+  color: white;
+}
+
+.alert-error {
+  background-color: var(--error-coral-red);
+  color: white;
+}
+
+/* Utility Classes */
+.w-100 {
+  width: 100%;
+}
+.mb-4 {
+  margin-bottom: 1.5rem;
+}
+.mt-8 {
+  margin-top: 2rem;
+}
+.my-3 {
+  margin-top: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+.text-center {
+  text-align: center;
+}
+
+/* Component Styles */
+
+/* Metric Card */
+.metric-card {
+  background: var(--bg-primary-white);
+  border-radius: 12px;
+  padding: .5rem;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  box-shadow: var(--shadow-sm);
+  transition: transform 0.2s, box-shadow 0.2s;
+  border: 1px solid var(--border-color-gray); /* Added border */
+}
+
+.metric-card:hover {
+  transform: translateY(-4px);
+  box-shadow: var(--shadow-md);
+}
+
+.metric-icon {
+  font-size: 2rem;
+  /* Keep icon perfectly circular under any scaling */
+  width: 60px;
+  aspect-ratio: 1 / 1;
+  border-radius: 50%;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background-color: var(--extended-cool-mint);
+  color: var(--primary-deep-teal);
+  flex: 0 0 auto;
+  box-sizing: border-box;
+}
+
+.metric-content h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary-cool-gray);
+  font-weight: 500;
+  text-transform: uppercase;
+  text-align:center;
+}
+
+.metric-number {
+  font-size: 2rem; /* Match Start Page */
+  font-weight: 700;
+  color: var(--primary-deep-teal);
+  line-height: 1;
+  text-align: center;
+}
+
+.metric-detail {
+  font-size: 0.8rem; /* Match Start Page */
+  color: var(--text-light-gray);
+  margin-top: 0.25rem;
+  text-align: center;
+}
+
+/* Action Card */
+.action-card {
+  background: var(--bg-light-mist-gray);
+  border-radius: 8px;
+  padding: 1.25rem;
+  text-align: left;
+  border: 1px solid transparent;
+  cursor: pointer;
+  transition: all 0.2s;
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.action-card:hover {
+  background: var(--extended-lavender-gray);
+  border-color: var(--primary-medium-teal);
+  transform: translateY(-2px);
+}
+
+.action-icon {
+  font-size: 1.75rem;
+}
+
+.action-content h3 {
+  margin: 0 0 0.25rem 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+  color: var(--text-primary-charcoal);
+}
+
+.action-content p {
+  margin: 0;
+  font-size: 0.9rem;
+  color: var(--text-secondary-cool-gray);
+}
+
+/* Reusable Quick Action Card (matches Start Page look) */
+.quick-action-card {
+  display: flex;
+  align-items: center;
+  padding: 1.5rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  text-decoration: none;
+  color: inherit;
+  transition: all 0.3s ease;
+  box-shadow: var(--box-shadow-sm);
+}
+
+.quick-action-card:hover {
+  border-color: var(--primary-deep-teal);
+  box-shadow: var(--box-shadow-md);
+  transform: translateY(-3px);
+  text-decoration: none;
+  color: inherit;
+}
+
+.quick-action-card .action-icon {
+  font-size: 2rem;
+  margin-right: 1rem;
+  min-width: 60px;
+  text-align: center;
+  color: var(--primary-deep-teal);
+}
+
+.quick-action-card .action-content { flex: 1; }
+
+.quick-action-card h3 {
+  margin: 0 0 0.5rem 0;
+  color: var(--text-dark-gray);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.quick-action-card p {
+  margin: 0;
+  color: var(--text-medium-gray);
+  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.quick-action-card .action-arrow {
+  font-size: 1.5rem;
+  color: var(--primary-deep-teal);
+  margin-left: 1rem;
+  transition: transform 0.3s ease;
+}
+
+.quick-action-card:hover .action-arrow { transform: translateX(4px); }
+
+/* Reusable Section/Card Wrappers */
+.dashboard-section,
+.section-card {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow-sm);
+  /* Standardized spacing between stacked sections */
+  margin-bottom: 0.5rem;
+}
+
+/* Standardize section headings in dashboard panels */
+/* Standardized dashboard headings */
+.dashboard-section h2,
+.quick-actions-section h2 {
+  color: var(--text-dark-gray);
+  font-size: 1.5rem; /* unified size */
+  font-weight: 600;
+}
+
+/* Keep light underline under Key Metrics (dashboard sections) */
+.dashboard-section h2 {
+  margin: 0 0 1.5rem 0;
+  border-bottom: 1px solid var(--border-light-gray);
+  padding-bottom: 0.75rem;
+}
+
+/* Quick Actions headings keep tighter spacing */
+.quick-actions-section h2 {
+  margin: 0 0 1rem 0;
+  border-bottom: 1px solid var(--border-light-gray);
+  padding-bottom: 0.75rem;
+}
+
+
+/* Global modal utilities: ensure overlays are centered and above header/ticker */
+.modal-overlay {
+  position: fixed !important;
+  top: 0 !important;
+  left: 0 !important;
+  right: 0 !important;
+  bottom: 0 !important;
+  background: rgba(0, 0, 0, 0.6) !important;
+  display: flex !important;
+  align-items: flex-start !important; /* position near top instead of full center */
+  justify-content: center !important;
+  z-index: 3000 !important; /* Above header (1000) and ticker (998) */
+  padding-top: 0.5rem !important; /* Simple 0.5rem from top for all modals */
+  padding-bottom: 1rem !important; /* breathing room at bottom on smaller screens */
+}
+
+/* Sensible defaults for modal content */
+.modal {
+  background: var(--bg-primary-white);
+  border-radius: var(--border-radius-lg);
+  width: 90%;
+  max-width: 800px;
+  max-height: 90vh;
+  overflow-y: auto;
+  box-shadow: var(--box-shadow-lg);
+  margin-left: auto;
+  margin-right: auto;
+}
+
+/* Optional larger modal size */
+.large-modal,
+.modal.large {
+  max-width: 1000px;
+}
+
+/* Grid utilities for dashboard content areas */
+.content-grid .full-width {
+  grid-column: 1 / -1;
+}
+

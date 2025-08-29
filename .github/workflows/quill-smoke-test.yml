@@ -1,0 +1,58 @@
+name: Quill MutationObserver smoke test
+
+on:
+  workflow_dispatch:
+  push:
+    branches: [ main, master ]
+
+jobs:
+  smoke-test:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Setup Node
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Install root dependencies
+        run: npm ci
+
+      - name: Install Playwright package (root)
+        run: npm install --no-audit --no-fund playwright@1.55.0
+
+      - name: Install frontend dependencies
+        run: |
+          cd frontend
+          npm ci
+
+      - name: Install Playwright system deps
+        run: sudo npx playwright install-deps || true
+
+      - name: Install Playwright browsers
+        run: |
+          cd frontend || exit 1
+          npx playwright install chromium
+
+      - name: Build frontend
+        run: |
+          cd frontend
+          npm run build
+
+      - name: Serve built frontend
+        run: |
+          cd frontend
+          npx serve -s dist -l 4175 &
+          sleep 2
+
+      - name: Run smoke script
+        run: node scripts/smoke_quill_playwright.js
+
+      - name: Upload smoke log
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: smoke-log
+          path: ./smoke*.log

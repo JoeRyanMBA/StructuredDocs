@@ -1,0 +1,97 @@
+/* frontend/src/style.css */
+
+/* Fix for metric card cursor and text selection */
+.metric-card {
+  cursor: pointer; /* Or 'default' if they are not clickable */
+  user-select: none; /* Prevents text selection */
+}
+
+.loading-placeholder {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 150px;
+  background-color: var(--bg-light-mist-gray);
+  color: var(--text-secondary-cool-gray);
+  font-style: italic;
+  border-radius: var(--border-radius-lg);
+  border: 1px dashed var(--border-light-gray);
+}
+
+.modal-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: flex-start; /* Changed from center to flex-start */
+  padding-top: 0.5rem; /* Adjusted to exactly 0.5rem from the top */
+  z-index: 1000;
+  overflow-y: auto; /* Added for scroll on smaller screens */
+}
+
+.modal-content {
+  background: var(--bg-white);
+  padding: 2rem;
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 90%;
+  max-width: 600px;
+}
+
+.btn-send-setup:hover {
+    background-color: var(--primary-medium-teal) !important;
+    color: white !important;
+}
+
+/* Badge font weight standardization */
+.card-badge,
+.status-badge,
+.priority-badge {
+    font-weight: 400 !important;
+}
+
+/* Standardized Loading State */
+.loading-state {
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  min-height: 300px;
+  width: 100%;
+  background-color: var(--bg-white);
+  border-radius: var(--border-radius-lg);
+  padding: 2rem;
+  transition: opacity 0.3s ease-in-out;
+}
+
+.loading-content {
+  text-align: center;
+  color: var(--text-secondary-cool-gray);
+}
+
+.loading-spinner {
+  font-size: 2.5rem;
+  animation: spin 1.5s linear infinite;
+  margin-bottom: 1rem;
+}
+
+/* Improved Alert Messages */
+.success-message {
+  background-color: var(--success-bg-light-green) !important;
+  color: var(--success-text-dark-green) !important;
+  border: 1px solid var(--success-border-green);
+}
+
+.error-message {
+  background-color: var(--error-bg-light-red) !important;
+  color: var(--error-text-dark-red) !important;
+  border: 1px solid var(--error-border-red);
+}
+
+@keyframes spin {
+  from { transform: rotate(0deg); }
+  to { transform: rotate(360deg); }
+}

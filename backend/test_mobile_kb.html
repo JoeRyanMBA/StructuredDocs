@@ -1,0 +1,434 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="default">
+    <meta name="apple-mobile-web-app-title" content="Field Operations Manual">
+    <title>Field Operations Manual - Mobile Knowledge Base</title>
+    
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+        
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, Oxygen, Ubuntu, Cantarell, sans-serif;
+            line-height: 1.6;
+            color: #333;
+            background: #f8f9fa;
+            padding: 0;
+            margin: 0;
+        }
+        
+        .kb-container {
+            max-width: 100%;
+            margin: 0 auto;
+            background: white;
+            min-height: 100vh;
+        }
+        
+        .kb-header {
+            background: #005a9c;
+            color: white;
+            padding: 1rem;
+            text-align: center;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        
+        .kb-title {
+            font-size: 1.25rem;
+            font-weight: 600;
+            margin: 0;
+        }
+        
+        .kb-subtitle {
+            font-size: 0.875rem;
+            opacity: 0.9;
+            margin-top: 0.25rem;
+        }
+        
+        .navigation {
+            background: #e9ecef;
+            border-bottom: 1px solid #dee2e6;
+            padding: 1rem;
+        }
+        
+        .nav-section {
+            margin-bottom: 1rem;
+        }
+        
+        .nav-section:last-child {
+            margin-bottom: 0;
+        }
+        
+        .nav-title {
+            font-weight: 600;
+            color: #495057;
+            margin-bottom: 0.5rem;
+            font-size: 0.9rem;
+            text-transform: uppercase;
+            letter-spacing: 0.5px;
+        }
+        
+        .nav-link {
+            display: block;
+            padding: 0.75rem;
+            color: #005a9c;
+            text-decoration: none;
+            background: white;
+            border-radius: 6px;
+            margin-bottom: 0.5rem;
+            box-shadow: 0 1px 3px rgba(0,0,0,0.1);
+            transition: all 0.2s ease;
+        }
+        
+        .nav-link:hover {
+            background: #f8f9fa;
+            transform: translateY(-1px);
+            box-shadow: 0 2px 6px rgba(0,0,0,0.15);
+        }
+        
+        .nav-link:active {
+            transform: translateY(0);
+        }
+        
+        .nav-link.sub-item {
+            margin-left: 1rem;
+            background: #f8f9fa;
+            border-left: 3px solid #005a9c;
+        }
+        
+        .content-section {
+            display: none;
+            padding: 1.5rem;
+            animation: fadeIn 0.3s ease-in;
+        }
+        
+        .content-section.active {
+            display: block;
+        }
+        
+        .content-section h1,
+        .content-section h2,
+        .content-section h3,
+        .content-section h4,
+        .content-section h5,
+        .content-section h6 {
+            color: #212529;
+            margin-top: 1.5rem;
+            margin-bottom: 0.75rem;
+            line-height: 1.3;
+        }
+        
+        .content-section h1 {
+            font-size: 1.5rem;
+            border-bottom: 2px solid #005a9c;
+            padding-bottom: 0.5rem;
+            margin-top: 0;
+        }
+        
+        .content-section h2 {
+            font-size: 1.25rem;
+            color: #005a9c;
+        }
+        
+        .content-section h3 {
+            font-size: 1.1rem;
+        }
+        
+        .content-section p {
+            margin-bottom: 1rem;
+            line-height: 1.7;
+        }
+        
+        .content-section ul,
+        .content-section ol {
+            margin-bottom: 1rem;
+            padding-left: 1.5rem;
+        }
+        
+        .content-section li {
+            margin-bottom: 0.5rem;
+        }
+        
+        .content-section code {
+            background: #f8f9fa;
+            padding: 0.25rem 0.5rem;
+            border-radius: 3px;
+            font-family: 'Monaco', 'Menlo', 'Ubuntu Mono', monospace;
+            font-size: 0.875rem;
+        }
+        
+        .content-section pre {
+            background: #f8f9fa;
+            padding: 1rem;
+            border-radius: 6px;
+            overflow-x: auto;
+            margin-bottom: 1rem;
+            border: 1px solid #e9ecef;
+        }
+        
+        .content-section pre code {
+            background: none;
+            padding: 0;
+        }
+        
+        .content-section blockquote {
+            border-left: 4px solid #005a9c;
+            padding-left: 1rem;
+            margin: 1rem 0;
+            font-style: italic;
+            color: #6c757d;
+        }
+        
+        .content-section table {
+            width: 100%;
+            border-collapse: collapse;
+            margin-bottom: 1rem;
+            font-size: 0.9rem;
+        }
+        
+        .content-section th,
+        .content-section td {
+            padding: 0.75rem;
+            text-align: left;
+            border-bottom: 1px solid #dee2e6;
+        }
+        
+        .content-section th {
+            background: #f8f9fa;
+            font-weight: 600;
+            color: #495057;
+        }
+        
+        .back-to-nav {
+            background: #6c757d;
+            color: white;
+            border: none;
+            padding: 0.75rem 1rem;
+            border-radius: 6px;
+            margin-bottom: 1rem;
+            cursor: pointer;
+            font-size: 0.9rem;
+            transition: background 0.2s ease;
+        }
+        
+        .back-to-nav:hover {
+            background: #5a6268;
+        }
+        
+        .footer {
+            background: #f8f9fa;
+            padding: 1rem;
+            text-align: center;
+            color: #6c757d;
+            font-size: 0.8rem;
+            border-top: 1px solid #e9ecef;
+        }
+        
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+        
+        /* Tablet optimizations */
+        @media (min-width: 768px) {
+            .kb-container {
+                max-width: 800px;
+            }
+            
+            .kb-title {
+                font-size: 1.5rem;
+            }
+            
+            .content-section {
+                padding: 2rem;
+            }
+            
+            .navigation {
+                padding: 1.5rem;
+            }
+        }
+        
+        /* Desktop optimizations (still mobile-first) */
+        @media (min-width: 1024px) {
+            .kb-container {
+                max-width: 900px;
+            }
+            
+            .content-section h1 {
+                font-size: 1.75rem;
+            }
+        }
+        
+        /* iOS Safari specific fixes */
+        @supports (-webkit-touch-callout: none) {
+            .kb-header {
+                -webkit-backdrop-filter: blur(20px);
+                backdrop-filter: blur(20px);
+            }
+        }
+        
+        /* High contrast mode support */
+        @media (prefers-contrast: high) {
+            .nav-link {
+                border: 1px solid #000;
+            }
+            
+            .kb-header {
+                border-bottom: 2px solid #000;
+            }
+        }
+        
+        /* Dark mode support */
+        @media (prefers-color-scheme: dark) {
+            body {
+                background: #1a1a1a;
+                color: #e0e0e0;
+            }
+            
+            .kb-container {
+                background: #2d2d2d;
+            }
+            
+            .navigation {
+                background: #3a3a3a;
+                border-bottom-color: #555;
+            }
+            
+            .nav-link {
+                background: #4a4a4a;
+                color: #87ceeb;
+            }
+            
+            .nav-link:hover {
+                background: #5a5a5a;
+            }
+            
+            .content-section h1,
+            .content-section h2,
+            .content-section h3,
+            .content-section h4,
+            .content-section h5,
+            .content-section h6 {
+                color: #f0f0f0;
+            }
+            
+            .content-section h2 {
+                color: #87ceeb;
+            }
+            
+            .content-section code,
+            .content-section pre {
+                background: #3a3a3a;
+                color: #e0e0e0;
+            }
+            
+            .footer {
+                background: #3a3a3a;
+                color: #b0b0b0;
+            }
+        }
+    </style>
+    
+</head>
+<body>
+    <div class="kb-container">
+        <header class="kb-header">
+            <h1 class="kb-title">Field Operations Manual</h1>
+            <p class="kb-subtitle">Mobile Knowledge Base</p>
+        </header>
+        
+        <nav class="navigation">
+            <div class="nav-section">
+                <div class="nav-title">Topics</div>
+                <a href="#" class="nav-link" onclick="showSection('section-1')">Test Topic 1</a>
+<a href="#" class="nav-link" onclick="showSection('section-2')">Test Topic 2</a>
+<a href="#" class="nav-link sub-item" onclick="showSection('section-3')">Test Topic 4</a>
+<a href="#" class="nav-link" onclick="showSection('section-4')">Test Topic 5</a>
+
+            </div>
+        </nav>
+        
+        
+            <div id="section-1" class="content-section">
+                <button class="back-to-nav" onclick="goBackToNav()">← Back to Navigation</button>
+                <h1>Test Topic 1</h1>
+                <p><h2>Test Topic 1</h2></p>
+<p>This is my second test topic.</p>
+            </div>
+            
+            <div id="section-2" class="content-section">
+                <button class="back-to-nav" onclick="goBackToNav()">← Back to Navigation</button>
+                <h1>Test Topic 2</h1>
+                <p><h2>Test Topic 2</h2></p>
+            </div>
+            
+            <div id="section-3" class="content-section">
+                <button class="back-to-nav" onclick="goBackToNav()">← Back to Navigation</button>
+                <h1>Test Topic 4</h1>
+                <p><h2>Test Topic 4</h2></p>
+<br>
+<p>This is a test topic.</p>
+            </div>
+            
+            <div id="section-4" class="content-section">
+                <button class="back-to-nav" onclick="goBackToNav()">← Back to Navigation</button>
+                <h1>Test Topic 5</h1>
+                <p>#Test Topic 5</p>
+<br>
+<p>This is test topic 5.</p>
+            </div>
+            
+        
+        <footer class="footer">
+            Generated on July 26, 2025 at 07:04 PM<br>
+            Optimized for mobile devices
+        </footer>
+    </div>
+    
+    
+    <script>
+        function showSection(sectionId) {
+            // Hide all sections
+            const sections = document.querySelectorAll('.content-section');
+            sections.forEach(section => {
+                section.classList.remove('active');
+            });
+            
+            // Show navigation if going back to nav
+            const nav = document.querySelector('.navigation');
+            if (sectionId === 'nav') {
+                nav.style.display = 'block';
+                return;
+            }
+            
+            // Hide navigation and show selected section
+            nav.style.display = 'none';
+            const targetSection = document.getElementById(sectionId);
+            if (targetSection) {
+                targetSection.classList.add('active');
+                window.scrollTo(0, 0);
+            }
+        }
+        
+        function goBackToNav() {
+            showSection('nav');
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', function() {
+            // Show navigation by default
+            showSection('nav');
+        });
+    </script>
+    
+</body>
+</html>

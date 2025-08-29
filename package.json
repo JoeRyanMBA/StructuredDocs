@@ -1,0 +1,26 @@
+{
+  "name": "structured-docs",
+  "version": "1.0.0",
+  "private": true,
+  "scripts": {
+    "start": "launch.bat",
+    "health-check": "curl http://localhost:5000/ping",
+    "cypress:open": "cypress open",
+    "cypress:run": "cypress run"
+  },
+  "description": "",
+  "main": "index.js",
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "type": "commonjs",
+  "dependencies": {
+    "marked": "^16.1.1",
+    "playwright": "^1.44.1",
+    "vue-draggable-nested-tree": "^2.2.3"
+  },
+  "devDependencies": {
+    "@playwright/test": "^1.55.0",
+    "cypress": "^14.5.4"
+  }
+}

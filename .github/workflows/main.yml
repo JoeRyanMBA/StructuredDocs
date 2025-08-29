@@ -1,0 +1,5 @@
+# In your local code repo. Substitute in your own username + path
+git remote add pythonanywhere JoeRyanMBA@ssh.pythonanywhere.com:/home/JoeRyanMBA/bare-repos/StructuredDocs.git
+
+git push -u pythonanywhere main
+# output should end with "Branch master set up to track remote branch master from pythonanywhere."
