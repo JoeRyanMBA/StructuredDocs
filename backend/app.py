@@ -2,7 +2,7 @@
 
 import sys
 import os
-from flask import Flask, jsonify, send_from_directory, send_file
+from flask import Flask, jsonify, send_from_directory, send_file, request
 from flask_cors import CORS
 from .extensions import db, migrate, jwt
 from urllib.parse import urlparse
@@ -95,8 +95,15 @@ def create_app():
     migrate.init_app(app, db)
     jwt.init_app(app)
     
-    # Configure CORS
-    frontend_url = os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+    # Configure CORS - use production URL if available, otherwise allow the current origin
+    frontend_url = os.environ.get('FRONTEND_URL')
+    if not frontend_url:
+        # In production, allow the same origin (for full-stack apps)
+        if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
+            frontend_url = '*'  # Allow all origins in production for now
+        else:
+            frontend_url = 'http://localhost:5173'  # Local development
+
     CORS(app, resources={r"/*": {"origins": frontend_url}}, supports_credentials=True)
 
     with app.app_context():
@@ -225,10 +232,26 @@ def create_app():
             else:
                 parsed = urlparse(uri)
                 db_kind = parsed.scheme or 'unknown'
+
+            # Use same frontend URL logic as CORS
+            frontend_origin = os.environ.get('FRONTEND_URL')
+            if not frontend_origin:
+                if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
+                    # For production, construct the URL from environment
+                    host = os.environ.get('HOST', 'localhost')
+                    port = os.environ.get('PORT', '8000')
+                    protocol = 'https' if os.environ.get('HTTPS') == 'on' else 'http'
+                    if host == 'localhost':
+                        frontend_origin = f"{protocol}://{host}:{port}"
+                    else:
+                        frontend_origin = f"{protocol}://{host}"
+                else:
+                    frontend_origin = 'http://localhost:5173'  # Local development
+
             return jsonify({
                 'status': 'ok',
                 'db': db_kind,
-                'frontend_origin': os.environ.get('FRONTEND_URL', 'http://localhost:5173')
+                'frontend_origin': frontend_origin
             }), 200
 
         @app.route('/debug-routes')
