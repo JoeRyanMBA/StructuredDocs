@@ -100,7 +100,8 @@ def create_app():
     if not frontend_url:
         # In production, allow the same origin (for full-stack apps)
         if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
-            frontend_url = '*'  # Allow all origins in production for now
+            # Allow all origins for now to avoid CORS issues
+            frontend_url = '*'
         else:
             frontend_url = 'http://localhost:5173'  # Local development
 
