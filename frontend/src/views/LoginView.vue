@@ -34,6 +34,7 @@
               type="password"
               required
               placeholder="Enter your password"
+              autocomplete="current-password"
               :disabled="loading"
             />
           </div>
@@ -309,7 +310,7 @@ export default {
 <style scoped>
 .login-container {
   min-height: 100vh;
-  background:radial-gradient( var(--bg-light-mist-gray) 0%, #ffffff 100%);
+/*  background:radial-gradient( var(--bg-light-mist-gray) 0%, #ffffff 100%); */
   display: flex;
   align-items: center;
   justify-content: center;

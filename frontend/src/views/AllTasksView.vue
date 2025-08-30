@@ -349,7 +349,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/tasks/')
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/tasks/`)
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -366,7 +366,7 @@ export default {
 
     async fetchAllTags() {
       try {
-        const response = await fetch('/api/tags/')
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/tags/`)
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
@@ -379,7 +379,7 @@ export default {
 
     async fetchAssociations() {
       try {
-        const response = await fetch('/api/tasks/associations')
+        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/tasks/associations`)
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }

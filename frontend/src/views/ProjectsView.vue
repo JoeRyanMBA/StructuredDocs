@@ -1577,17 +1577,16 @@ export default {
   border-radius: 16px;
 }
 
-/* Quick Actions */
+/* Quick Actions - use the global sizing so cards match other dashboards */
 .quick-actions-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
-  gap: 1rem;
+  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+  gap: 1.5rem;
 }
 
 .quick-action-card[disabled] {
-  opacity: 0.5;
+  opacity: 0.6;
   cursor: not-allowed;
-  background-color: var(--bg-light-mist-gray);
 }
 
 .action-icon {
@@ -1622,6 +1621,10 @@ export default {
   flex-wrap: wrap;
   align-items: flex-end;
   gap: 1.5rem;
+}
+
+.projects-list-panel {
+  margin-bottom: 1.25rem; /* space between filter panel and project list */
 }
 
 .filter-group {

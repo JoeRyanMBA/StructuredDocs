@@ -1,13 +1,9 @@
+import { apiRequest } from './base.js'
+
 export async function getCollections() {
   try {
     console.log('🔄 Fetching collections from /api/collections')
-    const res = await fetch('/api/collections')
-    console.log('📊 Response status:', res.status, res.statusText)
-    if (!res.ok) {
-      console.error('❌ Response not ok:', res.status, res.statusText)
-      throw new Error(res.statusText)
-    }
-    const data = await res.json()
+    const data = await apiRequest('/api/collections')
     console.log('✅ Collections data:', data)
     return data
   } catch (error) {
