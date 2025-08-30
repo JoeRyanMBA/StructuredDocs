@@ -66,8 +66,9 @@ def create_app():
                 'DATABASE_URL is not set and DISABLE_SQLITE_FALLBACK=1; refusing to start with SQLite. '\
                 'Set DATABASE_URL in your environment (e.g., PythonAnywhere Web tab).' 
             )
-        # Default local development database
-        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{os.path.join(app.instance_path, 'structured_docs.db')}"
+        # Default local development database - use app root instead of instance for container compatibility
+        db_path = os.path.join(os.path.dirname(app.root_path), 'instance', 'structured_docs.db')
+        app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 
     # Log (safely) which database we're using to help diagnose env issues
     try:
@@ -82,11 +83,12 @@ def create_app():
     except Exception as _e:
         print(f"⚠️ Could not log DB URI info: {_e}")
 
-    # Ensure the instance folder exists
+    # Ensure the instance folder exists (use app root path for container compatibility)
+    instance_dir = os.path.join(os.path.dirname(app.root_path), 'instance')
     try:
-        os.makedirs(app.instance_path)
-    except OSError:
-        pass
+        os.makedirs(instance_dir, exist_ok=True)
+    except OSError as e:
+        print(f"⚠️ Could not create instance directory {instance_dir}: {e}")
 
     # Initialize extensions
     db.init_app(app)
@@ -117,25 +119,15 @@ def create_app():
         # - Else if SKIP_BLUEPRINTS=="1", skip all blueprint registration.
         enable_list = None
         eb_file = os.environ.get('ENABLE_BLUEPRINTS_FILE')
-        if eb_file and os.path.exists(eb_file):
-            try:
-                with open(eb_file, 'r') as _f:
-                    enable_list = _f.read().strip()
-            except Exception as _e:
-                print(f"⚠️ Could not read ENABLE_BLUEPRINTS_FILE '{eb_file}': {_e}")
-        # Diagnostic: print which source we're reading so logs indicate visibility
-        try:
-            print(f"DEBUG: ENABLE_BLUEPRINTS_FILE env -> {os.environ.get('ENABLE_BLUEPRINTS_FILE')}")
-            exists = eb_file and os.path.exists(eb_file)
-            print(f"DEBUG: ENABLE_BLUEPRINTS_FILE exists -> {exists}")
-            if exists:
+        if eb_file:
+            if os.path.exists(eb_file):
                 try:
-                    with open(eb_file, 'r') as _f2:
-                        print(f"DEBUG: ENABLE_BLUEPRINTS_FILE contents -> '{_f2.read().strip()}'")
-                except Exception as _e2:
-                    print(f"DEBUG: error reading file for debug: {_e2}")
-        except Exception:
-            pass
+                    with open(eb_file, 'r') as _f:
+                        enable_list = _f.read().strip()
+                except Exception as _e:
+                    print(f"⚠️ Could not read ENABLE_BLUEPRINTS_FILE '{eb_file}': {_e}")
+            else:
+                print(f"⚠️ ENABLE_BLUEPRINTS_FILE '{eb_file}' does not exist, ignoring")
         if not enable_list:
             enable_list = os.environ.get('ENABLE_BLUEPRINTS')
         if enable_list:
