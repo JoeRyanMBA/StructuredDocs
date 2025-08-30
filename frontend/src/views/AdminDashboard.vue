@@ -1,14 +1,5 @@
 <template>
   <div class="admin-dashboard">
-    <!-- Notification Ticker - Full Width at Top -->
-    <div class="full-width-notification-ticker">
-      <NotificationTicker
-        :notifications="mergedNotifications"
-        context-type="admin"
-        @mark-read="markNotificationRead"
-      />
-    </div>
-
     <div class="dashboard-header">
       <h1>Admin Dashboard</h1>
       <p class="subtitle">System administration and user management</p>
@@ -115,11 +106,10 @@
 
 <script>
 import DatabaseMetricsPanel from '../components/DatabaseMetricsPanel.vue'
-import NotificationTicker from '../components/NotificationTicker.vue'
 
 export default {
   name: 'AdminDashboard',
-  components: { DatabaseMetricsPanel, NotificationTicker },
+  components: { DatabaseMetricsPanel },
   props: {
     notifications: {
       type: Array,
@@ -171,28 +161,70 @@ export default {
     await this.loadDashboardData()
   },
   methods: {
+    getAuthHeaders() {
+      const token = localStorage.getItem('access_token')
+      return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+    },
+
     async loadDashboardData() {
       this.loading = true
       this.error = null
       try {
-        // Load stats from dashboard API
-        const statsResponse = await fetch('/api/dashboard/stats')
+        // Load stats from dashboard API (include auth header if present)
+        const statsResponse = await fetch('/api/dashboard/stats', { headers: this.getAuthHeaders() })
         if (statsResponse.ok) {
           const statsData = await statsResponse.json()
-          this.stats = {
-            totalUsers: statsData.keyMetrics?.totalUsers || 0,
-            activeUsers: statsData.userStats?.activeUsers || 0,
-            authors: statsData.userStats?.totalUsers ? Math.floor(statsData.userStats.totalUsers * 0.6) : 0,
-            reviewers: statsData.userStats?.totalUsers ? Math.floor(statsData.userStats.totalUsers * 0.4) : 0,
-            systemHealth: 'Good',
-            uptime: '99.9%'
+          console.log('Admin dashboard raw stats:', statsData)
+
+          // Support multiple backend shapes
+          if (statsData.keyMetrics) {
+            // Newer backend blueprint shape
+            this.stats = {
+              totalUsers: statsData.keyMetrics?.totalUsers || 0,
+              activeUsers: statsData.userStats?.activeUsers || 0,
+              authors: statsData.userStats?.totalUsers ? Math.floor(statsData.userStats.totalUsers * 0.6) : 0,
+              reviewers: statsData.userStats?.totalUsers ? Math.floor(statsData.userStats.totalUsers * 0.4) : 0,
+              systemHealth: statsData.systemOverview?.systemHealth || 'Good',
+              uptime: statsData.systemOverview?.uptime || '99.9%'
+            }
+            this.userStats = {
+              totalUsers: statsData.userStats?.totalUsers || 0,
+              newUsersThisWeek: statsData.userStats?.newUsersWeekly || 0,
+              activeUsers: statsData.userStats?.activeUsers || 0
+            }
+            this.dbMetrics = statsData.databaseMetrics || statsData.databaseMetrics || {}
+
+          } else if (statsData.projects || statsData.users || statsData.topics) {
+            // Older / simpler endpoint shape (safe fallbacks)
+            this.stats = {
+              totalUsers: statsData.users?.total || statsData.users || statsData.userCount || 0,
+              activeUsers: statsData.users?.active || 0,
+              authors: statsData.authors || 0,
+              reviewers: statsData.reviewers || 0,
+              systemHealth: 'Good',
+              uptime: '99.9%'
+            }
+            this.userStats = {
+              totalUsers: (statsData.users && statsData.users.total) || statsData.users || 0,
+              newUsersThisWeek: statsData.users?.new_week || 0,
+              activeUsers: statsData.users?.active || 0
+            }
+            // Map database metrics if present
+            this.dbMetrics = statsData.databaseMetrics || {
+              projects: statsData.projects?.total || statsData.projects || 0,
+              collections: statsData.collections?.total || statsData.collections || 0,
+              topics: statsData.topics?.total || statsData.topics || 0,
+              users: (statsData.users && (statsData.users.total || statsData.users)) || 0
+            }
+          } else {
+            // Unknown shape: keep safe defaults
+            console.warn('Unrecognized dashboard stats shape; using safe defaults')
+            this.stats = { totalUsers: 0, activeUsers: 0, authors: 0, reviewers: 0, systemHealth: 'Good', uptime: '99.9%' }
+            this.userStats = { totalUsers: 0, newUsersThisWeek: 0, activeUsers: 0 }
+            this.dbMetrics = {}
           }
-          this.userStats = {
-            totalUsers: statsData.userStats?.totalUsers || 0,
-            newUsersThisWeek: statsData.userStats?.newUsersWeekly || 0,
-            activeUsers: statsData.userStats?.activeUsers || 0
-          }
-          this.dbMetrics = statsData.databaseMetrics || {}
+        } else {
+          console.warn('Dashboard stats API returned non-OK:', statsResponse.status)
         }
 
         // Load system logs
@@ -244,35 +276,13 @@ export default {
 
 <style>
 /* Full-width Notification Ticker */
-.full-width-notification-ticker {
-  position: fixed;
-  top: var(--header-height, 60px); /* Use standardized header height */
-  left: 0;
-  right: 0;
-  width: 100%;
-  height: var(--ticker-height, 40px); /* Use standardized ticker height */
-  z-index: 998; /* Below header but above content */
-  background: white;
-  border-bottom: 1px solid #e9ecef;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-  display: flex;
-  align-items: center;
-}
-
-.full-width-notification-ticker .notification-ticker {
-  width: 100%;
-  height: 100%;
-  margin: 0;
-  padding: 0;
-  position: static !important; /* Override component's relative positioning */
-  background: transparent !important; /* Override component's background */
-  border: none !important; /* Remove component's border */
-  box-shadow: none !important; /* Remove component's shadow */
-}
-
 /* Adjust main content to account for fixed notification ticker */
 .admin-dashboard {
-  padding-top: calc(var(--header-height, 60px) + var(--ticker-height, 40px) + 20px);
+  /* Main content offset is handled by the global layout (App.vue -> .content).
+     Remove the extra 20px that was doubling the space between the header and
+     the notification ticker. Rely on the global margin-top to position
+     dashboard content beneath the fixed header + ticker. */
+  padding-top: 0;
 }
 
 /* Dashboard Sections: use global .dashboard-section from assets/style.css */

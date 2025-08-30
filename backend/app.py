@@ -109,10 +109,78 @@ def create_app():
         email_service.reload_config()
         
         # Import and register blueprints (skippable for migrations/CLI)
-        if os.environ.get('SKIP_BLUEPRINTS') == '1':
-            print("⏭️  SKIP_BLUEPRINTS=1 set; skipping blueprint imports/registration (useful for migrations).")
+        # Support selective enabling via ENABLE_BLUEPRINTS env var (comma-separated short names)
+        # or via a file path provided in ENABLE_BLUEPRINTS_FILE. Reading from a file
+        # is more reliable when uWSGI runs multiple Python sub-interpreters.
+        # - If ENABLE_BLUEPRINTS_FILE exists and contains a comma-separated list, use that.
+        # - Else if ENABLE_BLUEPRINTS env var is set, use that.
+        # - Else if SKIP_BLUEPRINTS=="1", skip all blueprint registration.
+        enable_list = None
+        eb_file = os.environ.get('ENABLE_BLUEPRINTS_FILE')
+        if eb_file and os.path.exists(eb_file):
+            try:
+                with open(eb_file, 'r') as _f:
+                    enable_list = _f.read().strip()
+            except Exception as _e:
+                print(f"⚠️ Could not read ENABLE_BLUEPRINTS_FILE '{eb_file}': {_e}")
+        # Diagnostic: print which source we're reading so logs indicate visibility
+        try:
+            print(f"DEBUG: ENABLE_BLUEPRINTS_FILE env -> {os.environ.get('ENABLE_BLUEPRINTS_FILE')}")
+            exists = eb_file and os.path.exists(eb_file)
+            print(f"DEBUG: ENABLE_BLUEPRINTS_FILE exists -> {exists}")
+            if exists:
+                try:
+                    with open(eb_file, 'r') as _f2:
+                        print(f"DEBUG: ENABLE_BLUEPRINTS_FILE contents -> '{_f2.read().strip()}'")
+                except Exception as _e2:
+                    print(f"DEBUG: error reading file for debug: {_e2}")
+        except Exception:
+            pass
+        if not enable_list:
+            enable_list = os.environ.get('ENABLE_BLUEPRINTS')
+        if enable_list:
+            # Map short names to (module_name, blueprint_attr_name)
+            blueprint_map = {
+                'admin': ('admin', 'admin_bp'),
+                'collections': ('collections', 'collections_bp'),
+                'dashboard': ('dashboard', 'bp'),
+                'feedback': ('feedback', 'feedback_bp'),
+                'images': ('images', 'images_bp'),
+                'import_handler': ('import_handler', 'import_bp'),
+                'links': ('links', 'links_bp'),
+                'metrics': ('metrics', 'metrics_bp'),
+                'milestones': ('milestones', 'milestones_bp'),
+                'notifications': ('notifications', 'notifications_bp'),
+                'projects': ('projects', 'projects_bp'),
+                'publications': ('publications', 'pubs_bp'),
+                'review_tokens': ('review_tokens', 'review_tokens_bp'),
+                'reviews': ('reviews', 'reviews_bp'),
+                'sequences': ('sequences', 'sequences_bp'),
+                'stakeholders': ('stakeholders', 'stakeholders_bp'),
+                'tags': ('tags', 'tags_bp'),
+                'tasks': ('tasks', 'tasks_bp'),
+                'topics': ('topics', 'topics_bp'),
+                'users': ('users', 'users_bp'),
+            }
+
+            requested = [p.strip() for p in enable_list.split(',') if p.strip()]
+            import importlib
+            for name in requested:
+                if name not in blueprint_map:
+                    print(f"\u26a0\ufe0f ENABLE_BLUEPRINTS: unknown blueprint '{name}' - skipping")
+                    continue
+                module_name, attr = blueprint_map[name]
+                try:
+                    mod = importlib.import_module(f'backend.routes.{module_name}')
+                    bp = getattr(mod, attr)
+                    app.register_blueprint(bp)
+                    print(f"\u2705 Registered blueprint '{name}' from backend.routes.{module_name}.{attr}")
+                except Exception as _e:
+                    print(f"\u274c Error registering blueprint '{name}': {_e}")
+        elif os.environ.get('SKIP_BLUEPRINTS') == '1':
+            print("\u23ed\ufe0f  SKIP_BLUEPRINTS=1 set; skipping blueprint imports/registration (useful for migrations).")
         else:
-            # Import and register blueprints
+            # Import and register all blueprints
             from .routes import (
                 admin,
                 collections,

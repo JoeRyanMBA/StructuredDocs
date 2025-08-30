@@ -353,7 +353,7 @@ a:hover {
   padding: 0.75rem;
   border-radius: 6px;
   font-size: 1rem;
-  font-weight: 600;
+  font-weight: 400;
   cursor: pointer;
   transition: background 0.2s ease;
 }
@@ -931,9 +931,11 @@ input:focus, select:focus, textarea:focus {
 
 /* Reusable Quick Action Card (matches Start Page look) */
 .quick-action-card {
-  display: flex;
-  align-items: center;
-  padding: 1.5rem;
+  display: grid;
+  grid-template-columns: min-content 1fr min-content;
+  gap: 1rem;
+  align-items: start;
+  padding: 1.25rem 1.5rem;
   background: var(--bg-white);
   border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-lg);
@@ -941,6 +943,7 @@ input:focus, select:focus, textarea:focus {
   color: inherit;
   transition: all 0.3s ease;
   box-shadow: var(--box-shadow-sm);
+  min-width: 0; /* allow children to shrink */
 }
 
 .quick-action-card:hover {
@@ -953,13 +956,17 @@ input:focus, select:focus, textarea:focus {
 
 .quick-action-card .action-icon {
   font-size: 2rem;
-  margin-right: 1rem;
-  min-width: 60px;
-  text-align: center;
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-light-mist-gray);
   color: var(--primary-deep-teal);
 }
 
-.quick-action-card .action-content { flex: 1; }
+.quick-action-card .action-content { min-width: 0; }
 
 .quick-action-card h3 {
   margin: 0 0 0.5rem 0;
@@ -978,7 +985,9 @@ input:focus, select:focus, textarea:focus {
 .quick-action-card .action-arrow {
   font-size: 1.5rem;
   color: var(--primary-deep-teal);
-  margin-left: 1rem;
+  flex: 0 0 auto;
+  align-self: center;
+  justify-self: end; /* keep arrow at the far right grid cell */
   transition: transform 0.3s ease;
 }
 

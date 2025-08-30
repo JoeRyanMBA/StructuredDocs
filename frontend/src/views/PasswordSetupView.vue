@@ -52,6 +52,7 @@
                 minlength="8"
                 :disabled="submitting"
                 placeholder="Enter your new password"
+                autocomplete="new-password"
                 @input="validatePassword"
               />
               <div class="password-strength">
@@ -71,6 +72,7 @@
                 required
                 :disabled="submitting"
                 placeholder="Confirm your new password"
+                autocomplete="new-password"
                 @input="validatePasswordMatch"
               />
               <small v-if="confirmPasswordError" class="error-text">{{ confirmPasswordError }}</small>

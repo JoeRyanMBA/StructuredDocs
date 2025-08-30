@@ -1,7 +1,6 @@
 <template>
   <div class="notification-ticker">
     <div v-if="filteredNotifications.length > 0" class="ticker-content-wrapper">
-      <button v-if="filteredNotifications.length > 1" class="scroll-btn up" @click="scrollUp" :disabled="currentIndex === 0">▲</button>
       <div class="ticker-content">
         <div
           v-if="currentNotification"
@@ -14,7 +13,11 @@
           </a>
         </div>
       </div>
-      <button v-if="filteredNotifications.length > 1" class="scroll-btn down" @click="scrollDown" :disabled="currentIndex === filteredNotifications.length - 1">▼</button>
+      <!-- Right-aligned stacked controls -->
+      <div v-if="filteredNotifications.length > 1" class="scroll-controls">
+        <button class="scroll-btn up" @click="scrollUp" :disabled="currentIndex === 0">▲</button>
+        <button class="scroll-btn down" @click="scrollDown" :disabled="currentIndex === filteredNotifications.length - 1">▼</button>
+      </div>
     </div>
     <div v-else class="no-notifications">
       <span>No new notifications.</span>
@@ -100,10 +103,19 @@ export default {
   z-index: 999;
 }
 
+/* Ensure the component can stretch to the full width of its parent/full-viewport
+   when placed inside a full-width wrapper. Remove any implicit max-widths. */
+.notification-ticker {
+  width: 100%;
+  max-width: none;
+  box-sizing: border-box;
+}
+
 .ticker-content-wrapper {
   display: flex;
   align-items: center;
   width: 100%;
+  max-width: none;
 }
 
 .ticker-content {
@@ -139,6 +151,36 @@ export default {
 
 .scroll-btn.up {
   margin-left: 1rem;
+}
+
+/* Right-aligned inline controls (side-by-side) */
+.scroll-controls {
+  display: flex;
+  flex-direction: row; /* side-by-side */
+  gap: 0.5rem;
+  margin-left: auto; /* push controls to the right */
+  align-items: center;
+  justify-content: center;
+}
+
+.scroll-controls .scroll-btn {
+  padding: 0.25rem 0.6rem;
+  font-size: 0.95em;
+  background: rgba(0,0,0,0.03);
+  border-radius: 4px;
+  line-height: 1;
+}
+
+/* Ensure they remain side-by-side on small screens */
+@media (max-width: 480px) {
+  .scroll-controls {
+    flex-direction: row !important;
+    gap: 0.4rem;
+  }
+  .scroll-controls .scroll-btn {
+    padding: 0.2rem 0.5rem;
+    font-size: 0.9em;
+  }
 }
 
 @media (max-width: 768px) {

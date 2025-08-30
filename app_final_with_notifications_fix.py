@@ -82,7 +82,11 @@ def create_app():
     @app.after_request
     def after_request(response):
         from flask import request
-        print(f"🔍 Request from origin: {request.headers.get('Origin')} - Response: {response.status_code}")
+        # Standard request logging (keep concise in production)
+        try:
+            print(f"🔍 Request from origin: {request.headers.get('Origin')} - Response: {response.status_code}")
+        except Exception:
+            print(f"🔍 Request processed - Response: {response.status_code}")
         response.headers.add('Access-Control-Allow-Origin', '*')
         response.headers.add('Access-Control-Allow-Headers', '*')
         response.headers.add('Access-Control-Allow-Methods', '*')
@@ -471,6 +475,56 @@ def create_app():
             # Note: We don't use db.session.rollback() here since we're using raw SQL
             return jsonify({'error': str(e), 'message': 'Error creating feedback'}), 500
 
+    # POST fallbacks for environments that block PATCH/DELETE
+    @app.route('/api/feedback/<int:feedback_id>/update', methods=['POST'])
+    def api_feedback_update_fallback(feedback_id):
+        """Fallback endpoint to update feedback using POST when PATCH is not allowed."""
+        try:
+            data = request.get_json() or {}
+            from backend.models import FeedbackReport, db
+
+            report = FeedbackReport.query.get_or_404(feedback_id)
+
+            # Allow updating common fields safely
+            allowed = ['status', 'priority', 'message', 'report_type', 'page']
+            changed = False
+            for k in allowed:
+                if k in data:
+                    setattr(report, k if k != 'report_type' else 'report_type', data.get(k))
+                    changed = True
+
+            if changed:
+                db.session.add(report)
+                db.session.commit()
+
+            return jsonify({'message': 'Feedback updated (fallback POST)', 'id': report.id, 'updated': changed})
+        except Exception as e:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return jsonify({'error': str(e), 'message': 'Error updating feedback (fallback)'}), 500
+
+    @app.route('/api/feedback/<int:feedback_id>/archive', methods=['POST'])
+    def api_feedback_archive_fallback(feedback_id):
+        """Fallback endpoint to soft-archive feedback using POST when DELETE is not allowed."""
+        try:
+            from backend.models import FeedbackReport, db
+
+            report = FeedbackReport.query.get_or_404(feedback_id)
+            # Soft-archive pattern: set status to 'archived' or 'deleted'
+            report.status = 'archived'
+            db.session.add(report)
+            db.session.commit()
+
+            return jsonify({'message': 'Feedback archived (fallback POST)', 'id': report.id})
+        except Exception as e:
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
+            return jsonify({'error': str(e), 'message': 'Error archiving feedback (fallback)'}), 500
+
     # Catch-all route to serve the frontend - TEMPORARILY DISABLED
     # @app.route('/')
     # @app.route('/<path:path>')
@@ -485,36 +539,19 @@ def create_app():
     #     except Exception as e:
     #         return jsonify({'error': 'Frontend not found', 'details': str(e)}), 404
 
-    # Root route and catch-all for frontend routing
-    @app.route('/', defaults={'path': ''})
-    @app.route('/<path:path>')
-    def serve_frontend(path=''):
-        """Serve the frontend application for all non-API routes"""
-        # API routes should be handled by their specific endpoints
-        if path.startswith('api/'):
-            return jsonify({"error": "API endpoint not found"}), 404
-            
-        # For any other route, serve the frontend index.html
-        frontend_index = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
-        if os.path.exists(frontend_index):
-            return send_file(frontend_index)
-        else:
-            # Fallback if frontend files aren't deployed yet
-            return jsonify({
-                "message": "StructuredDocs API is running!",
-                "status": "online",
-                "note": "Frontend files not yet deployed. Upload frontend/dist/* to /home/JoeRyanMBA/StructuredDocs/frontend/dist/",
-                "database": "PostgreSQL connected",
-                "endpoints": {
-                    "ping": "/api/ping",
-                    "test": "/api/test",
-                    "topics": "/api/topics", 
-                    "projects": "/api/projects",
-                    "stakeholders": "/api/stakeholders",
-                    "dashboard_stats": "/api/dashboard/stats"
-                }
-            })
+    # NOTE: frontend catch-all route moved to the end of create_app() to avoid
+    # intercepting API routes (prevents Method Not Allowed for POST/PATCH/DELETE).
     
+    @app.route('/api/feedback/<int:feedback_id>', methods=['GET'])
+    def api_get_feedback_item(feedback_id):
+        """Get a single feedback report by id"""
+        try:
+            from backend.models import FeedbackReport
+            report = FeedbackReport.query.get_or_404(feedback_id)
+            return jsonify(report.to_dict()), 200
+        except Exception as e:
+            return jsonify({'error': str(e), 'message': 'Error fetching feedback item'}), 500
+
     # Error handler for JWT errors
     from flask_jwt_extended.exceptions import NoAuthorizationError, InvalidHeaderError
 
@@ -526,15 +563,37 @@ def create_app():
     def handle_invalid_header_error(e):
         return jsonify({"error": "Invalid JWT header."}), 422
         
+    # (Diagnostics removed)
+
+    # Frontend catch-all registered last so API routes are matched first
+    @app.route('/', defaults={'path': ''})
+    @app.route('/<path:path>')
+    def serve_frontend(path=''):
+        """Serve the frontend application for all non-API routes"""
+        # API routes should be handled by their specific endpoints
+        if path.startswith('api/'):
+            return jsonify({"error": "API endpoint not found"}), 404
+
+        # For any other route, serve the frontend index.html
+        frontend_index = os.path.join(app.config.get('FRONTEND_FOLDER', ''), 'index.html')
+        if os.path.exists(frontend_index):
+            return send_file(frontend_index)
+        else:
+            # Fallback if frontend files aren't deployed yet
+            return jsonify({
+                "message": "StructuredDocs API is running!",
+                "status": "online",
+                "note": "Frontend files not yet deployed. Upload frontend/dist/* to /home/JoeRyanMBA/StructuredDocs/frontend/dist/",
+            })
+
     return app
 
-# instantiate Flask app only when running directly
 if __name__ == '__main__':
     import argparse
     parser = argparse.ArgumentParser(description='Run Flask app')
     parser.add_argument('--port', type=int, default=5050, help='Port to run the app on')
     args = parser.parse_args()
-    
+
     print("🏗️ Creating app instance for development...")
     app = create_app()
     print("✅ App instance created successfully!")

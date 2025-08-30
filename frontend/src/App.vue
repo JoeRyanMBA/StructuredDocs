@@ -2,7 +2,7 @@
   <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage }]">
     <HeaderBar v-if="!isLoginPage" />
     <SideBar v-if="!isLoginPage" />
-  <div class="ticker-bar" v-if="!isLoginPage">
+    <div class="ticker-bar" v-if="!isLoginPage">
       <NotificationTicker
         :notifications="notifications"
         contextType="global"
@@ -100,8 +100,22 @@ export default {
 }
 
 .sidebar-layout {
+  min-height: 100vh;
+  position: relative;
+}
+
+.ticker-bar {
+  position: fixed;
+  /*  top: var(--header-height); */
+  left: 0;
+  right: 0;
+  height: var(--ticker-height);
+  z-index: 998;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  box-shadow: 0 2px 4px #0000001a;
   display: flex;
-  padding-top: var(--header-height);
+  align-items: center;
 }
 
 .content {
@@ -109,15 +123,14 @@ export default {
   max-width: 1200px;
   margin-left: var(--sidebar-width);
   margin-right: auto;
-  margin-top: var(--ticker-height);
-  flex-grow: 1;
+  margin-top: calc(var(--header-height) + var(--ticker-height));
   width: calc(100% - var(--sidebar-width));
   cursor: default; /* Sets the default cursor for the content area */
 }
 
 .login-bg {
   min-height: 100vh;
-  background: linear-gradient(135deg, #205493 0%, #005E7B 100%) !important;
+  background: linear-gradient(135deg, var(--primary-light-teal) 0%, #005E7B 100%) !important;
 }
 
 .login-content {
@@ -143,6 +156,7 @@ export default {
   }
   .ticker-bar {
     left: 0;
+    margin-top: 0;
   }
 }
 </style>

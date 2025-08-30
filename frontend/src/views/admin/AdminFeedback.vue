@@ -5,6 +5,23 @@
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else>
+      <div class="controls">
+        <input v-model="filters.q" placeholder="Search message..." @input="load" />
+        <select v-model="filters.type" @change="load">
+          <option value="">All types</option>
+          <option value="suggestion">Suggestion</option>
+          <option value="bug">Bug</option>
+          <option value="other">Other</option>
+        </select>
+        <select v-model="filters.status" @change="load">
+          <option value="">Any status</option>
+          <option value="new">New</option>
+          <option value="in_progress">In Progress</option>
+          <option value="resolved">Resolved</option>
+          <option value="archived">Archived</option>
+        </select>
+        <button @click="resetFilters">Reset</button>
+      </div>
       <div v-if="error" class="error">{{ error }}</div>
       <table v-if="reports.length" class="reports">
         <thead>
@@ -27,10 +44,30 @@
             <td>{{ r.component }}</td>
             <td>{{ r.user_contact }}</td>
             <td>{{ formatDate(r.created_at) }}</td>
+            <td class="actions">
+              <button @click="openEdit(r)">Edit</button>
+              <button @click="archive(r)">Archive</button>
+            </td>
           </tr>
         </tbody>
       </table>
       <div v-else class="empty">No feedback yet.</div>
+    </div>
+
+    <!-- Edit modal -->
+    <div v-if="editing" class="modal">
+      <div class="modal-body">
+        <h3>Edit Feedback #{{ editItem.id }}</h3>
+        <label>Type <select v-model="editItem.report_type"><option>suggestion</option><option>bug</option><option>other</option></select></label>
+        <label>Component <input v-model="editItem.component" /></label>
+        <label>Contact <input v-model="editItem.user_contact" /></label>
+        <label>Status <select v-model="editItem.status"><option>new</option><option>in_progress</option><option>resolved</option><option>archived</option></select></label>
+        <label>Message <textarea v-model="editItem.message"></textarea></label>
+        <div class="modal-actions">
+          <button @click="saveEdit">Save</button>
+          <button @click="closeEdit">Cancel</button>
+        </div>
+      </div>
     </div>
   </section>
 </template>
@@ -39,7 +76,10 @@
 export default {
   name: 'AdminFeedback',
   data() {
-    return { loading: false, error: '', reports: [] };
+    return { loading: false, error: '', reports: [],
+      filters: { q: '', type: '', status: '' },
+      editing: false, editItem: null
+    };
   },
   created() {
     this.load();
@@ -48,13 +88,64 @@ export default {
     async load() {
       this.loading = true; this.error = ''; this.reports = [];
       try {
-        const res = await fetch('/api/feedback');
+        const params = new URLSearchParams();
+        if (this.filters.q) params.append('q', this.filters.q);
+        if (this.filters.type) params.append('type', this.filters.type);
+        if (this.filters.status) params.append('status', this.filters.status);
+        const res = await fetch('/api/feedback?' + params.toString());
         if (!res.ok) throw new Error('Failed to load feedback');
         this.reports = await res.json();
       } catch (e) {
         this.error = e.message || 'Error loading feedback';
       } finally {
         this.loading = false;
+      }
+    },
+    resetFilters() {
+      this.filters = { q: '', type: '', status: '' };
+      this.load();
+    },
+    openEdit(item) {
+      this.editing = true;
+      // shallow copy to avoid mutating list until saved
+      this.editItem = Object.assign({}, item);
+    },
+    closeEdit() { this.editing = false; this.editItem = null; },
+    async saveEdit() {
+      try {
+        let res = await fetch('/api/feedback/' + this.editItem.id, {
+          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(this.editItem)
+        });
+        if (res.status === 405) {
+          // fallback to POST update
+          res = await fetch('/api/feedback/' + this.editItem.id + '/update', {
+            method: 'POST', headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(this.editItem)
+          });
+        }
+        if (!res.ok) throw new Error('Failed to save');
+        const updated = await res.json();
+        // update list
+        const idx = this.reports.findIndex(r => r.id === updated.id);
+        if (idx !== -1) this.reports.splice(idx, 1, updated);
+        this.closeEdit();
+      } catch (e) {
+        this.error = e.message || 'Error saving feedback';
+      }
+    },
+    async archive(item) {
+      if (!confirm('Archive this feedback?')) return;
+      try {
+        let res = await fetch('/api/feedback/' + item.id, { method: 'DELETE' });
+        if (res.status === 405) {
+          res = await fetch('/api/feedback/' + item.id + '/archive', { method: 'POST' });
+        }
+        if (!res.ok) throw new Error('Failed to archive');
+        // remove from list
+        this.reports = this.reports.filter(r => r.id !== item.id);
+      } catch (e) {
+        this.error = e.message || 'Error archiving';
       }
     },
     formatDate(iso) {
@@ -75,4 +166,14 @@ export default {
 .reports th { background: #f8f9fa; text-align: left; }
 .reports .message { max-width: 520px; white-space: pre-wrap; }
 .empty { color: #6c757d; }
+
+.controls { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.75rem; }
+.controls input { padding:0.35rem; flex:1; }
+.controls select { padding:0.35rem; }
+.actions button { margin-right:0.4rem; }
+.modal { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
+.modal-body { background:white; padding:1rem; width:640px; max-width:95%; border-radius:6px; }
+.modal-body label { display:block; margin:0.5rem 0; }
+.modal-body textarea { width:100%; min-height:100px; }
+.modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; margin-top:0.5rem; }
 </style>
