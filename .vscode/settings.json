@@ -1,6 +1,6 @@
 {
-    "python.pythonPath": "venv_py313/bin/python",
-    "python.defaultInterpreterPath": "venv_py313/bin/python",
+    "python.pythonPath": ".venv/bin/python",
+    "python.defaultInterpreterPath": ".venv/bin/python",
     "python.terminal.activateEnvironment": true,
     "python-envs.defaultEnvManager": "ms-python.python:system",
     "python-envs.pythonProjects": [],

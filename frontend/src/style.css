@@ -54,10 +54,10 @@
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
-  align-items: flex-start; /* Changed from center to flex-start */
-  padding-top: 0.5rem; /* Adjusted to exactly 0.5rem from the top */
+  align-items: center;
+  padding-top: 0.5rem;
   z-index: 1000;
-  overflow-y: auto; /* Added for scroll on smaller screens */
+  overflow-y: auto;
 }
 
 .modal-content {

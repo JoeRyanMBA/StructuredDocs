@@ -65,6 +65,20 @@
               <p>Manage user accounts and permissions</p>
             </div>
           </button>
+          <button class="action-card" @click="navigateTo('/notifications/new')">
+            <div class="action-icon">🔔</div>
+            <div class="action-content">
+              <h3>Create Notification</h3>
+              <p>Send notifications to users</p>
+            </div>
+          </button>
+          <button class="action-card" @click="navigateTo('/admin/bugs')">
+            <div class="action-icon">🐛</div>
+            <div class="action-content">
+              <h3>View Bug Reports</h3>
+              <p>Review user-submitted bug reports</p>
+            </div>
+          </button>
         </div>
       </div>
 
@@ -95,6 +109,26 @@
                   <div class="metric-fill" :style="{width: systemMetrics.storage + '%'}"></div>
                 </div>
                 <span class="metric-value">{{ systemMetrics.storage }}%</span>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Recent System Events -->
+      <div class="dashboard-section">
+        <h2>Recent System Events</h2>
+        <div class="system-events">
+          <div v-if="systemEvents.length === 0" class="empty-state">
+            <p>No recent system events</p>
+          </div>
+          <div v-else class="events-list">
+            <div v-for="event in systemEvents.slice(0, 5)" :key="event.id" class="event-item">
+              <div class="event-icon">📋</div>
+              <div class="event-content">
+                <div class="event-title">{{ event.title || 'System Event' }}</div>
+                <div class="event-description">{{ event.description || event.message }}</div>
+                <div class="event-time">{{ formatDate(event.created_at) }}</div>
               </div>
             </div>
           </div>
@@ -283,6 +317,119 @@ export default {
      the notification ticker. Rely on the global margin-top to position
      dashboard content beneath the fixed header + ticker. */
   padding-top: 0;
+}
+
+/* System Overview Styles */
+.system-overview {
+  display: grid;
+  grid-template-columns: 1fr;
+  gap: 1.5rem;
+}
+
+.system-section {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+}
+
+.system-section h3 {
+  margin: 0 0 1rem 0;
+  color: var(--primary-deep-teal);
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.performance-metrics {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.metric-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+}
+
+.metric-name {
+  min-width: 100px;
+  font-weight: 500;
+  color: var(--text-secondary-cool-gray);
+}
+
+.metric-bar {
+  flex: 1;
+  height: 8px;
+  background: var(--border-light-gray);
+  border-radius: 4px;
+  overflow: hidden;
+}
+
+.metric-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--primary-teal), var(--primary-light-teal));
+  border-radius: 4px;
+  transition: width 0.3s ease;
+}
+
+.metric-value {
+  min-width: 50px;
+  text-align: right;
+  font-weight: 600;
+  color: var(--primary-deep-teal);
+}
+
+/* Recent System Events Styles */
+.system-events {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+}
+
+.events-list {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+.event-item {
+  display: flex;
+  align-items: flex-start;
+  gap: 1rem;
+  padding: 1rem;
+  background: var(--bg-light-mist-gray);
+  border-radius: var(--border-radius-md);
+  border: 1px solid var(--border-light-gray);
+}
+
+.event-icon {
+  font-size: 1.2rem;
+  color: var(--primary-teal);
+  margin-top: 0.2rem;
+}
+
+.event-content {
+  flex: 1;
+}
+
+.event-title {
+  font-weight: 600;
+  color: var(--text-primary-dark-gray);
+  margin: 0 0 0.5rem 0;
+}
+
+.event-description {
+  color: var(--text-secondary-cool-gray);
+  margin: 0 0 0.5rem 0;
+  font-size: 0.9rem;
+}
+
+.event-time {
+  color: var(--text-secondary-cool-gray);
+  font-size: 0.8rem;
+  font-style: italic;
 }
 
 /* Dashboard Sections: use global .dashboard-section from assets/style.css */

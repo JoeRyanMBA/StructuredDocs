@@ -37,6 +37,7 @@
                 placeholder="Enter your password"
                 autocomplete="current-password"
                 :disabled="loading"
+                class="password-input"
               />
               <button
                 type="button"
@@ -44,9 +45,10 @@
                 @click="showPassword = !showPassword"
                 :disabled="loading"
                 aria-label="Toggle password visibility"
+                tabindex="0"
               >
-                <span v-if="showPassword">🙈</span>
-                <span v-else>👁️</span>
+                <span v-if="showPassword" class="toggle-icon">🙈</span>
+                <span v-else class="toggle-icon">👁️</span>
               </button>
             </div>
           </div>
@@ -571,28 +573,45 @@ export default {
   align-items: center;
 }
 
-.password-input-container input {
+.password-input-container .password-input {
   flex: 1;
   padding-right: 50px; /* Make room for the toggle button */
+  /* Disable browser-native password reveal to avoid conflicts */
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
 }
 
 .password-toggle {
   position: absolute;
-  right: 10px;
+  right: 12px;
   top: 50%;
   transform: translateY(-50%);
   background: none;
   border: none;
   cursor: pointer;
-  padding: 5px;
+  padding: 8px;
   border-radius: 4px;
   color: var(--text-secondary-cool-gray);
-  font-size: 16px;
-  transition: color 0.2s ease;
+  font-size: 18px;
+  transition: all 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.toggle-icon {
+  display: inline-block;
+  line-height: 1;
+  font-size: 18px;
 }
 
 .password-toggle:hover {
   color: var(--primary-medium-teal);
+  background-color: rgba(0, 123, 191, 0.1);
 }
 
 .password-toggle:disabled {
@@ -603,5 +622,11 @@ export default {
 .password-toggle:focus {
   outline: 2px solid var(--primary-light-teal-t);
   outline-offset: 2px;
+  background-color: rgba(0, 123, 191, 0.1);
+}
+
+/* Ensure our toggle appears above any browser-native elements */
+.password-input-container {
+  isolation: isolate;
 }
 </style>

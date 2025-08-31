@@ -200,7 +200,7 @@ export default {
 
 .arrow {
   transition: transform 0.2s;
-  cursor: pointer;
+  cursor: default;
 }
 
 .arrow.open {
