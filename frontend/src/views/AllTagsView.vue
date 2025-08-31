@@ -466,6 +466,8 @@ export default {
   overflow: hidden;
   text-overflow: ellipsis;
   word-break: normal;
+  display: block;
+  width: 100%;
 }
 
 .created-date {

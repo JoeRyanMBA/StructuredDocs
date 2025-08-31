@@ -106,7 +106,7 @@ export default {
 
 .ticker-bar {
   position: fixed;
-  /*  top: var(--header-height); */
+  top: calc(var(--header-height) + 0.5rem);
   left: 0;
   right: 0;
   height: var(--ticker-height);
@@ -123,7 +123,7 @@ export default {
   max-width: 1200px;
   margin-left: var(--sidebar-width);
   margin-right: auto;
-  margin-top: calc(var(--header-height) + var(--ticker-height));
+  margin-top: calc(var(--header-height) + var(--ticker-height) + 1rem);
   width: calc(100% - var(--sidebar-width));
   cursor: default; /* Sets the default cursor for the content area */
 }
@@ -148,7 +148,7 @@ export default {
     margin-left: 0;
     padding: 1rem;
     width: 100%;
-    margin-top: var(--ticker-height);
+    margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem);
   }
   .login-content {
     margin-top: 0 !important;

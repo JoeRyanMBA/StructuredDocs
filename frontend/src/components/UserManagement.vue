@@ -1,12 +1,5 @@
 <template>
   <div class="user-management">
-    <div class="header">
-      <h1>User Management</h1>
-      <button @click="addUser" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Add User
-      </button>
-    </div>
-
     <h2>User List</h2>
 
     <!-- Users Table -->

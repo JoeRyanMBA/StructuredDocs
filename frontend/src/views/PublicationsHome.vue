@@ -2,7 +2,6 @@
     <h2>Publications</h2>iv class="publications-home">
     <h2>Publications</h2>plate>
   <div class="publications-home">
-    <Breadcrumbs />
     <h2>All Publications</h2>
     
     <p class="guidance-text">

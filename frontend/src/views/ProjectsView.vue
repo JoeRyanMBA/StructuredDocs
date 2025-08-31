@@ -568,7 +568,6 @@
 
 
 <script>
-import Breadcrumbs from '../components/Breadcrumbs.vue'
 import CalendarWidget from '../components/CalendarWidget.vue'
 import { createStakeholder, addStakeholderToProject } from '../api/stakeholders';
 import { getCollections, updateCollection } from '../api/collections';
@@ -576,7 +575,7 @@ import { createPublication, deletePublication, updatePublication } from '../api/
 import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
 
 export default {
-  components: { Breadcrumbs, CalendarWidget },
+  components: { CalendarWidget },
   props: {
     notifications: {
       type: Array,

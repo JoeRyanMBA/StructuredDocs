@@ -52,7 +52,7 @@
       <h2>Quick Actions</h2>
       <p class="section-description">Import and manage your content</p>
       <div class="quick-actions-grid">
-          <button class="quick-action-card" @click="startNewImport">
+          <button class="action-card" @click="startNewImport">
             <div class="action-icon">📥</div>
             <div class="action-content">
               <h3>Import New Document</h3>
@@ -60,7 +60,7 @@
             </div>
             <div class="action-arrow">→</div>
           </button>
-          <button class="quick-action-card" @click="navigateTo('/import/history')">
+          <button class="action-card" @click="navigateTo('/import/history')">
             <div class="action-icon">📋</div>
             <div class="action-content">
               <h3>View Import History</h3>
@@ -68,7 +68,7 @@
             </div>
             <div class="action-arrow">→</div>
           </button>
-          <button class="quick-action-card" @click="navigateTo('/topics')">
+          <button class="action-card" @click="navigateTo('/topics')">
             <div class="action-icon">📝</div>
             <div class="action-content">
               <h3>Browse Topics</h3>
@@ -83,7 +83,7 @@
     <div class="content-grid">
 
       <!-- Pending Reviews -->
-      <div class="dashboard-section">
+      <div class="dashboard-section full-width">
         <h2>Pending Reviews</h2>
         <div class="pending-list">
           <div v-if="pendingImports.length === 0" class="empty-state">
