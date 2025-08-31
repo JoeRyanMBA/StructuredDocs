@@ -147,6 +147,34 @@ def create_app(environ=None, start_response=None):
         from backend.utils.email_service import email_service
         email_service.reload_config()
         
+        # Create admin user if it doesn't exist (for production deployment)
+        try:
+            from backend.models import User
+            from werkzeug.security import generate_password_hash
+            from sqlalchemy import func
+            
+            admin_email = 'admin@example.com'
+            admin_password = 'Admin123!'
+            
+            # Check if admin user exists
+            admin_user = User.query.filter(func.lower(User.email) == admin_email.lower()).first()
+            if not admin_user:
+                # Create admin user
+                admin_user = User(
+                    name='Admin User',
+                    email=admin_email,
+                    password_hash=generate_password_hash(admin_password),
+                    role='admin',
+                    active=True
+                )
+                db.session.add(admin_user)
+                db.session.commit()
+                print(f"✅ Created admin user: {admin_email}")
+            else:
+                print(f"✅ Admin user already exists: {admin_email}")
+        except Exception as e:
+            print(f"⚠️ Could not create admin user: {e}")
+        
         # Import and register blueprints (skippable for migrations/CLI)
         # Support selective enabling via ENABLE_BLUEPRINTS env var (comma-separated short names)
         # or via a file path provided in ENABLE_BLUEPRINTS_FILE. Reading from a file
