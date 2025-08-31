@@ -4,10 +4,10 @@
   "description": "StructuredDocs application",
   "main": "start.sh",
   "scripts": {
-    "build": "echo '🔧 Starting build process...' && cd frontend && npm install && npm run build && cd .. && echo '📦 Installing Python dependencies...' && python3 --version && which python3 && which pip3 && apt-get update && apt-get install -y python3-pip python3-dev build-essential && pip3 install --upgrade pip && pip3 install flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx && echo '✅ Python dependencies installed'",
+    "build": "echo '🔧 Starting build process...' && cd frontend && npm install && npm run build && cd .. && echo '📦 Installing Python dependencies...' && python3 --version && apt-get update -qq && apt-get install -y -qq python3-pip python3-dev build-essential && pip3 --version && pip3 install --upgrade pip && pip3 install flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx && echo '✅ Python dependencies installed'",
     "start": "./start.sh",
     "dev": "./start.sh",
-    "postinstall": "echo '🔧 Postinstall: Installing Python dependencies...' && python3 --version && pip3 install flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx"
+    "postinstall": "echo '🔧 Postinstall: Installing Python dependencies...' && python3 --version && apt-get update -qq && apt-get install -y -qq python3-pip && pip3 --version && pip3 install flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx"
   },
   "engines": {
     "node": ">=16.0.0"
