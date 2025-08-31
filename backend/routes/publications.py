@@ -445,7 +445,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
-            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id if self.publication else '0000':04d}")
             form_text = f"Form: {form_number}"
             text_width = canvas.stringWidth(form_text, "Helvetica", 10)
             canvas.drawString(right_margin_x - text_width, footer_text_y, form_text)
@@ -1392,7 +1392,6 @@ def export_pdf(pub_id):
         valid_configs = ['default', 'corporate', 'academic', 'compact', 'organization']
         if config_type not in valid_configs:
             config_type = 'default'
-            config_type = 'default'
         
         # Build the hierarchical structure
         def serialize_node(node):
@@ -1464,6 +1463,10 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
     buffer = io.BytesIO()
     
+    # Ensure config_type is always defined
+    if not config_type:
+        config_type = 'default'
+    
     # Select configuration based on type
     if config_type == 'corporate':
         config = CorporateConfig
@@ -1524,7 +1527,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     # Title page content - move title down about 1" and align to right margin
     story.append(Spacer(1, 84))  # Move down ~1" (72pt)
     
-    if hasattr(doc, 'background_image_path') and doc.background_image_path:
+    if getattr(doc, 'background_image_path', None):
         # For background image docs, use white text for visibility on blue background
         enhanced_title_style = ParagraphStyle(
             'EnhancedTitle',
