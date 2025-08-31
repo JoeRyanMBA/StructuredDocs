@@ -51,10 +51,12 @@ if [ "$NEED_INSTALL" = "yes" ]; then
     python3 -m pip install --user \
         flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended \
         python-dotenv gunicorn email-validator pillow reportlab python-docx >/dev/null 2>&1 || true
+    # Add user site-packages to Python path
+    python3 -c "import site; site.addsitedir(site.getusersitepackages())" >/dev/null 2>&1 || true
 fi
 
 # Verify installation
-if python3 -c "import flask_sqlalchemy" 2>/dev/null; then
+if python3 -c "import site; site.addsitedir(site.getusersitepackages()); import flask_sqlalchemy" 2>/dev/null; then
     echo "✅ Python dependencies ready"
 else
     echo "⚠️ Python dependencies still missing; app may fail to start"
@@ -80,7 +82,7 @@ else
 fi
 
 # Final check for Python dependencies before starting
-if python3 -c "import flask_sqlalchemy, flask, sqlalchemy" 2>/dev/null; then
+if python3 -c "import site; site.addsitedir(site.getusersitepackages()); import flask_sqlalchemy, flask, sqlalchemy" 2>/dev/null; then
     echo "🌐 Starting gunicorn server..."
     exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120
 else

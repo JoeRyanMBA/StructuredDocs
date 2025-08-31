@@ -88,6 +88,9 @@ def install_dependencies():
 
         if python_pip_install(packages):
             try:
+                # Add user site-packages to path if needed
+                import site
+                site.addsitedir(site.getusersitepackages())
                 import flask_sqlalchemy  # noqa: F401
                 print("✅ Dependencies installed successfully")
                 return True
