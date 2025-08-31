@@ -5,8 +5,8 @@
   "main": "start.sh",
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
-    "start": "python3 run_migrations_production.py && ./start.sh",
-    "dev": "python3 run_migrations_production.py && ./start.sh"
+    "start": "./start.sh",
+    "dev": "./start.sh"
   },
   "engines": {
     "node": ">=16.0.0"
