@@ -1,0 +1,16 @@
+{
+  "name": "structureddocs",
+  "version": "1.0.0",
+  "description": "StructuredDocs application",
+  "main": "start.sh",
+  "scripts": {
+    "build": "cd frontend && npm install && npm run build",
+    "start": "python3 run_migrations_production.py && ./start.sh",
+    "dev": "python3 run_migrations_production.py && ./start.sh"
+  },
+  "engines": {
+    "node": ">=16.0.0"
+  },
+  "dependencies": {},
+  "devDependencies": {}
+}
