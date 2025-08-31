@@ -191,5 +191,5 @@ package-lock.json
 yarn.lock
 
 # Build output
-dist/
-frontend/dist/
+# dist/  # Commented out to allow frontend/dist/ for production deployment
+# frontend/dist/  # Removed to allow production deployment of built files
