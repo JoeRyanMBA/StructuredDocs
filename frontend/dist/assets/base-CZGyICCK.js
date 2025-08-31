@@ -1,2 +1,0 @@
-const o="https://structureddocs.joe-ryan.mba";async function e(t,n={}){const r=`${o}${t}`,a={credentials:"include",headers:{"Content-Type":"application/json",...n.headers},...n},s=await fetch(r,a);if(!s.ok)throw new Error(`API Error: ${s.status} ${s.statusText}`);return s.json()}async function c(t){return e(t)}async function i(t,n){return e(t,{method:"POST",body:JSON.stringify(n)})}export{i as a,c as b,e as c};
-//# sourceMappingURL=base-CZGyICCK.js.map
