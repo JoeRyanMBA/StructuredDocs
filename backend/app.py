@@ -25,16 +25,22 @@ def create_app():
     print("🚀 Creating Flask app...")
     print(f"Current working directory: {os.getcwd()}")
     print(f"Files in current directory: {os.listdir('.')[:5]}...")  # Show first 5 files
-    
+
+    # CRITICAL: Check if essential files exist
+    essential_files = ['.enable_blueprints', 'frontend/dist/index.html', 'frontend/dist/favicon.ico']
+    for file_path in essential_files:
+        if os.path.exists(file_path):
+            print(f"✅ {file_path} exists")
+        else:
+            print(f"❌ {file_path} MISSING!")
+
     # Load environment variables from .env file
     load_env_file()
-    
+
     app = Flask(__name__, instance_relative_config=True)
     print("📱 Flask instance created")
     print(f"Instance path: {app.instance_path}")
-    print(f"Root path: {app.root_path}")
-    
-    # Load configuration
+    print(f"Root path: {app.root_path}")    # Load configuration
     app.config.from_mapping(
         SECRET_KEY='your-flask-secret-key-change-in-production',
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
