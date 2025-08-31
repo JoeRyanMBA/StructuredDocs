@@ -21,12 +21,13 @@ else
     echo "❌ Python dependencies not found, attempting to install..."
     if command -v pip3 &> /dev/null; then
         echo "📦 Installing Python dependencies with pip3..."
-        pip3 install --user -r backend/requirements.txt 2>/dev/null || pip3 install -r backend/requirements.txt 2>/dev/null || echo "⚠️ Failed to install Python dependencies"
+        pip3 install --user -r backend/requirements.txt 2>/dev/null || pip3 install -r backend/requirements.txt 2>/dev/null || echo "⚠️ Failed to install Python dependencies with pip3"
     elif command -v pip &> /dev/null; then
         echo "📦 Installing Python dependencies with pip..."
-        pip install --user -r backend/requirements.txt 2>/dev/null || pip install -r backend/requirements.txt 2>/dev/null || echo "⚠️ Failed to install Python dependencies"
+        pip install --user -r backend/requirements.txt 2>/dev/null || pip install -r backend/requirements.txt 2>/dev/null || echo "⚠️ Failed to install Python dependencies with pip"
     else
-        echo "❌ Neither pip3 nor pip found, cannot install Python dependencies"
+        echo "❌ Neither pip3 nor pip found, trying apt-get..."
+        apt-get update && apt-get install -y python3-flask python3-sqlalchemy python3-psycopg2 python3-gunicorn 2>/dev/null || echo "⚠️ Failed to install Python dependencies with apt-get"
     fi
 fi
 
