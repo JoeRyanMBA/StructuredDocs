@@ -33,12 +33,33 @@ def install_dependencies():
                 # Check if pip module is available
                 pip_check = subprocess.run([sys.executable, "-m", "pip", "--version"], capture_output=True)
                 if pip_check.returncode != 0:
-                    # Bootstrap pip
+                    # Bootstrap pip via ensurepip, then fallback to get-pip.py
                     print("🛠️ Bootstrapping pip with ensurepip...")
                     ep = subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], capture_output=True)
                     if ep.returncode != 0:
                         print(f"⚠️ ensurepip failed: {ep.stderr.decode(errors='ignore')[:200]}")
-                        return False
+                        # Fallback: download and run get-pip.py
+                        try:
+                            print("🛠️ Falling back to get-pip.py bootstrap...")
+                            import tempfile, urllib.request
+                            with tempfile.TemporaryDirectory() as td:
+                                gp = os.path.join(td, "get-pip.py")
+                                url = "https://bootstrap.pypa.io/get-pip.py"
+                                with urllib.request.urlopen(url, timeout=30) as r, open(gp, "wb") as f:
+                                    f.write(r.read())
+                                gp_proc = subprocess.run([sys.executable, gp], capture_output=True)
+                                if gp_proc.returncode != 0:
+                                    print(f"⚠️ get-pip.py failed: {gp_proc.stderr.decode(errors='ignore')[:200]}")
+                                    return False
+                        except Exception as ge:
+                            print(f"⚠️ get-pip bootstrap exception: {ge}")
+                            return False
+
+                # Try upgrading pip quietly (best-effort)
+                try:
+                    subprocess.run([sys.executable, "-m", "pip", "install", "--upgrade", "pip"], capture_output=True)
+                except Exception:
+                    pass
 
                 print("📦 Installing packages via python -m pip --user ...")
                 proc = subprocess.run([sys.executable, "-m", "pip", "install", "--user", *args], capture_output=True)
