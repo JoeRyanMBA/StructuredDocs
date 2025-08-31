@@ -59,10 +59,11 @@ if not install_dependencies():
     print("❌ Cannot proceed without Python dependencies")
     sys.exit(1)
 
-# Now safe to import
-from backend.app import create_app
-
+# Now safe to import - do this inside the function to avoid module-level import
 def run_migrations():
+    # Import here, after dependencies are guaranteed to be installed
+    from backend.app import create_app
+    
     app = create_app()
     
     with app.app_context():
