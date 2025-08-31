@@ -7,6 +7,8 @@ PORT=${PORT:-8000}
 
 echo "🚀 Starting StructuredDocs on port $PORT"
 echo "Current working directory: $(pwd)"
+echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
+echo "Pip version: $(pip3 --version 2>/dev/null || echo 'Pip3 not found')"
 
 # Change to the app directory (this is crucial for container environments)
 cd /workspace/StructuredDocs || cd /app || echo "⚠️  Could not change to app directory"
@@ -15,19 +17,24 @@ echo "Working directory after cd: $(pwd)"
 
 # Check if Python dependencies are installed
 echo "📦 Checking Python dependencies..."
-if python3 -c "import flask_sqlalchemy" 2>/dev/null; then
+if python3 -c "import flask_sqlalchemy, flask, sqlalchemy, psycopg2" 2>/dev/null; then
     echo "✅ Python dependencies already installed"
 else
     echo "❌ Python dependencies not found, attempting to install..."
-    if command -v pip3 &> /dev/null; then
-        echo "📦 Installing Python dependencies with pip3..."
-        pip3 install --user -r backend/requirements.txt 2>/dev/null || pip3 install -r backend/requirements.txt 2>/dev/null || echo "⚠️ Failed to install Python dependencies with pip3"
-    elif command -v pip &> /dev/null; then
-        echo "📦 Installing Python dependencies with pip..."
-        pip install --user -r backend/requirements.txt 2>/dev/null || pip install -r backend/requirements.txt 2>/dev/null || echo "⚠️ Failed to install Python dependencies with pip"
+    echo "🔧 Updating package list..."
+    apt-get update -qq
+    
+    echo "📦 Installing Python packages via apt-get..."
+    apt-get install -y -qq python3-pip python3-dev build-essential python3-flask python3-sqlalchemy python3-psycopg2 python3-gunicorn 2>/dev/null || echo "⚠️ apt-get installation failed"
+    
+    echo "📦 Installing additional packages via pip3..."
+    pip3 install --user flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx 2>/dev/null || pip3 install flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx 2>/dev/null || echo "⚠️ pip3 installation failed"
+    
+    # Final verification
+    if python3 -c "import flask_sqlalchemy" 2>/dev/null; then
+        echo "✅ Python dependencies installed successfully"
     else
-        echo "❌ Neither pip3 nor pip found, trying apt-get..."
-        apt-get update && apt-get install -y python3-flask python3-sqlalchemy python3-psycopg2 python3-gunicorn 2>/dev/null || echo "⚠️ Failed to install Python dependencies with apt-get"
+        echo "❌ Python dependencies still not available after installation attempts"
     fi
 fi
 
@@ -45,12 +52,14 @@ else
 fi
 
 # Final check for Python dependencies before starting
-if python3 -c "import flask_sqlalchemy" 2>/dev/null; then
+if python3 -c "import flask_sqlalchemy, flask, sqlalchemy" 2>/dev/null; then
     echo "🌐 Starting gunicorn server..."
-    exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info
+    exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
     echo "This might be due to the Node.js environment not supporting Python dependencies properly."
     echo "Consider switching to a Python environment on DigitalOcean App Platform."
+    echo "Available Python packages:"
+    python3 -c "import sys; print(sys.path)" 2>/dev/null || echo "Cannot check Python path"
     exit 1
 fi
