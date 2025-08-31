@@ -28,15 +28,27 @@
 
           <div class="form-group">
             <label for="password">Password</label>
-            <input
-              id="password"
-              v-model="loginForm.password"
-              type="password"
-              required
-              placeholder="Enter your password"
-              autocomplete="current-password"
-              :disabled="loading"
-            />
+            <div class="password-input-container">
+              <input
+                id="password"
+                v-model="loginForm.password"
+                :type="showPassword ? 'text' : 'password'"
+                required
+                placeholder="Enter your password"
+                autocomplete="current-password"
+                :disabled="loading"
+              />
+              <button
+                type="button"
+                class="password-toggle"
+                @click="showPassword = !showPassword"
+                :disabled="loading"
+                aria-label="Toggle password visibility"
+              >
+                <span v-if="showPassword">🙈</span>
+                <span v-else>👁️</span>
+              </button>
+            </div>
           </div>
 
           <div class="form-options">
@@ -183,6 +195,7 @@ export default {
       error: '',
       showRequestAccess: false,
       showForgotPassword: false,
+      showPassword: false,
       loginForm: {
         email: '',
         password: '',
@@ -549,5 +562,46 @@ export default {
     gap: 1rem;
     align-items: flex-start;
   }
+}
+
+/* Password input with toggle */
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container input {
+  flex: 1;
+  padding-right: 50px; /* Make room for the toggle button */
+}
+
+.password-toggle {
+  position: absolute;
+  right: 10px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 5px;
+  border-radius: 4px;
+  color: var(--text-secondary-cool-gray);
+  font-size: 16px;
+  transition: color 0.2s ease;
+}
+
+.password-toggle:hover {
+  color: var(--primary-medium-teal);
+}
+
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-toggle:focus {
+  outline: 2px solid var(--primary-light-teal-t);
+  outline-offset: 2px;
 }
 </style>
