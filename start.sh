@@ -27,23 +27,20 @@ echo "Working directory after cd: $(pwd)"
 
 # Check/install Python dependencies using python -m pip with ensurepip fallback
 echo "📦 Checking Python dependencies..."
-if python3 - <<'PY'
-import importlib
-mods=["flask_sqlalchemy","flask","sqlalchemy","psycopg2","flask_cors","flask_jwt_extended"]
-missing=[m for m in mods if importlib.util.find_spec(m) is None]
-print("MISSING:"+",".join(missing))
-PY
-then :; fi
-
-NEED_INSTALL=$(python3 - <<'PY'
-import importlib
-mods=["flask_sqlalchemy","flask","sqlalchemy","psycopg2","flask_cors","flask_jwt_extended"]
-missing=[m for m in mods if importlib.util.find_spec(m) is None]
-print("yes" if missing else "no")
-PY
-)
-
-if [ "$NEED_INSTALL" = "yes" ]; then
+if python3 -c "
+try:
+    import flask_sqlalchemy
+    import flask
+    import sqlalchemy
+    import psycopg2
+    import flask_cors
+    import flask_jwt_extended
+    print('INSTALLED')
+except ImportError as e:
+    print('MISSING')
+" 2>/dev/null | grep -q "INSTALLED"; then
+    echo "✅ Python dependencies already installed"
+else
     echo "❌ Python deps missing; installing via python -m pip..."
     python3 -m pip --version >/dev/null 2>&1 || python3 -m ensurepip --upgrade >/dev/null 2>&1 || curl -s https://bootstrap.pypa.io/get-pip.py | python3
     # Upgrade pip quietly, then install
@@ -56,7 +53,13 @@ if [ "$NEED_INSTALL" = "yes" ]; then
 fi
 
 # Verify installation
-if python3 -c "import site; site.addsitedir(site.getusersitepackages()); import flask_sqlalchemy" 2>/dev/null; then
+if python3 -c "
+try:
+    import flask_sqlalchemy
+    print('OK')
+except ImportError:
+    print('FAIL')
+" 2>/dev/null | grep -q "OK"; then
     echo "✅ Python dependencies ready"
 else
     echo "⚠️ Python dependencies still missing; app may fail to start"
@@ -82,7 +85,15 @@ else
 fi
 
 # Final check for Python dependencies before starting
-if python3 -c "import site; site.addsitedir(site.getusersitepackages()); import flask_sqlalchemy, flask, sqlalchemy" 2>/dev/null; then
+if python3 -c "
+try:
+    import flask_sqlalchemy
+    import flask
+    import sqlalchemy
+    print('OK')
+except ImportError:
+    print('FAIL')
+" 2>/dev/null | grep -q "OK"; then
     echo "🌐 Starting gunicorn server..."
     exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120
 else
