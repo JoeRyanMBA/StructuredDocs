@@ -78,6 +78,7 @@ def install_dependencies():
             "psycopg2-binary",
             "flask-cors",
             "flask-jwt-extended",
+            "flask-migrate",
             "python-dotenv",
             "gunicorn",
             "email-validator",
