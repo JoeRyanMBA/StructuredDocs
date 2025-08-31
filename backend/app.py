@@ -34,6 +34,25 @@ def create_app():
         else:
             print(f"❌ {file_path} MISSING!")
 
+    # EMERGENCY FALLBACK: If critical files missing, create minimal app
+    if not all(os.path.exists(f) for f in essential_files):
+        print("⚠️  Critical files missing! Creating emergency fallback app...")
+        app = Flask(__name__)
+
+        @app.route('/')
+        def emergency_root():
+            return "Emergency mode: App starting but missing files", 200
+
+        @app.route('/favicon.ico')
+        def emergency_favicon():
+            return "Favicon placeholder", 200
+
+        @app.route('/api/health')
+        def emergency_health():
+            return {"status": "emergency", "message": "App in emergency mode"}, 200
+
+        return app
+
     # Load environment variables from .env file
     load_env_file()
 
