@@ -275,15 +275,38 @@ def create_app():
         # Static file serving and other routes
         @app.route('/images/<path:filename>')
         def serve_image(filename):
-            return send_from_directory(os.path.join(app.config['STATIC_FOLDER'], 'images'), filename)
+            try:
+                return send_from_directory(os.path.join(app.config['STATIC_FOLDER'], 'images'), filename)
+            except Exception as e:
+                print(f"Error serving image {filename}: {e}")
+                return "Image not found", 404
 
         @app.route('/', defaults={'path': ''})
         @app.route('/<path:path>')
         def serve_frontend(path):
-            if path != "" and os.path.exists(os.path.join(app.config['FRONTEND_FOLDER'], path)):
-                return send_from_directory(app.config['FRONTEND_FOLDER'], path)
-            else:
-                return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
+            try:
+                if path != "" and os.path.exists(os.path.join(app.config['FRONTEND_FOLDER'], path)):
+                    return send_from_directory(app.config['FRONTEND_FOLDER'], path)
+                else:
+                    index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
+                    if os.path.exists(index_path):
+                        return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
+                    else:
+                        return "Frontend not found", 404
+            except Exception as e:
+                print(f"Error serving frontend path {path}: {e}")
+                return f"Error: {str(e)}", 500
+
+    # Add error handlers
+    @app.errorhandler(500)
+    def internal_error(error):
+        print(f"500 Internal Server Error: {error}")
+        return "Internal Server Error", 500
+
+    @app.errorhandler(Exception)
+    def handle_exception(e):
+        print(f"Unhandled exception: {e}")
+        return "Internal Server Error", 500
 
     return app
 
