@@ -21,7 +21,7 @@ def load_env_file():
                     key, value = line.split('=', 1)
                     os.environ[key.strip()] = value.strip()
 
-def create_app():
+def create_app(environ=None, start_response=None):
     print("🚀 Creating Flask app...")
     print(f"Current working directory: {os.getcwd()}")
     print(f"Files in current directory: {os.listdir('.')[:5]}...")  # Show first 5 files
