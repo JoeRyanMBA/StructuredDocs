@@ -4,9 +4,10 @@
   "description": "StructuredDocs application",
   "main": "start.sh",
   "scripts": {
-    "build": "cd frontend && npm install && npm run build",
+    "build": "cd frontend && npm install && npm run build && echo 'Installing Python dependencies...' && pip3 install -r backend/requirements.txt",
     "start": "./start.sh",
-    "dev": "./start.sh"
+    "dev": "./start.sh",
+    "postinstall": "echo 'Postinstall: Installing Python dependencies...' && pip3 install -r backend/requirements.txt || echo 'Python dependencies installation failed'"
   },
   "engines": {
     "node": ">=16.0.0"
