@@ -6,6 +6,7 @@ Run this to initialize the database schema in production
 
 import sys
 import os
+import subprocess
 
 # Add project paths
 sys.path.insert(0, '/workspaces/StructuredDocs')
@@ -14,6 +15,51 @@ sys.path.insert(0, '/workspaces/StructuredDocs/backend')
 # Set environment variables to avoid emergency mode
 os.environ['ENABLE_BLUEPRINTS'] = 'users,topics,projects,publications,links,notifications,reviews,import,organize,publish'
 
+def install_dependencies():
+    """Install Python dependencies if they're missing"""
+    print("📦 Checking Python dependencies...")
+
+    try:
+        import flask_sqlalchemy
+        print("✅ Python dependencies already available")
+        return True
+    except ImportError:
+        print("❌ Python dependencies not found, attempting to install...")
+
+        # Try multiple installation methods
+        methods = [
+            ["pip3", "install", "--user", "flask", "flask-sqlalchemy", "sqlalchemy", "psycopg2-binary", "flask-cors", "flask-jwt-extended", "python-dotenv", "gunicorn", "email-validator", "pillow", "reportlab", "python-docx"],
+            ["pip", "install", "--user", "flask", "flask-sqlalchemy", "sqlalchemy", "psycopg2-binary", "flask-cors", "flask-jwt-extended", "python-dotenv", "gunicorn", "email-validator", "pillow", "reportlab", "python-docx"],
+            ["apt-get", "update", "&&", "apt-get", "install", "-y", "python3-flask", "python3-sqlalchemy", "python3-psycopg2", "python3-gunicorn"]
+        ]
+
+        for i, method in enumerate(methods, 1):
+            print(f"📦 Method {i}: Trying {' '.join(method[:3])}...")
+            try:
+                if "apt-get" in method[0]:
+                    # For apt-get, run as separate commands
+                    subprocess.run(["apt-get", "update"], check=True, capture_output=True)
+                    subprocess.run(["apt-get", "install", "-y", "python3-flask", "python3-sqlalchemy", "python3-psycopg2", "python3-gunicorn"], check=True, capture_output=True)
+                else:
+                    subprocess.run(method, check=True, capture_output=True)
+
+                # Verify installation
+                import flask_sqlalchemy
+                print(f"✅ Method {i} successful")
+                return True
+            except (subprocess.CalledProcessError, ImportError) as e:
+                print(f"⚠️ Method {i} failed: {e}")
+                continue
+
+        print("❌ All installation methods failed")
+        return False
+
+# Try to install dependencies before importing
+if not install_dependencies():
+    print("❌ Cannot proceed without Python dependencies")
+    sys.exit(1)
+
+# Now safe to import
 from backend.app import create_app
 
 def run_migrations():
