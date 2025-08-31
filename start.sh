@@ -50,7 +50,7 @@ if [ "$NEED_INSTALL" = "yes" ]; then
     python3 -m pip install --upgrade pip >/dev/null 2>&1 || true
     python3 -m pip install --user \
         flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended \
-        python-dotenv gunicorn email-validator pillow reportlab python-docx >/dev/null 2>&1 || true
+        flask-migrate python-dotenv gunicorn email-validator pillow reportlab python-docx >/dev/null 2>&1 || true
     # Add user site-packages to Python path
     python3 -c "import site; site.addsitedir(site.getusersitepackages())" >/dev/null 2>&1 || true
 fi
