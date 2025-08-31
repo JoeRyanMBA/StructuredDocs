@@ -36,5 +36,21 @@ else
     echo "❌ frontend/dist/favicon.ico NOT found"
 fi
 
+# Check if Python is available
+if command -v python3 &> /dev/null; then
+    echo "✅ Python3 found"
+    python3 --version
+else
+    echo "❌ Python3 NOT found - installing..."
+    apt-get update && apt-get install -y python3 python3-pip
+fi
+
+# Install Python dependencies if requirements.txt exists
+if [ -f "backend/requirements.txt" ]; then
+    echo "📦 Installing Python dependencies..."
+    pip3 install -r backend/requirements.txt
+fi
+
 # Start gunicorn with the correct port
+echo "🌐 Starting gunicorn server..."
 exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info
