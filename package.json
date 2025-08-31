@@ -6,7 +6,8 @@
   "scripts": {
     "build": "cd frontend && npm install && npm run build",
     "start": "./start.sh",
-    "dev": "./start.sh"
+    "dev": "./start.sh",
+    "postinstall": "pip3 install -r backend/requirements.txt"
   },
   "engines": {
     "node": ">=16.0.0"
