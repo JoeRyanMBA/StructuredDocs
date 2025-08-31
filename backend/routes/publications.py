@@ -147,7 +147,10 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             # Top row: "U.S. Census Bureau" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
             
-            form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            if self.publication is not None:
+                form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
+            else:
+                form_number = "xx.0000"
             form_text = f"Form: {form_number}"
             text_width = canvas.stringWidth(form_text, "Helvetica", 10)
             canvas.drawString(right_margin_x - text_width, footer_text_y, form_text)
