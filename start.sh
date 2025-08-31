@@ -37,4 +37,4 @@ else
 fi
 
 # Start gunicorn with the correct port
-exec gunicorn --bind 0.0.0.0:$PORT backend.app:create_app --log-level info
+exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info
