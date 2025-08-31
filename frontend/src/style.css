@@ -136,9 +136,14 @@
 }
 
 .error-message {
-  background-color: var(--error-bg-light-red) !important;
-  color: var(--error-text-dark-red) !important;
-  border: 1px solid var(--error-border-red);
+  background-color: var(--error-light-red) !important;
+  color: var(--error-dark-red) !important;
+  border: 1px solid var(--error-coral-red) !important;
+  padding: 12px 16px !important;
+  border-radius: var(--border-radius-md) !important;
+  margin: 16px 0 !important;
+  font-weight: 500 !important;
+  box-shadow: var(--shadow-sm) !important;
 }
 
 @keyframes spin {
