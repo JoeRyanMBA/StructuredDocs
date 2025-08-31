@@ -8,53 +8,62 @@ PORT=${PORT:-8000}
 echo "🚀 Starting StructuredDocs on port $PORT"
 echo "Current working directory: $(pwd)"
 echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
-echo "Pip version: $(pip3 --version 2>/dev/null || echo 'Pip3 not found')"
+echo "Pip version: $(python3 -m pip --version 2>/dev/null || echo 'python -m pip not found')"
 
-# Change to the app directory (this is crucial for container environments)
-cd /workspace/StructuredDocs || cd /app || echo "⚠️  Could not change to app directory"
+# Change to the repo directory (handle multiple possible roots in App Platform)
+if [ -f "backend/app.py" ]; then
+    echo "📁 Repo root detected: $(pwd)"
+elif [ -d "/workspace" ]; then
+    cd /workspace || true
+    [ -f "backend/app.py" ] || [ -f "package.json" ] && echo "📁 Using /workspace as repo root"
+elif [ -d "/app" ]; then
+    cd /app || true
+    [ -f "backend/app.py" ] || [ -f "package.json" ] && echo "📁 Using /app as repo root"
+else
+    echo "⚠️  Could not detect repo root; continuing in $(pwd)"
+fi
 
 echo "Working directory after cd: $(pwd)"
 
-# Check if Python dependencies are installed
+# Check/install Python dependencies using python -m pip with ensurepip fallback
 echo "📦 Checking Python dependencies..."
-if python3 -c "import flask_sqlalchemy, flask, sqlalchemy, psycopg2, flask_cors, flask_jwt_extended" 2>/dev/null; then
-    echo "✅ Python dependencies already installed"
+if python3 - <<'PY'
+import importlib
+mods=["flask_sqlalchemy","flask","sqlalchemy","psycopg2","flask_cors","flask_jwt_extended"]
+missing=[m for m in mods if importlib.util.find_spec(m) is None]
+print("MISSING:"+",".join(missing))
+PY
+then :; fi
+
+NEED_INSTALL=$(python3 - <<'PY'
+import importlib
+mods=["flask_sqlalchemy","flask","sqlalchemy","psycopg2","flask_cors","flask_jwt_extended"]
+missing=[m for m in mods if importlib.util.find_spec(m) is None]
+print("yes" if missing else "no")
+PY
+)
+
+if [ "$NEED_INSTALL" = "yes" ]; then
+    echo "❌ Python deps missing; installing via python -m pip..."
+    python3 -m pip --version >/dev/null 2>&1 || python3 -m ensurepip --upgrade >/dev/null 2>&1 || curl -s https://bootstrap.pypa.io/get-pip.py | python3
+    # Upgrade pip quietly, then install
+    python3 -m pip install --upgrade pip >/dev/null 2>&1 || true
+    python3 -m pip install --user \
+        flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended \
+        python-dotenv gunicorn email-validator pillow reportlab python-docx >/dev/null 2>&1 || true
+fi
+
+# Verify installation
+if python3 -c "import flask_sqlalchemy" 2>/dev/null; then
+    echo "✅ Python dependencies ready"
 else
-    echo "❌ Python dependencies not found, attempting to install..."
-    echo "🔧 Attempting installation methods..."
+    echo "⚠️ Python dependencies still missing; app may fail to start"
+fi
 
-    # Method 1: Try using pip3 directly (if available)
-    if command -v pip3 &> /dev/null; then
-        echo "📦 Method 1: Using pip3 directly..."
-        pip3 install --user flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx 2>/dev/null && echo "✅ Method 1 successful" && INSTALL_SUCCESS=true
-    fi
-
-    # Method 2: Try using pip directly
-    if [ "$INSTALL_SUCCESS" != "true" ] && command -v pip &> /dev/null; then
-        echo "📦 Method 2: Using pip directly..."
-        pip install --user flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx 2>/dev/null && echo "✅ Method 2 successful" && INSTALL_SUCCESS=true
-    fi
-
-    # Method 3: Try using apt-get to install system packages
-    if [ "$INSTALL_SUCCESS" != "true" ] && command -v apt-get &> /dev/null; then
-        echo "📦 Method 3: Using apt-get for system packages..."
-        apt-get update -qq 2>/dev/null && apt-get install -y -qq python3-flask python3-sqlalchemy python3-psycopg2 python3-gunicorn 2>/dev/null && echo "✅ Method 3 successful" && INSTALL_SUCCESS=true
-    fi
-
-    # Method 4: Try downloading and installing pip if nothing else works
-    if [ "$INSTALL_SUCCESS" != "true" ]; then
-        echo "📦 Method 4: Installing pip manually..."
-        curl -s https://bootstrap.pypa.io/get-pip.py | python3 2>/dev/null && pip3 install --user flask flask-sqlalchemy sqlalchemy psycopg2-binary flask-cors flask-jwt-extended python-dotenv gunicorn email-validator pillow reportlab python-docx 2>/dev/null && echo "✅ Method 4 successful" && INSTALL_SUCCESS=true
-    fi
-
-    # Final verification
-    if [ "$INSTALL_SUCCESS" == "true" ] && python3 -c "import flask_sqlalchemy" 2>/dev/null; then
-        echo "✅ Python dependencies installed successfully"
-    else
-        echo "❌ All installation methods failed"
-        echo "⚠️  The application may not work correctly without Python dependencies"
-        echo "💡 Consider switching to a Python runtime environment on DigitalOcean"
-    fi
+# Run DB migrations (best-effort) before starting app
+if [ -f "run_migrations_production.py" ]; then
+    echo "�️ Running database migrations (best-effort)..."
+    python3 run_migrations_production.py || echo "⚠️ Migrations failed or skipped"
 fi
 
 # Check if frontend is built

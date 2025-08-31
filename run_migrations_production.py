@@ -7,6 +7,7 @@ Run this to initialize the database schema in production
 import sys
 import os
 import subprocess
+import shutil
 
 # Add project paths
 sys.path.insert(0, '/workspaces/StructuredDocs')
@@ -26,30 +27,65 @@ def install_dependencies():
     except ImportError:
         print("❌ Python dependencies not found, attempting to install...")
 
-        # Try multiple installation methods
-        methods = [
-            ["pip3", "install", "--user", "flask", "flask-sqlalchemy", "sqlalchemy", "psycopg2-binary", "flask-cors", "flask-jwt-extended", "python-dotenv", "gunicorn", "email-validator", "pillow", "reportlab", "python-docx"],
-            ["pip", "install", "--user", "flask", "flask-sqlalchemy", "sqlalchemy", "psycopg2-binary", "flask-cors", "flask-jwt-extended", "python-dotenv", "gunicorn", "email-validator", "pillow", "reportlab", "python-docx"],
-            ["apt-get", "update", "&&", "apt-get", "install", "-y", "python3-flask", "python3-sqlalchemy", "python3-psycopg2", "python3-gunicorn"]
+        # Prefer using `python -m pip` to avoid missing pip binaries
+        def python_pip_install(args: list[str]) -> bool:
+            try:
+                # Check if pip module is available
+                pip_check = subprocess.run([sys.executable, "-m", "pip", "--version"], capture_output=True)
+                if pip_check.returncode != 0:
+                    # Bootstrap pip
+                    print("🛠️ Bootstrapping pip with ensurepip...")
+                    ep = subprocess.run([sys.executable, "-m", "ensurepip", "--upgrade"], capture_output=True)
+                    if ep.returncode != 0:
+                        print(f"⚠️ ensurepip failed: {ep.stderr.decode(errors='ignore')[:200]}")
+                        return False
+
+                print("📦 Installing packages via python -m pip --user ...")
+                proc = subprocess.run([sys.executable, "-m", "pip", "install", "--user", *args], capture_output=True)
+                if proc.returncode == 0:
+                    return True
+                print(f"⚠️ pip install failed: {proc.stderr.decode(errors='ignore')[:200]}")
+                return False
+            except Exception as e:
+                print(f"⚠️ pip install exception: {e}")
+                return False
+
+        packages = [
+            "flask",
+            "flask-sqlalchemy",
+            "sqlalchemy",
+            "psycopg2-binary",
+            "flask-cors",
+            "flask-jwt-extended",
+            "python-dotenv",
+            "gunicorn",
+            "email-validator",
+            "pillow",
+            "reportlab",
+            "python-docx",
         ]
 
-        for i, method in enumerate(methods, 1):
-            print(f"📦 Method {i}: Trying {' '.join(method[:3])}...")
+        if python_pip_install(packages):
             try:
-                if "apt-get" in method[0]:
-                    # For apt-get, run as separate commands
-                    subprocess.run(["apt-get", "update"], check=True, capture_output=True)
-                    subprocess.run(["apt-get", "install", "-y", "python3-flask", "python3-sqlalchemy", "python3-psycopg2", "python3-gunicorn"], check=True, capture_output=True)
-                else:
-                    subprocess.run(method, check=True, capture_output=True)
-
-                # Verify installation
-                import flask_sqlalchemy
-                print(f"✅ Method {i} successful")
+                import flask_sqlalchemy  # noqa: F401
+                print("✅ Dependencies installed successfully")
                 return True
-            except (subprocess.CalledProcessError, ImportError) as e:
-                print(f"⚠️ Method {i} failed: {e}")
-                continue
+            except ImportError as e:
+                print(f"⚠️ Verification failed after install: {e}")
+
+        # Last resort: try pip/pip3 binaries if present
+        for bin_name in ("pip3", "pip"):
+            if shutil.which(bin_name):
+                print(f"📦 Trying fallback binary: {bin_name} ...")
+                try:
+                    proc = subprocess.run([bin_name, "install", "--user", *packages], capture_output=True)
+                    if proc.returncode == 0:
+                        import flask_sqlalchemy  # noqa: F401
+                        print("✅ Fallback binary install successful")
+                        return True
+                    print(f"⚠️ {bin_name} failed: {proc.stderr.decode(errors='ignore')[:200]}")
+                except Exception as e:
+                    print(f"⚠️ {bin_name} exception: {e}")
 
         print("❌ All installation methods failed")
         return False
