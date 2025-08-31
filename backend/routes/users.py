@@ -12,23 +12,37 @@ users_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
 @users_bp.route('/login', methods=['POST'])
 def login():
-    data = request.get_json()
-    # Normalize input to avoid case/whitespace mismatches
-    email = (data.get('email') or '').strip().lower()
-    password = data.get('password', None)
-
-    user = User.query.filter_by(email=email).first()
-    # Fail fast if no user or no password set
-    if not user or not user.password_hash:
-        return jsonify({"msg": "Bad email or password"}), 401
-
     try:
-        if check_password_hash(user.password_hash, password):
-            access_token = create_access_token(identity=user.id)
-            return jsonify(access_token=access_token, user=user.to_dict())
+        data = request.get_json()
+        # Normalize input to avoid case/whitespace mismatches
+        email = (data.get('email') or '').strip().lower()
+        password = data.get('password', None)
+
+        print(f"🔐 Login attempt for: {email}")
+        
+        user = User.query.filter_by(email=email).first()
+        print(f"👤 User found: {user is not None}")
+        
+        # Fail fast if no user or no password set
+        if not user or not user.password_hash:
+            print("❌ No user or no password hash")
+            return jsonify({"msg": "Bad email or password"}), 401
+
+        try:
+            if check_password_hash(user.password_hash, password):
+                access_token = create_access_token(identity=user.id)
+                print("✅ Login successful")
+                return jsonify(access_token=access_token, user=user.to_dict())
+        except Exception as e:
+            # Avoid 500s on malformed hashes; treat as invalid credentials
+            print(f"❌ Password check error: {e}")
     except Exception as e:
-        # Avoid 500s on malformed hashes; treat as invalid credentials
-        print(f"❌ Login error for {email}: {e}")
+        print(f"❌ Login error: {e}")
+        import traceback
+        traceback.print_exc()
+        return jsonify({"error": "Internal server error"}), 500
+        
+    print("❌ Invalid credentials")
     return jsonify({"msg": "Bad email or password"}), 401
 
 @users_bp.route('/me', methods=['GET'])
