@@ -100,7 +100,7 @@ except ImportError:
     echo "📍 Binding to 0.0.0.0:$PORT"
     echo "🐍 Python executable: $(which python3)"
     echo "🐍 Gunicorn module check: $(python3 -c 'import gunicorn; print(gunicorn.__file__)' 2>/dev/null || echo 'Not found')"
-    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app()\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
+    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
     
     # Test if we can import the Flask app module
     echo "🧪 Testing Flask app import..."
@@ -136,7 +136,7 @@ app = create_app()
     echo "🚀 Executing gunicorn..."
     echo "🌐 Health check URL: http://localhost:$PORT/"
     echo "🌐 Ping URL: http://localhost:$PORT/api/ping"
-    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level info --timeout 120 --access-logfile - --error-logfile -
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
     echo "This might be due to the Node.js environment not supporting Python dependencies properly."
@@ -255,7 +255,7 @@ except ImportError:
     echo "📍 Binding to 0.0.0.0:$PORT"
     echo "🐍 Python executable: $(which python3)"
     echo "🐍 Gunicorn module check: $(python3 -c 'import gunicorn; print(gunicorn.__file__)' 2>/dev/null || echo 'Not found')"
-    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app()\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
+    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
     
     # Test if we can import the Flask app module
     echo "🧪 Testing Flask app import..."
@@ -291,7 +291,7 @@ app = create_app()
     echo "🚀 Executing gunicorn..."
     echo "🌐 Health check URL: http://localhost:$PORT/"
     echo "🌐 Ping URL: http://localhost:$PORT/api/ping"
-    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level info --timeout 120 --access-logfile - --error-logfile -
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
     echo "This might be due to the Node.js environment not supporting Python dependencies properly."
