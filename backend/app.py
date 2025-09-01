@@ -305,6 +305,15 @@ def create_app(environ=None, start_response=None):
                     print(f"\u2705 Registered blueprint '{name}' from backend.routes.{module_name}.{attr}")
                 except Exception as _e:
                     print(f"\u274c Error registering blueprint '{name}': {_e}")
+                    # Alias legacy login path in selective mode
+            # Alias legacy login path in selective mode
+            if 'users' in requested:
+                try:
+                    from backend.routes.users import login as users_login
+                    app.add_url_rule('/api/login', 'login', users_login, methods=['POST'])
+                    print("🔗 Alias route '/api/login' registered for users_login")
+                except Exception as _e:
+                    print(f"⚠️ Could not register alias route '/api/login': {_e}")
         elif os.environ.get('SKIP_BLUEPRINTS') == '1':
             print("\u23ed\ufe0f  SKIP_BLUEPRINTS=1 set; skipping blueprint imports/registration (useful for migrations).")
         else:
@@ -354,6 +363,13 @@ def create_app(environ=None, start_response=None):
             app.register_blueprint(topics.topics_bp)
             app.register_blueprint(users.users_bp)
             print("✅ All blueprints registered")
+            # Alias legacy login path
+            try:
+                from backend.routes.users import login as users_login
+                app.add_url_rule('/api/login', 'login', users_login, methods=['POST'])
+                print("🔗 Alias route '/api/login' registered for users_login")
+            except ImportError as _e:
+                print(f"⚠️ Could not register alias route '/api/login': {_e}")
 
         @app.route('/', methods=['GET'])
         def root_health():

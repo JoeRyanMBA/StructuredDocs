@@ -6,7 +6,7 @@
   "scripts": {
     "build": "echo '🔧 Starting build process...' && cd frontend && npm install && npm run build && cd .. && echo '✅ Build completed - Python dependencies will be installed at runtime'",
     "start": "./start.sh",
-    "dev": "./start.sh",
+    "dev": "npm --prefix frontend run dev",
     "postinstall": "echo '🔧 Postinstall completed - Python dependencies will be installed at runtime'"
   },
   "engines": {
