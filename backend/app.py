@@ -26,6 +26,9 @@ def create_app(environ=None, start_response=None):
     print("🚀 Creating Flask app...")
     print(f"Current working directory: {os.getcwd()}")
     print(f"Files in current directory: {os.listdir('.')[:5]}...")  # Show first 5 files
+    print(f"Python path: {sys.path[:3]}...")  # Show first 3 paths
+    print(f"Environment PORT: {os.environ.get('PORT', 'not set')}")
+    print(f"Environment variables: {[k for k in os.environ.keys() if 'PORT' in k or 'HOST' in k or 'DATABASE' in k]}")
 
     # CRITICAL: Check if essential files exist
     essential_files = ['.enable_blueprints', 'frontend/dist/index.html', 'frontend/dist/favicon.ico']
@@ -121,11 +124,14 @@ def create_app(environ=None, start_response=None):
         print(f"⚠️ Could not create instance directory {instance_dir}: {e}")
 
     # Initialize extensions
+    print("🔧 Initializing extensions...")
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    print("✅ Extensions initialized")
     
     # Configure CORS - use production URL if available, otherwise allow the current origin
+    print("🌐 Configuring CORS...")
     frontend_url = os.environ.get('FRONTEND_URL')
     if not frontend_url:
         # In production, allow the same origin (for full-stack apps)
@@ -136,13 +142,29 @@ def create_app(environ=None, start_response=None):
             frontend_url = 'http://localhost:5173'  # Local development
 
     CORS(app, resources={r"/*": {"origins": frontend_url}}, supports_credentials=True)
+    print(f"✅ CORS configured with origins: {frontend_url}")
 
+    print("🗄️ Setting up database context...")
     with app.app_context():
+        print("📦 Importing models...")
         # Import models to ensure they are registered with SQLAlchemy
         from backend import models
+        print("✅ Models imported")
+        
         # Force mapper configuration
         from sqlalchemy.orm import configure_mappers
         configure_mappers()
+        print("✅ Mappers configured")
+        
+        # Test database connection
+        try:
+            print("🔍 Testing database connection...")
+            with db.engine.connect() as conn:
+                conn.execute(db.text('SELECT 1'))
+            print("✅ Database connection successful")
+        except Exception as e:
+            print(f"❌ Database connection failed: {e}")
+            # Don't fail here, just log the error
         
         # Reload email service configuration with loaded environment variables
         from backend.utils.email_service import email_service
@@ -177,6 +199,7 @@ def create_app(environ=None, start_response=None):
             print(f"⚠️ Could not create admin user: {e}")
         
         # Import and register blueprints (skippable for migrations/CLI)
+        print("🔧 Starting blueprint registration...")
         # Support selective enabling via ENABLE_BLUEPRINTS env var (comma-separated short names)
         # or via a file path provided in ENABLE_BLUEPRINTS_FILE. Reading from a file
         # is more reliable when uWSGI runs multiple Python sub-interpreters.
@@ -186,17 +209,23 @@ def create_app(environ=None, start_response=None):
         enable_list = None
         eb_file = os.environ.get('ENABLE_BLUEPRINTS_FILE')
         if eb_file:
+            print(f"📄 Checking ENABLE_BLUEPRINTS_FILE: {eb_file}")
             if os.path.exists(eb_file):
                 try:
                     with open(eb_file, 'r') as _f:
                         enable_list = _f.read().strip()
+                    print(f"✅ Read blueprints from file: {enable_list}")
                 except Exception as _e:
                     print(f"⚠️ Could not read ENABLE_BLUEPRINTS_FILE '{eb_file}': {_e}")
             else:
                 print(f"⚠️ ENABLE_BLUEPRINTS_FILE '{eb_file}' does not exist, ignoring")
         if not enable_list:
             enable_list = os.environ.get('ENABLE_BLUEPRINTS')
+            if enable_list:
+                print(f"✅ Using ENABLE_BLUEPRINTS env var: {enable_list}")
+        
         if enable_list:
+            print("🔧 Registering selective blueprints...")
             # Map short names to (module_name, blueprint_attr_name)
             blueprint_map = {
                 'admin': ('admin', 'admin_bp'),
@@ -222,6 +251,7 @@ def create_app(environ=None, start_response=None):
             }
 
             requested = [p.strip() for p in enable_list.split(',') if p.strip()]
+            print(f"📋 Requested blueprints: {requested}")
             import importlib
             for name in requested:
                 if name not in blueprint_map:
@@ -229,8 +259,10 @@ def create_app(environ=None, start_response=None):
                     continue
                 module_name, attr = blueprint_map[name]
                 try:
+                    print(f"📦 Importing backend.routes.{module_name}...")
                     mod = importlib.import_module(f'backend.routes.{module_name}')
                     bp = getattr(mod, attr)
+                    print(f"🔗 Registering blueprint {name}...")
                     app.register_blueprint(bp)
                     print(f"\u2705 Registered blueprint '{name}' from backend.routes.{module_name}.{attr}")
                 except Exception as _e:
@@ -238,6 +270,7 @@ def create_app(environ=None, start_response=None):
         elif os.environ.get('SKIP_BLUEPRINTS') == '1':
             print("\u23ed\ufe0f  SKIP_BLUEPRINTS=1 set; skipping blueprint imports/registration (useful for migrations).")
         else:
+            print("🔧 Registering all blueprints...")
             # Import and register all blueprints
             from .routes import (
                 admin,
@@ -282,10 +315,22 @@ def create_app(environ=None, start_response=None):
             app.register_blueprint(tasks.tasks_bp)
             app.register_blueprint(topics.topics_bp)
             app.register_blueprint(users.users_bp)
+            print("✅ All blueprints registered")
 
-        @app.route('/api/health', methods=['GET'])
+        @app.route('/api/ping', methods=['GET'])
+        def ping():
+            print("🏓 Ping requested at", datetime.now().isoformat())
+            return jsonify({
+                'status': 'pong',
+                'timestamp': datetime.now().isoformat(),
+                'message': 'Flask app is responding'
+            }), 200
         def health_check():
             print("🏥 Health check requested at", datetime.now().isoformat())
+            print(f"🏥 Request method: {request.method}")
+            print(f"🏥 Request URL: {request.url}")
+            print(f"🏥 Request headers: {dict(request.headers)}")
+            
             uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
             if uri.startswith('sqlite'):
                 db_kind = 'sqlite'
@@ -308,13 +353,20 @@ def create_app(environ=None, start_response=None):
                 else:
                     frontend_origin = 'http://localhost:5173'  # Local development
 
-            print(f"🏥 Health check response: status=ok, db={db_kind}")
-            return jsonify({
+            print(f"🏥 Health check response: status=ok, db={db_kind}, frontend={frontend_origin}")
+            response_data = {
                 'status': 'ok',
                 'db': db_kind,
                 'frontend_origin': frontend_origin,
-                'timestamp': datetime.now().isoformat()
-            }), 200
+                'timestamp': datetime.now().isoformat(),
+                'request_info': {
+                    'method': request.method,
+                    'url': request.url,
+                    'remote_addr': request.remote_addr
+                }
+            }
+            print(f"🏥 Sending response: {response_data}")
+            return jsonify(response_data), 200
 
         @app.route('/debug-routes')
         def debug_routes():
@@ -381,6 +433,7 @@ def create_app(environ=None, start_response=None):
             "database_uri": app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50] + "..." if app.config.get('SQLALCHEMY_DATABASE_URI') else 'not set'
         }, 200
 
+    print("✅ Flask app created successfully!")
     return app
 
 if __name__ == '__main__':
