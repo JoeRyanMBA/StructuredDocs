@@ -100,6 +100,16 @@ except ImportError:
     echo "📍 Binding to 0.0.0.0:$PORT"
     echo "🐍 Python executable: $(which python3)"
     echo "🐍 Gunicorn module check: $(python3 -c 'import gunicorn; print(gunicorn.__file__)' 2>/dev/null || echo 'Not found')"
+    
+    # Test if we can import the Flask app module
+    echo "🧪 Testing Flask app import..."
+    if python3 -c "from backend.app import create_app; print('✅ Flask app import successful')" 2>/dev/null; then
+        echo "✅ Flask app import test passed"
+    else
+        echo "❌ Flask app import test failed"
+        exit 1
+    fi
+    
     exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
