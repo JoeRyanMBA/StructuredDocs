@@ -1,17 +1,4 @@
 #!/bin/bash
-# Startup script for DigitalOcean App Platform
-# This script properly handles the PORT environment variable
-
-# Set default port if not provided
-PORT=${PORT:-8080}
-
-echo "🚀 Starting StructuredDocs on port $PORT"
-echo "Current working directory: $(pwd)"
-echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
-echo "Pip version: $(python3 -m pip --version 2>/dev/null || echo 'python -m pip not found')"
-
-# Change to the repo directory (handle multiple possible roots in App Platform)
-if [ -f "backend/app.py" ]; then
     echo "📁 Repo root detected: $(pwd)"
 elif [ -d "/workspace" ]; then
     cd /workspace || true
