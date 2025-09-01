@@ -120,7 +120,12 @@ def create_app(environ=None, start_response=None):
                 'Set DATABASE_URL in your environment (e.g., PythonAnywhere Web tab).' 
             )
         # Default local development database - use app root instead of instance for container compatibility
-        db_path = os.path.join(os.path.dirname(app.root_path), 'instance', 'structured_docs.db')
+        # In production, use a more reliable path
+        if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
+            # Use current working directory for database in production
+            db_path = os.path.join(os.getcwd(), 'structured_docs.db')
+        else:
+            db_path = os.path.join(os.path.dirname(app.root_path), 'instance', 'structured_docs.db')
         app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{db_path}"
 
     # Log (safely) which database we're using to help diagnose env issues
@@ -184,6 +189,7 @@ def create_app(environ=None, start_response=None):
             print("✅ Database connection successful")
         except Exception as e:
             print(f"❌ Database connection failed: {e}")
+            print(f"Database URI: {app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')}")
             print("ℹ️ This might be normal during first deployment if tables don't exist yet")
             # Don't fail here, just log the error
         
