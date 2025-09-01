@@ -106,7 +106,7 @@ export default {
 
 .ticker-bar {
   position: fixed;
-  top: calc(var(--header-height) + 0.5rem);
+/*  top: calc(var(--header-height) + 0.5rem); */
   left: 0;
   right: 0;
   height: var(--ticker-height);

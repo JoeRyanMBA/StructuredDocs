@@ -15,7 +15,8 @@ export default defineConfig({
     logLevel: 'info',
     proxy: {
       '/api': {
-        target: 'http://localhost:5050',
+        // Proxy API calls to local Flask backend
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false,
         configure: (proxy, options) => {
@@ -31,7 +32,8 @@ export default defineConfig({
         }
       },
       '/static': {
-        target: 'http://localhost:5050',
+        // Proxy static asset requests to local Flask backend if needed
+        target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
       }
