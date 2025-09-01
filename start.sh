@@ -95,7 +95,9 @@ except ImportError:
     print('FAIL')
 " 2>/dev/null | grep -q "OK"; then
     echo "🌐 Starting gunicorn server..."
-    exec gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120
+    # Add user local bin to PATH and use python -m gunicorn
+    export PATH="$HOME/.local/bin:$PATH"
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
     echo "This might be due to the Node.js environment not supporting Python dependencies properly."
