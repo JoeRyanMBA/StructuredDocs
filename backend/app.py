@@ -317,13 +317,22 @@ def create_app(environ=None, start_response=None):
             app.register_blueprint(users.users_bp)
             print("✅ All blueprints registered")
 
-        @app.route('/api/ping', methods=['GET'])
+        @app.route('/', methods=['GET'])
+        def root_health():
+            print("🏠 Root endpoint requested at", datetime.now().isoformat())
+            return jsonify({
+                'status': 'ok',
+                'service': 'StructuredDocs API',
+                'timestamp': datetime.now().isoformat(),
+                'version': '1.0.0'
+            }), 200
         def ping():
             print("🏓 Ping requested at", datetime.now().isoformat())
             return jsonify({
                 'status': 'pong',
                 'timestamp': datetime.now().isoformat(),
-                'message': 'Flask app is responding'
+                'message': 'Flask app is responding',
+                'port': os.environ.get('PORT', 'unknown')
             }), 200
         def health_check():
             print("🏥 Health check requested at", datetime.now().isoformat())
