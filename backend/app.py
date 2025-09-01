@@ -184,6 +184,7 @@ def create_app(environ=None, start_response=None):
             print("✅ Database connection successful")
         except Exception as e:
             print(f"❌ Database connection failed: {e}")
+            print("ℹ️ This might be normal during first deployment if tables don't exist yet")
             # Don't fail here, just log the error
         
         # Reload email service configuration with loaded environment variables
@@ -205,20 +206,26 @@ def create_app(environ=None, start_response=None):
             admin_password = 'Admin123!'
             
             # Check if admin user exists
-            admin_user = User.query.filter(func.lower(User.email) == admin_email.lower()).first()
-            if not admin_user:
-                # Create admin user
-                admin_user = User(
-                    name='Admin User',
-                    email=admin_email,
-                    password_hash=generate_password_hash(admin_password),
-                    role='admin'
-                )
-                db.session.add(admin_user)
-                db.session.commit()
-                print(f"✅ Created admin user: {admin_email}")
-            else:
-                print(f"✅ Admin user already exists: {admin_email}")
+            try:
+                admin_user = User.query.filter(func.lower(User.email) == admin_email.lower()).first()
+                if not admin_user:
+                    # Create admin user
+                    admin_user = User(
+                        name='Admin User',
+                        email=admin_email,
+                        password_hash=generate_password_hash(admin_password),
+                        role='admin'
+                    )
+                    db.session.add(admin_user)
+                    db.session.commit()
+                    print(f"✅ Created admin user: {admin_email}")
+                else:
+                    print(f"✅ Admin user already exists: {admin_email}")
+            except Exception as db_error:
+                print(f"⚠️ Database query failed (tables may not exist yet): {db_error}")
+                print("ℹ️ This is normal during first deployment - migrations will create tables")
+                # Don't fail here, just log the error
+                
         except Exception as e:
             print(f"⚠️ Could not create admin user: {e}")
             # Don't fail the app for admin user creation issues

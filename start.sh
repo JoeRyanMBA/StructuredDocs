@@ -2,7 +2,44 @@
 # Startup script for DigitalOcean App Platform
 # This script properly handles the PORT environment variable
 
-# Set default port if not provided
+# Set default     echo "🚀 Executing gunicorn..."
+    echo "🌐 Health check URL: http://localhost:$PORT/"
+    echo "🌐 Ping URL: http://localhost:$PORT/api/ping"
+    
+    # Add pre-flight check
+    echo "🧪 Pre-flight check: Testing app creation..."
+    if python3 -c "
+import sys
+import os
+sys.path.insert(0, 'backend')
+os.environ['SKIP_BLUEPRINTS'] = '1'
+try:
+    from backend.app import create_app
+    app = create_app()
+    print('✅ App creation test passed')
+except Exception as e:
+    print(f'❌ App creation test failed: {e}')
+    import traceback
+    traceback.print_exc()
+    exit 1
+" 2>&1; then
+        echo "✅ Pre-flight check passed"
+    else
+        echo "❌ Pre-flight check failed"
+        exit 1
+    fi
+    
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level debug --timeout 120 --access-logfile - --error-logfile - 2>&1 || {
+        echo "❌ Gunicorn failed with exit code: $?"
+        echo "🔍 Debugging information:"
+        echo "  - Working directory: $(pwd)"
+        echo "  - Python path: $PYTHONPATH"
+        echo "  - Files in directory: $(ls -la | head -10)"
+        echo "  - Python version: $(python3 --version)"
+        echo "  - Gunicorn version: $(python3 -c 'import gunicorn; print(gunicorn.__version__)' 2>/dev/null || echo 'Not found')"
+        echo "  - Backend files: $(ls -la backend/ | head -5)"
+        exit 1
+    }rovided
 PORT=${PORT:-8080}
 
 echo "🚀 Starting StructuredDocs on port $PORT"
