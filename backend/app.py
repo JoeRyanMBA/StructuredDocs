@@ -6,6 +6,7 @@ from flask import Flask, jsonify, send_from_directory, send_file, request
 from flask_cors import CORS
 from .extensions import db, migrate, jwt
 from urllib.parse import urlparse
+from datetime import datetime
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -284,6 +285,7 @@ def create_app(environ=None, start_response=None):
 
         @app.route('/api/health', methods=['GET'])
         def health_check():
+            print("🏥 Health check requested at", datetime.now().isoformat())
             uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
             if uri.startswith('sqlite'):
                 db_kind = 'sqlite'
@@ -306,10 +308,12 @@ def create_app(environ=None, start_response=None):
                 else:
                     frontend_origin = 'http://localhost:5173'  # Local development
 
+            print(f"🏥 Health check response: status=ok, db={db_kind}")
             return jsonify({
                 'status': 'ok',
                 'db': db_kind,
-                'frontend_origin': frontend_origin
+                'frontend_origin': frontend_origin,
+                'timestamp': datetime.now().isoformat()
             }), 200
 
         @app.route('/debug-routes')
@@ -364,6 +368,18 @@ def create_app(environ=None, start_response=None):
     def handle_exception(e):
         print(f"Unhandled exception: {e}")
         return "Internal Server Error", 500
+
+    # Add debug endpoint
+    @app.route('/api/debug')
+    def debug_info():
+        print("🐛 Debug info requested")
+        return {
+            "status": "debug",
+            "working_directory": os.getcwd(),
+            "files": os.listdir('.')[:10],  # First 10 files
+            "python_path": sys.path[:5],  # First 5 paths
+            "database_uri": app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50] + "..." if app.config.get('SQLALCHEMY_DATABASE_URI') else 'not set'
+        }, 200
 
     return app
 
