@@ -1,9 +1,26 @@
 #!/bin/bash
 # Startup script for DigitalOcean App Platform
-# This script properly handles the PORT environment variable
+# This script properly handles the PO    echo "🌐 Starting gunicorn server on port $PORT..."
+    # Add user local bin to PATH and use python -m gunicorn
+    export PATH="$HOME/.local/bin:$PATH"
+    echo "📍 Binding to 0.0.0.0:$PORT"
+    echo "🐍 Python executable: $(which python3)"
+    echo "🐍 Gunicorn module check: $(python3 -c 'import gunicorn; print(gunicorn.__file__)' 2>/dev/null || echo 'Not found')"
+    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app()\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
+    
+    # Test if we can import the Flask app module
+    echo "🧪 Testing Flask app import..."
+    if python3 -c "from backend.app import create_app; print('✅ Flask app import successful')" 2>/dev/null; then
+        echo "✅ Flask app import test passed"
+    else
+        echo "❌ Flask app import test failed"
+        exit 1
+    fi
+    
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -riable
 
 # Set default port if not provided
-PORT=${PORT:-8000}
+PORT=${PORT:-8080}
 
 echo "🚀 Starting StructuredDocs on port $PORT"
 echo "Current working directory: $(pwd)"
