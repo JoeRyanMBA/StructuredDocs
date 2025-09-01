@@ -440,4 +440,5 @@ if __name__ == '__main__':
     # Create app instance only when running directly
     application = create_app()
     # Use a production-ready server like Gunicorn or Waitress instead of app.run in production
-    application.run(debug=True, host='0.0.0.0', port=int(os.environ.get('PORT', 5050)))
+    port = int(os.environ.get('PORT', 8080))  # Match the start.sh default
+    application.run(debug=True, host='0.0.0.0', port=port)
