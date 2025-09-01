@@ -7,20 +7,25 @@ import secrets
 import os
 from datetime import datetime, timedelta
 from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from sqlalchemy import func
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')
 
 @users_bp.route('/login', methods=['POST'])
 def login():
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         # Normalize input to avoid case/whitespace mismatches
-        email = (data.get('email') or '').strip().lower()
+        credential = (data.get('email') or data.get('username') or '').strip().lower()
         password = data.get('password', None)
 
-        print(f"🔐 Login attempt for: {email}")
-        
-        user = User.query.filter_by(email=email).first()
+        print(f"🔐 Login attempt for: {credential}")
+        # Lookup by email if contains '@', otherwise by username
+        if '@' in credential:
+            user = User.query.filter(func.lower(User.email) == credential).first()
+        else:
+            user = User.query.filter(func.lower(User.name) == credential).first()
+
         print(f"👤 User found: {user is not None}")
         
         # Fail fast if no user or no password set

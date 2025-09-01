@@ -1,0 +1,21 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    ports:
+      - "8080:8080"
+    environment:
+      - PORT=8080
+      - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+      - DATABASE_URL=sqlite:///structured_docs.db
+    volumes:
+      - .:/app
+    command: ["./start.sh"]
+
+  frontend:
+    image: nginx:alpine
+    volumes:
+      - ./frontend/dist:/usr/share/nginx/html:ro
+    ports:
+      - "3000:80"
