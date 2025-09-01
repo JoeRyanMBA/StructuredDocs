@@ -1,23 +1,18 @@
-#!/bin/bash
-# Startup script for DigitalOcean App Platform
-# This script properly handles the PO    echo "🌐 Starting gunicorn server on port $PORT..."
-    # Add user local bin to PATH and use python -m gunicorn
-    export PATH="$HOME/.local/bin:$PATH"
-    echo "📍 Binding to 0.0.0.0:$PORT"
-    echo "🐍 Python executable: $(which python3)"
-    echo "🐍 Gunicorn module check: $(python3 -c 'import gunicorn; print(gunicorn.__file__)' 2>/dev/null || echo 'Not found')"
-    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app()\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
-    
-    # Test if we can import the Flask app module
-    echo "🧪 Testing Flask app import..."
-    if python3 -c "from backend.app import create_app; print('✅ Flask app import successful')" 2>/dev/null; then
-        echo "✅ Flask app import test passed"
-    else
-        echo "❌ Flask app import test failed"
-        exit 1
-    fi
-    
-    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -riable
+#!/bin/echo "🚀 Starting StructuredDocs on port $PORT"
+echo "Current working directory: $(pwd)"
+echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
+echo "Pip version: $(python3 -m pip --version 2>/dev/null || echo 'python -m pip not found')"
+
+# Change to the repo directory (handle multiple possible roots in App Platform) script for DigitalOcean App Platform
+# This script properly handles the PORT environment variable
+
+# Set default port if not provided
+PORT=${PORT:-8080}
+
+echo "� Starting StructuredDocs on port $PORT"
+echo "Current working directory: $(pwd)"
+echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
+echo "Pip version: $(python3 -m pip --version 2>/dev/null || echo 'python -m pip not found')"
 
 # Set default port if not provided
 PORT=${PORT:-8080}
@@ -117,6 +112,7 @@ except ImportError:
     echo "📍 Binding to 0.0.0.0:$PORT"
     echo "🐍 Python executable: $(which python3)"
     echo "🐍 Gunicorn module check: $(python3 -c 'import gunicorn; print(gunicorn.__file__)' 2>/dev/null || echo 'Not found')"
+    echo "🔧 Gunicorn command: python3 -m gunicorn --bind 0.0.0.0:$PORT \"backend.app:create_app()\" --log-level info --timeout 120 --access-logfile - --error-logfile -"
     
     # Test if we can import the Flask app module
     echo "🧪 Testing Flask app import..."
@@ -124,9 +120,32 @@ except ImportError:
         echo "✅ Flask app import test passed"
     else
         echo "❌ Flask app import test failed"
+        python3 -c "from backend.app import create_app" 2>&1 || echo "Import error details above"
         exit 1
     fi
     
+    # Test if we can create the Flask app
+    echo "🧪 Testing Flask app creation..."
+    if python3 -c "
+import os
+os.environ['SKIP_BLUEPRINTS'] = '1'  # Skip blueprint loading for test
+from backend.app import create_app
+app = create_app()
+print('✅ Flask app creation successful')
+" 2>/dev/null; then
+        echo "✅ Flask app creation test passed"
+    else
+        echo "❌ Flask app creation test failed"
+        python3 -c "
+import os
+os.environ['SKIP_BLUEPRINTS'] = '1'
+from backend.app import create_app
+app = create_app()
+" 2>&1 || echo "App creation error details above"
+        exit 1
+    fi
+    
+    echo "🚀 Executing gunicorn..."
     exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
