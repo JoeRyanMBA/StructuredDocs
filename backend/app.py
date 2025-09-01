@@ -346,6 +346,8 @@ def create_app(environ=None, start_response=None):
                 'timestamp': datetime.now().isoformat(),
                 'version': '1.0.0'
             }), 200
+
+        @app.route('/api/ping', methods=['GET'])
         def ping():
             print("🏓 Ping requested at", datetime.now().isoformat())
             return jsonify({
@@ -354,6 +356,8 @@ def create_app(environ=None, start_response=None):
                 'message': 'Flask app is responding',
                 'port': os.environ.get('PORT', 'unknown')
             }), 200
+
+        @app.route('/api/health', methods=['GET'])
         def health_check():
             print("🏥 Health check requested at", datetime.now().isoformat())
             print(f"🏥 Request method: {request.method}")
@@ -423,7 +427,6 @@ def create_app(environ=None, start_response=None):
                 print(f"Error serving image {filename}: {e}")
                 return "Image not found", 404
 
-        @app.route('/', defaults={'path': ''})
         @app.route('/<path:path>')
         def serve_frontend(path):
             try:
