@@ -45,7 +45,22 @@ def create_app(environ=None, start_response=None):
 
         @app.route('/')
         def emergency_root():
-            return "Emergency mode: App starting but missing files", 200
+            print("🏠 Emergency root endpoint requested")
+            return jsonify({
+                'status': 'emergency',
+                'service': 'StructuredDocs',
+                'message': 'App in emergency mode - missing critical files',
+                'timestamp': datetime.now().isoformat()
+            }), 200
+
+        @app.route('/api/ping', methods=['GET'])
+        def emergency_ping():
+            print("🏓 Emergency ping requested")
+            return jsonify({
+                'status': 'emergency_pong',
+                'timestamp': datetime.now().isoformat(),
+                'message': 'Emergency mode active'
+            }), 200
 
         @app.route('/favicon.ico')
         def emergency_favicon():
@@ -53,7 +68,12 @@ def create_app(environ=None, start_response=None):
 
         @app.route('/api/health')
         def emergency_health():
-            return {"status": "emergency", "message": "App in emergency mode"}, 200
+            print("🏥 Emergency health check requested")
+            return jsonify({
+                "status": "emergency",
+                "message": "App in emergency mode",
+                "timestamp": datetime.now().isoformat()
+            }), 200
 
         return app
 
