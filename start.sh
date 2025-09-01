@@ -1,4 +1,27 @@
-#!/bin/echo "🚀 Starting StructuredDocs on port $PORT"
+#!/bin/bash
+# S# Change to the repo directory (handle multiple possible roots in App Platform)
+if [ -f "backend/app.py" ]; then
+    echo "📁 Repo root detected: $(pwd)"
+elif [ -d "/workspace" ]; then
+    cd /workspace || true
+    [ -f "backend/app.py" ] || [ -f "package.json" ] && echo "📁 Using /workspace as repo root"
+elif [ -d "/app" ]; then
+    cd /app || true
+    [ -f "backend/app.py" ] || [ -f "package.json" ] && echo "📁 Using /app as repo root"
+else
+    echo "⚠️  Could not detect repo root; continuing in $(pwd)"
+fi
+
+echo "Working directory after cd: $(pwd)" DigitalOcean App Platform
+# This script properly handles the PORT environment variable
+
+# Set default port if not provided
+PORT=${PORT:-8080}
+
+echo "🚀 Starting StructuredDocs on port $PORT"
+echo "Current working directory: $(pwd)"
+echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
+echo "Pip version: $(python3 -m pip --version 2>/dev/null || echo 'python -m pip not found')"ting StructuredDocs on port $PORT"
 echo "Current working directory: $(pwd)"
 echo "Python version: $(python3 --version 2>/dev/null || echo 'Python3 not found')"
 echo "Pip version: $(python3 -m pip --version 2>/dev/null || echo 'python -m pip not found')"
@@ -146,6 +169,8 @@ app = create_app()
     fi
     
     echo "🚀 Executing gunicorn..."
+    echo "🌐 Health check URL: http://localhost:$PORT/"
+    echo "🌐 Ping URL: http://localhost:$PORT/api/ping"
     exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app()" --log-level info --timeout 120 --access-logfile - --error-logfile -
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
