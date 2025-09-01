@@ -136,7 +136,16 @@ app = create_app()
     echo "🚀 Executing gunicorn..."
     echo "🌐 Health check URL: http://localhost:$PORT/"
     echo "🌐 Ping URL: http://localhost:$PORT/api/ping"
-    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level info --timeout 120 --access-logfile - --error-logfile -
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level debug --timeout 120 --access-logfile - --error-logfile - 2>&1 || {
+        echo "❌ Gunicorn failed with exit code: $?"
+        echo "🔍 Debugging information:"
+        echo "  - Working directory: $(pwd)"
+        echo "  - Python path: $PYTHONPATH"
+        echo "  - Files in directory: $(ls -la)"
+        echo "  - Python version: $(python3 --version)"
+        echo "  - Gunicorn version: $(python3 -c 'import gunicorn; print(gunicorn.__version__)')"
+        exit 1
+    }
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
     echo "This might be due to the Node.js environment not supporting Python dependencies properly."
@@ -291,7 +300,16 @@ app = create_app()
     echo "🚀 Executing gunicorn..."
     echo "🌐 Health check URL: http://localhost:$PORT/"
     echo "🌐 Ping URL: http://localhost:$PORT/api/ping"
-    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level info --timeout 120 --access-logfile - --error-logfile -
+    exec python3 -m gunicorn --bind 0.0.0.0:$PORT "backend.app:create_app" --log-level debug --timeout 120 --access-logfile - --error-logfile - 2>&1 || {
+        echo "❌ Gunicorn failed with exit code: $?"
+        echo "🔍 Debugging information:"
+        echo "  - Working directory: $(pwd)"
+        echo "  - Python path: $PYTHONPATH"
+        echo "  - Files in directory: $(ls -la)"
+        echo "  - Python version: $(python3 --version)"
+        echo "  - Gunicorn version: $(python3 -c 'import gunicorn; print(gunicorn.__version__)')"
+        exit 1
+    }
 else
     echo "❌ Critical: Python dependencies still not available. Cannot start application."
     echo "This might be due to the Node.js environment not supporting Python dependencies properly."

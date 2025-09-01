@@ -187,8 +187,13 @@ def create_app(environ=None, start_response=None):
             # Don't fail here, just log the error
         
         # Reload email service configuration with loaded environment variables
-        from backend.utils.email_service import email_service
-        email_service.reload_config()
+        try:
+            from backend.utils.email_service import email_service
+            email_service.reload_config()
+            print("✅ Email service configured")
+        except Exception as e:
+            print(f"⚠️ Email service configuration failed: {e}")
+            # Don't fail the app for email issues
         
         # Create admin user if it doesn't exist (for production deployment)
         try:
@@ -207,8 +212,7 @@ def create_app(environ=None, start_response=None):
                     name='Admin User',
                     email=admin_email,
                     password_hash=generate_password_hash(admin_password),
-                    role='admin',
-                    active=True
+                    role='admin'
                 )
                 db.session.add(admin_user)
                 db.session.commit()
@@ -217,6 +221,7 @@ def create_app(environ=None, start_response=None):
                 print(f"✅ Admin user already exists: {admin_email}")
         except Exception as e:
             print(f"⚠️ Could not create admin user: {e}")
+            # Don't fail the app for admin user creation issues
         
         # Import and register blueprints (skippable for migrations/CLI)
         print("🔧 Starting blueprint registration...")
