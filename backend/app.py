@@ -78,8 +78,12 @@ def create_app(environ=None, start_response=None):
         return app
 
     # WORKAROUND: Create placeholder assets if missing
+    print("🔧 Starting placeholder creation workaround...")
     # Use the same path as STATIC_FOLDER configuration
     assets_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+    print(f"🔧 Assets directory: {assets_dir}")
+    print(f"🔧 Assets directory exists: {os.path.exists(assets_dir)}")
+    
     os.makedirs(assets_dir, exist_ok=True)
     
     print(f"🎯 Creating placeholders in: {assets_dir}")
@@ -87,6 +91,9 @@ def create_app(environ=None, start_response=None):
     
     # Create minimal placeholder for missing index.js
     index_js_path = os.path.join(assets_dir, 'index-C_NHaPTA.js')
+    print(f"🔧 Index JS path: {index_js_path}")
+    print(f"🔧 Index JS exists: {os.path.exists(index_js_path)}")
+    
     if not os.path.exists(index_js_path):
         print("⚠️ Creating placeholder for missing index-C_NHaPTA.js")
         try:
@@ -98,11 +105,15 @@ console.log('This is a workaround for Docker file copying issues');
 window.Vue = { createApp: () => ({ mount: () => console.log('App mounted (placeholder)') }) };
 """)
             print(f"✅ Created placeholder JS at: {index_js_path}")
+            print(f"🔧 File created successfully: {os.path.exists(index_js_path)}")
         except Exception as e:
             print(f"❌ Failed to create placeholder JS: {e}")
     
     # Create minimal placeholder for missing index.css
     index_css_path = os.path.join(assets_dir, 'index-CiVy6UYJ.css')
+    print(f"🔧 Index CSS path: {index_css_path}")
+    print(f"🔧 Index CSS exists: {os.path.exists(index_css_path)}")
+    
     if not os.path.exists(index_css_path):
         print("⚠️ Creating placeholder for missing index-CiVy6UYJ.css")
         try:
@@ -126,8 +137,11 @@ h1 { color: #333; }
 p { color: #666; }
 """)
             print(f"✅ Created placeholder CSS at: {index_css_path}")
+            print(f"🔧 File created successfully: {os.path.exists(index_css_path)}")
         except Exception as e:
-            print(f"❌ Failed to create placeholder CSS: {e}")    # Load environment variables from .env file
+            print(f"❌ Failed to create placeholder CSS: {e}")
+    
+    print("🔧 Placeholder creation workaround completed")    # Load environment variables from .env file
     load_env_file()
 
     app = Flask(__name__, instance_relative_config=True)
