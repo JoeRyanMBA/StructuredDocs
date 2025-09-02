@@ -21,13 +21,9 @@ RUN chmod +x ./start.sh
 
 # Copy critical files first
 COPY .enable_blueprints ./
-COPY frontend/dist/index.html ./frontend/dist/
-COPY frontend/dist/favicon.ico ./frontend/dist/
 
-# Copy frontend files with verification
-RUN mkdir -p ./frontend/dist/assets
-COPY frontend/dist/assets/ ./frontend/dist/assets/
-COPY frontend/dist/* ./frontend/dist/ 2>/dev/null || true
+# Copy entire frontend dist directory
+COPY frontend/dist ./frontend/dist
 
 # Verify critical files exist
 RUN echo "=== Critical Files Check ===" && \
