@@ -479,6 +479,25 @@ def create_app(environ=None, start_response=None):
                 print(f"Error serving image {filename}: {e}")
                 return "Image not found", 404
 
+        # Explicit route for assets to ensure proper MIME types
+        @app.route('/assets/<path:filename>')
+        def serve_assets(filename):
+            print(f"🎯 Asset request for: {filename}")
+            try:
+                assets_path = os.path.join(app.config['FRONTEND_FOLDER'], 'assets', filename)
+                print(f"🎯 Asset full path: {assets_path}")
+                print(f"🎯 Asset exists: {os.path.exists(assets_path)}")
+                
+                if os.path.exists(assets_path):
+                    print(f"✅ Serving asset: {assets_path}")
+                    return send_from_directory(os.path.join(app.config['FRONTEND_FOLDER'], 'assets'), filename)
+                else:
+                    print(f"❌ Asset not found: {assets_path}")
+                    return "Asset not found", 404
+            except Exception as e:
+                print(f"❌ Error serving asset {filename}: {e}")
+                return f"Error: {str(e)}", 500
+
         @app.route('/<path:path>')
         def serve_frontend(path):
             print(f"🎯 Frontend request for path: {path}")
