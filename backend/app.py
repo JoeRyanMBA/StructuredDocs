@@ -494,7 +494,13 @@ def create_app(environ=None, start_response=None):
                 
                 if os.path.exists(file_path):
                     print(f"✅ Serving from primary: {filename}")
-                    return send_from_directory(assets_dir, filename)
+                    response = send_from_directory(assets_dir, filename)
+                    # Ensure correct MIME type
+                    if filename.endswith('.js'):
+                        response.headers['Content-Type'] = 'application/javascript'
+                    elif filename.endswith('.css'):
+                        response.headers['Content-Type'] = 'text/css'
+                    return response
                 
                 # Fallback: try direct path from app root
                 app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
@@ -506,7 +512,13 @@ def create_app(environ=None, start_response=None):
                 
                 if os.path.exists(fallback_path):
                     print(f"✅ Serving from fallback: {filename}")
-                    return send_from_directory(fallback_dir, filename)
+                    response = send_from_directory(fallback_dir, filename)
+                    # Ensure correct MIME type
+                    if filename.endswith('.js'):
+                        response.headers['Content-Type'] = 'application/javascript'
+                    elif filename.endswith('.css'):
+                        response.headers['Content-Type'] = 'text/css'
+                    return response
                 
                 print(f"❌ Asset not found: {filename}")
                 print(f"❌ Searched in: {assets_dir} and {fallback_dir}")
