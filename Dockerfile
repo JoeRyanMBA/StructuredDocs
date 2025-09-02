@@ -4,26 +4,20 @@ FROM node:22-alpine as frontend-builder
 
 WORKDIR /app
 
-# Copy frontend directory
-COPY frontend/ ./frontend/
-
-# Install dependencies and build
-WORKDIR /app/frontend
-
-# Debug: Check what we're working with
-RUN pwd && ls -la
+# Copy package files first for better caching
+COPY frontend/package.json frontend/package-lock.json ./frontend/
 
 # Install dependencies
+WORKDIR /app/frontend
 RUN npm ci
 
-# Debug: Check if node_modules was created
-RUN ls -la node_modules/ | head -5
+# Copy the rest of the frontend source
+WORKDIR /app
+COPY frontend/ ./frontend/
 
 # Build the application
+WORKDIR /app/frontend
 RUN npm run build
-
-# Debug: Check build output
-RUN pwd && ls -la && ls -la dist/
 
 # Verify build output exists
 RUN test -d dist && test -f dist/index.html && echo "Build successful" || (echo "Build failed" && exit 1)
