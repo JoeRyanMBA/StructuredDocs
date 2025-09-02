@@ -36,8 +36,8 @@ check_endpoint "https://structureddocs-srhab.ondigitalocean.app/" "DigitalOcean 
 # Check Vercel (Backup - if deployed)
 echo ""
 echo "⚡ Backup Deployments:"
-echo "Vercel: Not deployed yet (run 'npm install -g vercel && cd frontend && vercel --prod')"
-echo "Railway: Not deployed yet (run 'npm install -g @railway/cli && railway login && railway init')"
+check_endpoint "https://frontend-six-kappa-47.vercel.app/api/health" "Vercel Health"
+check_endpoint "https://frontend-six-kappa-47.vercel.app/" "Vercel Frontend"
 
 # Performance check
 echo ""
@@ -58,9 +58,9 @@ echo ""
 echo "📊 Deployment Summary:"
 echo "======================"
 echo "✅ DigitalOcean: ACTIVE (Primary)"
-echo "⏳ Vercel: Ready for deployment"
+echo "✅ Vercel: ACTIVE (Backup)"
 echo "⏳ Railway: Ready for deployment"
 echo ""
 echo "🚀 Quick Deploy Commands:"
-echo "Vercel:  cd frontend && npx vercel --prod"
+echo "Vercel:  ✅ Deployed at https://frontend-six-kappa-47.vercel.app"
 echo "Railway: railway login && railway init && railway up"
