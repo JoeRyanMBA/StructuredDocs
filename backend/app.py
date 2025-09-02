@@ -89,6 +89,7 @@ def create_app(environ=None, start_response=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY='your-secret-key-change-in-production',
         STATIC_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist'),
+        STATIC_URL_PATH='/',
         FRONTEND_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist')
     )
 
@@ -482,12 +483,22 @@ def create_app(environ=None, start_response=None):
         # Use Flask's built-in static file serving for assets
         @app.route('/assets/<path:filename>')
         def serve_assets(filename):
-            print(f"🎯 Asset request for: {filename}")
+            print(f"🎯 Asset request for: assets/{filename}")
             try:
-                return app.send_static_file(f'assets/{filename}')
+                # Use send_from_directory for more reliable file serving
+                assets_dir = os.path.join(app.config['STATIC_FOLDER'], 'assets')
+                print(f"🎯 Assets directory: {assets_dir}")
+                print(f"🎯 File exists: {os.path.exists(os.path.join(assets_dir, filename))}")
+                
+                if os.path.exists(os.path.join(assets_dir, filename)):
+                    print(f"✅ Serving asset: {filename}")
+                    return send_from_directory(assets_dir, filename)
+                else:
+                    print(f"❌ Asset file not found: {os.path.join(assets_dir, filename)}")
+                    return f"Asset not found: {filename}", 404
             except Exception as e:
-                print(f"❌ Error serving asset {filename}: {e}")
-                return f"Asset not found: {filename}", 404
+                print(f"❌ Error serving asset assets/{filename}: {e}")
+                return f"Asset not found: assets/{filename}", 404
 
         @app.route('/<path:path>')
         def serve_frontend(path):
