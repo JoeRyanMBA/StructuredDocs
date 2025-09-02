@@ -549,10 +549,28 @@ p { color: #666; }
             print(f"🎯 Asset request for: '{filename}'")
             
             try:
-                # TEST: Return test response for ANY request
-                return f"TEST: Asset route called for {filename}", 200, {'Content-Type': 'text/plain'}
+                from flask import make_response
+                import mimetypes
+                
+                # Determine the correct MIME type
+                if filename.endswith('.js'):
+                    mimetype = 'application/javascript'
+                elif filename.endswith('.css'):
+                    mimetype = 'text/css'
+                elif filename.endswith('.woff2'):
+                    mimetype = 'font/woff2'
+                elif filename.endswith('.woff'):
+                    mimetype = 'font/woff'
+                else:
+                    mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
+                
+                # Serve the file with correct MIME type
+                response = make_response(app.send_static_file(f'assets/{filename}'))
+                response.headers['Content-Type'] = mimetype
+                print(f"✅ Serving asset with MIME type: {mimetype}")
+                return response
             except Exception as e:
-                print(f"❌ Error in asset route: {e}")
+                print(f"❌ Error serving asset {filename}: {e}")
                 return f"Error: {str(e)}", 500
 
         @app.route('/<path:path>')
@@ -560,9 +578,38 @@ p { color: #666; }
             print(f"🎯 Frontend request for path: {path}")
             
             try:
-                # Try to serve as static file first
+                from flask import make_response
+                import mimetypes
+                
+                # Determine the correct MIME type for static files
+                if path.endswith('.js'):
+                    mimetype = 'application/javascript'
+                elif path.endswith('.css'):
+                    mimetype = 'text/css'
+                elif path.endswith('.woff2'):
+                    mimetype = 'font/woff2'
+                elif path.endswith('.woff'):
+                    mimetype = 'font/woff'
+                elif path.endswith('.png'):
+                    mimetype = 'image/png'
+                elif path.endswith('.jpg') or path.endswith('.jpeg'):
+                    mimetype = 'image/jpeg'
+                elif path.endswith('.svg'):
+                    mimetype = 'image/svg+xml'
+                elif path.endswith('.ico'):
+                    mimetype = 'image/x-icon'
+                else:
+                    mimetype = mimetypes.guess_type(path)[0]
+                
+                # Try to serve as static file first with correct MIME type
                 try:
-                    return app.send_static_file(path)
+                    if mimetype:
+                        response = make_response(app.send_static_file(path))
+                        response.headers['Content-Type'] = mimetype
+                        print(f"✅ Serving static file with MIME type: {mimetype}")
+                        return response
+                    else:
+                        return app.send_static_file(path)
                 except:
                     pass
                 
