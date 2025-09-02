@@ -481,17 +481,28 @@ def create_app(environ=None, start_response=None):
 
         @app.route('/<path:path>')
         def serve_frontend(path):
+            print(f"🎯 Frontend request for path: {path}")
+            print(f"🎯 FRONTEND_FOLDER: {app.config['FRONTEND_FOLDER']}")
+            
             try:
-                if path != "" and os.path.exists(os.path.join(app.config['FRONTEND_FOLDER'], path)):
+                full_path = os.path.join(app.config['FRONTEND_FOLDER'], path)
+                print(f"🎯 Full file path: {full_path}")
+                print(f"🎯 File exists: {os.path.exists(full_path)}")
+                
+                if path != "" and os.path.exists(full_path):
+                    print(f"✅ Serving file: {full_path}")
                     return send_from_directory(app.config['FRONTEND_FOLDER'], path)
                 else:
+                    print(f"⚠️ File not found: {full_path}, serving index.html")
                     index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
                     if os.path.exists(index_path):
+                        print(f"✅ Serving index.html from: {index_path}")
                         return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
                     else:
+                        print(f"❌ index.html not found at: {index_path}")
                         return "Frontend not found", 404
             except Exception as e:
-                print(f"Error serving frontend path {path}: {e}")
+                print(f"❌ Error serving frontend path {path}: {e}")
                 return f"Error: {str(e)}", 500
 
     # Add error handlers
