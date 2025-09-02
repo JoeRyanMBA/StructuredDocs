@@ -9,13 +9,30 @@ COPY frontend/ ./frontend/
 
 # Install dependencies and build
 WORKDIR /app/frontend
+
+# Debug: Check what we're working with
+RUN pwd && ls -la
+
+# Install dependencies
 RUN npm ci
+
+# Debug: Check if node_modules was created
+RUN ls -la node_modules/ | head -5
+
+# Build the application
 RUN npm run build
 
-# Verify build output
-RUN ls -la dist/ && \
-    ls -la dist/assets/ | head -5 && \
-    echo "Build verification: $(ls dist/assets/ | wc -l) files"
+# Debug: Check build output
+RUN pwd && ls -la && ls -la dist/
+
+# Verify build output exists
+RUN test -d dist && test -f dist/index.html && echo "Build successful" || (echo "Build failed" && exit 1)
+
+# Stage 2: Python application
+FROM python:3.11-slim
+
+# Stage 2: Python application
+FROM python:3.11-slim
 
 # Stage 2: Python application
 FROM python:3.11-slim
