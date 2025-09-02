@@ -548,8 +548,12 @@ p { color: #666; }
         def serve_assets(filename):
             print(f"🎯 Asset request for: '{filename}'")
             
-            # TEST: Return test response for ANY request
-            return f"TEST: Asset route called for {filename}", 200, {'Content-Type': 'text/plain'}
+            try:
+                # TEST: Return test response for ANY request
+                return f"TEST: Asset route called for {filename}", 200, {'Content-Type': 'text/plain'}
+            except Exception as e:
+                print(f"❌ Error in asset route: {e}")
+                return f"Error: {str(e)}", 500
 
         @app.route('/<path:path>')
         def serve_frontend(path):
