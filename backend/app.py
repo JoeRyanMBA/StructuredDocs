@@ -485,20 +485,30 @@ def create_app(environ=None, start_response=None):
         def serve_assets(filename):
             print(f"🎯 Asset request for: {filename}")
             try:
-                # Direct path to assets directory
-                assets_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+                # First try the configured static folder
+                assets_dir = os.path.join(app.config['STATIC_FOLDER'], 'assets')
                 file_path = os.path.join(assets_dir, filename)
                 
-                print(f"🎯 Assets dir: {assets_dir}")
-                print(f"🎯 File path: {file_path}")
-                print(f"🎯 File exists: {os.path.exists(file_path)}")
+                print(f"🎯 Primary assets dir: {assets_dir}")
+                print(f"🎯 File exists in primary: {os.path.exists(file_path)}")
                 
                 if os.path.exists(file_path):
-                    print(f"✅ Serving asset: {filename}")
+                    print(f"✅ Serving from primary: {filename}")
                     return send_from_directory(assets_dir, filename)
-                else:
-                    print(f"❌ Asset not found: {file_path}")
-                    return f"Asset not found: {filename}", 404
+                
+                # Fallback: try direct path
+                fallback_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+                fallback_path = os.path.join(fallback_dir, filename)
+                
+                print(f"🎯 Fallback assets dir: {fallback_dir}")
+                print(f"🎯 File exists in fallback: {os.path.exists(fallback_path)}")
+                
+                if os.path.exists(fallback_path):
+                    print(f"✅ Serving from fallback: {filename}")
+                    return send_from_directory(fallback_dir, filename)
+                
+                print(f"❌ Asset not found: {filename}")
+                return f"Asset not found: {filename}", 404
             except Exception as e:
                 print(f"❌ Error serving asset {filename}: {e}")
                 return f"Error: {str(e)}", 500
