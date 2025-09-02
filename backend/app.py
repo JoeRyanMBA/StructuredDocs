@@ -585,16 +585,16 @@ p { color: #666; }
                     return response
                 
                 # ON-DEMAND PLACEHOLDER: Return placeholder content for missing critical files
-                print(f"🔍 Checking if '{filename}' is a critical file...")
-                if filename == 'index-C_NHaPTA.js':
-                    print(f"✅ MATCH: Returning placeholder for {filename}")
-                    return "console.log('TEST: Placeholder JS loaded');", 200, {'Content-Type': 'application/javascript'}
+                print(f"🔍 Checking if '{filename}' matches placeholder pattern...")
+                if 'index' in filename and filename.endswith('.js'):
+                    print(f"✅ MATCH: Returning placeholder for JS file: {filename}")
+                    return "console.log('TEST: Placeholder JS loaded for " + filename + "');", 200, {'Content-Type': 'application/javascript'}
                 
-                elif filename == 'index-CiVy6UYJ.css':
-                    print(f"✅ MATCH: Returning placeholder for {filename}")
-                    return "/* TEST: Placeholder CSS */ body { background: red; }", 200, {'Content-Type': 'text/css'}
+                elif 'index' in filename and filename.endswith('.css'):
+                    print(f"✅ MATCH: Returning placeholder for CSS file: {filename}")
+                    return "/* TEST: Placeholder CSS for " + filename + " */ body { background: red; }", 200, {'Content-Type': 'text/css'}
                 
-                print(f"🔍 '{filename}' is not a critical file")
+                print(f"🔍 '{filename}' does not match placeholder pattern")
                 
                 print(f"🔍 '{filename}' is not a critical file, proceeding with not found")
                 
