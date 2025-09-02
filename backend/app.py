@@ -584,31 +584,20 @@ p { color: #666; }
                         response.headers['Content-Type'] = 'text/css'
                     return response
                 
-                # ON-DEMAND PLACEHOLDER: Create placeholder for missing critical files
-                if filename in ['index-C_NHaPTA.js', 'index-CiVy6UYJ.css']:
-                    print(f"⚠️ Creating on-demand placeholder for: {filename}")
-                    os.makedirs(assets_dir, exist_ok=True)
-                    
-                    if filename.endswith('.js'):
-                        placeholder_content = """
-console.log('On-demand placeholder JavaScript loaded - main app bundle missing from Docker container');
+                # ON-DEMAND PLACEHOLDER: Return placeholder content for missing critical files
+                if filename == 'index-C_NHaPTA.js':
+                    print(f"⚠️ Returning on-demand placeholder JS for: {filename}")
+                    placeholder_js = """console.log('On-demand placeholder JavaScript loaded - main app bundle missing from Docker container');
 console.log('This is a workaround for Docker file copying issues');
 // Minimal Vue.js placeholder
 window.Vue = { createApp: () => ({ mount: () => console.log('App mounted (placeholder)') }) };
 """
-                        try:
-                            with open(file_path, 'w') as f:
-                                f.write(placeholder_content)
-                            print(f"✅ Created on-demand placeholder JS: {filename}")
-                            response = send_from_directory(assets_dir, filename)
-                            response.headers['Content-Type'] = 'application/javascript'
-                            return response
-                        except Exception as e:
-                            print(f"❌ Failed to create on-demand JS placeholder: {e}")
-                    
-                    elif filename.endswith('.css'):
-                        placeholder_content = """
-/* On-demand placeholder CSS - main app styles missing from Docker container */
+                    from flask import Response
+                    return Response(placeholder_js, mimetype='application/javascript')
+                
+                elif filename == 'index-CiVy6UYJ.css':
+                    print(f"⚠️ Returning on-demand placeholder CSS for: {filename}")
+                    placeholder_css = """/* On-demand placeholder CSS - main app styles missing from Docker container */
 body { 
     font-family: Arial, sans-serif; 
     margin: 0; 
@@ -626,15 +615,8 @@ body {
 h1 { color: #333; }
 p { color: #666; }
 """
-                        try:
-                            with open(file_path, 'w') as f:
-                                f.write(placeholder_content)
-                            print(f"✅ Created on-demand placeholder CSS: {filename}")
-                            response = send_from_directory(assets_dir, filename)
-                            response.headers['Content-Type'] = 'text/css'
-                            return response
-                        except Exception as e:
-                            print(f"❌ Failed to create on-demand CSS placeholder: {e}")
+                    from flask import Response
+                    return Response(placeholder_css, mimetype='text/css')
                 
                 print(f"❌ Asset not found: {filename}")
                 print(f"❌ Searched in: {assets_dir} and {fallback_dir}")
