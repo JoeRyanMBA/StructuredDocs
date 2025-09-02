@@ -4,20 +4,18 @@ FROM node:22-alpine as frontend-builder
 
 WORKDIR /app
 
-# Copy and install frontend dependencies
-COPY frontend/package.json frontend/package-lock.json ./frontend/
+# Copy frontend directory
+COPY frontend/ ./frontend/
+
+# Install dependencies and build
 WORKDIR /app/frontend
 RUN npm ci
-
-# Copy frontend source and build
-WORKDIR /app
-COPY frontend/ ./frontend/
-RUN cd frontend && npm run build
+RUN npm run build
 
 # Verify build output
-RUN ls -la frontend/dist/ && \
-    ls -la frontend/dist/assets/ | head -5 && \
-    echo "Build verification: $(ls frontend/dist/assets/ | wc -l) files"
+RUN ls -la dist/ && \
+    ls -la dist/assets/ | head -5 && \
+    echo "Build verification: $(ls dist/assets/ | wc -l) files"
 
 # Stage 2: Python application
 FROM python:3.11-slim
