@@ -12,3 +12,7 @@ psycopg2-binary
 Flask-JWT-Extended
 python-dotenv
 gunicorn
+Werkzeug
+click
+itsdangerous
+Jinja2
