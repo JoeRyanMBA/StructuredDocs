@@ -88,7 +88,7 @@ def create_app(environ=None, start_response=None):
         SECRET_KEY='your-flask-secret-key-change-in-production',
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY='your-secret-key-change-in-production',
-        STATIC_FOLDER=os.path.join(app.root_path, 'static'),
+        STATIC_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist'),
         FRONTEND_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist')
     )
 
@@ -479,47 +479,35 @@ def create_app(environ=None, start_response=None):
                 print(f"Error serving image {filename}: {e}")
                 return "Image not found", 404
 
-        # Explicit route for assets to ensure proper MIME types
+        # Use Flask's built-in static file serving for assets
         @app.route('/assets/<path:filename>')
         def serve_assets(filename):
             print(f"🎯 Asset request for: {filename}")
             try:
-                assets_path = os.path.join(app.config['FRONTEND_FOLDER'], 'assets', filename)
-                print(f"🎯 Asset full path: {assets_path}")
-                print(f"🎯 Asset exists: {os.path.exists(assets_path)}")
-                
-                if os.path.exists(assets_path):
-                    print(f"✅ Serving asset: {assets_path}")
-                    return send_from_directory(os.path.join(app.config['FRONTEND_FOLDER'], 'assets'), filename)
-                else:
-                    print(f"❌ Asset not found: {assets_path}")
-                    return "Asset not found", 404
+                return app.send_static_file(f'assets/{filename}')
             except Exception as e:
                 print(f"❌ Error serving asset {filename}: {e}")
-                return f"Error: {str(e)}", 500
+                return f"Asset not found: {filename}", 404
 
         @app.route('/<path:path>')
         def serve_frontend(path):
             print(f"🎯 Frontend request for path: {path}")
-            print(f"🎯 FRONTEND_FOLDER: {app.config['FRONTEND_FOLDER']}")
             
             try:
-                full_path = os.path.join(app.config['FRONTEND_FOLDER'], path)
-                print(f"🎯 Full file path: {full_path}")
-                print(f"🎯 File exists: {os.path.exists(full_path)}")
+                # Try to serve as static file first
+                try:
+                    return app.send_static_file(path)
+                except:
+                    pass
                 
-                if path != "" and os.path.exists(full_path):
-                    print(f"✅ Serving file: {full_path}")
-                    return send_from_directory(app.config['FRONTEND_FOLDER'], path)
+                # If not a static file, serve index.html for SPA routing
+                index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
+                if os.path.exists(index_path):
+                    print(f"✅ Serving index.html for SPA route: {path}")
+                    return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
                 else:
-                    print(f"⚠️ File not found: {full_path}, serving index.html")
-                    index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
-                    if os.path.exists(index_path):
-                        print(f"✅ Serving index.html from: {index_path}")
-                        return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
-                    else:
-                        print(f"❌ index.html not found at: {index_path}")
-                        return "Frontend not found", 404
+                    print(f"❌ index.html not found")
+                    return "Frontend not found", 404
             except Exception as e:
                 print(f"❌ Error serving frontend path {path}: {e}")
                 return f"Error: {str(e)}", 500
