@@ -5,7 +5,7 @@ FROM node:22-alpine as frontend-builder
 WORKDIR /app
 
 # Copy and install frontend dependencies
-COPY frontend/package*.json ./frontend/
+COPY frontend/package.json frontend/package-lock.json ./frontend/
 WORKDIR /app/frontend
 RUN npm ci --only=production
 
