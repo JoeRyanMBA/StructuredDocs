@@ -22,8 +22,18 @@ RUN chmod +x ./start.sh
 # Copy critical files first
 COPY .enable_blueprints ./
 
-# Copy entire frontend dist directory first
-COPY frontend/dist ./frontend/dist
+# Copy frontend files using RUN command for better reliability
+RUN mkdir -p ./frontend/dist/assets
+RUN cp -r frontend/dist/* ./frontend/dist/ 2>/dev/null || echo "cp failed, trying alternative"
+
+# If cp fails, try alternative method
+RUN if [ ! -f ./frontend/dist/index.html ]; then \
+      echo "cp failed, trying COPY again"; \
+      mkdir -p ./frontend/dist/assets; \
+      cp frontend/dist/index.html ./frontend/dist/ 2>/dev/null || echo "index.html copy failed"; \
+      cp frontend/dist/favicon.ico ./frontend/dist/ 2>/dev/null || echo "favicon.ico copy failed"; \
+      cp -r frontend/dist/assets/* ./frontend/dist/assets/ 2>/dev/null || echo "assets copy failed"; \
+    fi
 
 # Check what was actually copied
 RUN echo "=== What was copied to frontend/dist ===" && \
