@@ -218,8 +218,7 @@ def create_app(environ=None, start_response=None):
                 if not admin_user:
                     # Create admin user
                     admin_user = User(
-                        name='Admin User',
-                        email=admin_email,
+                        username=admin_email,
                         password_hash=generate_password_hash(admin_password),
                         role='admin'
                     )
@@ -491,13 +490,15 @@ def create_app(environ=None, start_response=None):
                 
                 print(f"🎯 Primary assets dir: {assets_dir}")
                 print(f"🎯 File exists in primary: {os.path.exists(file_path)}")
+                print(f"🎯 Current working directory: {os.getcwd()}")
                 
                 if os.path.exists(file_path):
                     print(f"✅ Serving from primary: {filename}")
                     return send_from_directory(assets_dir, filename)
                 
-                # Fallback: try direct path
-                fallback_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+                # Fallback: try direct path from app root
+                app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+                fallback_dir = os.path.join(app_root, 'frontend', 'dist', 'assets')
                 fallback_path = os.path.join(fallback_dir, filename)
                 
                 print(f"🎯 Fallback assets dir: {fallback_dir}")
@@ -508,6 +509,7 @@ def create_app(environ=None, start_response=None):
                     return send_from_directory(fallback_dir, filename)
                 
                 print(f"❌ Asset not found: {filename}")
+                print(f"❌ Searched in: {assets_dir} and {fallback_dir}")
                 return f"Asset not found: {filename}", 404
             except Exception as e:
                 print(f"❌ Error serving asset {filename}: {e}")
