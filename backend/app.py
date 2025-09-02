@@ -513,9 +513,9 @@ p { color: #666; }
             print(f"🏥 Sending response: {response_data}")
             return jsonify(response_data), 200
 
-        @app.route('/favicon.ico')
-        def favicon():
-            return send_from_directory(app.config['FRONTEND_FOLDER'], 'favicon.ico')
+        @app.route('/test-route')
+        def test_route():
+            return "TEST ROUTE WORKING", 200
 
         @app.route('/debug-routes')
         def debug_routes():
