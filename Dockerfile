@@ -1,51 +1,56 @@
-# Dockerfile for Flask API
-# Builds and runs the backend service using the existing start.sh
+# Multi-stage Dockerfile for reliable builds
+# Stage 1: Build frontend
+FROM node:22-alpine as frontend-builder
+
+WORKDIR /app
+
+# Copy and install frontend dependencies
+COPY frontend/package*.json ./frontend/
+WORKDIR /app/frontend
+RUN npm ci --only=production
+
+# Copy frontend source and build
+WORKDIR /app
+COPY frontend/ ./frontend/
+RUN cd frontend && npm run build
+
+# Verify build output
+RUN ls -la frontend/dist/ && \
+    ls -la frontend/dist/assets/ | head -5 && \
+    echo "Build verification: $(ls frontend/dist/assets/ | wc -l) files"
+
+# Stage 2: Python application
 FROM python:3.11-slim
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \
+    curl \
     && rm -rf /var/lib/apt/lists/*
 
-# Set working directory
 WORKDIR /app
 
 # Copy and install Python dependencies
 COPY requirements.txt ./
 RUN pip install --no-cache-dir -r requirements.txt
 
-# Copy backend code and startup script
+# Copy application code
 COPY backend ./backend
 COPY start.sh ./start.sh
+COPY .enable_blueprints ./
 RUN chmod +x ./start.sh
 
-# Copy critical files first
-COPY .enable_blueprints ./
+# Copy built frontend from builder stage
+COPY --from=frontend-builder /app/frontend/dist ./frontend/dist
 
-# Copy frontend files BEFORE backend to ensure proper copying
-RUN echo "=== Source directory check ===" && pwd && ls -la
-RUN mkdir -p ./frontend/dist/assets
-RUN cp -rv frontend/dist/* ./frontend/dist/ 2>/dev/null || echo "cp failed"
-RUN cp -rv frontend/dist/assets/* ./frontend/dist/assets/ 2>/dev/null || echo "assets cp failed"
+# Create non-root user for security
+RUN useradd --create-home --shell /bin/bash appuser && \
+    chown -R appuser:appuser /app
+USER appuser
 
-# Verify copy worked
-RUN echo "=== Verification ===" && \
-    ls -la ./frontend/dist/ && \
-    echo "Assets count:" && \
-    ls -la ./frontend/dist/assets/ | wc -l
+# Health check
+HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
+    CMD curl -f http://localhost:8080/api/health || exit 1
 
-# Verify critical files exist
-RUN echo "=== Critical Files Check ===" && \
-    ls -la .enable_blueprints && \
-    ls -la ./frontend/dist/index.html && \
-    ls -la ./frontend/dist/favicon.ico && \
-    echo "=== Assets Check ===" && \
-    ls -la ./frontend/dist/assets/ | grep -E "\.(js|css)$" | wc -l && \
-    ls -la ./frontend/dist/assets/ | grep index && \
-    echo "JS/CSS files found"
-
-# Expose port used by Gunicorn
 EXPOSE 8080
-
-# Default command
 CMD ["./start.sh"]
