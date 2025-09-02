@@ -547,6 +547,15 @@ p { color: #666; }
         @app.route('/assets/<path:filename>')
         def serve_assets(filename):
             print(f"🎯 Asset request for: '{filename}' (type: {type(filename)})")
+            
+            # TEST: Return test response for index files
+            if 'index' in filename:
+                print(f"🎯 TEST: Index file requested: {filename}")
+                if filename.endswith('.js'):
+                    return "console.log('TEST RESPONSE: Index JS file requested: " + filename + "');", 200, {'Content-Type': 'application/javascript'}
+                elif filename.endswith('.css'):
+                    return "/* TEST RESPONSE: Index CSS file requested: " + filename + " */ body { background: yellow; }", 200, {'Content-Type': 'text/css'}
+            
             try:
                 # First try the configured static folder
                 assets_dir = os.path.join(app.config['STATIC_FOLDER'], 'assets')
