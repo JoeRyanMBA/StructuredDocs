@@ -546,7 +546,7 @@ p { color: #666; }
         # Simple asset serving route
         @app.route('/assets/<path:filename>')
         def serve_assets(filename):
-            print(f"🎯 Asset request for: {filename}")
+            print(f"🎯 Asset request for: '{filename}' (type: {type(filename)})")
             try:
                 # First try the configured static folder
                 assets_dir = os.path.join(app.config['STATIC_FOLDER'], 'assets')
@@ -585,6 +585,7 @@ p { color: #666; }
                     return response
                 
                 # ON-DEMAND PLACEHOLDER: Return placeholder content for missing critical files
+                print(f"🔍 Checking if '{filename}' is a critical file...")
                 if filename == 'index-C_NHaPTA.js':
                     print(f"⚠️ Returning on-demand placeholder JS for: {filename}")
                     placeholder_js = """console.log('On-demand placeholder JavaScript loaded - main app bundle missing from Docker container');
@@ -617,6 +618,8 @@ p { color: #666; }
 """
                     from flask import Response
                     return Response(placeholder_css, mimetype='text/css')
+                
+                print(f"🔍 '{filename}' is not a critical file, proceeding with not found")
                 
                 print(f"❌ Asset not found: {filename}")
                 print(f"❌ Searched in: {assets_dir} and {fallback_dir}")
