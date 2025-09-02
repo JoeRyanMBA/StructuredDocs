@@ -22,13 +22,19 @@ RUN chmod +x ./start.sh
 # Copy critical files first
 COPY .enable_blueprints ./
 
-# Copy entire frontend dist directory with explicit assets copy
-COPY frontend/dist ./frontend/dist
+# Create frontend directory structure
+RUN mkdir -p ./frontend/dist/assets
 
-# Ensure assets directory is properly copied
-RUN mkdir -p ./frontend/dist/assets && \
-    ls -la ./frontend/dist/assets/ | head -5 && \
-    echo "Assets directory contents after copy:"
+# Copy frontend files explicitly
+COPY frontend/dist/index.html ./frontend/dist/
+COPY frontend/dist/favicon.ico ./frontend/dist/
+COPY frontend/dist/assets/ ./frontend/dist/assets/
+
+# Ensure assets directory has all files
+RUN echo "=== Assets directory before verification ===" && \
+    ls -la ./frontend/dist/assets/ && \
+    echo "=== Checking for index files ===" && \
+    ls -la ./frontend/dist/assets/ | grep index || echo "No index files found"
 
 # Verify critical files exist
 RUN echo "=== Critical Files Check ===" && \
