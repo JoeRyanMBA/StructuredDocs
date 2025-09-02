@@ -480,25 +480,28 @@ def create_app(environ=None, start_response=None):
                 print(f"Error serving image {filename}: {e}")
                 return "Image not found", 404
 
-        # Use Flask's built-in static file serving for assets
+        # Simple asset serving route
         @app.route('/assets/<path:filename>')
         def serve_assets(filename):
-            print(f"🎯 Asset request for: assets/{filename}")
+            print(f"🎯 Asset request for: {filename}")
             try:
-                # Use send_from_directory for more reliable file serving
-                assets_dir = os.path.join(app.config['STATIC_FOLDER'], 'assets')
-                print(f"🎯 Assets directory: {assets_dir}")
-                print(f"🎯 File exists: {os.path.exists(os.path.join(assets_dir, filename))}")
+                # Direct path to assets directory
+                assets_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+                file_path = os.path.join(assets_dir, filename)
                 
-                if os.path.exists(os.path.join(assets_dir, filename)):
+                print(f"🎯 Assets dir: {assets_dir}")
+                print(f"🎯 File path: {file_path}")
+                print(f"🎯 File exists: {os.path.exists(file_path)}")
+                
+                if os.path.exists(file_path):
                     print(f"✅ Serving asset: {filename}")
                     return send_from_directory(assets_dir, filename)
                 else:
-                    print(f"❌ Asset file not found: {os.path.join(assets_dir, filename)}")
+                    print(f"❌ Asset not found: {file_path}")
                     return f"Asset not found: {filename}", 404
             except Exception as e:
-                print(f"❌ Error serving asset assets/{filename}: {e}")
-                return f"Asset not found: assets/{filename}", 404
+                print(f"❌ Error serving asset {filename}: {e}")
+                return f"Error: {str(e)}", 500
 
         @app.route('/<path:path>')
         def serve_frontend(path):
