@@ -587,37 +587,14 @@ p { color: #666; }
                 # ON-DEMAND PLACEHOLDER: Return placeholder content for missing critical files
                 print(f"🔍 Checking if '{filename}' is a critical file...")
                 if filename == 'index-C_NHaPTA.js':
-                    print(f"⚠️ Returning on-demand placeholder JS for: {filename}")
-                    placeholder_js = """console.log('On-demand placeholder JavaScript loaded - main app bundle missing from Docker container');
-console.log('This is a workaround for Docker file copying issues');
-// Minimal Vue.js placeholder
-window.Vue = { createApp: () => ({ mount: () => console.log('App mounted (placeholder)') }) };
-"""
-                    from flask import Response
-                    return Response(placeholder_js, mimetype='application/javascript')
+                    print(f"✅ MATCH: Returning placeholder for {filename}")
+                    return "console.log('TEST: Placeholder JS loaded');", 200, {'Content-Type': 'application/javascript'}
                 
                 elif filename == 'index-CiVy6UYJ.css':
-                    print(f"⚠️ Returning on-demand placeholder CSS for: {filename}")
-                    placeholder_css = """/* On-demand placeholder CSS - main app styles missing from Docker container */
-body { 
-    font-family: Arial, sans-serif; 
-    margin: 0; 
-    padding: 20px; 
-    background: #f5f5f5; 
-}
-#app { 
-    max-width: 800px; 
-    margin: 0 auto; 
-    background: white; 
-    padding: 20px; 
-    border-radius: 8px; 
-    box-shadow: 0 2px 10px rgba(0,0,0,0.1); 
-}
-h1 { color: #333; }
-p { color: #666; }
-"""
-                    from flask import Response
-                    return Response(placeholder_css, mimetype='text/css')
+                    print(f"✅ MATCH: Returning placeholder for {filename}")
+                    return "/* TEST: Placeholder CSS */ body { background: red; }", 200, {'Content-Type': 'text/css'}
+                
+                print(f"🔍 '{filename}' is not a critical file")
                 
                 print(f"🔍 '{filename}' is not a critical file, proceeding with not found")
                 
