@@ -19,15 +19,24 @@ COPY backend ./backend
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
+# Copy critical files first
+COPY .enable_blueprints ./
+COPY frontend/dist/index.html ./frontend/dist/
+COPY frontend/dist/favicon.ico ./frontend/dist/
+
 # Copy frontend files with verification
 RUN mkdir -p ./frontend/dist/assets
-COPY frontend/dist/index.html ./frontend/dist/
 COPY frontend/dist/assets/ ./frontend/dist/assets/
-COPY .enable_blueprints ./
+COPY frontend/dist/* ./frontend/dist/ 2>/dev/null || true
 
-# List contents to verify copy
-RUN echo "=== Frontend dist contents ===" && ls -la ./frontend/dist/ && \
-    echo "=== Assets contents ===" && ls -la ./frontend/dist/assets/ | grep -E "\.(js|css)$" | head -5
+# Verify critical files exist
+RUN echo "=== Critical Files Check ===" && \
+    ls -la .enable_blueprints && \
+    ls -la ./frontend/dist/index.html && \
+    ls -la ./frontend/dist/favicon.ico && \
+    echo "=== Assets Check ===" && \
+    ls -la ./frontend/dist/assets/ | grep -E "\.(js|css)$" | wc -l && \
+    echo "JS/CSS files found"
 
 # Expose port used by Gunicorn
 EXPOSE 8080
