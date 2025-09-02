@@ -22,25 +22,17 @@ RUN chmod +x ./start.sh
 # Copy critical files first
 COPY .enable_blueprints ./
 
-# Copy frontend files using RUN command for better reliability
+# Copy frontend files BEFORE backend to ensure proper copying
+RUN echo "=== Source directory check ===" && pwd && ls -la
 RUN mkdir -p ./frontend/dist/assets
-RUN cp -r frontend/dist/* ./frontend/dist/ 2>/dev/null || echo "cp failed, trying alternative"
+RUN cp -rv frontend/dist/* ./frontend/dist/ 2>/dev/null || echo "cp failed"
+RUN cp -rv frontend/dist/assets/* ./frontend/dist/assets/ 2>/dev/null || echo "assets cp failed"
 
-# If cp fails, try alternative method
-RUN if [ ! -f ./frontend/dist/index.html ]; then \
-      echo "cp failed, trying COPY again"; \
-      mkdir -p ./frontend/dist/assets; \
-      cp frontend/dist/index.html ./frontend/dist/ 2>/dev/null || echo "index.html copy failed"; \
-      cp frontend/dist/favicon.ico ./frontend/dist/ 2>/dev/null || echo "favicon.ico copy failed"; \
-      cp -r frontend/dist/assets/* ./frontend/dist/assets/ 2>/dev/null || echo "assets copy failed"; \
-    fi
-
-# Check what was actually copied
-RUN echo "=== What was copied to frontend/dist ===" && \
+# Verify copy worked
+RUN echo "=== Verification ===" && \
     ls -la ./frontend/dist/ && \
-    echo "=== Assets directory contents ===" && \
-    ls -la ./frontend/dist/assets/ | wc -l && \
-    ls -la ./frontend/dist/assets/ | head -10
+    echo "Assets count:" && \
+    ls -la ./frontend/dist/assets/ | wc -l
 
 # Verify critical files exist
 RUN echo "=== Critical Files Check ===" && \
