@@ -546,73 +546,10 @@ p { color: #666; }
         # Simple asset serving route
         @app.route('/assets/<path:filename>')
         def serve_assets(filename):
-            print(f"🎯 Asset request for: '{filename}' (type: {type(filename)})")
+            print(f"🎯 Asset request for: '{filename}'")
             
-            # TEST: Return test response for index files
-            if 'index' in filename:
-                print(f"🎯 TEST: Index file requested: {filename}")
-                if filename.endswith('.js'):
-                    return "console.log('TEST RESPONSE: Index JS file requested: " + filename + "');", 200, {'Content-Type': 'application/javascript'}
-                elif filename.endswith('.css'):
-                    return "/* TEST RESPONSE: Index CSS file requested: " + filename + " */ body { background: yellow; }", 200, {'Content-Type': 'text/css'}
-            
-            try:
-                # First try the configured static folder
-                assets_dir = os.path.join(app.config['STATIC_FOLDER'], 'assets')
-                file_path = os.path.join(assets_dir, filename)
-                
-                print(f"🎯 Primary assets dir: {assets_dir}")
-                print(f"🎯 File exists in primary: {os.path.exists(file_path)}")
-                print(f"🎯 Current working directory: {os.getcwd()}")
-                
-                if os.path.exists(file_path):
-                    print(f"✅ Serving from primary: {filename}")
-                    response = send_from_directory(assets_dir, filename)
-                    # Ensure correct MIME type
-                    if filename.endswith('.js'):
-                        response.headers['Content-Type'] = 'application/javascript'
-                    elif filename.endswith('.css'):
-                        response.headers['Content-Type'] = 'text/css'
-                    return response
-                
-                # Fallback: try direct path from app root
-                app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-                fallback_dir = os.path.join(app_root, 'frontend', 'dist', 'assets')
-                fallback_path = os.path.join(fallback_dir, filename)
-                
-                print(f"🎯 Fallback assets dir: {fallback_dir}")
-                print(f"🎯 File exists in fallback: {os.path.exists(fallback_path)}")
-                
-                if os.path.exists(fallback_path):
-                    print(f"✅ Serving from fallback: {filename}")
-                    response = send_from_directory(fallback_dir, filename)
-                    # Ensure correct MIME type
-                    if filename.endswith('.js'):
-                        response.headers['Content-Type'] = 'application/javascript'
-                    elif filename.endswith('.css'):
-                        response.headers['Content-Type'] = 'text/css'
-                    return response
-                
-                # ON-DEMAND PLACEHOLDER: Return placeholder content for missing critical files
-                print(f"🔍 Checking if '{filename}' matches placeholder pattern...")
-                if 'index' in filename and filename.endswith('.js'):
-                    print(f"✅ MATCH: Returning placeholder for JS file: {filename}")
-                    return "console.log('TEST: Placeholder JS loaded for " + filename + "');", 200, {'Content-Type': 'application/javascript'}
-                
-                elif 'index' in filename and filename.endswith('.css'):
-                    print(f"✅ MATCH: Returning placeholder for CSS file: {filename}")
-                    return "/* TEST: Placeholder CSS for " + filename + " */ body { background: red; }", 200, {'Content-Type': 'text/css'}
-                
-                print(f"🔍 '{filename}' does not match placeholder pattern")
-                
-                print(f"🔍 '{filename}' is not a critical file, proceeding with not found")
-                
-                print(f"❌ Asset not found: {filename}")
-                print(f"❌ Searched in: {assets_dir} and {fallback_dir}")
-                return f"Asset not found: {filename}", 404
-            except Exception as e:
-                print(f"❌ Error serving asset {filename}: {e}")
-                return f"Error: {str(e)}", 500
+            # TEST: Return test response for ANY request
+            return f"TEST: Asset route called for {filename}", 200, {'Content-Type': 'text/plain'}
 
         @app.route('/<path:path>')
         def serve_frontend(path):
