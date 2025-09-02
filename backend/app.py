@@ -538,10 +538,32 @@ def create_app(environ=None, start_response=None):
     @app.route('/api/debug')
     def debug_info():
         print("🐛 Debug info requested")
+        static_folder = app.config.get('STATIC_FOLDER', 'not set')
+        frontend_folder = app.config.get('FRONTEND_FOLDER', 'not set')
+        
+        # Check if directories exist
+        static_exists = os.path.exists(static_folder) if static_folder != 'not set' else False
+        frontend_exists = os.path.exists(frontend_folder) if frontend_folder != 'not set' else False
+        
+        # Check assets directory
+        assets_dir = os.path.join(static_folder, 'assets') if static_folder != 'not set' else 'not set'
+        assets_exists = os.path.exists(assets_dir) if assets_dir != 'not set' else False
+        
+        # List files if directories exist
+        static_files = os.listdir(static_folder) if static_exists else []
+        assets_files = os.listdir(assets_dir) if assets_exists else []
+        
         return {
             "status": "debug",
             "working_directory": os.getcwd(),
-            "files": os.listdir('.')[:10],  # First 10 files
+            "static_folder": static_folder,
+            "static_exists": static_exists,
+            "static_files": static_files[:10],  # First 10 files
+            "frontend_folder": frontend_folder,
+            "frontend_exists": frontend_exists,
+            "assets_dir": assets_dir,
+            "assets_exists": assets_exists,
+            "assets_files": assets_files[:5] if len(assets_files) > 0 else [],  # First 5 asset files
             "python_path": sys.path[:5],  # First 5 paths
             "database_uri": app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50] + "..." if app.config.get('SQLALCHEMY_DATABASE_URI') else 'not set'
         }, 200
