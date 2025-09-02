@@ -16,6 +16,40 @@
     <div v-else-if="error" class="error">{{ error }}</div>
 
     <div v-else class="tasks-content">
+      <!-- Filters -->
+      <div class="filters-section">
+        <div class="filter-row">
+          <div class="search-box">
+            <input
+              v-model="searchQuery"
+              type="text"
+              class="search-input"
+              placeholder="Search tasks..."
+              @keyup.enter="applyFilters"
+            />
+            <span class="search-icon" @click="applyFilters">🔍</span>
+          </div>
+          <select v-model="statusFilter" @change="applyFilters" class="filter-select">
+            <option value="">All Statuses</option>
+            <option value="todo">To Do</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+          </select>
+          <select v-model="priorityFilter" @change="applyFilters" class="filter-select">
+            <option value="">All Priorities</option>
+            <option value="low">Low</option>
+            <option value="medium">Medium</option>
+            <option value="high">High</option>
+          </select>
+          <select v-model="associationFilter" @change="applyFilters" class="filter-select">
+            <option value="">All Associations</option>
+            <option value="project">Project</option>
+            <option value="collection">Collection</option>
+            <option value="topic">Topic</option>
+          </select>
+        </div>
+      </div>
+
       <div class="table-instructions">
         <p>Select a task to edit.</p>
       </div>
@@ -312,8 +346,9 @@ export default {
       
       // Filters
       searchQuery: '',
-      statusFilter: '',
-      priorityFilter: '',
+  statusFilter: '',
+  priorityFilter: '',
+  associationFilter: '',
       
       // Form data
       taskForm: {
@@ -676,11 +711,6 @@ export default {
   line-height: 1.5;
 }
 
-.page-actions {
-  margin-bottom: 2rem;
-  display: flex;
-  justify-content: flex-end;
-}
 
 .filters-section {
   background: var(--bg-white);

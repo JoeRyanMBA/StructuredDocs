@@ -56,18 +56,16 @@
       <div class="quick-actions-grid">
         <button @click="showCreateModal = true" class="quick-action-card">
           <div class="action-icon">📝</div>
-          <div class="action-content">
+          <div class="action-content" title="Start a new documentation project">
             <h3>Create Project</h3>
-            <p>Start a new documentation project</p>
           </div>
           <div class="action-arrow">→</div>
         </button>
         
         <button @click="filterByStatus('active')" class="quick-action-card">
           <div class="action-icon">🎯</div>
-          <div class="action-content">
+          <div class="action-content" title="See all currently active projects">
             <h3>View Active</h3>
-            <p>See all currently active projects</p>
           </div>
           <div class="action-arrow">→</div>
         </button>
@@ -75,9 +73,8 @@
         
         <button @click="exportProjects" class="quick-action-card" :disabled="exporting">
           <div class="action-icon">📤</div>
-          <div class="action-content">
+          <div class="action-content" :title="exporting ? 'Exporting...' : 'Download comprehensive project reports & analytics'">
             <h3>Export Data</h3>
-            <p>{{ exporting ? 'Exporting...' : 'Download comprehensive project reports & analytics' }}</p>
           </div>
           <div class="action-arrow">→</div>
         </button>
@@ -133,8 +130,11 @@
       </div>
       
       <!-- Loading State -->
-      <div v-if="loading" class="loading-state">
-        <p>Please wait while we fetch your projects.</p>
+      <div v-if="loading" class="loading-overlay">
+        <div class="loading-container">
+          <div class="loading-spinner"></div>
+          <p class="loading-text">Loading...</p>
+        </div>
       </div>
       <!-- Error State -->
       <div v-else-if="error" class="error-state">

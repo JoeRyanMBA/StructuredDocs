@@ -50,29 +50,25 @@
     <!-- Quick Actions Section (Start Page style) -->
     <div class="quick-actions-section">
       <h2>Quick Actions</h2>
-      <p class="section-description">Import and manage your content</p>
       <div class="quick-actions-grid">
-          <button class="action-card" @click="startNewImport">
+          <button class="quick-action-card" @click="startNewImport">
             <div class="action-icon">📥</div>
-            <div class="action-content">
+            <div class="action-content" title="Upload and process new content">
               <h3>Import New Document</h3>
-              <p>Upload and process new content</p>
             </div>
             <div class="action-arrow">→</div>
           </button>
-          <button class="action-card" @click="navigateTo('/import/history')">
+          <button class="quick-action-card" @click="navigateTo('/import/history')">
             <div class="action-icon">📋</div>
-            <div class="action-content">
+            <div class="action-content" title="Review past import activities">
               <h3>View Import History</h3>
-              <p>Review past import activities</p>
             </div>
             <div class="action-arrow">→</div>
           </button>
-          <button class="action-card" @click="navigateTo('/topics')">
+          <button class="quick-action-card" @click="navigateTo('/topics')">
             <div class="action-icon">📝</div>
-            <div class="action-content">
+            <div class="action-content" title="Explore imported content">
               <h3>Browse Topics</h3>
-              <p>Explore imported content</p>
             </div>
             <div class="action-arrow">→</div>
           </button>

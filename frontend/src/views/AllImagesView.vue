@@ -25,13 +25,13 @@
           :class="['btn', 'btn-secondary', viewMode === 'grid' ? 'active' : '']"
           @click="viewMode = 'grid'"
         >
-          📱 Grid
+          � Grid
         </button>
         <button 
           :class="['btn', 'btn-secondary', viewMode === 'list' ? 'active' : '']"
           @click="viewMode = 'list'"
         >
-          📋 List
+          � List
         </button>
       </div>
       <button @click="refreshImages" class="btn btn-primary">

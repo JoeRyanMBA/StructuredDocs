@@ -144,7 +144,11 @@ export default {
 .empty { color: #6c757d; }
 
 .controls { display:flex; gap:0.5rem; align-items:center; margin-bottom:0.75rem; }
-.controls input { padding:0.35rem; flex:1; }
+.controls input {
+  padding:0.35rem;
+  flex:1;
+  min-width: 200px;
+}
 .controls select { padding:0.35rem; }
 .actions button { margin-right:0.4rem; }
 .modal { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }

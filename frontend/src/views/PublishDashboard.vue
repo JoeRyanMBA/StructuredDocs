@@ -50,25 +50,22 @@
       <div class="quick-actions-grid">
           <button class="quick-action-card" @click="navigateTo('/publications/list')">
             <div class="action-icon">📚</div>
-            <div class="action-content">
+            <div class="action-content" title="View and organize publications">
               <h3>Manage Publications</h3>
-              <p>View and organize publications</p>
             </div>
             <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/publish/mobile-kb')">
             <div class="action-icon">📱</div>
-            <div class="action-content">
+            <div class="action-content" title="Create mobile knowledge base">
               <h3>Publish Mobile KB</h3>
-              <p>Create mobile knowledge base</p>
             </div>
             <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/publish/pdf')">
             <div class="action-icon">📄</div>
-            <div class="action-content">
+            <div class="action-content" title="Export content as PDF">
               <h3>Generate PDF</h3>
-              <p>Export content as PDF</p>
             </div>
             <div class="action-arrow">→</div>
           </button>

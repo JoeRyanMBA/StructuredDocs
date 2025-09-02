@@ -490,14 +490,6 @@ export default {
       }
     },
     customMove(evt, originalEvent) {
-      // For debugging
-      console.log('customMove called:', {
-        from: evt.from?.className,
-        to: evt.to?.className,
-        isFromExternal: evt.from !== evt.to,
-        target: originalEvent?.target?.className
-      })
-      
       // Always allow moves - let vuedraggable handle everything
       // The custom drop handlers will only trigger for specific hierarchy creation
       return true;

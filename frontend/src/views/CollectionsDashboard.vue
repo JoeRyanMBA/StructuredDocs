@@ -54,25 +54,22 @@
       <div class="quick-actions-grid">
         <button class="quick-action-card" @click="showCreateModal = true">
           <div class="action-icon">➕</div>
-          <div class="action-content">
+          <div class="action-content" title="Start organizing topics into collections">
             <h3>Create New Collection</h3>
-            <p>Start organizing topics into collections</p>
           </div>
           <div class="action-arrow">→</div>
         </button>
         <button class="quick-action-card" @click="navigateTo('/import')">
           <div class="action-icon">📥</div>
-          <div class="action-content">
+          <div class="action-content" title="Add content from external sources">
             <h3>Import Topics</h3>
-            <p>Add content from external sources</p>
           </div>
           <div class="action-arrow">→</div>
         </button>
         <button class="quick-action-card" @click="navigateTo('/topics')">
           <div class="action-icon">📝</div>
-          <div class="action-content">
-            <h3>Browse All Topics</h3>
-            <p>View and manage existing topics</p>
+          <div class="action-content" title="View and manage existing topics">
+            <h3>Browse Topics</h3>
           </div>
           <div class="action-arrow">→</div>
         </button>
@@ -235,7 +232,7 @@
 
     <!-- Loading State -->
     <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner">Loading collections...</div>
+      <div class="loading-spinner"></div>
     </div>
   </div>
 </template>
@@ -749,14 +746,6 @@ export default {
   gap: 1.5rem;
 }
 
-/* Match Start Page quick actions wrapper */
-.quick-actions-section {
-  margin: 0.5rem 0; /* match global spacing */
-  padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-white) 0%, var(--bg-light-mist-gray) 100%);
-  border-radius: var(--border-radius-xl);
-  border: 1px solid var(--border-light-gray);
-}
 
 /* Use global .quick-actions-section h2 styles from assets/style.css */
 
