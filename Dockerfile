@@ -1,4 +1,5 @@
 # Multi-stage Dockerfile for reliable builds
+# Force rebuild: 2025-09-02
 # Stage 1: Build frontend
 FROM node:22-alpine as frontend-builder
 
