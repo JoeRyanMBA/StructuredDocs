@@ -89,7 +89,7 @@ def create_app(environ=None, start_response=None):
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY='your-secret-key-change-in-production',
         STATIC_FOLDER=os.path.join(app.root_path, 'static'),
-        FRONTEND_FOLDER=os.path.join(os.path.dirname(app.root_path), 'frontend', 'dist')
+        FRONTEND_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist')
     )
 
     # Configure JWT cookie settings for cross-domain requests
@@ -372,14 +372,28 @@ def create_app(environ=None, start_response=None):
                 print(f"⚠️ Could not register alias route '/api/login': {_e}")
 
         @app.route('/', methods=['GET'])
-        def root_health():
+        def root():
             print("🏠 Root endpoint requested at", datetime.now().isoformat())
-            return jsonify({
-                'status': 'ok',
-                'service': 'StructuredDocs API',
-                'timestamp': datetime.now().isoformat(),
-                'version': '1.0.0'
-            }), 200
+            try:
+                index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
+                if os.path.exists(index_path):
+                    print(f"✅ Serving frontend from: {index_path}")
+                    return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
+                else:
+                    print(f"❌ Frontend index.html not found at: {index_path}")
+                    return jsonify({
+                        'status': 'error',
+                        'message': 'Frontend not found',
+                        'frontend_folder': app.config['FRONTEND_FOLDER'],
+                        'files': os.listdir(app.config['FRONTEND_FOLDER']) if os.path.exists(app.config['FRONTEND_FOLDER']) else []
+                    }), 404
+            except Exception as e:
+                print(f"❌ Error serving frontend: {e}")
+                return jsonify({
+                    'status': 'error',
+                    'message': str(e),
+                    'frontend_folder': app.config['FRONTEND_FOLDER']
+                }), 500
 
         @app.route('/api/ping', methods=['GET'])
         def ping():
