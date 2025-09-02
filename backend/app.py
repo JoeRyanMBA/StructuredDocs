@@ -2,7 +2,8 @@
 
 import sys
 import os
-from flask import Flask, jsonify, send_from_directory, send_file, request
+import mimetypes
+from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
 from .extensions import db, migrate, jwt
 from urllib.parse import urlparse
@@ -549,9 +550,6 @@ p { color: #666; }
             print(f"🎯 Asset request for: '{filename}'")
             
             try:
-                from flask import make_response
-                import mimetypes
-                
                 # Determine the correct MIME type
                 if filename.endswith('.js'):
                     mimetype = 'application/javascript'
@@ -578,9 +576,6 @@ p { color: #666; }
             print(f"🎯 Frontend request for path: {path}")
             
             try:
-                from flask import make_response
-                import mimetypes
-                
                 # Determine the correct MIME type for static files
                 if path.endswith('.js'):
                     mimetype = 'application/javascript'
