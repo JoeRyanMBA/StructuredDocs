@@ -22,8 +22,13 @@ RUN chmod +x ./start.sh
 # Copy critical files first
 COPY .enable_blueprints ./
 
-# Copy entire frontend dist directory
+# Copy entire frontend dist directory with explicit assets copy
 COPY frontend/dist ./frontend/dist
+
+# Ensure assets directory is properly copied
+RUN mkdir -p ./frontend/dist/assets && \
+    ls -la ./frontend/dist/assets/ | head -5 && \
+    echo "Assets directory contents after copy:"
 
 # Verify critical files exist
 RUN echo "=== Critical Files Check ===" && \
@@ -32,6 +37,7 @@ RUN echo "=== Critical Files Check ===" && \
     ls -la ./frontend/dist/favicon.ico && \
     echo "=== Assets Check ===" && \
     ls -la ./frontend/dist/assets/ | grep -E "\.(js|css)$" | wc -l && \
+    ls -la ./frontend/dist/assets/ | grep index && \
     echo "JS/CSS files found"
 
 # Expose port used by Gunicorn
