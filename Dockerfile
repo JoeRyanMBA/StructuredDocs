@@ -23,13 +23,7 @@ RUN npm run build
 RUN test -d dist && test -f dist/index.html && echo "Build successful" || (echo "Build failed" && exit 1)
 
 # Stage 2: Python application
-FROM python:3.11-slim
-
-# Stage 2: Python application
-FROM python:3.11-slim
-
-# Stage 2: Python application
-FROM python:3.11-slim
+FROM python:3.11-slim as backend
 
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
