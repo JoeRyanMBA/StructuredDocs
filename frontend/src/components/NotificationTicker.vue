@@ -92,7 +92,8 @@ export default {
 
 <style scoped>
 .notification-ticker {
-  position: relative; /* Changed from fixed to relative */
+  position: relative;
+  /* Let parent .ticker-bar handle positioning */
   height: auto; /* Let content determine height */
   min-height: var(--ticker-height);
   background-color: #f8f9fa;

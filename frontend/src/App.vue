@@ -118,14 +118,14 @@ export default {
   align-items: center;
 }
 
-.content {
+  .content {
   padding: 2rem;
   max-width: 1200px;
   margin-left: var(--sidebar-width);
   margin-right: auto;
-  margin-top: calc(var(--header-height) + var(--ticker-height) + 1rem);
+  margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem); /* reduced spacing */
   width: calc(100% - var(--sidebar-width));
-  cursor: default; /* Sets the default cursor for the content area */
+  cursor: default;
 }
 
 .login-bg {
@@ -148,7 +148,7 @@ export default {
     margin-left: 0;
     padding: 1rem;
     width: 100%;
-    margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem);
+    margin-top: calc(var(--header-height) + var(--ticker-height) + 0.25rem); /* reduced spacing */
   }
   .login-content {
     margin-top: 0 !important;

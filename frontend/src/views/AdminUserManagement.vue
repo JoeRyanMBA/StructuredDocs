@@ -3,7 +3,7 @@
     <HeaderBar />
     <div class="page-content">
       <div class="page-header">
-        <h2>User List</h2>
+        <h2>User Management</h2>
         <p class="page-description">Manage user accounts, roles, and permissions</p>
       </div>
       

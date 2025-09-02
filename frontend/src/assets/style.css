@@ -91,7 +91,7 @@
 /* General Body and Typography */
 body {
   font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   color: var(--text-primary-charcoal);
   line-height: 1.6;
   margin: 0;
@@ -754,7 +754,7 @@ input:focus, select:focus, textarea:focus {
 .quick-actions-section {
   margin: 0.5rem 0;
   padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-white) 0%, var(--bg-light-mist-gray) 100%);
+  background: var(--bg-white);
   border-radius: var(--border-radius-xl);
   border: 1px solid var(--border-light-gray);
 }
@@ -771,6 +771,18 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
   gap: 1.5rem;
+}
+/* Metrics Grid for Key Metrics Cards */
+.metrics-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
+  gap: 1.5rem;
+}
+
+/* Center Dashboard Header Titles */
+.dashboard-header {
+  text-align: center;
+  margin-bottom: 2rem;
 }
 
 .modal-header {
@@ -818,6 +830,14 @@ input:focus, select:focus, textarea:focus {
 /* Utility Classes */
 .w-100 {
   width: 100%;
+}
+
+/* Page Actions (global) */
+.page-actions {
+  margin-top: 1rem;
+  margin-bottom: 2rem;
+  display: flex;
+  justify-content: flex-end;
 }
 .mb-4 {
   margin-bottom: 1.5rem;
@@ -934,7 +954,7 @@ input:focus, select:focus, textarea:focus {
   display: grid;
   grid-template-columns: min-content 1fr min-content;
   gap: 1rem;
-  align-items: start;
+  align-items: center;
   padding: 1.25rem 1.5rem;
   background: var(--bg-white);
   border: 1px solid var(--border-light-gray);
@@ -992,6 +1012,16 @@ input:focus, select:focus, textarea:focus {
 }
 
 .quick-action-card:hover .action-arrow { transform: translateX(4px); }
+
+/* Quick Action Cards Text Wrapping */
+.quick-action-card {
+  white-space: normal !important;
+}
+.quick-action-card .action-content,
+.quick-action-card h3,
+.quick-action-card p {
+  white-space: normal !important;
+}
 
 /* Reusable Section/Card Wrappers */
 .dashboard-section,
@@ -1067,5 +1097,79 @@ input:focus, select:focus, textarea:focus {
 /* Grid utilities for dashboard content areas */
 .content-grid .full-width {
   grid-column: 1 / -1;
+}
+
+/* Filters Section Styling */
+.filters-section {
+  margin: 1.5rem 0;
+  padding: 1rem;
+  background: var(--bg-light-mist-gray);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+  box-shadow: var(--box-shadow-sm);
+}
+.filter-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  align-items: flex-end;
+}
+.filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+  min-width: 200px;
+}
+.filter-input {
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: var(--border-radius-sm);
+  width: 100%;
+}
+
+/* Task Filters Inline Layout */
+.filters-section {
+  padding: 1rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+}
+.filter-row {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  flex-wrap: nowrap !important;
+  overflow-x: auto;
+}
+.search-box {
+  position: relative;
+  flex: 1;
+  max-width: 300px;
+}
+.search-input {
+  width: auto !important;
+}
+.search-input {
+  width: 100%;
+  padding: 0.5rem 2.5rem 0.5rem 1rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: var(--border-radius-sm);
+}
+.search-icon {
+  position: absolute;
+  right: 0.75rem;
+  top: 50%;
+  transform: translateY(-50%);
+  cursor: pointer;
+  color: var(--text-secondary-cool-gray);
+}
+.filter-select {
+  padding: 0.5rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: var(--border-radius-sm);
+  min-width: 150px;
+  width: auto !important;  /* Prevent full-width fixed by global styles */
+  display: inline-block;
+  flex: 0 0 auto;
 }
 

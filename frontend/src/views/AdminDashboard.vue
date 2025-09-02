@@ -47,43 +47,43 @@
       </div>
     </div>
 
-    <!-- Database Metrics Panel -->
-    <div class="mt-8">
-      <DatabaseMetricsPanel :metrics="dbMetrics" />
-    </div>
-
-    <!-- Main Content Grid -->
-    <div class="content-grid">
-      <!-- Quick Actions -->
-      <div class="dashboard-section full-width">
+  <!-- Main Content Grid: Quick Actions and Database Metrics side-by-side -->
+  <div class="content-grid two-col">
+  <!-- Quick Actions -->
+  <div class="quick-actions-section">
         <h2>Quick Actions</h2>
-        <div class="quick-actions-grid">
-          <button class="action-card" @click="navigateTo('/admin/users')">
+        <p class="section-description">Manage users, notifications, and bug reports</p>
+  <div class="quick-actions-grid">
+          <button class="quick-action-card" @click="navigateTo('/admin/users')">
             <div class="action-icon">👥</div>
-            <div class="action-content">
+            <div class="action-content" title="Manage user accounts and permissions">
               <h3>Manage Users</h3>
-              <p>Manage user accounts and permissions</p>
             </div>
+            <div class="action-arrow">→</div>
           </button>
-          <button class="action-card" @click="navigateTo('/notifications/new')">
+          <button class="quick-action-card" @click="navigateTo('/notifications/new')">
             <div class="action-icon">🔔</div>
-            <div class="action-content">
+            <div class="action-content" title="Send notifications to users">
               <h3>Create Notification</h3>
-              <p>Send notifications to users</p>
             </div>
+            <div class="action-arrow">→</div>
           </button>
-          <button class="action-card" @click="navigateTo('/admin/bugs')">
+          <button class="quick-action-card" @click="navigateTo('/admin/bugs')">
             <div class="action-icon">🐛</div>
-            <div class="action-content">
+            <div class="action-content" title="Review user-submitted bug reports">
               <h3>View Bug Reports</h3>
-              <p>Review user-submitted bug reports</p>
             </div>
+            <div class="action-arrow">→</div>
           </button>
         </div>
       </div>
-
-      <!-- System Overview -->
+      <!-- Database Metrics Panel -->
       <div class="dashboard-section">
+        <DatabaseMetricsPanel :metrics="dbMetrics" />
+      </div>
+
+  <!-- System Overview -->
+  <div class="dashboard-section full-width">
         <h2>System Overview</h2>
         <div class="system-overview">
           <div class="system-section">
@@ -115,8 +115,8 @@
         </div>
       </div>
 
-      <!-- Recent System Events -->
-      <div class="dashboard-section">
+  <!-- Recent System Events -->
+  <div class="dashboard-section full-width">
         <h2>Recent System Events</h2>
         <div class="system-events">
           <div v-if="systemEvents.length === 0" class="empty-state">

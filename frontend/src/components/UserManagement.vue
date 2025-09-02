@@ -1,7 +1,6 @@
 <template>
   <div class="user-management">
-    <h2>User List</h2>
-
+    <!-- <h2>User List</h2> -->
     <!-- Users Table -->
     <div class="users-table">
       <table>
@@ -137,7 +136,10 @@
 
     <!-- Loading overlay -->
     <div v-if="loading && !showAddUser && !editingUser" class="loading-overlay">
-      <div class="loading-message">Loading users...</div>
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading users...</p>
+      </div>
     </div>
 
     <!-- Error message -->
@@ -643,12 +645,30 @@ td {
   z-index: 100;
 }
 
-.loading {
-  background: var(--primary-deep-teal);
-  color: white;
-  padding: 10px 20px;
-  border-radius: 4px;
+.loading-container {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+}
+
+.loading-spinner {
+  width: 24px;
+  height: 24px;
+  border: 3px solid rgba(0, 123, 255, 0.3);
+  border-top: 3px solid rgba(0, 123, 255, 1);
+  border-radius: 50%;
+  animation: spin 0.8s linear infinite;
+}
+
+.loading-text {
+  font-size: 14px;
+  color: #333;
   font-weight: 500;
+}
+
+@keyframes spin {
+  0% { transform: rotate(0deg); }
+  100% { transform: rotate(360deg); }
 }
 
 .error-message,

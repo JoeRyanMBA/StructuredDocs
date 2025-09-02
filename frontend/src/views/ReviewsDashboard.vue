@@ -63,25 +63,22 @@
       <div class="quick-actions-grid">
           <button class="quick-action-card" @click="sendNewReview">
             <div class="action-icon">📤</div>
-            <div class="action-content">
+            <div class="action-content" title="Submit topics to stakeholders">
               <h3>Send for Review</h3>
-              <p>Submit topics to stakeholders</p>
             </div>
             <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/reviews/incorporate')">
             <div class="action-icon">🔄</div>
-            <div class="action-content">
+            <div class="action-content" title="Process stakeholder comments">
               <h3>Incorporate Feedback</h3>
-              <p>Process stakeholder comments</p>
             </div>
             <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/reviews/history')">
             <div class="action-icon">📋</div>
-            <div class="action-content">
+            <div class="action-content" title="View completed reviews">
               <h3>Review History</h3>
-              <p>View completed reviews</p>
             </div>
             <div class="action-arrow">→</div>
           </button>

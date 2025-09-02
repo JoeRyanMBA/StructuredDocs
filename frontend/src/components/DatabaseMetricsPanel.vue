@@ -37,7 +37,8 @@ export default {
 <style>
 .db-metrics-grid {
   display: flex;
-  gap: 2rem;
+  flex-direction: column;
+  gap: 1.5rem;
   margin-top: 1rem;
 }
 .db-metric-card {

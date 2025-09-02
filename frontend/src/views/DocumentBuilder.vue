@@ -40,25 +40,22 @@
             <div class="quick-actions">
               <a class="quick-action-card" @click.prevent="openNewCollectionModal">
                 <div class="action-icon">📁</div>
-                <div class="action-content">
-                  <h3>New Collection</h3>
-                  <p>Create a new collection to organize documents.</p>
-                </div>
+                  <div class="action-content" title="Create a new collection to organize documents">
+                    <h3>New Collection</h3>
+                  </div>
                 <div class="action-arrow">→</div>
               </a>
               <router-link class="quick-action-card" to="/links">
                 <div class="action-icon">🔗</div>
-                <div class="action-content">
-                  <h3>View All Links</h3>
-                  <p>Manage and reuse links across your documents.</p>
+                <div class="action-content" title="Manage and reuse links across your documents">
+                  <h3>View Links</h3>
                 </div>
                 <div class="action-arrow">→</div>
               </router-link>
               <router-link class="quick-action-card" to="/images">
                 <div class="action-icon">🖼️</div>
-                <div class="action-content">
-                  <h3>Browse All Images</h3>
-                  <p>Find images from your library for quick insertion.</p>
+                <div class="action-content" title="Find images from your library for quick insertion">
+                  <h3>Browse Images</h3>
                 </div>
                 <div class="action-arrow">→</div>
               </router-link>
@@ -156,9 +153,8 @@
           
           <button class="quick-action-card w-100" @click="showLinksModal = true">
             <div class="action-icon">🔗</div>
-            <div class="action-content">
-              <h3>View All Links</h3>
-              <p>Manage and insert references</p>
+            <div class="action-content" title="Manage and insert references">
+              <h3>View Links</h3>
             </div>
             <div class="action-arrow">→</div>
           </button>
@@ -169,7 +165,7 @@
           <div class="section-header">
             <h3>🖼️ Images</h3>
             <button class="btn-icon" @click="showImagesModal = true" title="Browse Images">
-              👁️
+              📷
             </button>
           </div>
           
@@ -191,10 +187,10 @@
           </div>
           
           <button class="quick-action-card w-100" @click="showImagesModal = true">
-            <div class="action-icon">🖼️</div>
-            <div class="action-content">
-              <h3>Browse All Images</h3>
-              <p>Find and insert media</p>
+
+              <div class="action-icon">🖼️</div>
+            <div class="action-content" title="Find and insert media">
+              <h3>Browse Images</h3>
             </div>
             <div class="action-arrow">→</div>
           </button>
@@ -876,7 +872,7 @@ status: "draft"
   padding: 1rem;
   max-width: 1400px;
   margin: 0 auto;
-  background-color: var(--bg-light-mist-gray);
+  /* background removed for white layout */
 }
 
 .builder-header {
@@ -901,6 +897,14 @@ status: "draft"
   grid-template-columns: 1fr 280px;
   gap: 2rem;
   min-height: 60vh;
+}
+
+.builder-main {
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  padding: 1.5rem;
+  box-shadow: var(--box-shadow-sm);
 }
 
 /* Removed left sidebar; Collections moved to bottom */

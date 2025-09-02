@@ -445,11 +445,6 @@ export default {
   line-height: 1.5;
 }
 
-.page-actions {
-  margin-bottom: 2rem;
-  display: flex;
-  justify-content: flex-end;
-}
 
 /* Filters */
 .filters-section {

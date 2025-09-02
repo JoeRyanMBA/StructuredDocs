@@ -12,34 +12,34 @@
       </button>
     </div>
 
-    <div v-if="loading" class="loading">Loading tags...</div>
-    <div v-else-if="error" class="error">{{ error }}</div>
-
-    <div v-else class="tags-content">
-      <!-- Filters -->
-      <div class="filters-section">
-        <div class="filter-row">
-          <div class="filter-group">
-            <label>Search:</label>
-            <input
-              v-model="searchQuery"
-              type="text"
-              class="filter-input"
-              placeholder="Search tags..."
-              @keyup.enter="applyFilters"
-            />
-          </div>
-          <div class="filter-group">
-            <div class="button-group">
-              <button @click="applyFilters" class="btn btn-primary btn-sm">
-                <i class="fas fa-search"></i> Search
-              </button>
-              <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Search</button>
-            </div>
+    <!-- Filters Section -->
+    <div class="filters-section">
+      <div class="filter-row">
+        <div class="filter-group">
+          <label>Search:</label>
+          <input
+            v-model="searchQuery"
+            type="text"
+            class="filter-input"
+            placeholder="Search tags..."
+            @keyup.enter="applyFilters"
+          />
+        </div>
+        <div class="filter-group">
+          <div class="button-group">
+            <button @click="applyFilters" class="btn btn-primary btn-sm">
+              <i class="fas fa-search"></i> Search
+            </button>
+            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Search</button>
           </div>
         </div>
       </div>
+    </div>
 
+  <div v-if="loading" class="loading">Loading tags...</div>
+  <div v-else-if="error && tags.length > 0" class="error">{{ error }}</div>
+
+    <div v-else class="tags-content">
       <p class="table-instruction">Select a tag to edit.</p>
 
       <div v-if="filteredTags.length === 0 && !searchQuery" class="no-data">

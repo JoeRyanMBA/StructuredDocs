@@ -6,7 +6,10 @@
       <p class="subtitle">Welcome, {{ firstName || 'User' }}!</p>
     </div>
     <div v-if="loading" class="loading-overlay">
-      <span class="loading-spinner">Loading dashboard...</span>
+      <div class="loading-container">
+        <div class="loading-spinner"></div>
+        <p class="loading-text">Loading...</p>
+      </div>
     </div>
     <div v-else>
           <!-- Metrics Section -->
@@ -55,54 +58,48 @@
         <div class="quick-actions-grid">
           <router-link to="/all-tasks" class="quick-action-card">
             <div class="action-icon">📋</div>
-            <div class="action-content">
-              <h3>All Tasks</h3>
-              <p>Manage and organize all tasks across projects</p>
+            <div class="action-content" title="Manage and organize all tasks across projects">
+              <h3>Tasks</h3>
             </div>
             <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/all-tags" class="quick-action-card">
             <div class="action-icon">🏷️</div>
-            <div class="action-content">
-              <h3>All Tags</h3>
-              <p>Create and manage tags for categorization</p>
+            <div class="action-content" title="Create and manage tags for categorization">
+              <h3>Tags</h3>
             </div>
             <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/all-stakeholders" class="quick-action-card">
             <div class="action-icon">👥</div>
-            <div class="action-content">
-              <h3>All Stakeholders</h3>
-              <p>Manage stakeholder profiles and information</p>
+            <div class="action-content" title="Manage stakeholder profiles and information">
+              <h3>Stakeholders</h3>
             </div>
             <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/all-milestones" class="quick-action-card">
             <div class="action-icon">🎯</div>
-            <div class="action-content">
-              <h3>All Milestones</h3>
-              <p>Track project milestones and deadlines</p>
+            <div class="action-content" title="Track project milestones and deadlines">
+              <h3>Milestones</h3>
             </div>
             <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/topics" class="quick-action-card">
             <div class="action-icon">📝</div>
-            <div class="action-content">
-              <h3>All Topics</h3>
-              <p>View and manage documentation topics</p>
+            <div class="action-content" title="View and manage documentation topics">
+              <h3>Topics</h3>
             </div>
             <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/projects" class="quick-action-card">
             <div class="action-icon">📁</div>
-            <div class="action-content">
-              <h3>All Projects</h3>
-              <p>Manage projects and project settings</p>
+            <div class="action-content" title="Manage projects and project settings">
+              <h3>Projects</h3>
             </div>
             <div class="action-arrow">→</div>
           </router-link>
@@ -445,11 +442,11 @@ export default {
 
 <style scoped>
 /* Dashboard Layout */
+/* .dashboard wrapper now uses default background */
 .dashboard {
   max-width: 1400px;
   margin: 0 auto;
   padding: 0 2rem 2rem; /* remove top space before header */
-  background-color: var(--bg-light-mist-gray);
 }
 
 .dashboard-header {
@@ -645,14 +642,6 @@ export default {
   color: var(--text-medium-gray);
 }
 
-/* Quick Actions Section */
-.quick-actions-section {
-  margin: 1rem 0;
-  padding: 2rem;
-  background: linear-gradient(135deg, var(--bg-white) 0%, var(--bg-light-mist-gray) 100%);
-  border-radius: var(--border-radius-xl);
-  border: 1px solid var(--border-light-gray);
-}
 
 /* Use global .quick-actions-section h2 styles from assets/style.css */
 

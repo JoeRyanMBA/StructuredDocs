@@ -48,8 +48,8 @@ export default {
           icon: '🎯',
           route: 'Projects',
           // No child "Add New" link; Tasks/Milestones/Stakeholders/Tags remain
-          children: [
-            { key: 'all-tasks', label: 'Tasks', route: 'AllTasks', icon: '📋' },
+            children: [
+            { key: 'all-tasks', label: 'Tasks', route: 'Tasks', icon: '📋' },
             { key: 'all-milestones', label: 'Milestones', route: 'AllMilestones', icon: '🎯' },
             { key: 'all-stakeholders', label: 'Stakeholders', route: 'AllStakeholders', icon: '👥' },
             { key: 'all-tags', label: 'Tags', route: 'AllTags', icon: '🏷️' }
