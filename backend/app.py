@@ -78,12 +78,12 @@ def create_app(environ=None, start_response=None):
         return app
 
     # WORKAROUND: Create placeholder assets if missing
-    # Use the same path resolution as the asset serving route
-    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-    assets_dir = os.path.join(app_root, 'frontend', 'dist', 'assets')
+    # Use the same path as STATIC_FOLDER configuration
+    assets_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
     os.makedirs(assets_dir, exist_ok=True)
     
     print(f"🎯 Creating placeholders in: {assets_dir}")
+    print(f"🎯 Current working directory: {os.getcwd()}")
     
     # Create minimal placeholder for missing index.js
     index_js_path = os.path.join(assets_dir, 'index-C_NHaPTA.js')
@@ -127,9 +127,7 @@ p { color: #666; }
 """)
             print(f"✅ Created placeholder CSS at: {index_css_path}")
         except Exception as e:
-            print(f"❌ Failed to create placeholder CSS: {e}")
-
-    # Load environment variables from .env file
+            print(f"❌ Failed to create placeholder CSS: {e}")    # Load environment variables from .env file
     load_env_file()
 
     app = Flask(__name__, instance_relative_config=True)
