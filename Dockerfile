@@ -21,6 +21,8 @@ RUN chmod +x ./start.sh
 
 # Copy frontend files
 COPY frontend/dist ./frontend/dist
+COPY frontend/dist/assets ./frontend/dist/assets
+COPY frontend/dist/index.html ./frontend/dist/index.html
 COPY .enable_blueprints ./
 
 # Expose port used by Gunicorn
