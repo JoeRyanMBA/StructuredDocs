@@ -14,6 +14,10 @@ COPY backend ./backend
 COPY start.sh ./start.sh
 RUN chmod +x ./start.sh
 
+# Copy frontend files
+COPY frontend/dist ./frontend/dist
+COPY .enable_blueprints ./
+
 # Expose port used by Gunicorn
 EXPOSE 8080
 

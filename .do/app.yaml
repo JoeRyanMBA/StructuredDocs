@@ -1,0 +1,34 @@
+name: structured-docs
+services:
+- name: api
+  source_dir: /
+  github:
+    repo: JoeRyanMBA/StructuredDocs
+    branch: main
+    deploy_on_push: true
+  run_command: ./start.sh
+  environment_slug: python
+  instance_count: 1
+  instance_size_slug: basic-xxs
+  health_check:
+    http_path: /api/health
+  envs:
+  - key: PORT
+    value: "${PORT}"
+  - key: ENABLE_BLUEPRINTS_FILE
+    value: ".enable_blueprints"
+  - key: DATABASE_URL
+    type: SECRET
+    value: ${database_url}
+  - key: FLASK_ENV
+    value: "production"
+  - key: SECRET_KEY
+    type: SECRET
+    value: ${secret_key}
+
+databases:
+- name: structured-docs-db
+  engine: PG
+  version: "15"
+  size: basic
+  num_nodes: 1
