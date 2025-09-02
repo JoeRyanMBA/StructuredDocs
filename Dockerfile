@@ -25,16 +25,19 @@ COPY .enable_blueprints ./
 # Create frontend directory structure
 RUN mkdir -p ./frontend/dist/assets
 
-# Copy frontend files explicitly
+# Copy frontend files using RUN cp for reliability
 COPY frontend/dist/index.html ./frontend/dist/
 COPY frontend/dist/favicon.ico ./frontend/dist/
-COPY frontend/dist/assets/ ./frontend/dist/assets/
+RUN cp -r frontend/dist/assets/* ./frontend/dist/assets/ 2>/dev/null || echo "Copying assets with cp"
+
+# Alternative: try tar copy method
+# RUN cd frontend/dist && tar cf - assets | tar xf - -C ../frontend/dist
 
 # Ensure assets directory has all files
-RUN echo "=== Assets directory before verification ===" && \
-    ls -la ./frontend/dist/assets/ && \
+RUN echo "=== Assets directory after cp ===" && \
+    ls -la ./frontend/dist/assets/ | wc -l && \
     echo "=== Checking for index files ===" && \
-    ls -la ./frontend/dist/assets/ | grep index || echo "No index files found"
+    ls -la ./frontend/dist/assets/ | grep index || echo "No index files found after cp"
 
 # Verify critical files exist
 RUN echo "=== Critical Files Check ===" && \
