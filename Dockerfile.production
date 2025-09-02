@@ -1,0 +1,27 @@
+# Dockerfile.production - Production-optimized
+FROM python:3.11-alpine
+
+# Install system dependencies
+RUN apk add --no-cache gcc musl-dev
+
+WORKDIR /app
+
+# Copy and install Python dependencies
+COPY requirements.txt ./
+RUN pip install --no-cache-dir -r requirements.txt
+
+# Copy application code
+COPY backend ./backend
+COPY start.sh ./start.sh
+COPY .enable_blueprints ./
+RUN chmod +x ./start.sh
+
+# Copy frontend assets (ensure they're built first)
+COPY frontend/dist ./frontend/dist
+
+# Create non-root user
+RUN adduser -D appuser && chown -R appuser:appuser /app
+USER appuser
+
+EXPOSE 8080
+CMD ["./start.sh"]
