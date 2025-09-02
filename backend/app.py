@@ -78,28 +78,36 @@ def create_app(environ=None, start_response=None):
         return app
 
     # WORKAROUND: Create placeholder assets if missing
-    assets_dir = os.path.join(os.getcwd(), 'frontend', 'dist', 'assets')
+    # Use the same path resolution as the asset serving route
+    app_root = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+    assets_dir = os.path.join(app_root, 'frontend', 'dist', 'assets')
     os.makedirs(assets_dir, exist_ok=True)
+    
+    print(f"🎯 Creating placeholders in: {assets_dir}")
     
     # Create minimal placeholder for missing index.js
     index_js_path = os.path.join(assets_dir, 'index-C_NHaPTA.js')
     if not os.path.exists(index_js_path):
         print("⚠️ Creating placeholder for missing index-C_NHaPTA.js")
-        with open(index_js_path, 'w') as f:
-            f.write("""
+        try:
+            with open(index_js_path, 'w') as f:
+                f.write("""
 console.log('Placeholder JavaScript loaded - main app bundle missing from Docker container');
 console.log('This is a workaround for Docker file copying issues');
 // Minimal Vue.js placeholder
 window.Vue = { createApp: () => ({ mount: () => console.log('App mounted (placeholder)') }) };
 """)
+            print(f"✅ Created placeholder JS at: {index_js_path}")
+        except Exception as e:
+            print(f"❌ Failed to create placeholder JS: {e}")
     
     # Create minimal placeholder for missing index.css
     index_css_path = os.path.join(assets_dir, 'index-CiVy6UYJ.css')
     if not os.path.exists(index_css_path):
         print("⚠️ Creating placeholder for missing index-CiVy6UYJ.css")
-        with open(index_css_path, 'w') as f:
-            f.write("""
-/* Placeholder CSS - main app styles missing from Docker container */
+        try:
+            with open(index_css_path, 'w') as f:
+                f.write("""
 body { 
     font-family: Arial, sans-serif; 
     margin: 0; 
@@ -117,6 +125,9 @@ body {
 h1 { color: #333; }
 p { color: #666; }
 """)
+            print(f"✅ Created placeholder CSS at: {index_css_path}")
+        except Exception as e:
+            print(f"❌ Failed to create placeholder CSS: {e}")
 
     # Load environment variables from .env file
     load_env_file()
