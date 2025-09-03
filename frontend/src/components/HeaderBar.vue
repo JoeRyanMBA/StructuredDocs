@@ -64,7 +64,7 @@ export default {
   computed: {
     // Use base-aware path for public asset so it resolves under subpaths
     logoSrc() {
-      return `${import.meta.env.BASE_URL}StructuredDocs_logo.svg`
+  return `${import.meta.env.BASE_URL}assets/StructuredDocs_logo.svg`
     },
     currentUser() {
       return store.user;
@@ -102,7 +102,7 @@ export default {
     },
     onLogoError(e) {
       // Fallback to symbol logo if full logo fails
-      const fallback = `${import.meta.env.BASE_URL}StructuredDocsLogoSymbol.svg`
+  const fallback = `${import.meta.env.BASE_URL}assets/StructuredDocsLogoSymbol.svg`
       if (e && e.target && e.target.src !== fallback) {
         e.target.src = fallback
       }
