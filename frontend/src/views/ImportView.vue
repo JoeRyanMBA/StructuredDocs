@@ -8,20 +8,28 @@
     <!-- Import Type Selection -->
     <div class="import-type-selection">
       <h3>Import Type</h3>
-      <div class="radio-group">
-        <label class="radio-option">
-          <input type="radio" v-model="importType" value="topics" :disabled="isUploading">
-          <span class="radio-label">
-            <strong>Individual Topics</strong>
-            <p>Import as separate topics that can be organized later</p>
-          </span>
+      <p class="section-help">Choose how to structure your import.</p>
+      <div class="card-options" role="group" aria-label="Import type">
+        <label class="card-option" :class="{ selected: importType === 'topics' }" tabindex="0">
+          <input type="radio" class="visually-hidden" v-model="importType" value="topics" :disabled="isUploading" />
+          <div class="card-content">
+            <div class="card-icon" aria-hidden="true">📑</div>
+            <div class="card-text">
+              <div class="card-title">Individual Topics</div>
+              <div class="card-desc">Import as separate topics that you can organize later.</div>
+            </div>
+          </div>
         </label>
-        <label class="radio-option">
-          <input type="radio" v-model="importType" value="collection" :disabled="isUploading">
-          <span class="radio-label">
-            <strong>Collection (Document)</strong>
-            <p>Import as a single collection with hierarchical structure maintained</p>
-          </span>
+
+        <label class="card-option" :class="{ selected: importType === 'collection' }" tabindex="0">
+          <input type="radio" class="visually-hidden" v-model="importType" value="collection" :disabled="isUploading" />
+          <div class="card-content">
+            <div class="card-icon" aria-hidden="true">🗂️</div>
+            <div class="card-text">
+              <div class="card-title">Collection (Document)</div>
+              <div class="card-desc">Import as a single collection with hierarchy preserved.</div>
+            </div>
+          </div>
         </label>
       </div>
     </div>
@@ -386,77 +394,60 @@ export default {
   font-size: 1.1rem;
 }
 
-.radio-group {
-  display: flex;
-  flex-direction: column;
+/* Card-like option controls */
+.section-help {
+  margin: 0 0 0.75rem 0;
+  color: var(--text-secondary-cool-gray);
+  font-size: 0.95rem;
+}
+
+.card-options {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(260px, 1fr));
   gap: 1rem;
-  /* Constrain overall width so options don't span the whole page */
   max-width: 680px;
 }
 
-.radio-option {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-  padding: 1rem;
+.card-option {
+  display: block;
   border: 2px solid var(--extended-lavender-gray);
-  border-radius: 6px;
-  background: white;
+  border-radius: 8px;
+  background: #fff;
   cursor: pointer;
   transition: all 0.2s ease;
-  /* Fill the radio-group width but not the entire page */
-  width: 100%;
-  /* Keep all content visually inside the border */
-  overflow: hidden;
-  box-sizing: border-box;
-  /* Avoid inheriting generic label margins */
   margin: 0;
-}
-
-.radio-option:hover {
-  border-color: var(--primary-deep-teal);
-  background: #f8fcff;
-}
-
-.radio-option input[type="radio"] {
-  margin: 0.25rem 0 0 0;
-  flex-shrink: 0;
-}
-
-.radio-option input[type="radio"]:checked + .radio-label {
-  color: var(--primary-deep-teal);
-}
-
-.radio-option:has(input[type="radio"]:checked) {
-  border-color: var(--primary-deep-teal);
-  background: #f8fcff;
-}
-
-/* Keyboard focus state for accessibility */
-.radio-option:focus-within {
   outline: none;
+}
+
+.card-option:hover {
   border-color: var(--primary-deep-teal);
-  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.15);
+  background: #f8fcff;
 }
 
-.radio-label {
-  flex: 1;
-  min-width: 0; /* Allow text to wrap properly */
-  display: block; /* Keep content contained within the bordered area */
+.card-option.selected {
+  border-color: var(--primary-deep-teal);
+  background: #f8fcff;
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.12);
 }
 
-.radio-label strong {
-  display: block;
-  margin-bottom: 0.5rem;
-  font-size: 1rem;
+.card-content {
+  display: flex;
+  gap: 0.75rem;
+  padding: 1rem;
+  align-items: flex-start;
 }
 
-.radio-label p {
-  margin: 0;
-  font-size: 0.9rem;
-  color: var(--text-secondary-cool-gray);
-  line-height: 1.4;
-  word-break: break-word;
+.card-icon { font-size: 1.25rem; line-height: 1; }
+
+.card-text { flex: 1; min-width: 0; }
+.card-title { font-weight: 600; margin: 0 0 0.25rem 0; color: var(--text-primary-charcoal); }
+.card-desc { margin: 0; color: var(--text-secondary-cool-gray); font-size: 0.9rem; line-height: 1.4; }
+
+.visually-hidden {
+  position: absolute !important;
+  height: 1px; width: 1px;
+  overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
+  white-space: nowrap; border: 0; padding: 0; margin: -1px;
 }
 
 .collection-details {
