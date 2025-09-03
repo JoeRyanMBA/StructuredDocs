@@ -585,11 +585,13 @@ p { color: #666; }
                 else:
                     mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
                 
-                # Serve the file with correct MIME type
-                response = make_response(app.send_static_file(f'assets/{filename}'))
-                response.headers['Content-Type'] = mimetype
-                print(f"✅ Serving asset with MIME type: {mimetype}")
-                return response
+                # Serve the file from the built frontend assets directory
+                assets_dir = os.path.join(app.config['FRONTEND_FOLDER'], 'assets')
+                resp = send_from_directory(assets_dir, filename)
+                # Overwrite/ensure correct content type
+                resp.headers['Content-Type'] = mimetype
+                print(f"✅ Serving asset from {assets_dir} with MIME type: {mimetype}")
+                return resp
             except Exception as e:
                 print(f"❌ Error serving asset {filename}: {e}")
                 return f"Error: {str(e)}", 500
