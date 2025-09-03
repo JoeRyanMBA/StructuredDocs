@@ -673,22 +673,27 @@ p { color: #666; }
                     root_dir = app.config['FRONTEND_FOLDER']
                     assets_dir = os.path.join(root_dir, 'assets')
 
+                    # Normalize path if it contains '/assets/' with extra prefix (e.g., '/sub/assets/file.js')
+                    normalized_path = path
+                    if '/assets/' in path:
+                        normalized_path = path.split('/assets/', 1)[1]
+
                     # 1) Try dist root (for files like StructuredDocs_logo.svg)
-                    full_root_path = os.path.join(root_dir, path)
+                    full_root_path = os.path.join(root_dir, normalized_path)
                     if os.path.exists(full_root_path):
-                        resp = send_from_directory(root_dir, path)
+                        resp = send_from_directory(root_dir, normalized_path)
                         if mimetype:
                             resp.headers['Content-Type'] = mimetype
-                        print(f"✅ Served static file from dist root: {path} ({mimetype})")
+                        print(f"✅ Served static file from dist root: {normalized_path} ({mimetype})")
                         return resp
 
                     # 2) Try assets directory
-                    full_asset_path = os.path.join(assets_dir, path)
+                    full_asset_path = os.path.join(assets_dir, normalized_path)
                     if os.path.exists(full_asset_path):
-                        resp = send_from_directory(assets_dir, path)
+                        resp = send_from_directory(assets_dir, normalized_path)
                         if mimetype:
                             resp.headers['Content-Type'] = mimetype
-                        print(f"✅ Served static file from assets: {path} ({mimetype})")
+                        print(f"✅ Served static file from assets: {normalized_path} ({mimetype})")
                         return resp
 
                     # 3) If a static extension was requested but not found, return 404

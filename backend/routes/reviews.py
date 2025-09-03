@@ -1,6 +1,10 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timedelta
 from ..models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ReviewToken
+from typing import TYPE_CHECKING
+if TYPE_CHECKING:
+    # For type checking only to help Pylance understand names
+    from ..models import ReviewSequence  # noqa: F401
 from sqlalchemy import or_, and_
 from ..utils.email_service import email_service
 import secrets
@@ -205,7 +209,7 @@ def submit_review(review_id):
         # Handle sequence advancement if this is part of a sequence
         sequence_advanced = False
         if review.sequence_id:
-            from models import ReviewSequence, ReviewSequenceStep
+            from ..models import ReviewSequence, ReviewSequenceStep
             sequence = ReviewSequence.query.get(review.sequence_id)
             
             if sequence and sequence.status == 'active':
@@ -298,11 +302,12 @@ def submit_review(review_id):
                 topic.status = 'rejected'
         else:
             # For sequences, only update status if sequence is complete or paused
+            from ..models import ReviewSequence
             sequence = ReviewSequence.query.get(review.sequence_id)
-            if sequence.status == 'completed':
+            if sequence and sequence.status == 'completed':
                 # All reviewers approved - topic is approved
                 topic.status = 'approved'
-            elif sequence.status == 'paused':
+            elif sequence and sequence.status == 'paused':
                 # Changes needed - topic needs revisions
                 topic.status = 'revisions_requested'
                 

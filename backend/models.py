@@ -5,6 +5,7 @@ from sqlalchemy import Enum, ForeignKey, func
 from sqlalchemy.orm import relationship
 from sqlalchemy import Table, Column, Integer
 from backend.extensions import db
+from typing import TYPE_CHECKING
 
 class User(db.Model):
     __tablename__ = 'users'
@@ -37,6 +38,9 @@ class User(db.Model):
             "active": self.active,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, name: str = ..., email: str = ..., password_hash: str | None = None, role: str = 'author', active: bool = True, created_at: datetime | None = None): ...
 
 # Pivot table: tracks topic ordering within a collection
 collection_topic_tree = Table(
@@ -141,6 +145,9 @@ class Collection(db.Model):
             return nodes
         return build(None)
 
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, name: str = ..., description: str | None = None, form_number: str = ..., parent_id: int | None = None, project_id: int | None = None, position: int = 0, created_at: datetime | None = None, updated_at: datetime | None = None): ...
+
 class Topic(db.Model):
     __tablename__ = 'topics'
 
@@ -186,6 +193,9 @@ class Topic(db.Model):
             base["links"] = [tl.to_dict() for tl in self.topic_links]
             base["links_count"] = len(self.topic_links)
         return base
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, title: str = ..., content: str | None = None, frontmatter: str | None = None, status: str = 'draft', created_at: datetime | None = None, updated_at: datetime | None = None): ...
 
 class ImportDocument(db.Model):
     __tablename__ = 'import_documents'
@@ -239,6 +249,9 @@ class ImportDocument(db.Model):
             base["items"] = [item.to_dict() for item in self.items]
         return base
 
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, filename: str = ..., source_type: str = ..., status: str = 'staging', review_step: str = 'pending', created_at: datetime | None = None, reviewed_at: datetime | None = None, reviewer: str | None = None): ...
+
 class ImportItem(db.Model):
     __tablename__ = 'import_items'
 
@@ -269,6 +282,9 @@ class ImportItem(db.Model):
             "content": self.content,
             "committed_topic": self.committed_topic
         }
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, document_id: int = ..., heading_order: int = ..., title: str = ..., content: str = ..., committed_topic: int | None = None): ...
 
 class Publication(db.Model):
     __tablename__ = 'publications'
@@ -478,6 +494,9 @@ class ImportImage(db.Model):
             'mime_type': self.mime_type,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, document_id: int = ..., filename: str = ..., original_name: str = ..., public_url: str = ..., backend_path: str = ..., frontend_path: str = ..., width: int | None = None, height: int | None = None, format: str | None = None, file_size: int | None = None, mime_type: str | None = None, created_at: datetime | None = None): ...
 
 
 class Stakeholder(db.Model):
@@ -872,6 +891,9 @@ class Review(db.Model):
             "sequence_position": self.sequence_position
         }
 
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, topic_id: int = ..., requested_by: int = ..., reviewer_id: int = ..., status: str = 'pending', priority: str = 'medium', requested_at: datetime | None = None, due_date: datetime | None = None, started_at: datetime | None = None, completed_at: datetime | None = None, follow_up_sent_at: datetime | None = None, feedback: str | None = None, recommendation: str | None = None, review_notes: str | None = None, author_message: str | None = None, edited_content: str | None = None, sequence_id: int | None = None, sequence_position: int | None = None): ...
+
 
 class PasswordResetToken(db.Model):
     """Model for password reset tokens"""
@@ -955,6 +977,9 @@ class ReviewToken(db.Model):
             return False, "Token access limit exceeded"
             
         return True, "Token is valid"
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, token: str = ..., review_id: int = ..., reviewer_email: str = ..., created_at: datetime | None = None, expires_at: datetime | None = None, accessed_at: datetime | None = None, used_at: datetime | None = None, is_active: bool = True, access_count: int = 0, max_access_count: int = 10): ...
 
 
 class ReviewFeedback(db.Model):
