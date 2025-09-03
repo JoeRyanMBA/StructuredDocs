@@ -17,10 +17,11 @@
           <button
             v-if="currentCollection"
             @click="toggleAllExpanded"
-            class="expand-btn"
+            class="icon-btn"
+            :title="isAllExpanded ? 'Collapse all topics' : 'Expand all topics'"
             :aria-label="isAllExpanded ? 'Collapse all topics' : 'Expand all topics'"
           >
-            {{ isAllExpanded ? 'Collapse All' : 'Expand All' }}
+            <i :class="isAllExpanded ? 'bi bi-chevron-double-up' : 'bi bi-chevron-double-down'" aria-hidden="true"></i>
           </button>
         </div>
         
@@ -1459,14 +1460,7 @@ export default {
   border-radius: 4px;
 }
 
-.expand-btn {
-  background-color: var(--extended-lavender-gray);
-  color: var(--text-primary-charcoal);
-  border: none;
-  padding: 0.25rem 0.75rem;
-  border-radius: 4px;
-  cursor: pointer;
-}
+/* header toggle uses .icon-btn to match preview buttons */
 
 .collection-topics-list, .unassigned-list {
   min-height: 200px;
