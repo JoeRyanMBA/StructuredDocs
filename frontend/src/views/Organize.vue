@@ -12,7 +12,17 @@
     
     <div class="organize-layout">
       <div class="collections-panel">
-        <h2>{{ currentCollection?.name || 'Collection' }}</h2>
+        <div class="panel-title-row">
+          <h2>{{ currentCollection?.name || 'Collection' }}</h2>
+          <button
+            v-if="currentCollection"
+            @click="toggleAllExpanded"
+            class="expand-btn"
+            :aria-label="isAllExpanded ? 'Collapse all topics' : 'Expand all topics'"
+          >
+            {{ isAllExpanded ? 'Collapse All' : 'Expand All' }}
+          </button>
+        </div>
         
         <!-- Collection Properties Edit Panel (only in edit mode) -->
         <div v-if="isEditMode && currentCollection" class="collection-edit-panel">
@@ -47,7 +57,6 @@
         
         <div v-if="currentCollection" class="current-collection">
           <div class="node">
-            {{ currentCollection.name }}
             
             <!-- Multi-select controls -->
             <div v-if="selectedTopics.size > 0" class="multi-select-controls">
@@ -71,11 +80,6 @@
               </button>
             </div>
 
-            <!-- Expand/Collapse controls -->
-            <div class="expand-controls">
-              <button @click="expandAll" class="expand-btn">Expand All</button>
-              <button @click="collapseAll" class="expand-btn">Collapse All</button>
-            </div>
             
             <!-- Render topics under this collection as a draggable list -->
             <div class="topics-container">
@@ -392,6 +396,17 @@ export default {
       }
     }
   },
+  computed: {
+    isAllExpanded() {
+      if (!this.currentCollection || !this.currentCollection.topics) return false;
+      const idsWithChildren = new Set(this.getAllTopicsWithChildren(this.currentCollection.topics));
+      // All topics that have children must be in expandedTopics
+      for (const id of idsWithChildren) {
+        if (!this.expandedTopics.has(id)) return false;
+      }
+      return idsWithChildren.size > 0; // only true if there is something to expand
+    }
+  },
   async created() {
     // Check if we're in edit mode
     this.isEditMode = this.$route.query.edit === 'true'
@@ -567,6 +582,14 @@ export default {
 
     collapseAll() {
       this.expandedTopics.clear()
+    },
+
+    toggleAllExpanded() {
+      if (this.isAllExpanded) {
+        this.collapseAll();
+      } else {
+        this.expandAll();
+      }
     },
 
     getAllTopicsWithChildren(topics) {
@@ -1376,6 +1399,13 @@ export default {
   padding-bottom: 0.5rem;
 }
 
+.panel-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
 .collection-edit-panel {
   background-color: var(--bg-light-mist-gray);
   padding: 1rem;
@@ -1427,12 +1457,6 @@ export default {
 .move-target-select {
   padding: 0.25rem;
   border-radius: 4px;
-}
-
-.expand-controls {
-  margin-bottom: 1rem;
-  display: inline-flex;
-  gap: 0.5rem;
 }
 
 .expand-btn {
