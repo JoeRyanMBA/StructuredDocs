@@ -166,6 +166,7 @@ export default {
   color: #f8f9fa;
   text-decoration: none;
   transition: background 0.2s;
+  user-select: none; /* prevent text selection/I-beam */
 }
 
 .sidebar-nav li a:hover {
@@ -217,5 +218,18 @@ export default {
   /* top right bottom left */
   padding: 0.6rem 1.5rem 0.6rem 2.5rem;
   font-size: 0.9rem;
+  cursor: pointer; /* keep hand cursor on submenu links */
+}
+
+/* Ensure top-level items show the arrow (default) cursor, not text I-beam */
+.sidebar-nav > ul > li > a {
+  cursor: default;
+}
+
+/* Also prevent text selection on labels/icons to avoid I-beam over text */
+.nav-label,
+.nav-icon,
+.arrow {
+  user-select: none;
 }
 </style>
