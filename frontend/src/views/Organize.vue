@@ -1510,6 +1510,11 @@ export default {
   padding: 0.25rem;
 }
 
+/* Make arrow buttons clearly visible */
+.topic-btn {
+  color: #000;
+}
+
 .icon-btn {
   background: #ffffff; /* ensure white background for contrast */
   color: var(--primary-deep-teal, #205493); /* fallback to hex if var missing */
