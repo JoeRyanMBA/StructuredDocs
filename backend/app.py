@@ -611,16 +611,33 @@ p { color: #666; }
                     mimetype = 'font/woff2'
                 elif filename.endswith('.woff'):
                     mimetype = 'font/woff'
+                elif filename.endswith('.svg'):
+                    mimetype = 'image/svg+xml'
                 else:
                     mimetype = mimetypes.guess_type(filename)[0] or 'application/octet-stream'
                 
                 # Serve the file from the built frontend assets directory
                 assets_dir = os.path.join(app.config['FRONTEND_FOLDER'], 'assets')
-                resp = send_from_directory(assets_dir, filename)
-                # Overwrite/ensure correct content type
-                resp.headers['Content-Type'] = mimetype
-                print(f"✅ Serving asset from {assets_dir} with MIME type: {mimetype}")
-                return resp
+                full_asset_path = os.path.join(assets_dir, filename)
+                if os.path.exists(full_asset_path):
+                    resp = send_from_directory(assets_dir, filename)
+                    # Overwrite/ensure correct content type
+                    resp.headers['Content-Type'] = mimetype
+                    print(f"✅ Serving asset from {assets_dir} with MIME type: {mimetype}")
+                    return resp
+                
+                # Fallback: if not in /assets, try the dist root (some files like logos live there)
+                root_dir = app.config['FRONTEND_FOLDER']
+                root_file = os.path.basename(filename)
+                full_root_path = os.path.join(root_dir, root_file)
+                if os.path.exists(full_root_path):
+                    resp = send_from_directory(root_dir, root_file)
+                    resp.headers['Content-Type'] = mimetype
+                    print(f"🔁 Fallback: served '{root_file}' from dist root with MIME type: {mimetype}")
+                    return resp
+                
+                print(f"❌ Asset not found in assets or root: {filename}")
+                return (f"Not Found: {filename}", 404)
             except Exception as e:
                 print(f"❌ Error serving asset {filename}: {e}")
                 return f"Error: {str(e)}", 500
