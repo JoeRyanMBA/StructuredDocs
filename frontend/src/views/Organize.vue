@@ -272,9 +272,9 @@
               <span class="topic-title">{{ element.title }}</span>
               <div style="margin-left: auto; display: flex; align-items: center;">
                 <button class="icon-btn" @click.stop="previewTopic(element)" title="Preview this topic" aria-label="Preview topic">
-                  <!-- Using a solid eye icon with explicit path fill for reliability -->
+                  <!-- Eye icon uses currentColor so it inherits the button's text color -->
                   <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
-                    <path fill="#205493" d="M12 4.5C6.75 4.5 2.73 8.02 1.25 10.1a2.5 2.5 0 0 0 0 2.8C2.73 15.98 6.75 19.5 12 19.5s9.27-3.52 10.75-6.6a2.5 2.5 0 0 0 0-2.8C21.27 8.02 17.25 4.5 12 4.5Zm0 12c-4.52 0-8.11-3.18-9.37-5.1C3.89 9.48 7.48 6.3 12 6.3s8.11 3.18 9.37 5.1c-1.26 1.92-4.85 5.1-9.37 5.1Zm0-8.1a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
+                    <path fill="currentColor" d="M12 4.5C6.75 4.5 2.73 8.02 1.25 10.1a2.5 2.5 0 0 0 0 2.8C2.73 15.98 6.75 19.5 12 19.5s9.27-3.52 10.75-6.6a2.5 2.5 0 0 0 0-2.8C21.27 8.02 17.25 4.5 12 4.5Zm0 12c-4.52 0-8.11-3.18-9.37-5.1C3.89 9.48 7.48 6.3 12 6.3s8.11 3.18 9.37 5.1c-1.26 1.92-4.85 5.1-9.37 5.1Zm0-8.1a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
                   </svg>
                 </button>
               </div>
@@ -1497,7 +1497,7 @@ export default {
 
 .icon-btn {
   background: #ffffff; /* ensure white background for contrast */
-  color: var(--primary-deep-teal);
+  color: var(--primary-deep-teal, #205493); /* fallback to hex if var missing */
   border: 1px solid var(--border-light-gray);
   width: 32px;
   height: 32px;
@@ -1510,6 +1510,7 @@ export default {
 .icon-btn:hover {
   background: var(--extended-seafoam-green);
   border-color: var(--extended-seafoam-green);
+  color: var(--primary-medium-teal, #2b9cd8);
 }
 
 /* Ensure SVG icon is visible across browsers by explicitly setting fill */
@@ -1517,14 +1518,6 @@ export default {
   width: 18px;
   height: 18px;
   display: block;
-}
-
-.icon-btn svg path {
-  fill: var(--primary-deep-teal) !important; /* force fill for stubborn browsers */
-}
-
-.icon-btn:hover svg path {
-  fill: var(--primary-medium-teal);
 }
 
 .child-topics {
