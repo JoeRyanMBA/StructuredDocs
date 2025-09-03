@@ -124,7 +124,7 @@
       </div>
 
       <!-- Link Modal -->
-      <div v-if="showLinkModal" class="modal-overlay" @click="showLinkModal = false">
+  <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
             <h3>Insert Link</h3>
@@ -148,7 +148,7 @@
       </div>
 
       <!-- Image Modal -->
-      <div v-if="showImageModal" class="modal-overlay" @click="showImageModal = false">
+  <div v-if="showImageModal" class="modal-overlay" @click.self="showImageModal = false">
         <div class="modal-content" @click.stop>
           <div class="modal-header">
             <h3>Insert Image</h3>

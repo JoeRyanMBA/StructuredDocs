@@ -43,21 +43,18 @@
                   <div class="action-content" title="Create a new collection to organize documents">
                     <h3>New Collection</h3>
                   </div>
-                <div class="action-arrow">→</div>
               </a>
               <router-link class="quick-action-card" to="/links">
                 <div class="action-icon">🔗</div>
                 <div class="action-content" title="Manage and reuse links across your documents">
                   <h3>View Links</h3>
                 </div>
-                <div class="action-arrow">→</div>
               </router-link>
               <router-link class="quick-action-card" to="/images">
                 <div class="action-icon">🖼️</div>
                 <div class="action-content" title="Find images from your library for quick insertion">
                   <h3>Browse Images</h3>
                 </div>
-                <div class="action-arrow">→</div>
               </router-link>
             </div>
           </div>
@@ -156,7 +153,6 @@
             <div class="action-content" title="Manage and insert references">
               <h3>View Links</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
         </div>
 
@@ -192,7 +188,6 @@
             <div class="action-content" title="Find and insert media">
               <h3>Browse Images</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
         </div>
       </div>
@@ -228,7 +223,7 @@
     </div>
 
     <!-- Create Collection Modal -->
-    <div v-if="showCreateCollection" class="modal-overlay" @click="showCreateCollection = false">
+  <div v-if="showCreateCollection" class="modal-overlay" @click.self="showCreateCollection = false">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>Create New Collection</h3>
@@ -295,7 +290,7 @@
     </div>
 
     <!-- Links Modal -->
-    <div v-if="showLinksModal" class="modal-overlay" @click="showLinksModal = false">
+  <div v-if="showLinksModal" class="modal-overlay" @click.self="showLinksModal = false">
       <div class="modal large" @click.stop>
         <div class="modal-header">
           <h3>🔗 Links Repository</h3>
@@ -338,7 +333,7 @@
     </div>
 
     <!-- Images Modal -->
-    <div v-if="showImagesModal" class="modal-overlay" @click="showImagesModal = false">
+  <div v-if="showImagesModal" class="modal-overlay" @click.self="showImagesModal = false">
       <div class="modal large" @click.stop>
         <div class="modal-header">
           <h3>🖼️ Images Repository</h3>
@@ -379,16 +374,14 @@
       </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <div v-if="message" :class="['message', messageType]">
-      {{ message }}
-    </div>
+  <!-- Success/Error Messages moved to global ToastContainer -->
   </div>
 </template>
 
 <script>
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { getTopics, createTopic } from '@/api/topics.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'DocumentBuilder',
@@ -445,10 +438,8 @@ export default {
       showImagesModal: false,
       imagesSearch: '',
       
-      // UI State
-      loading: true,
-      message: '',
-      messageType: 'success'
+  // UI State
+  loading: true
     }
   },
   
@@ -537,7 +528,7 @@ export default {
         ])
       } catch (error) {
         console.error('Failed to load data:', error)
-        this.showMessage('Failed to load data', 'error')
+        toast.error('Failed to load data')
       } finally {
         this.loading = false
       }
@@ -645,7 +636,7 @@ export default {
           body: JSON.stringify(collectionData)
         })
         
-        if (response.ok) {
+  if (response.ok) {
           const collection = await response.json()
           
           // Add project information to the collection for display
@@ -658,13 +649,13 @@ export default {
           this.selectedCollection = collection
           this.showCreateCollection = false
           this.resetNewCollection()
-          this.showMessage('Collection created successfully!')
+          toast.success('Collection created')
         } else {
           throw new Error('Failed to create collection')
         }
       } catch (error) {
         console.error('Failed to create collection:', error)
-        this.showMessage('Failed to create collection', 'error')
+        toast.error('Failed to create collection')
       }
     },
     
@@ -722,7 +713,7 @@ status: "draft"
         this.$router.push(`/topics/${newTopic.id}/edit`)
       } catch (error) {
         console.error('Failed to create topic:', error)
-        this.showMessage('Failed to create topic', 'error')
+        toast.error('Failed to create topic')
       }
     },
     
@@ -737,21 +728,21 @@ status: "draft"
       // Check if already added
       const exists = this.selectedCollection.topics.some(t => t.id === topic.id)
       if (exists) {
-        this.showMessage('Topic already in collection', 'error')
+        toast.warn('Topic already in collection')
         return
       }
       
-      this.selectedCollection.topics.push({ id: topic.id, title: topic.title })
-      this.saveCollectionChanges()
-      this.showMessage(`"${topic.title}" added to collection`)
+  this.selectedCollection.topics.push({ id: topic.id, title: topic.title })
+  this.saveCollectionChanges()
+  toast.success(`"${topic.title}" added to collection`)
     },
     
     removeTopic(topic) {
       if (!this.selectedCollection) return
       
-      this.selectedCollection.topics = this.selectedCollection.topics.filter(t => t.id !== topic.id)
-      this.saveCollectionChanges()
-      this.showMessage(`"${topic.title}" removed from collection`)
+  this.selectedCollection.topics = this.selectedCollection.topics.filter(t => t.id !== topic.id)
+  this.saveCollectionChanges()
+  toast.info(`"${topic.title}" removed from collection`)
     },
     
     async saveCollectionChanges() {
@@ -759,7 +750,7 @@ status: "draft"
         await saveCollections(this.collections)
       } catch (error) {
         console.error('Failed to save collection changes:', error)
-        this.showMessage('Failed to save changes', 'error')
+        toast.error('Failed to save changes')
       }
     },
     
@@ -783,7 +774,7 @@ status: "draft"
         
         if (response.ok) {
           const result = await response.json()
-          this.showMessage('Collection published successfully!')
+          toast.success('Collection published successfully!')
           if (result.redirect_url) {
             this.$router.push(result.redirect_url)
           }
@@ -792,25 +783,25 @@ status: "draft"
         }
       } catch (error) {
         console.error('Failed to publish collection:', error)
-        this.showMessage('Failed to publish collection', 'error')
+        toast.error('Failed to publish collection')
       }
     },
     
     copyLinkReference(link) {
       const reference = link.reference_code || link.title
       navigator.clipboard.writeText(reference).then(() => {
-        this.showMessage(`Copied "${reference}" to clipboard`)
+        toast.success(`Copied "${reference}" to clipboard`)
       }).catch(() => {
-        this.showMessage('Failed to copy to clipboard', 'error')
+        toast.error('Failed to copy to clipboard')
       })
     },
     
     copyImagePath(image) {
       const path = image.public_url || `/images/imports/${image.document_id}/${image.filename}`
       navigator.clipboard.writeText(path).then(() => {
-        this.showMessage(`Copied image path to clipboard`)
+        toast.success('Copied image path to clipboard')
       }).catch(() => {
-        this.showMessage('Failed to copy to clipboard', 'error')
+        toast.error('Failed to copy to clipboard')
       })
     },
     
@@ -826,15 +817,7 @@ status: "draft"
     
     handleImageError(event) {
       event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNUwyNSAyMEgxNUwyMCAyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cg=='
-    },
-    
-    showMessage(text, type = 'success') {
-      this.message = text
-      this.messageType = type
-      setTimeout(() => {
-        this.message = ''
-      }, 3000)
-    },
+  },
     
     formatStatus(status) {
       const statusMap = {
@@ -1445,28 +1428,7 @@ status: "draft"
 }
 
 /* Messages */
-.message {
-  position: fixed;
-  top: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
-  border-radius: 6px;
-  font-weight: 600;
-  z-index: 1100;
-  box-shadow: 0 4px 12px rgba(0,0,0,0.1);
-}
-
-.message.success {
-  background: var(--success-mint-green);
-  color: var(--primary-deep-teal);
-  border: 1px solid var(--extended-cool-mint);
-}
-
-.message.error {
-  background: var(--error-coral-red);
-  color: white;
-  border: 1px solid var(--extended-dusty-rose);
-}
+/* Local message styles removed in favor of global toast system */
 
 /* Responsive Design */
 @media (max-width: 1200px) {

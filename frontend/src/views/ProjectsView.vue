@@ -1,6 +1,13 @@
 <template>
   
   <div class="projects-dashboard">
+    <!-- Global success toast -->
+    <div v-if="toast && toast.visible && toast.type === 'success'" class="success-message" role="status" aria-live="polite">
+      <span>✔</span>
+      <span>{{ toast.message }}</span>
+      <button class="message-close-btn" @click="hideToast" aria-label="Dismiss">×</button>
+    </div>
+    
     <!-- Dashboard Header -->
     <div class="dashboard-header">
       <h1>Projects Dashboard</h1>
@@ -59,7 +66,6 @@
           <div class="action-content" title="Start a new documentation project">
             <h3>Create Project</h3>
           </div>
-          <div class="action-arrow">→</div>
         </button>
         
         <button @click="filterByStatus('active')" class="quick-action-card">
@@ -67,7 +73,6 @@
           <div class="action-content" title="See all currently active projects">
             <h3>View Active</h3>
           </div>
-          <div class="action-arrow">→</div>
         </button>
         
         
@@ -76,7 +81,6 @@
           <div class="action-content" :title="exporting ? 'Exporting...' : 'Download comprehensive project reports & analytics'">
             <h3>Export Data</h3>
           </div>
-          <div class="action-arrow">→</div>
         </button>
       </div>
     </div>
@@ -208,7 +212,7 @@
     </div>
 
     <!-- Create Project Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
+    <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
       <div class="modal large-modal" @click.stop>
         <div class="modal-header">
           <h2>Create New Project</h2>
@@ -267,7 +271,7 @@
     </div>
 
     <!-- Stakeholder Modal (Step 2) -->
-    <div v-if="showStakeholderModal" class="modal-overlay" @click="showStakeholderModal = false">
+    <div v-if="showStakeholderModal" class="modal-overlay" @click.self="showStakeholderModal = false">
       <div class="modal large-modal" @click.stop>
         <div class="modal-header">
           <h2>Add Stakeholders to Project</h2>
@@ -291,7 +295,7 @@
                 <option value="stakeholder">Stakeholder</option>
                 <option value="sponsor">Sponsor</option>
               </select>
-              <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="btn add-btn">
+              <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="btn btn-primary add-btn">
                 + Add Selected
               </button>
             </div>
@@ -333,7 +337,7 @@
     </div>
 
     <!-- Milestone Modal (Step 3) -->
-    <div v-if="showMilestoneModal" class="modal-overlay" @click="showMilestoneModal = false">
+    <div v-if="showMilestoneModal" class="modal-overlay" @click.self="showMilestoneModal = false">
       <div class="modal large-modal" @click.stop>
         <div class="modal-header">
           <h2>Add Project Milestones</h2>
@@ -353,7 +357,7 @@
               </select>
               <button type="button" @click="removeMilestone(idx)" class="btn btn-danger btn-sm remove-btn">×</button>
             </div>
-            <button type="button" @click="addMilestoneRow" class="btn add-btn">+ Add Milestone</button>
+            <button type="button" @click="addMilestoneRow" class="btn btn-primary add-btn">+ Add Milestone</button>
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-primary" @click="saveMilestonesAndFinish">Add Milestones</button>
@@ -365,7 +369,7 @@
   </div>
 
   <!-- Edit Project Modal -->
-  <div v-if="showEditModal" class="modal-overlay" @click="showEditModal = false">
+  <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
     <div class="modal large-modal" @click.stop>
       <div class="modal-header">
         <h2>Edit Project: {{ editingProject.name || 'Loading...' }}</h2>
@@ -511,7 +515,7 @@
                   type="button" 
                   @click="addNewStakeholder('edit')"
                   :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
-                  class="btn add-btn"
+                  class="btn btn-primary add-btn"
                 >
                   + Add New Stakeholder
                 </button>
@@ -651,6 +655,7 @@ export default {
       newMilestones: [{ name: '', date: '', status: 'planned' }],
       creatingProject: false,
       exporting: false,
+      toast: { visible: false, type: 'success', message: '' },
     }
   },
   computed: {
@@ -1469,11 +1474,7 @@ export default {
             await fetch(`/api/projects/${this.createdProjectId}/milestones`, {
               method: 'POST',
               headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({
-                name: m.name,
-                date: m.date,
-                status: m.status
-              })
+              body: JSON.stringify({ name: m.name, date: m.date, status: m.status })
             })
           }
         }
@@ -1487,10 +1488,24 @@ export default {
         this.createdProjectName = ''
         this.projectStakeholders = []
         this.newMilestones = [{ name: '', date: '', status: 'planned' }]
-        // Optionally, you could show a toast here if desired
+        // Show success toast
+        this.showToast('Milestones saved successfully.')
       } catch (err) {
         alert('Failed to add milestones: ' + err.message)
       }
+    },
+    showToast(message, type = 'success', durationMs = 3000) {
+      if (!this.toast) this.toast = { visible: false, type: 'success', message: '' }
+      this.toast.message = message
+      this.toast.type = type
+      this.toast.visible = true
+      clearTimeout(this.toast._timer)
+      this.toast._timer = setTimeout(() => { this.toast.visible = false }, durationMs)
+    },
+    hideToast() {
+      if (!this.toast) return
+      this.toast.visible = false
+      clearTimeout(this.toast._timer)
     },
   },
   mounted() {
@@ -1898,11 +1913,11 @@ export default {
 
 .confirmation-message {
   margin-bottom: 1rem;
-  color: var(--success-mint-green);
-  background: var(--extended-cool-mint);
-  border: 1px solid var(--success-mint-green);
+  color: var(--success-text-dark-green);
+  background: var(--success-bg-light-green);
+  border: 1px solid var(--success-border-green);
   padding: 0.75rem;
-  border-radius: 4px;
+  border-radius: 6px;
 }
 
 .confirmation-actions {

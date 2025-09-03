@@ -56,21 +56,18 @@
             <div class="action-content" title="Upload and process new content">
               <h3>Import New Document</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/import/history')">
             <div class="action-icon">📋</div>
             <div class="action-content" title="Review past import activities">
               <h3>View Import History</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/topics')">
             <div class="action-icon">📝</div>
             <div class="action-content" title="Explore imported content">
               <h3>Browse Topics</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
       </div>
     </div>

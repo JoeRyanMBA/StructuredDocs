@@ -108,8 +108,8 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="custom-modal" @click.stop>
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>{{ isEditing ? 'Edit Stakeholder' : 'Create New Stakeholder' }}</h3>
           <button @click="closeModal" class="close-btn">&times;</button>
@@ -256,8 +256,8 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="closeDeleteModal">
-      <div class="custom-modal" @click.stop>
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+      <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>Confirm Delete</h3>
           <button @click="closeDeleteModal" class="close-btn">&times;</button>
@@ -278,6 +278,8 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
+
 export default {
   name: 'AllStakeholdersView',
   data() {
@@ -467,10 +469,12 @@ export default {
         
         await this.fetchStakeholders()
         this.closeModal()
+  toast.success(this.isEditing ? 'Stakeholder updated successfully.' : 'Stakeholder created successfully.')
         
       } catch (error) {
         console.error('Failed to save stakeholder:', error)
         this.error = error.message || 'Failed to save stakeholder. Please try again.'
+  toast.error(this.error)
       }
     },
     
@@ -497,10 +501,12 @@ export default {
         
         await this.fetchStakeholders()
         this.closeDeleteModal()
+  toast.success('Stakeholder deleted successfully.')
         
       } catch (error) {
         console.error('Failed to delete stakeholder:', error)
         this.error = error.message || 'Failed to delete stakeholder. Please try again.'
+  toast.error(this.error)
       }
     }
   }
@@ -678,17 +684,7 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.1);
 }
 
-/* Modal Styles - using global .modal-overlay; keep .custom-modal for sizing */
-
-.custom-modal {
-  background: white;
-  border-radius: 8px;
-  min-width: 600px;
-  max-width: 90vw;
-  max-height: 90vh;
-  overflow: auto;
-  box-shadow: 0 10px 25px rgba(0, 0, 0, 0.2);
-}
+/* Modal uses global .modal/.modal-overlay styles */
 
 .modal-header {
   display: flex;

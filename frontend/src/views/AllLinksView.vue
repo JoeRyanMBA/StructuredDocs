@@ -140,7 +140,7 @@
     </div>
 
     <!-- Link Details Modal -->
-    <div v-if="showDetailsModal" class="modal-overlay" @click="closeDetailsModal">
+  <div v-if="showDetailsModal" class="modal-overlay" @click.self="closeDetailsModal">
       <div class="modal large" @click.stop>
         <div class="modal-header">
           <h3>Link Details</h3>
@@ -225,7 +225,7 @@
     </div>
 
     <!-- Create/Edit Link Modal -->
-    <div v-if="showEditModal" class="modal-overlay" @click="closeEditModal">
+  <div v-if="showEditModal" class="modal-overlay" @click.self="closeEditModal">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>{{ editingLink ? 'Edit Link' : 'Create New Link' }}</h3>
@@ -313,14 +313,12 @@
       </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <div v-if="message" :class="['message-toast', messageType]">
-      {{ message }}
-    </div>
+  <!-- Toasts handled globally via ToastContainer -->
   </div>
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'AllLinksView',
@@ -347,8 +345,8 @@ export default {
         is_internal: false
       },
       linkTypes: ['form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other'],
-      message: '',
-      messageType: 'success' // 'success' or 'error'
+  message: '',
+  messageType: 'success' // legacy
     }
   },
   computed: {
@@ -422,7 +420,7 @@ export default {
 
     async refreshLinks() {
       await this.loadLinks()
-      this.showMessage('Links refreshed successfully!')
+      toast.success('Links refreshed successfully!')
     },
 
     clearFilters() {
@@ -492,7 +490,7 @@ export default {
         })
 
         if (response.ok) {
-          this.showMessage(this.editingLink ? 'Link updated successfully!' : 'Link created successfully!')
+          toast.success(this.editingLink ? 'Link updated successfully!' : 'Link created successfully!')
           this.closeEditModal()
           await this.loadLinks()
         } else {
@@ -501,16 +499,16 @@ export default {
         }
       } catch (error) {
         console.error('Failed to save link:', error)
-        this.showMessage(error.message || 'Failed to save link', 'error')
+        toast.error(error.message || 'Failed to save link')
       }
     },
 
     copyLinkReference(link) {
       const reference = link.reference_code || link.title
       navigator.clipboard.writeText(reference).then(() => {
-        this.showMessage(`Copied "${reference}" to clipboard`)
+        toast.success(`Copied "${reference}" to clipboard`)
       }).catch(() => {
-        this.showMessage('Failed to copy to clipboard', 'error')
+        toast.error('Failed to copy to clipboard')
       })
     },
 
@@ -544,12 +542,8 @@ export default {
       })
     },
 
-    showMessage(text, type = 'success') {
-      this.message = text
-      this.messageType = type
-      setTimeout(() => {
-        this.message = ''
-      }, 3000)
+    showMessage(text, type = 'success') { /* legacy no-op for backward compat */
+      if (type === 'error') toast.error(text); else toast.success(text)
     }
   },
 
@@ -1064,37 +1058,7 @@ export default {
   color: #666;
 }
 
-/* Message Toast */
-.message-toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
-  z-index: 3000;
-  animation: slideIn 0.3s ease;
-}
-
-.message-toast.success {
-  background: #4caf50;
-}
-
-.message-toast.error {
-  background: #f44336;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
+/* Removed legacy .message-toast styles; using global ToastContainer */
 
 /* Responsive Design */
 @media (max-width: 1200px) {

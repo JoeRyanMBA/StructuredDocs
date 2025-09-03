@@ -59,21 +59,18 @@
             <div class="action-content" title="Manage user accounts and permissions">
               <h3>Manage Users</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/notifications/new')">
             <div class="action-icon">🔔</div>
             <div class="action-content" title="Send notifications to users">
               <h3>Create Notification</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/admin/bugs')">
             <div class="action-icon">🐛</div>
             <div class="action-content" title="Review user-submitted bug reports">
               <h3>View Bug Reports</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
         </div>
       </div>

@@ -63,7 +63,7 @@
     </div>
 
     <!-- Add/Edit User Modal -->
-    <div v-if="showAddUser || editingUser" class="modal-overlay" @click="closeModal" style="display: block !important;">
+  <div v-if="showAddUser || editingUser" class="modal-overlay" @click.self="closeModal" style="display: block !important;">
       <div class="modal" @click.stop style="display: block !important;">
         <div class="modal-header">
           <h3>{{ editingUser ? 'Edit User' : 'Add User' }}</h3>

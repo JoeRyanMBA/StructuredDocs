@@ -57,21 +57,18 @@
           <div class="action-content" title="Start organizing topics into collections">
             <h3>Create New Collection</h3>
           </div>
-          <div class="action-arrow">→</div>
         </button>
         <button class="quick-action-card" @click="navigateTo('/import')">
           <div class="action-icon">📥</div>
           <div class="action-content" title="Add content from external sources">
             <h3>Import Topics</h3>
           </div>
-          <div class="action-arrow">→</div>
         </button>
         <button class="quick-action-card" @click="navigateTo('/topics')">
           <div class="action-icon">📝</div>
           <div class="action-content" title="View and manage existing topics">
             <h3>Browse Topics</h3>
           </div>
-          <div class="action-arrow">→</div>
         </button>
       </div>
     </div>
@@ -149,7 +146,7 @@
     </div>
 
     <!-- Create Collection Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
+  <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h2>Create New Collection</h2>
@@ -239,6 +236,7 @@
 
 <script>
 import { getCollections, saveCollections } from '@/api/collections.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'CollectionsDashboard',
@@ -317,8 +315,9 @@ export default {
           throw new Error(`Failed to update collection: ${response.status} ${errorText}`)
         }
         await this.loadCollections()
+  toast.success('Collection updated')
       } catch (error) {
-        alert('Failed to update collection: ' + error.message)
+  toast.error('Failed to update collection: ' + error.message)
       }
     },
 
@@ -332,8 +331,9 @@ export default {
           throw new Error(`Failed to delete collection: ${response.status} ${errorText}`)
         }
         await this.loadCollections()
+  toast.success('Collection deleted')
       } catch (error) {
-        alert('Failed to delete collection: ' + error.message)
+  toast.error('Failed to delete collection: ' + error.message)
       }
     },
     async submitNewCollection() {
@@ -357,8 +357,9 @@ export default {
         await this.loadCollections()
         this.showCreateModal = false
         this.resetNewCollection()
+  toast.success('Collection created')
       } catch (error) {
-        alert('Failed to create collection: ' + error.message)
+  toast.error('Failed to create collection: ' + error.message)
       }
     },
     // Helper to assign projectName to collections based on projectId
@@ -383,6 +384,7 @@ export default {
         await this.loadStats();
       } catch (error) {
         console.error('Failed to load collections dashboard:', error)
+  toast.error('Failed to load collections dashboard')
       } finally {
         this.loading = false
       }
@@ -487,7 +489,7 @@ export default {
     async loadProjects() {
       try {
         // Fetch real projects from backend
-        const response = await fetch('/api/projects');
+  const response = await fetch('/api/projects/');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`);
         }

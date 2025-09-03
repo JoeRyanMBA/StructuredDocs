@@ -9,7 +9,7 @@
 
     <!-- Feedback Modal -->
     <teleport to="body">
-      <div v-if="showFeedbackModal" class="modal-overlay feedback-overlay" @click="showFeedbackModal = false">
+  <div v-if="showFeedbackModal" class="modal-overlay feedback-overlay" @click.self="showFeedbackModal = false">
         <div class="overlay-center" @click.stop>
           <div class="sd-modal small-modal feedback-modal" @click.stop>
           <div class="sd-modal-header">
@@ -40,7 +40,7 @@
 
     <!-- Bug Report Modal -->
     <teleport to="body">
-      <div v-if="showBugModal" class="modal-overlay feedback-overlay" @click="showBugModal = false">
+  <div v-if="showBugModal" class="modal-overlay feedback-overlay" @click.self="showBugModal = false">
         <div class="overlay-center" @click.stop>
           <div class="sd-modal small-modal feedback-modal" @click.stop>
           <div class="sd-modal-header">

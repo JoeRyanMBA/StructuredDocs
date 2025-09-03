@@ -61,7 +61,6 @@
             <div class="action-content" title="Manage and organize all tasks across projects">
               <h3>Tasks</h3>
             </div>
-            <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/all-tags" class="quick-action-card">
@@ -69,7 +68,6 @@
             <div class="action-content" title="Create and manage tags for categorization">
               <h3>Tags</h3>
             </div>
-            <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/all-stakeholders" class="quick-action-card">
@@ -77,7 +75,6 @@
             <div class="action-content" title="Manage stakeholder profiles and information">
               <h3>Stakeholders</h3>
             </div>
-            <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/all-milestones" class="quick-action-card">
@@ -85,7 +82,6 @@
             <div class="action-content" title="Track project milestones and deadlines">
               <h3>Milestones</h3>
             </div>
-            <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/topics" class="quick-action-card">
@@ -93,7 +89,6 @@
             <div class="action-content" title="View and manage documentation topics">
               <h3>Topics</h3>
             </div>
-            <div class="action-arrow">→</div>
           </router-link>
 
           <router-link to="/projects" class="quick-action-card">
@@ -101,7 +96,6 @@
             <div class="action-content" title="Manage projects and project settings">
               <h3>Projects</h3>
             </div>
-            <div class="action-arrow">→</div>
           </router-link>
         </div>
       </div>
@@ -704,16 +698,6 @@ export default {
   line-height: 1.4;
 }
 
-.quick-action-card .action-arrow {
-  font-size: 1.5rem;
-  color: var(--primary-deep-teal);
-  margin-left: 1rem;
-  transition: transform 0.3s ease;
-}
-
-.quick-action-card:hover .action-arrow {
-  transform: translateX(4px);
-}
 
 /* Responsive Design */
 @media (max-width: 768px) {

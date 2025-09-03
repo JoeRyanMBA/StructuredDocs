@@ -237,7 +237,7 @@
     </div>
 
     <!-- Create/Edit Task Modal -->
-    <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click="closeModal">
+  <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal large-modal" @click.stop>
         <div class="modal-header">
           <h2>{{ showCreateModal ? 'Create New Task' : 'Edit Task' }}</h2>
@@ -476,6 +476,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TasksView',
@@ -778,7 +779,7 @@ export default {
           throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`)
         }
         
-        const result = await response.json();
+  const result = await response.json();
         console.log('Task saved successfully:', result);
 
         if (result && result.task) {
@@ -814,17 +815,20 @@ export default {
           this.fetchTaskSummary();
           this.fetchAllTags();
           this.closeModal();
+          toast.success(this.showCreateModal ? 'Task created.' : 'Task updated.')
         } else {
           // Fallback to refetching if the response format is not as expected
           await this.fetchTasks();
           await this.fetchTaskSummary();
           await this.fetchAllTags();
           this.closeModal();
+          toast.success('Task saved.')
         }
         
       } catch (error) {
         console.error('Failed to save task:', error)
         this.error = 'Failed to save task. Please try again.'
+        toast.error(this.error)
       }
     },
     
@@ -845,10 +849,12 @@ export default {
         // Refresh tasks
         await this.fetchTasks()
         await this.fetchTaskSummary()
+  toast.success('Task deleted.')
         
       } catch (error) {
         console.error('Failed to delete task:', error)
         this.error = 'Failed to delete task. Please try again.'
+  toast.error(this.error)
       }
     },
     
@@ -899,10 +905,12 @@ export default {
         
         // Refresh summary after status change
         await this.fetchTaskSummary()
+  toast.info('Task status updated.')
         
       } catch (error) {
         console.error('Failed to advance task status:', error)
         this.error = 'Failed to update task status. Please try again.'
+  toast.error(this.error)
       }
     },
     

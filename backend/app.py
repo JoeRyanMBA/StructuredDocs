@@ -6,7 +6,8 @@ import mimetypes
 from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
 from .extensions import db, migrate, jwt
-from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode, quote
+import socket
 from datetime import datetime
 
 # Add the backend directory to Python path
@@ -191,6 +192,32 @@ p { color: #666; }
                         new_query,
                         parsed.fragment,
                     ))
+                # Prefer IPv4: resolve host to IPv4 to avoid IPv6-only routing issues
+                try:
+                    host = parsed.hostname
+                    port = parsed.port or 5432
+                    if host and socket is not None:
+                        addrs = socket.getaddrinfo(host, port, family=socket.AF_INET, type=socket.SOCK_STREAM)
+                        if addrs:
+                            ipv4 = addrs[0][4][0]
+                            userinfo = ''
+                            if parsed.username:
+                                userinfo = quote(parsed.username, safe='')
+                                if parsed.password:
+                                    userinfo += f":{quote(parsed.password, safe='')}"
+                                userinfo += '@'
+                            new_netloc = f"{userinfo}{ipv4}:{port}"
+                            db_url = urlunparse((
+                                parsed.scheme,
+                                new_netloc,
+                                parsed.path,
+                                parsed.params,
+                                urlencode(q),
+                                parsed.fragment,
+                            ))
+                            print(f"🌐 Using IPv4 for DB host: {host} -> {ipv4}")
+                except Exception as _ipv4e:
+                    print(f"⚠️ Could not force IPv4 for DB host: {_ipv4e}")
         except Exception as _e:
             print(f"⚠️ Could not normalize DATABASE_URL: {_e}")
 
@@ -306,9 +333,11 @@ p { color: #666; }
                 if not admin_user:
                     # Create admin user
                     admin_user = User(
-                        username=admin_email,
+                        name='Admin User',
+                        email=admin_email,
                         password_hash=generate_password_hash(admin_password),
-                        role='admin'
+                        role='admin',
+                        active=True
                     )
                     db.session.add(admin_user)
                     db.session.commit()

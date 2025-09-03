@@ -149,7 +149,7 @@
     </div>
 
     <!-- Image Details Modal -->
-    <div v-if="showDetailsModal" class="modal-overlay" @click="closeDetailsModal">
+  <div v-if="showDetailsModal" class="modal-overlay" @click.self="closeDetailsModal">
       <div class="modal large" @click.stop>
             /* Modal Styles - use global .modal-overlay and .modal styles */
         <div class="modal-header">
@@ -206,14 +206,12 @@
       </div>
     </div>
 
-    <!-- Success/Error Messages -->
-    <div v-if="message" :class="['message-toast', messageType]">
-      {{ message }}
-    </div>
+  <!-- Toasts handled globally via ToastContainer -->
   </div>
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'AllImagesView',
@@ -345,7 +343,7 @@ export default {
 
     async refreshImages() {
       await this.loadImages()
-      this.showMessage('Images refreshed successfully!')
+      toast.success('Images refreshed successfully!')
     },
 
     clearSearch() {
@@ -369,9 +367,9 @@ export default {
     copyImagePath(image) {
       const path = image.public_url || image.file_path || `/images/${image.filename}`
       navigator.clipboard.writeText(path).then(() => {
-        this.showMessage(`Copied image path to clipboard: ${path}`)
+        toast.success(`Copied image path to clipboard: ${path}`)
       }).catch(() => {
-        this.showMessage('Failed to copy to clipboard', 'error')
+        toast.error('Failed to copy to clipboard')
       })
     },
 
@@ -400,12 +398,8 @@ export default {
       })
     },
 
-    showMessage(text, type = 'success') {
-      this.message = text
-      this.messageType = type
-      setTimeout(() => {
-        this.message = ''
-      }, 3000)
+    showMessage(text, type = 'success') { /* legacy no-op */
+      if (type === 'error') toast.error(text); else toast.success(text)
     }
   },
 
@@ -838,37 +832,7 @@ export default {
   background: #1976d2;
 }
 
-/* Message Toast */
-.message-toast {
-  position: fixed;
-  bottom: 2rem;
-  right: 2rem;
-  padding: 1rem 1.5rem;
-  border-radius: 6px;
-  color: white;
-  font-weight: 500;
-  z-index: 3000;
-  animation: slideIn 0.3s ease;
-}
-
-.message-toast.success {
-  background: #4caf50;
-}
-
-.message-toast.error {
-  background: #f44336;
-}
-
-@keyframes slideIn {
-  from {
-    transform: translateX(100%);
-    opacity: 0;
-  }
-  to {
-    transform: translateX(0);
-    opacity: 1;
-  }
-}
+/* Removed legacy .message-toast styles; using global ToastContainer */
 
 /* Responsive Design */
 @media (max-width: 768px) {

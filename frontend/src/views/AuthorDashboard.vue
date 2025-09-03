@@ -58,7 +58,6 @@
               <h3>Create New Topic</h3>
               <p>Start writing new content</p>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/topics')">
             <div class="action-icon">📚</div>
@@ -66,7 +65,6 @@
               <h3>Browse My Topics</h3>
               <p>Review and edit your work</p>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/import')">
             <div class="action-icon">📥</div>
@@ -74,7 +72,6 @@
               <h3>Import Content</h3>
               <p>Add from external sources</p>
             </div>
-            <div class="action-arrow">→</div>
           </button>
   </div>
   <div class="quick-actions-grid" style="margin-top: 1rem;">
@@ -84,7 +81,6 @@
               <h3>Browse Images</h3>
               <p>Find reusable images for content</p>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card resource-card" @click="navigateTo('/all-links')">
             <div class="action-icon">🔗</div>
@@ -92,7 +88,6 @@
               <h3>Browse Links</h3>
               <p>Find reusable links for content</p>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/document-builder')">
             <div class="action-icon">🔨</div>
@@ -100,7 +95,6 @@
               <h3>Document Builder</h3>
               <p>Create complete documents</p>
             </div>
-            <div class="action-arrow">→</div>
           </button>
       </div>
     </div>

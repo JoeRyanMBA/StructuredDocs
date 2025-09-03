@@ -85,7 +85,7 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+  <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="custom-modal" @click.stop>
         <div class="modal-header">
           <h3>{{ isEditing ? 'Edit Tag' : 'Create New Tag' }}</h3>
@@ -119,7 +119,7 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="closeDeleteModal">
+  <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="custom-modal" @click.stop>
         <div class="modal-header">
           <h3>Confirm Delete</h3>
@@ -141,6 +141,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'AllTagsView',
   data() {
@@ -201,6 +202,7 @@ export default {
       } catch (error) {
         console.error('Failed to fetch tags:', error)
         this.error = 'Failed to load tags. Please try again.'
+        toast.error(this.error)
       } finally {
         this.loading = false
       }
@@ -271,12 +273,14 @@ export default {
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
         }
         
-        await this.fetchTags()
-        this.closeModal()
+  await this.fetchTags()
+  this.closeModal()
+  toast.success(this.isEditing ? 'Tag updated' : 'Tag created')
         
       } catch (error) {
         console.error('Failed to save tag:', error)
-        this.error = error.message || 'Failed to save tag. Please try again.'
+  this.error = error.message || 'Failed to save tag. Please try again.'
+  toast.error(this.error)
       }
     },
     
@@ -301,12 +305,14 @@ export default {
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
         }
         
-        await this.fetchTags()
-        this.closeDeleteModal()
+  await this.fetchTags()
+  this.closeDeleteModal()
+  toast.success('Tag deleted')
         
       } catch (error) {
         console.error('Failed to delete tag:', error)
-        this.error = error.message || 'Failed to delete tag. Please try again.'
+  this.error = error.message || 'Failed to delete tag. Please try again.'
+  toast.error(this.error)
       }
     },
     

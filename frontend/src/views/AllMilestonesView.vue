@@ -105,7 +105,7 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
+  <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="custom-modal" @click.stop>
         <div class="modal-header">
           <h3>{{ isEditing ? 'Edit Milestone' : 'Create New Milestone' }}</h3>
@@ -190,7 +190,7 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="closeDeleteModal">
+  <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="custom-modal" @click.stop>
         <div class="modal-header">
           <h3>Confirm Delete</h3>
@@ -212,6 +212,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'AllMilestonesView',
   data() {
@@ -265,6 +266,7 @@ export default {
       } catch (error) {
         console.error('Failed to fetch milestones:', error)
         this.error = 'Failed to load milestones. Please try again.'
+        toast.error('Failed to load milestones')
       } finally {
         this.loading = false
       }
@@ -374,12 +376,14 @@ export default {
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
         }
         
-        await this.fetchMilestones()
-        this.closeModal()
+  await this.fetchMilestones()
+  this.closeModal()
+  toast.success(this.isEditing ? 'Milestone updated' : 'Milestone created')
         
       } catch (error) {
         console.error('Failed to save milestone:', error)
-        this.error = error.message || 'Failed to save milestone. Please try again.'
+  this.error = error.message || 'Failed to save milestone. Please try again.'
+  toast.error(this.error)
       }
     },
     
@@ -404,12 +408,14 @@ export default {
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
         }
         
-        await this.fetchMilestones()
-        this.closeDeleteModal()
+  await this.fetchMilestones()
+  this.closeDeleteModal()
+  toast.success('Milestone deleted')
         
       } catch (error) {
         console.error('Failed to delete milestone:', error)
-        this.error = error.message || 'Failed to delete milestone. Please try again.'
+  this.error = error.message || 'Failed to delete milestone. Please try again.'
+  toast.error(this.error)
       }
     },
     

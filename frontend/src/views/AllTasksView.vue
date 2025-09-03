@@ -131,8 +131,8 @@
     </div>
 
     <!-- Create/Edit Modal -->
-    <div v-if="showModal" class="modal-overlay" @click="closeModal">
-      <div class="custom-modal" @click.stop>
+    <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
+      <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>{{ isEditing ? 'Edit Task' : 'Create New Task' }}</h3>
           <button @click="closeModal" class="close-btn">&times;</button>
@@ -300,8 +300,8 @@
     </div>
 
     <!-- Delete Confirmation Modal -->
-    <div v-if="showDeleteModal" class="modal-overlay" @click="closeDeleteModal">
-      <div class="custom-modal" @click.stop>
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
+      <div class="modal" @click.stop>
         <div class="modal-header">
           <h3>Confirm Delete</h3>
           <button @click="closeDeleteModal" class="close-btn">&times;</button>
@@ -322,6 +322,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'AllTasksView',
   data() {
@@ -394,6 +395,7 @@ export default {
       } catch (error) {
         console.error('Failed to fetch tasks:', error)
         this.error = 'Failed to load tasks. Please try again.'
+  toast.error(this.error)
       } finally {
         this.loading = false
       }
@@ -566,13 +568,15 @@ export default {
           throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
         }
         
-        await this.fetchTasks()
-        await this.fetchAllTags()
-        this.closeModal()
+  await this.fetchTasks()
+  await this.fetchAllTags()
+  this.closeModal()
+  toast.success(this.isEditing ? 'Task updated.' : 'Task created.')
         
       } catch (error) {
         console.error('Failed to save task:', error)
-        this.error = error.message || 'Failed to save task. Please try again.'
+  this.error = error.message || 'Failed to save task. Please try again.'
+  toast.error(this.error)
       }
     },
     
@@ -602,7 +606,8 @@ export default {
         
       } catch (error) {
         console.error('Failed to delete task:', error)
-        this.error = error.message || 'Failed to delete task. Please try again.'
+  this.error = error.message || 'Failed to delete task. Please try again.'
+  toast.error(this.error)
       }
     },
 
