@@ -458,6 +458,9 @@ export default {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
   font-weight: 600;
+  /* Ensure contrast on deep teal header */
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.18);
 }
 
 .system-title {
@@ -736,8 +739,3 @@ export default {
 }
 </style>
 
-/* Make the login screen h1 white for contrast */
-.census-logo h1 {
-  color: #fff;
-  text-shadow: 0 1px 8px rgba(0,0,0,0.18);
-}
