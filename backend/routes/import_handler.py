@@ -157,49 +157,28 @@ def _post_process_markdown(markdown_content):
                 html_text = '\n'.join(html_content)
                 converted_list = _convert_html_list_to_markdown(html_text)
                 if converted_list:
+                    # Replace the entire HTML fenced block with converted markdown
                     processed_lines.extend(converted_list.split('\n'))
                 else:
-                    # If we can't convert, keep the original but clean it up
+                    # Could not convert; keep original fenced block
+                    processed_lines.append(lines[i])
                     processed_lines.extend(html_content)
-                i = j + 1  # Skip past the closing ```
+                    processed_lines.append('```')
+                # Skip past the closing fence
+                i = j + 1
+                continue
             else:
-                # No closing found, keep as is
+                # No closing fence found; keep the line as-is
                 processed_lines.append(line)
                 i += 1
+                continue
         
-        # Remove standalone HTML comments that appear between list items
-        elif line.strip() == '<!-- -->' or line.strip() == '<!---->':
-            # Skip this line entirely
-            i += 1
-        
-        # Handle margin notes (look for specific patterns that might indicate margin notes)
-        elif 'margin' in line.lower() or line.strip().startswith('> '):
-            # Convert margin note style to markdown note
-            content = line.strip()
-            if content.startswith('> '):
-                content = content[2:].strip()
-            elif 'margin' in content.lower():
-                # Remove any margin-related formatting
-                content = re.sub(r'\*\*?margin\s*note\*\*?:?\s*', '', content, flags=re.IGNORECASE)
-                content = content.strip()
-            
-            if content:
-                processed_lines.append(f"**Important:** {content}")
-            i += 1
-        
-        else:
-            processed_lines.append(line)
-            i += 1
-    
-    # Clean up any remaining HTML comments in the processed content
-    cleaned_content = '\n'.join(processed_lines)
-    cleaned_content = re.sub(r'<!--\s*-->', '', cleaned_content)
-    cleaned_content = re.sub(r'<!---->', '', cleaned_content)
-    
-    # Remove excessive blank lines (more than 2 consecutive) but preserve paragraph breaks
-    cleaned_content = re.sub(r'\n\s*\n\s*\n\s*\n+', '\n\n\n', cleaned_content)
-    
-    return cleaned_content
+        # Default: keep line
+        processed_lines.append(line)
+        i += 1
+
+    # Join back the processed lines; further cleaning handled by other steps
+    return '\n'.join(processed_lines)
 
 
 def _convert_html_list_to_markdown(html_content):
@@ -509,48 +488,74 @@ def _parse_and_store(file, imp_doc, source):
     file.stream.seek(0)
 
     if source == 'word':
-        # Convert Word document to Markdown using pandoc
+        # Parse Word document: try pandoc first, then python-docx fallback
         print(f"PARSING WORD DOC: {imp_doc.filename}")
+        # Read file content for conversion attempts
+        file_content = file.read()
+        file.stream.seek(0)  # Reset stream for potential future reads
+
+        lines = []
         try:
-            # Read file content
-            file_content = file.read()
-            file.stream.seek(0)  # Reset stream for potential future reads
-            
-            # Convert to Markdown with image handling
-            try:
-                markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
-            except Exception as e:
-                print(f"PANDOC/CONVERSION ERROR: {e}")
-                current_app.logger.error(f"Pandoc or conversion failed for {imp_doc.filename}: {e}")
-                # Save a snippet of the file content for debugging
-                snippet = file_content[:500]
-                current_app.logger.error(f"First 500 bytes of file: {snippet}")
-                raise
-            
-            # Now parse as if it were a Markdown file
-            lines = []
+            # Primary conversion via pandoc
+            markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
+
+            # Treat as Markdown lines with H1 promotion
             for line in markdown_content.splitlines():
                 if line.strip().startswith('#'):
-                    # Count the number of # characters
                     hash_count = len(line) - len(line.lstrip('#'))
                     if hash_count > 1:
-                        # Promote to H1: replace multiple # with single #
                         content = line.lstrip('#').strip()
                         line = f"# {content}"
                         print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
                 lines.append(line)
-            
-            paras = [('md', line) for line in lines]
-            full_text = '\n'.join(lines)
-            # Log a snippet of the parsed Markdown for debugging
+
             md_snippet = '\n'.join(lines[:10])
             print(f"MARKDOWN SNIPPET (first 10 lines):\n{md_snippet}")
             current_app.logger.info(f"Parsed Markdown snippet for {imp_doc.filename}:\n{md_snippet}")
-            
         except Exception as e:
-            print(f"ERROR converting Word document: {e}")
-            current_app.logger.error(f"Failed to convert Word document {imp_doc.filename}: {e}")
-            return
+            # Fallback: attempt to read headings and paragraphs via python-docx
+            print(f"PANDOC/CONVERSION ERROR: {e}")
+            current_app.logger.error(f"Pandoc or conversion failed for {imp_doc.filename}: {e}")
+            snippet = file_content[:500]
+            current_app.logger.error(f"First 500 bytes of file: {snippet}")
+
+            try:
+                doc = Document(io.BytesIO(file_content))
+                for p in doc.paragraphs:
+                    text = (p.text or '').strip()
+                    if not text:
+                        continue
+                    style_name = ''
+                    try:
+                        # Some styles may be None; guard access safely
+                        ps = getattr(p, 'style', None)
+                        style_name = (getattr(ps, 'name', '') or '').lower()
+                    except Exception:
+                        style_name = ''
+                    level = None
+                    m = re.search(r'heading\s*(\d+)', style_name)
+                    if m:
+                        try:
+                            level = int(m.group(1))
+                        except ValueError:
+                            level = None
+                    if level == 1:
+                        lines.append(f"# {text}")
+                    elif level and level > 1:
+                        hashes = '#' * min(level, 6)
+                        lines.append(f"{hashes} {text}")
+                    else:
+                        lines.append(text)
+                md_snippet = '\n'.join(lines[:10])
+                print(f"DOCX FALLBACK SNIPPET (first 10 lines):\n{md_snippet}")
+                current_app.logger.info(f"DOCX fallback parsed snippet for {imp_doc.filename}:\n{md_snippet}")
+            except Exception as e2:
+                print(f"DOCX FALLBACK ERROR: {e2}")
+                current_app.logger.error(f"DOCX fallback failed for {imp_doc.filename}: {e2}")
+                lines = []
+
+        paras = [('md', line) for line in lines]
+        full_text = '\n'.join(lines)
     else:
         # Markdown file processing with image validation
         raw = file.read().decode('utf-8')
@@ -576,8 +581,8 @@ def _parse_and_store(file, imp_doc, source):
                     print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
             lines.append(line)
         
-    paras = [('md', line) for line in lines]
-    full_text = '\n'.join(lines)
+        paras = [('md', line) for line in lines]
+        full_text = '\n'.join(lines)
 
     items, buffer, order, current_title = [], [], 0, None
     print(f"PARSING: source={source}, paragraphs={len(paras)}")
