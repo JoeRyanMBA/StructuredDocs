@@ -63,8 +63,36 @@
                 :aria-pressed="showPassword.toString()"
                 tabindex="0"
               >
-                <span v-if="showPassword" class="toggle-icon">🙈</span>
-                <span v-else class="toggle-icon">👁️</span>
+                <!-- Eye-off icon when showing password -->
+                <svg
+                  v-if="showPassword"
+                  class="toggle-icon"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M3 3l18 18" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M9.88 9.88A3.5 3.5 0 0012 8.5c1.93 0 3.5 1.57 3.5 3.5 0 .77-.25 1.49-.68 2.06" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M10.73 5.08A10.53 10.53 0 0121 12c-2.1 3.5-5.5 6-9 6-1.22 0-2.4-.27-3.5-.77" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                  <path d="M6.53 6.53A10.53 10.53 0 003 12c2.1 3.5 5.5 6 9 6 .96 0 1.9-.16 2.8-.46" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                </svg>
+                <!-- Eye icon when hiding password -->
+                <svg
+                  v-else
+                  class="toggle-icon"
+                  width="20"
+                  height="20"
+                  viewBox="0 0 24 24"
+                  fill="none"
+                  xmlns="http://www.w3.org/2000/svg"
+                  aria-hidden="true"
+                >
+                  <path d="M1 12s4-7 11-7 11 7 11 7-4 7-11 7S1 12 1 12z" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" fill="none"/>
+                  <circle cx="12" cy="12" r="3" stroke="currentColor" stroke-width="2" fill="none"/>
+                </svg>
               </button>
             </div>
           </div>
@@ -382,22 +410,28 @@ export default {
   text-align: center;
 }
 
+/* Center the logo and force 160x160 */
+.census-logo {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+}
+
 .census-logo .logo-image {
-  display: inline-block;
-  width: auto;
-  height: auto;
-  max-width: 160px; /* keep within modal/card width */
-  max-height: 80px; /* visually balanced with header padding */
+  display: block;
+  width: 160px;
+  height: 160px;
+  object-fit: contain;
   margin-bottom: 0.5rem;
 }
 
 /* Shimmer wrapper for login logo */
 .census-logo .logo-wrapper {
   position: relative;
-  display: inline-block;
-  width: 160px; /* reserve space similar to logo max size */
-  height: 80px; /* match visual balance */
-  margin-bottom: 0.5rem; /* keep spacing under the logo */
+  display: block;
+  width: 160px;
+  height: 160px;
+  margin-bottom: 0.5rem;
 }
 
 .census-logo .logo-skeleton {
@@ -701,3 +735,9 @@ export default {
   isolation: isolate;
 }
 </style>
+
+/* Make the login screen h1 white for contrast */
+.census-logo h1 {
+  color: #fff;
+  text-shadow: 0 1px 8px rgba(0,0,0,0.18);
+}
