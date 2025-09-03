@@ -59,6 +59,14 @@
         <table class="topics-table">
       <thead>
         <tr>
+          <th class="select-col">
+            <input
+              type="checkbox"
+              :checked="allSelectedOnPage"
+              @change="toggleSelectAll($event.target.checked)"
+              aria-label="Select all topics on this page"
+            />
+          </th>
           <th>ID</th>
           <th>Title</th>
           <th>Status</th>
@@ -67,6 +75,15 @@
       </thead>
       <tbody>
         <tr v-for="t in filteredTopics" :key="t.id">
+          <td class="select-col">
+            <input
+              type="checkbox"
+              :value="t.id"
+              v-model="selectedTopicIds"
+              @click.stop="handleRowCheckboxClick(t.id, $event)"
+              aria-label="Select topic"
+            />
+          </td>
           <td>{{ t.id }}</td>
           <td>{{ t.title }}</td>
           <td>
@@ -113,6 +130,21 @@
       </tbody>
     </table>
       </div>
+      
+      <!-- Bulk actions toolbar -->
+      <div class="bulk-actions" v-if="selectedTopicIds.length > 0">
+        <span class="selection-count">{{ selectedTopicIds.length }} selected</span>
+        <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting">
+          <i class="fas fa-trash"></i> Delete Selected
+        </button>
+        <div class="bulk-actions-spacer"></div>
+        <button class="btn btn-sm btn-secondary" @click="selectAllResults" :disabled="deleting">
+          Select all results ({{ filteredTopics.length }})
+        </button>
+        <button class="btn btn-sm" @click="clearSelection" :disabled="deleting">
+          Clear selection
+        </button>
+      </div>
     </div>
 
     <!-- Sequential Review Modal - Using Vue reactivity instead of Bootstrap modal events -->
@@ -129,6 +161,7 @@
 
 <script>
 import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
+import { useToast } from '@/composables/useToast'
 
 export default {
   name: 'TopicListView',
@@ -170,7 +203,12 @@ export default {
           return d.toISOString().split('T')[0];
         })(),
         submitter_notes: ''
-      }
+  },
+  // Bulk selection state
+  selectedTopicIds: [],
+  deleting: false,
+  toast: null,
+  lastSelectedIndex: null
     }
   },
 
@@ -207,6 +245,11 @@ export default {
     todayDate() {
       const today = new Date()
       return today.toISOString().split('T')[0]
+    },
+    allSelectedOnPage() {
+      if (!this.filteredTopics || this.filteredTopics.length === 0) return false
+      const idsOnPage = this.filteredTopics.map(t => t.id)
+      return idsOnPage.every(id => this.selectedTopicIds.includes(id))
     }
   },
 
@@ -219,6 +262,8 @@ export default {
     this.fetchTopics()
     this.fetchProjects()
     this.fetchReviewers()
+  // Initialize toast helper
+  this.toast = useToast()
   },
 
   methods: {
@@ -259,7 +304,7 @@ export default {
         ]
         this.applyFilters()
         this.error = 'Using sample data - backend unavailable'
-      } finally {
+  } finally {
         this.loading = false
       }
     },
@@ -300,6 +345,114 @@ export default {
       this.statusFilter = ''
       this.collectionFilter = ''
       this.applyFilters()
+  // Clear selection when filters are reset
+  this.selectedTopicIds = []
+  this.lastSelectedIndex = null
+    },
+
+    // Bulk selection helpers
+    selectAllResults() {
+      this.selectedTopicIds = this.filteredTopics.map(t => t.id)
+    },
+    clearSelection() {
+      this.selectedTopicIds = []
+      this.lastSelectedIndex = null
+    },
+    toggleSelectAll(checked) {
+      if (checked) {
+        const idsOnPage = this.filteredTopics.map(t => t.id)
+        // Merge unique ids
+        const set = new Set([...this.selectedTopicIds, ...idsOnPage])
+        this.selectedTopicIds = Array.from(set)
+      } else {
+        // Remove ids that are on the current page
+        const idsOnPage = new Set(this.filteredTopics.map(t => t.id))
+        this.selectedTopicIds = this.selectedTopicIds.filter(id => !idsOnPage.has(id))
+      }
+    },
+
+    handleRowCheckboxClick(topicId, event) {
+      const currentIndex = this.filteredTopics.findIndex(t => t.id === topicId)
+      if (currentIndex === -1) return
+      if (event.shiftKey && this.lastSelectedIndex !== null) {
+        const start = Math.min(this.lastSelectedIndex, currentIndex)
+        const end = Math.max(this.lastSelectedIndex, currentIndex)
+        const idsInRange = this.filteredTopics.slice(start, end + 1).map(t => t.id)
+        if (event.target.checked) {
+          // Add all ids in range
+          const set = new Set([...this.selectedTopicIds, ...idsInRange])
+          this.selectedTopicIds = Array.from(set)
+        } else {
+          // Remove all ids in range
+          const removeSet = new Set(idsInRange)
+          this.selectedTopicIds = this.selectedTopicIds.filter(id => !removeSet.has(id))
+        }
+      }
+      this.lastSelectedIndex = currentIndex
+    },
+
+    async confirmBulkDelete() {
+      if (!this.selectedTopicIds.length) return
+      const count = this.selectedTopicIds.length
+      const confirmed = confirm(
+        `Delete ${count} selected topic${count > 1 ? 's' : ''}?\n\nThis action cannot be undone.`
+      )
+      if (!confirmed) return
+
+      await this.bulkDelete()
+    },
+
+    async bulkDelete() {
+      this.deleting = true
+      try {
+        const token = localStorage.getItem('access_token')
+        const res = await fetch('/api/topics/bulk', {
+          method: 'DELETE',
+          headers: {
+            'Content-Type': 'application/json',
+            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+          },
+          body: JSON.stringify({ ids: this.selectedTopicIds })
+        })
+        if (!res.ok) {
+          let message = `Bulk delete failed (${res.status})`
+          if (res.status === 401) {
+            message = 'Your session has expired. Please log in again.'
+          } else if (res.status === 403) {
+            message = 'You do not have permission to delete topics.'
+          }
+          try {
+            const err = await res.json()
+            if (err && err.error) message = err.error
+          } catch (_) {
+            // ignore parse error
+          }
+          throw new Error(message)
+        }
+        const result = await res.json()
+        const deleted = result.deleted || 0
+        const notFound = (result.not_found || []).length
+
+        // Refresh topics and clear selection
+        await this.fetchTopics()
+        this.selectedTopicIds = []
+
+        if (this.toast && this.toast.success) {
+          const extra = notFound ? ` (${notFound} not found)` : ''
+          this.toast.success(`Deleted ${deleted} topic${deleted !== 1 ? 's' : ''}${extra}.`)
+        } else {
+          alert(`Deleted ${deleted} topics${notFound ? ` (${notFound} not found)` : ''}.`)
+        }
+      } catch (err) {
+        console.error('Bulk delete error:', err)
+        if (this.toast && this.toast.error) {
+          this.toast.error(err.message || 'Bulk delete failed')
+        } else {
+          alert('Bulk delete failed')
+        }
+      } finally {
+        this.deleting = false
+      }
     },
 
     async fetchReviewers() {
@@ -697,8 +850,13 @@ th {
   background-color: var(--bg-light-mist-gray);
 }
 
-th:nth-child(3),
-td:nth-child(3) {
+.select-col {
+  width: 48px;
+  text-align: center;
+}
+
+th:nth-child(4),
+td:nth-child(4) {
   white-space: nowrap;
   min-width: 120px;
 }
@@ -760,5 +918,25 @@ td:nth-child(3) {
 .btn-sm {
   padding: 0.375rem 0.75rem;
   font-size: 0.8rem;
+}
+
+.bulk-actions {
+  display: flex;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.75rem 1rem;
+  margin-top: 0.75rem;
+  background: var(--bg-white);
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+}
+
+.selection-count {
+  color: var(--text-medium-gray);
+  font-size: 0.9rem;
+}
+
+.bulk-actions-spacer {
+  flex: 1;
 }
 </style>

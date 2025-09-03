@@ -1,7 +1,8 @@
 # backend/routes/topics.py
 
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Topic, Link, TopicLink
+from ..models import db, Topic, Link, TopicLink, User
+from flask_jwt_extended import jwt_required, get_jwt_identity
 
 topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
 
@@ -84,4 +85,66 @@ def publish_topic(topic_id):
     except Exception as e:
         db.session.rollback()
         current_app.logger.exception("Failed to publish topic")
+        return jsonify({'error': str(e)}), 500
+
+# DELETE /api/topics/bulk → Delete multiple topics by IDs
+@topics_bp.route('/bulk', methods=['DELETE'])
+@jwt_required()
+def bulk_delete_topics():
+    try:
+        payload = request.get_json(silent=True) or {}
+        ids = payload.get('ids')
+        if not ids or not isinstance(ids, list):
+            return jsonify({'error': 'Provide body { "ids": [1,2,3] }'}), 400
+
+        # Convert IDs to integers and de-dup
+        try:
+            id_list = sorted({int(x) for x in ids})
+        except Exception:
+            return jsonify({'error': 'All ids must be integers'}), 400
+
+        if not id_list:
+            return jsonify({'deleted': 0, 'not_found': []}), 200
+
+        # Enforce admin authorization
+        user_id = get_jwt_identity()
+        current_user = User.query.get(user_id) if user_id else None
+        if not current_user:
+            return jsonify({'error': 'Unauthorized'}), 401
+        # Accept roles: admin or superadmin (fallback to role string) or boolean is_admin
+        is_admin = False
+        try:
+            if hasattr(current_user, 'is_admin') and current_user.is_admin:
+                is_admin = True
+            elif hasattr(current_user, 'role') and str(current_user.role).lower() in ('admin', 'superadmin'):
+                is_admin = True
+        except Exception:
+            is_admin = False
+        if not is_admin:
+            return jsonify({'error': 'Forbidden'}), 403
+
+        # Fetch existing topics
+        existing = Topic.query.filter(Topic.id.in_(id_list)).all()
+        existing_ids = {t.id for t in existing}
+        missing = [i for i in id_list if i not in existing_ids]
+
+        # Delete in a transaction
+        deleted_count = 0
+        try:
+            for t in existing:
+                db.session.delete(t)
+            db.session.commit()
+            deleted_count = len(existing)
+        except Exception as e:
+            db.session.rollback()
+            current_app.logger.exception('Bulk delete failed')
+            return jsonify({'error': str(e)}), 500
+
+        return jsonify({
+            'deleted': deleted_count,
+            'not_found': missing
+        }), 200
+
+    except Exception as e:
+        current_app.logger.exception('Bulk delete endpoint error')
         return jsonify({'error': str(e)}), 500

@@ -272,8 +272,9 @@
               <span class="topic-title">{{ element.title }}</span>
               <div style="margin-left: auto; display: flex; align-items: center;">
                 <button class="icon-btn" @click.stop="previewTopic(element)" title="Preview this topic" aria-label="Preview topic">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
-                    <path d="M12 5C7 5 3.33 8.73 2.46 9.76a1.5 1.5 0 0 0 0 1.98C3.33 12.77 7 16.5 12 16.5s8.67-3.73 9.54-4.76a1.5 1.5 0 0 0 0-1.98C20.67 8.73 17 5 12 5Zm0 9c-3.31 0-5.83-2.67-6.67-3.5C6.17 9.67 8.69 7 12 7s5.83 2.67 6.67 3.5c-.84.83-3.36 3.5-6.67 3.5Zm0-5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" fill="currentColor"/>
+                  <!-- Using a solid eye icon with explicit path fill for reliability -->
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" aria-hidden="true" focusable="false">
+                    <path fill="#205493" d="M12 4.5C6.75 4.5 2.73 8.02 1.25 10.1a2.5 2.5 0 0 0 0 2.8C2.73 15.98 6.75 19.5 12 19.5s9.27-3.52 10.75-6.6a2.5 2.5 0 0 0 0-2.8C21.27 8.02 17.25 4.5 12 4.5Zm0 12c-4.52 0-8.11-3.18-9.37-5.1C3.89 9.48 7.48 6.3 12 6.3s8.11 3.18 9.37 5.1c-1.26 1.92-4.85 5.1-9.37 5.1Zm0-8.1a3 3 0 1 0 0 6 3 3 0 0 0 0-6Z"/>
                   </svg>
                 </button>
               </div>
@@ -1495,7 +1496,7 @@ export default {
 }
 
 .icon-btn {
-  background: var(--border-light-gray);
+  background: #ffffff; /* ensure white background for contrast */
   color: var(--primary-deep-teal);
   border: 1px solid var(--border-light-gray);
   width: 32px;
@@ -1519,7 +1520,7 @@ export default {
 }
 
 .icon-btn svg path {
-  fill: var(--primary-deep-teal);
+  fill: var(--primary-deep-teal) !important; /* force fill for stubborn browsers */
 }
 
 .icon-btn:hover svg path {
