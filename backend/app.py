@@ -667,17 +667,33 @@ p { color: #666; }
                 else:
                     mimetype = mimetypes.guess_type(path)[0]
                 
-                # Try to serve as static file first with correct MIME type
-                try:
-                    if mimetype:
-                        response = make_response(app.send_static_file(path))
-                        response.headers['Content-Type'] = mimetype
-                        print(f"✅ Serving static file with MIME type: {mimetype}")
-                        return response
-                    else:
-                        return app.send_static_file(path)
-                except:
-                    pass
+                # If it's a static asset extension, try explicit paths before SPA fallback
+                static_exts = ('.js', '.css', '.woff2', '.woff', '.png', '.jpg', '.jpeg', '.svg', '.ico')
+                if path.endswith(static_exts):
+                    root_dir = app.config['FRONTEND_FOLDER']
+                    assets_dir = os.path.join(root_dir, 'assets')
+
+                    # 1) Try dist root (for files like StructuredDocs_logo.svg)
+                    full_root_path = os.path.join(root_dir, path)
+                    if os.path.exists(full_root_path):
+                        resp = send_from_directory(root_dir, path)
+                        if mimetype:
+                            resp.headers['Content-Type'] = mimetype
+                        print(f"✅ Served static file from dist root: {path} ({mimetype})")
+                        return resp
+
+                    # 2) Try assets directory
+                    full_asset_path = os.path.join(assets_dir, path)
+                    if os.path.exists(full_asset_path):
+                        resp = send_from_directory(assets_dir, path)
+                        if mimetype:
+                            resp.headers['Content-Type'] = mimetype
+                        print(f"✅ Served static file from assets: {path} ({mimetype})")
+                        return resp
+
+                    # 3) If a static extension was requested but not found, return 404
+                    print(f"❌ Static file not found: {path}")
+                    return "Not Found", 404
                 
                 # If not a static file, serve index.html for SPA routing
                 index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
