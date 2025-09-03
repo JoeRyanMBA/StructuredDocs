@@ -271,9 +271,9 @@
               </div>
               <span class="topic-title">{{ element.title }}</span>
               <div style="margin-left: auto; display: flex; align-items: center;">
-                <button class="preview-icon-btn" @click.stop="previewTopic(element)" title="Preview this topic">
-                  <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 20 20" fill="none">
-                    <path d="M10 4C5 4 1.73 8.11 1.08 9.01a1.5 1.5 0 0 0 0 1.98C1.73 11.89 5 16 10 16s8.27-4.11 8.92-5.01a1.5 1.5 0 0 0 0-1.98C18.27 8.11 15 4 10 4Zm0 10c-3.87 0-6.82-3.13-7.7-4C3.18 9.13 6.13 6 10 6s6.82 3.13 7.7 4c-.88.87-3.83 4-7.7 4Zm0-7a3 3 0 1 0 0 6 3 3 0 0 0 0-6Zm0 5a2 2 0 1 1 0-4 2 2 0 0 1 0 4Z" fill="#205493"/>
+                <button class="icon-btn" @click.stop="previewTopic(element)" title="Preview this topic" aria-label="Preview topic">
+                  <svg xmlns="http://www.w3.org/2000/svg" width="18" height="18" viewBox="0 0 24 24" fill="none" aria-hidden="true">
+                    <path d="M12 5C7 5 3.33 8.73 2.46 9.76a1.5 1.5 0 0 0 0 1.98C3.33 12.77 7 16.5 12 16.5s8.67-3.73 9.54-4.76a1.5 1.5 0 0 0 0-1.98C20.67 8.73 17 5 12 5Zm0 9c-3.31 0-5.83-2.67-6.67-3.5C6.17 9.67 8.69 7 12 7s5.83 2.67 6.67 3.5c-.84.83-3.36 3.5-6.67 3.5Zm0-5a2 2 0 1 0 0 4 2 2 0 0 0 0-4Z" fill="currentColor"/>
                   </svg>
                 </button>
               </div>
@@ -283,9 +283,9 @@
       </div>
     </div>
     
-  <div class="organize-actions">
-      <button @click="saveChanges">Save</button>
-      <button @click="onTopicDrop">Refresh Topics</button>
+    <div class="organize-actions">
+      <button class="primary-btn" @click="saveChanges">Save</button>
+      <button class="secondary-btn" @click="onTopicDrop">Refresh Topics</button>
       <span v-if="confirmation" class="confirmation">{{ confirmation }}</span>
     </div>
     
@@ -1494,6 +1494,23 @@ export default {
   padding: 0.25rem;
 }
 
+.icon-btn {
+  background: var(--border-light-gray);
+  color: var(--primary-deep-teal);
+  border: 1px solid var(--border-light-gray);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.icon-btn:hover {
+  background: var(--extended-seafoam-green);
+  border-color: var(--extended-seafoam-green);
+}
+
 .child-topics {
   margin-left: 2rem;
   padding-left: 1rem;
@@ -1542,14 +1559,7 @@ export default {
   align-items: center;
 }
 
-.organize-actions button {
-  background-color: var(--success-mint-green);
-  color: white;
-  border: none;
-  padding: 0.75rem 1.5rem;
-  border-radius: 6px;
-  cursor: pointer;
-}
+/* Use standardized button classes from style.css for consistent colors */
 
 .confirmation {
   color: var(--success-mint-green);
