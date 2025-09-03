@@ -5,12 +5,12 @@ FROM node:22-alpine as frontend-builder
 
 WORKDIR /app
 
-# Copy package files first for better caching
-COPY frontend/package.json frontend/package-lock.json ./frontend/
+# Copy package files first for better caching (works with or without lockfile)
+COPY frontend/package*.json ./frontend/
 
-# Install dependencies
+# Install dependencies (use npm ci if lockfile exists, otherwise npm install)
 WORKDIR /app/frontend
-RUN npm ci
+RUN if [ -f package-lock.json ]; then npm ci; else npm install; fi
 
 # Copy the rest of the frontend source
 WORKDIR /app

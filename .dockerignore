@@ -1,0 +1,33 @@
+# Ignore local development artifacts and large caches
+node_modules
+frontend/node_modules
+frontend/dist
+**/.DS_Store
+**/.cache
+**/npm-cache
+**/.venv
+**/__pycache__
+**/*.pyc
+venv*/
+.venv/
+
+# Docker and build contexts
+.dockerignore
+.git
+.gitignore
+**/.git
+**/.git/*
+
+# Logs and temp
+**/*.log
+backend.log
+*.tmp
+*.swp
+
+# Python caches
+**/.pytest_cache
+**/.mypy_cache
+
+# Cypress outputs
+cypress/videos
+cypress/screenshots
