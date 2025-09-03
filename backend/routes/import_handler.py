@@ -664,8 +664,6 @@ def _upload_file(source):
 
 def _import_as_topics(file, source):
     """Import document as individual topics (original functionality)"""
-def _import_as_topics(file, source):
-    """Import document as individual topics (original functionality)"""
     imp_doc = ImportDocument(
         filename=secure_filename(file.filename),
         source_type=source
@@ -683,6 +681,7 @@ def _import_as_topics(file, source):
     if items_count == 0:
         db.session.rollback()
         # Try to log more details for debugging
+        file_content = b""  # ensure defined even if read fails below
         try:
             file.stream.seek(0)
             file_content = file.read()
@@ -713,7 +712,8 @@ def _import_as_topics(file, source):
 
 def _import_as_collection(file, source):
     """Import document as a collection with hierarchical structure"""
-    from models import Collection, Topic, collection_topic_tree, Project
+    # Use package-relative import to avoid importing backend.models twice
+    from ..models import Collection, Topic, collection_topic_tree, Project
     
     # Get collection details from form
     collection_name = request.form.get('collection_name', '').strip()
@@ -927,10 +927,10 @@ def commit_import(doc_id):
         
         # Create topics from import items
         for item in doc.items:
+            # Create topic from import item (Topic has no heading_order field)
             topic = Topic(
                 title=item.title,
-                content=item.content,
-                heading_order=item.heading_order
+                content=item.content
             )
             db.session.add(topic)
         

@@ -390,6 +390,8 @@ export default {
   display: flex;
   flex-direction: column;
   gap: 1rem;
+  /* Constrain overall width so options don't span the whole page */
+  max-width: 680px;
 }
 
 .radio-option {
@@ -402,7 +404,13 @@ export default {
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
-  max-width: 900px;
+  /* Fill the radio-group width but not the entire page */
+  width: 100%;
+  /* Keep all content visually inside the border */
+  overflow: hidden;
+  box-sizing: border-box;
+  /* Avoid inheriting generic label margins */
+  margin: 0;
 }
 
 .radio-option:hover {
@@ -424,9 +432,17 @@ export default {
   background: #f8fcff;
 }
 
+/* Keyboard focus state for accessibility */
+.radio-option:focus-within {
+  outline: none;
+  border-color: var(--primary-deep-teal);
+  box-shadow: 0 0 0 3px rgba(0, 122, 204, 0.15);
+}
+
 .radio-label {
   flex: 1;
   min-width: 0; /* Allow text to wrap properly */
+  display: block; /* Keep content contained within the bordered area */
 }
 
 .radio-label strong {
@@ -440,6 +456,7 @@ export default {
   font-size: 0.9rem;
   color: var(--text-secondary-cool-gray);
   line-height: 1.4;
+  word-break: break-word;
 }
 
 .collection-details {
