@@ -88,13 +88,14 @@
                 @end="onDragEnd"
                 class="collection-topics-list"
                 :animation="200"
+                :fallback-tolerance="5"
+                :force-fallback="true"
                 handle=".drag-handle"
               >
     <template #item="{ element: topic, index }">
                   <div 
                     class="topic-wrapper"
-                    @dragover="handleDragOver(topic, $event)"
-                    @dragleave="handleDragLeave(topic, $event)"
+                    :data-topic-id="topic.id"
                   >
                     <div 
                       class="collection-topic-item"
@@ -102,10 +103,10 @@
                         'selected': selectedTopics.has(topic.id),
                         'drop-target': dropTarget === topic.id
                       }"
-                      :data-topic-id="topic.id"
+                      
                       @click="handleTopicClick(topic, index, $event)"
                       @contextmenu="handleTopicRightClick(topic, index, $event)"
-                      @drop="handleDrop(topic, $event)"
+                      
                     >
                       <div class="collection-topic-item-row" style="display: flex; align-items: center; width: 100%;">
                         <div v-if="topic.children && topic.children.length > 0" class="expand-toggle" @click.stop="toggleExpansion(topic.id)">
@@ -282,7 +283,7 @@
       </div>
     </div>
     
-    <div class="organize-actions">
+  <div class="organize-actions">
       <button @click="saveChanges">Save</button>
       <button @click="onTopicDrop">Refresh Topics</button>
       <span v-if="confirmation" class="confirmation">{{ confirmation }}</span>
@@ -1432,6 +1433,8 @@ export default {
 
 .expand-controls {
   margin-bottom: 1rem;
+  display: inline-flex;
+  gap: 0.5rem;
 }
 
 .expand-btn {
@@ -1534,6 +1537,9 @@ export default {
 
 .organize-actions {
   margin-top: 2rem;
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .organize-actions button {
