@@ -1,11 +1,17 @@
 <template>
   <header class="header-bar">
     <router-link to="/projects" class="logo-link">
-      <img
-        class="logo"
-        src="/StructuredDocs_logo.svg"
-        alt="Structured Docs logo"
-      />
+      <span class="logo-wrapper">
+        <span v-show="!logoLoaded" class="logo-skeleton" aria-hidden="true"></span>
+        <img
+          class="logo"
+          :src="logoSrc"
+          alt="StructuredDocs logo"
+          decoding="async"
+          @load="onLogoLoad"
+          @error="onLogoError"
+        />
+      </span>
     </router-link>
     <router-link to="/projects" class="title-link">
       <h1 class="title">Documentation Project Hub</h1>
@@ -51,10 +57,15 @@ export default {
   name: 'HeaderBar',
   data() {
     return {
-      showUserDropdown: false,
+  showUserDropdown: false,
+  logoLoaded: false,
     }
   },
   computed: {
+    // Use base-aware path for public asset so it resolves under subpaths
+    logoSrc() {
+      return `${import.meta.env.BASE_URL}StructuredDocs_logo.svg`
+    },
     currentUser() {
       return store.user;
     },
@@ -86,6 +97,16 @@ export default {
     window.removeEventListener('userUpdated', this.handleUserUpdated)
   },
   methods: {
+    onLogoLoad() {
+      this.logoLoaded = true
+    },
+    onLogoError(e) {
+      // Fallback to symbol logo if full logo fails
+      const fallback = `${import.meta.env.BASE_URL}StructuredDocsLogoSymbol.svg`
+      if (e && e.target && e.target.src !== fallback) {
+        e.target.src = fallback
+      }
+    },
     handleUserUpdated() {
       // This method can now be simplified or removed if not needed for other purposes
       this.$forceUpdate();
@@ -131,6 +152,27 @@ export default {
 
 .logo {
   height: 55px;
+}
+
+.logo-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 140px; /* reserve space similar to logo natural width */
+  height: 55px; /* match logo height */
+}
+
+.logo-skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f2f4f7 25%, #e9eef3 37%, #f2f4f7 63%);
+  background-size: 400% 100%;
+  animation: logo-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes logo-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
 }
 
 .logo-link, .title-link {

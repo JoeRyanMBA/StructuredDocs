@@ -3,7 +3,17 @@
     <div class="login-card">
       <div class="login-header">
         <div class="census-logo">
-          <img class="logo-image" src="/StructuredDocsLogoSymbol.svg" alt="Structured Docs logo" />
+          <span class="logo-wrapper">
+            <span v-show="!symbolLogoLoaded" class="logo-skeleton" aria-hidden="true"></span>
+            <img
+              class="logo-image"
+              :src="symbolLogoSrc"
+              alt="StructuredDocs logo"
+              decoding="async"
+              @load="onSymbolLoad"
+              @error="onSymbolError"
+            />
+          </span>
           <h1>Structured Docs</h1>
           <p class="system-title">Elevated content creation and delivery</p>
         </div>
@@ -22,6 +32,11 @@
               type="email"
               required
               placeholder="your.email@example.com"
+              autocomplete="username"
+              autocapitalize="none"
+              autocorrect="off"
+              spellcheck="false"
+              inputmode="email"
               :disabled="loading"
             />
           </div>
@@ -44,7 +59,8 @@
                 class="password-toggle"
                 @click="showPassword = !showPassword"
                 :disabled="loading"
-                aria-label="Toggle password visibility"
+                :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                :aria-pressed="showPassword.toString()"
                 tabindex="0"
               >
                 <span v-if="showPassword" class="toggle-icon">🙈</span>
@@ -81,11 +97,11 @@
     </div>
 
     <!-- Request Access Modal -->
-    <div v-if="showRequestAccess" class="login-modal-overlay" @click="showRequestAccess = false">
+  <div v-if="showRequestAccess" class="login-modal-overlay" @click.self="showRequestAccess = false">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <div class="modal-logo">
-            <img class="modal-logo-image" src="/StructuredDocsLogoSymbol.svg" alt="Structured Docs logo" />
+            <img class="modal-logo-image" :src="symbolLogoSrc" alt="StructuredDocs logo" decoding="async" @error="onSymbolError" />
             <h2>Request Author Access</h2>
           </div>
           <button @click="showRequestAccess = false" class="close-btn">×</button>
@@ -148,11 +164,11 @@
     </div>
 
     <!-- Forgot Password Modal -->
-    <div v-if="showForgotPassword" class="login-modal-overlay" @click="showForgotPassword = false">
+  <div v-if="showForgotPassword" class="login-modal-overlay" @click.self="showForgotPassword = false">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <div class="modal-logo">
-            <img class="modal-logo-image" src="/StructuredDocsLogoSymbol.svg" alt="Structured Docs logo" />
+            <img class="modal-logo-image" :src="symbolLogoSrc" alt="StructuredDocs logo" decoding="async" @error="onSymbolError" />
             <h2>Reset Password</h2>
           </div>
           <button @click="showForgotPassword = false" class="close-btn">×</button>
@@ -211,17 +227,35 @@ export default {
       },
       passwordReset: {
         email: ''
-      }
+      },
+      // Track when the top-of-card logo has loaded to hide shimmer
+      symbolLogoLoaded: false
+    }
+  },
+  computed: {
+    symbolLogoSrc() {
+      return `${import.meta.env.BASE_URL}StructuredDocsLogoSymbol.svg`
     }
   },
   methods: {
+    onSymbolLoad() {
+      this.symbolLogoLoaded = true
+    },
+    onSymbolError(e) {
+      const fallback = `${import.meta.env.BASE_URL}StructuredDocs_logo.svg`
+      if (e && e.target && e.target.src !== fallback) {
+        e.target.src = fallback
+      }
+    },
     async handleLogin() {
       this.loading = true;
       this.error = '';
       try {
+        const normalizedEmail = (this.loginForm.email || '').trim().toLowerCase();
+        const password = this.loginForm.password;
         const response = await axios.post('/api/users/login', {
-          email: this.loginForm.email,
-          password: this.loginForm.password,
+          email: normalizedEmail,
+          password: password,
         });
 
         const { access_token, user } = response.data;
@@ -355,6 +389,35 @@ export default {
   max-width: 160px; /* keep within modal/card width */
   max-height: 80px; /* visually balanced with header padding */
   margin-bottom: 0.5rem;
+}
+
+/* Shimmer wrapper for login logo */
+.census-logo .logo-wrapper {
+  position: relative;
+  display: inline-block;
+  width: 160px; /* reserve space similar to logo max size */
+  height: 80px; /* match visual balance */
+  margin-bottom: 0.5rem; /* keep spacing under the logo */
+}
+
+.census-logo .logo-skeleton {
+  position: absolute;
+  inset: 0;
+  border-radius: 4px;
+  background: linear-gradient(90deg, #f2f4f7 25%, #e9eef3 37%, #f2f4f7 63%);
+  background-size: 400% 100%;
+  animation: logo-shimmer 1.2s ease-in-out infinite;
+}
+
+@keyframes logo-shimmer {
+  0% { background-position: 100% 0; }
+  100% { background-position: 0 0; }
+}
+
+/* Ensure image doesn't add extra internal gap; spacing handled by wrapper */
+.census-logo .logo-image {
+  margin-bottom: 0;
+  display: block;
 }
 
 .census-logo h1 {
@@ -580,6 +643,14 @@ export default {
   -webkit-appearance: none;
   -moz-appearance: none;
   appearance: none;
+}
+
+/* Hide Edge/IE native reveal (prevents double toggles) */
+.password-input::-ms-reveal {
+  display: none;
+}
+.password-input::-ms-clear {
+  display: none;
 }
 
 .password-toggle {

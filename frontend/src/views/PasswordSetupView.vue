@@ -44,17 +44,30 @@
           <form @submit.prevent="submitPassword" class="password-form">
             <div class="form-group">
               <label for="password">New Password</label>
-              <input
-                type="password"
-                id="password"
-                v-model="passwordForm.password"
-                required
-                minlength="8"
-                :disabled="submitting"
-                placeholder="Enter your new password"
-                autocomplete="new-password"
-                @input="validatePassword"
-              />
+              <div class="password-input-container">
+                <input
+                  :type="showPassword ? 'text' : 'password'"
+                  id="password"
+                  v-model="passwordForm.password"
+                  required
+                  minlength="8"
+                  :disabled="submitting"
+                  placeholder="Enter your new password"
+                  autocomplete="new-password"
+                  class="password-input"
+                  @input="validatePassword"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showPassword = !showPassword"
+                  :aria-label="showPassword ? 'Hide password' : 'Show password'"
+                  :aria-pressed="showPassword.toString()"
+                >
+                  <span v-if="showPassword" class="toggle-icon">🙈</span>
+                  <span v-else class="toggle-icon">👁️</span>
+                </button>
+              </div>
               <div class="password-strength">
                 <div class="strength-meter" :class="passwordStrength.class">
                   <div class="strength-fill" :style="{ width: passwordStrength.width }"></div>
@@ -65,16 +78,29 @@
 
             <div class="form-group">
               <label for="confirmPassword">Confirm Password</label>
-              <input
-                type="password"
-                id="confirmPassword"
-                v-model="passwordForm.confirmPassword"
-                required
-                :disabled="submitting"
-                placeholder="Confirm your new password"
-                autocomplete="new-password"
-                @input="validatePasswordMatch"
-              />
+              <div class="password-input-container">
+                <input
+                  :type="showConfirmPassword ? 'text' : 'password'"
+                  id="confirmPassword"
+                  v-model="passwordForm.confirmPassword"
+                  required
+                  :disabled="submitting"
+                  placeholder="Confirm your new password"
+                  autocomplete="new-password"
+                  class="password-input"
+                  @input="validatePasswordMatch"
+                />
+                <button
+                  type="button"
+                  class="password-toggle"
+                  @click="showConfirmPassword = !showConfirmPassword"
+                  :aria-label="showConfirmPassword ? 'Hide password' : 'Show password'"
+                  :aria-pressed="showConfirmPassword.toString()"
+                >
+                  <span v-if="showConfirmPassword" class="toggle-icon">🙈</span>
+                  <span v-else class="toggle-icon">👁️</span>
+                </button>
+              </div>
               <small v-if="confirmPasswordError" class="error-text">{{ confirmPasswordError }}</small>
             </div>
 
@@ -135,6 +161,8 @@ export default {
       submitting: false,
       success: false,
       error: '',
+  showPassword: false,
+  showConfirmPassword: false,
       passwordForm: {
         password: '',
         confirmPassword: ''
@@ -538,6 +566,77 @@ export default {
 .error-actions,
 .success-actions {
   margin-top: 30px;
+}
+
+/* Password input with toggle (match LoginView) */
+.password-input-container {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.password-input-container .password-input {
+  flex: 1;
+  padding-right: 50px;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  appearance: none;
+}
+
+.password-toggle {
+  position: absolute;
+  right: 12px;
+  top: 50%;
+  transform: translateY(-50%);
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 8px;
+  border-radius: 4px;
+  color: var(--text-secondary-cool-gray);
+  font-size: 18px;
+  transition: all 0.2s ease;
+  z-index: 10;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 32px;
+  min-height: 32px;
+}
+
+.toggle-icon {
+  display: inline-block;
+  line-height: 1;
+  font-size: 18px;
+}
+
+.password-toggle:hover {
+  color: var(--primary-medium-teal);
+  background-color: rgba(0, 123, 191, 0.1);
+}
+
+.password-toggle:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.password-toggle:focus {
+  outline: 2px solid var(--primary-light-teal-t);
+  outline-offset: 2px;
+  background-color: rgba(0, 123, 191, 0.1);
+}
+
+/* Ensure our toggle appears above any browser-native elements */
+.password-input-container {
+  isolation: isolate;
+}
+
+/* Hide Edge/IE native reveal (prevents double toggles) */
+.password-input::-ms-reveal {
+  display: none;
+}
+.password-input::-ms-clear {
+  display: none;
 }
 
 @media (max-width: 768px) {

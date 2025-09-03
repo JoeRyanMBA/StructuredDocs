@@ -8,9 +8,8 @@
       <div class="controls">
         <input v-model="filters.q" placeholder="Search message..." @input="load" />
         <select v-model="filters.type" @change="load">
-          <option value="">All types</option>
+          <option value="">All feedback types</option>
           <option value="suggestion">Suggestion</option>
-          <option value="bug">Bug</option>
           <option value="other">Other</option>
         </select>
         <select v-model="filters.status" @change="load">
@@ -33,6 +32,7 @@
             <th>Component</th>
             <th>Contact</th>
             <th>Created</th>
+            <th>Actions</th>
           </tr>
         </thead>
         <tbody>
@@ -45,8 +45,24 @@
             <td>{{ r.user_contact }}</td>
             <td>{{ formatDate(r.created_at) }}</td>
             <td class="actions">
-              <button @click="openEdit(r)">Edit</button>
-              <button @click="archive(r)">Archive</button>
+              <div class="action-buttons">
+                <button
+                  @click="openEdit(r)"
+                  class="btn-icon btn-secondary"
+                  title="Edit feedback"
+                  aria-label="Edit feedback"
+                >
+                  <i class="fas fa-edit"></i>
+                </button>
+                <button
+                  @click="archive(r)"
+                  class="btn-icon btn-archive"
+                  title="Archive feedback"
+                  aria-label="Archive feedback"
+                >
+                  <i class="fas fa-box-archive"></i>
+                </button>
+              </div>
             </td>
           </tr>
         </tbody>
@@ -55,17 +71,28 @@
     </div>
 
     <!-- Edit modal -->
-    <div v-if="editing" class="modal">
-      <div class="modal-body">
+    <div v-if="editing" class="modal-overlay" @click.self="closeEdit">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h3>Edit Feedback #{{ editItem.id }}</h3>
+          <button class="close-btn" @click="closeEdit" aria-label="Close">&times;</button>
+        </div>
+        <div class="modal-body">
         <h3>Edit Feedback #{{ editItem.id }}</h3>
-        <label>Type <select v-model="editItem.report_type"><option>suggestion</option><option>bug</option><option>other</option></select></label>
+        <label>Type
+          <select v-model="editItem.report_type">
+            <option>suggestion</option>
+            <option>other</option>
+          </select>
+        </label>
         <label>Component <input v-model="editItem.component" /></label>
         <label>Contact <input v-model="editItem.user_contact" /></label>
         <label>Status <select v-model="editItem.status"><option>new</option><option>in_progress</option><option>resolved</option><option>archived</option></select></label>
         <label>Message <textarea v-model="editItem.message"></textarea></label>
-        <div class="modal-actions">
-          <button @click="saveEdit">Save</button>
-          <button @click="closeEdit">Cancel</button>
+          <div class="modal-actions">
+            <button class="btn btn-primary" @click="saveEdit">Save</button>
+            <button class="btn btn-secondary" @click="closeEdit">Cancel</button>
+          </div>
         </div>
       </div>
     </div>
@@ -92,9 +119,11 @@ export default {
         if (this.filters.q) params.append('q', this.filters.q);
         if (this.filters.type) params.append('type', this.filters.type);
         if (this.filters.status) params.append('status', this.filters.status);
-        const res = await fetch('/api/feedback?' + params.toString());
+  const res = await fetch('/api/feedback?' + params.toString());
         if (!res.ok) throw new Error('Failed to load feedback');
-        this.reports = await res.json();
+  const all = await res.json();
+  // Exclude bug reports; those live in the dedicated Bugs page
+  this.reports = Array.isArray(all) ? all.filter(r => r?.report_type !== 'bug') : [];
       } catch (e) {
         this.error = e.message || 'Error loading feedback';
       } finally {
@@ -174,10 +203,8 @@ export default {
   min-width: 200px;
 }
 .controls select { padding:0.35rem; }
-.actions button { margin-right:0.4rem; }
-.modal { position:fixed; inset:0; background:rgba(0,0,0,0.4); display:flex; align-items:center; justify-content:center; }
-.modal-body { background:white; padding:1rem; width:640px; max-width:95%; border-radius:6px; }
-.modal-body label { display:block; margin:0.5rem 0; }
-.modal-body textarea { width:100%; min-height:100px; }
-.modal-actions { display:flex; gap:0.5rem; justify-content:flex-end; margin-top:0.5rem; }
+  .actions button { margin-right:0.4rem; }
+  /* Modal content element spacing */
+  .modal-body label { display:block; margin:0.5rem 0; }
+  .modal-body textarea { width:100%; min-height:100px; }
 </style>

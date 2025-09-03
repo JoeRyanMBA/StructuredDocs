@@ -2,7 +2,7 @@
   <div class="import-view">
     <div class="page-header">
       <h1>Import Content</h1>
-      <p class="subtitle">Use this tool to import content from outside this app. You can import Markdown (.md) documents (preferred) or Word (.docx) documents.</p>
+  <p class="subtitle" style="margin-bottom: 1rem;">Use this tool to import content from outside this app. You can import Markdown (.md) documents (preferred) or Word (.docx) documents.</p>
     </div>
 
     <!-- Import Type Selection -->
@@ -402,6 +402,7 @@ export default {
   background: white;
   cursor: pointer;
   transition: all 0.2s ease;
+  max-width: 900px;
 }
 
 .radio-option:hover {

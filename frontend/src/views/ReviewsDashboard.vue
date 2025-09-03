@@ -66,21 +66,18 @@
             <div class="action-content" title="Submit topics to stakeholders">
               <h3>Send for Review</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/reviews/incorporate')">
             <div class="action-icon">🔄</div>
             <div class="action-content" title="Process stakeholder comments">
               <h3>Incorporate Feedback</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/reviews/history')">
             <div class="action-icon">📋</div>
             <div class="action-content" title="View completed reviews">
               <h3>Review History</h3>
             </div>
-            <div class="action-arrow">→</div>
           </button>
       </div>
     </div>

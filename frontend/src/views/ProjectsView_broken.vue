@@ -173,7 +173,7 @@
     </div>
 
     <!-- Create Project Modal -->
-    <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
+  <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
       <div class="modal" @click.stop>
         <div class="modal-header">
           <h2>Create New Project</h2>
@@ -236,7 +236,7 @@
     </div>
 
     <!-- Stakeholders Management Modal -->
-    <div v-if="showStakeholdersModal" class="modal-overlay" @click="showStakeholdersModal = false">
+  <div v-if="showStakeholdersModal" class="modal-overlay" @click="showStakeholdersModal = false">
       <div class="modal stakeholders-modal" @click.stop>
         <div class="modal-header">
           <h2>Manage Stakeholders - {{ selectedProject?.name }}</h2>
