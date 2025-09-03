@@ -6,7 +6,7 @@ import mimetypes
 from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
 from .extensions import db, migrate, jwt
-from urllib.parse import urlparse
+from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode
 from datetime import datetime
 
 # Add the backend directory to Python path
@@ -171,6 +171,29 @@ p { color: #666; }
     # Environment-specific database configuration
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
+        # Normalize postgres scheme and enforce SSL if not provided
+        if db_url.startswith('postgres://'):
+            db_url = 'postgresql://' + db_url[len('postgres://'):]
+
+        # Append sslmode=require if missing for Postgres/Supabase compatibility
+        try:
+            parsed = urlparse(db_url)
+            if parsed.scheme in ("postgresql", "postgres"):
+                q = dict(parse_qsl(parsed.query, keep_blank_values=True))
+                if 'sslmode' not in q:
+                    q['sslmode'] = 'require'
+                    new_query = urlencode(q)
+                    db_url = urlunparse((
+                        parsed.scheme,
+                        parsed.netloc,
+                        parsed.path,
+                        parsed.params,
+                        new_query,
+                        parsed.fragment,
+                    ))
+        except Exception as _e:
+            print(f"⚠️ Could not normalize DATABASE_URL: {_e}")
+
         if db_url.startswith('sqlite'):
             path_part = db_url.split('sqlite:///')[-1]
             if not os.path.isabs(path_part):

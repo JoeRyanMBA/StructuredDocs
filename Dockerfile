@@ -42,6 +42,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 COPY backend ./backend
 COPY start.sh ./start.sh
 COPY .enable_blueprints ./
+COPY run_migrations_production.py ./run_migrations_production.py
 RUN chmod +x ./start.sh
 
 # Copy built frontend from builder stage
