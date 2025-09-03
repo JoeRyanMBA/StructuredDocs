@@ -541,6 +541,7 @@ def _parse_and_store(file, imp_doc, source):
                 lines.append(line)
             
             paras = [('md', line) for line in lines]
+            full_text = '\n'.join(lines)
             # Log a snippet of the parsed Markdown for debugging
             md_snippet = '\n'.join(lines[:10])
             print(f"MARKDOWN SNIPPET (first 10 lines):\n{md_snippet}")
@@ -575,7 +576,8 @@ def _parse_and_store(file, imp_doc, source):
                     print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
             lines.append(line)
         
-        paras = [('md', line) for line in lines]
+    paras = [('md', line) for line in lines]
+    full_text = '\n'.join(lines)
 
     items, buffer, order, current_title = [], [], 0, None
     print(f"PARSING: source={source}, paragraphs={len(paras)}")
@@ -628,6 +630,24 @@ def _parse_and_store(file, imp_doc, source):
 
     commit_buffer()
     print(f"FINAL: {len(items)} items created")
+
+    # Fallback: if no items were created, use entire content as a single item
+    if not items:
+        try:
+            fallback_title = os.path.splitext(imp_doc.filename)[0] if getattr(imp_doc, 'filename', None) else 'Imported Document'
+            fallback_content = full_text if 'full_text' in locals() else ''
+            if source == 'word':
+                fallback_content = _remove_all_blank_lines(fallback_content)
+            else:
+                fallback_content = _clean_topic_content(fallback_content)
+
+            if fallback_content and fallback_content.strip():
+                print(f"FALLBACK: Creating single item from full document. title='{fallback_title}', content_len={len(fallback_content)}")
+                items.append((0, fallback_title, fallback_content))
+            else:
+                print("FALLBACK: Full document content is empty after cleaning; no item created")
+        except Exception as e:
+            print(f"FALLBACK ERROR: {e}")
 
     for order, title, content in items:
         db.session.add(ImportItem(
