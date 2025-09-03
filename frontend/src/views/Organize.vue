@@ -1511,6 +1511,21 @@ export default {
   border-color: var(--extended-seafoam-green);
 }
 
+/* Ensure SVG icon is visible across browsers by explicitly setting fill */
+.icon-btn svg {
+  width: 18px;
+  height: 18px;
+  display: block;
+}
+
+.icon-btn svg path {
+  fill: var(--primary-deep-teal);
+}
+
+.icon-btn:hover svg path {
+  fill: var(--primary-medium-teal);
+}
+
 .child-topics {
   margin-left: 2rem;
   padding-left: 1rem;
