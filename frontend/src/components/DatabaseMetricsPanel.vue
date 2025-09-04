@@ -1,5 +1,5 @@
 <template>
-  <div class="dashboard-section full-width">
+  <div class="dashboard-section">
     <h2>Database Metrics</h2>
     <div class="db-metrics-grid">
       <div class="db-metric-card">
@@ -21,7 +21,6 @@
     </div>
   </div>
 </template>
-
 <script>
 export default {
   name: 'DatabaseMetricsPanel',
