@@ -123,7 +123,7 @@
               @click="viewCollection(collection)"
             >
               <div class="card-header">
-                <h3>{{ collection.name }}</h3>
+                <h4>{{ collection.name }}</h4>
                 <span class="card-badge">{{ collection.topics_count || 0 }} topics</span>
               </div>
               <p class="card-description">{{ collection.description || 'No description available' }}</p>
@@ -134,8 +134,8 @@
               <div class="card-footer">
                 <span class="card-date">Updated {{ formatRelativeTime(collection.updated_at || collection.created_at) }}</span>
                 <div class="card-actions">
-                  <button @click.stop="editCollection(collection)" class="card-action-btn">Edit</button>
-                  <button @click.stop="viewCollection(collection)" class="card-action-btn primary">View</button>
+                  <button @click.stop="editCollection(collection)" class="btn btn-secondary btn-sm">Edit</button>
+                  <button @click.stop="viewCollection(collection)" class="btn btn-primary btn-sm">View</button>
                 </div>
               </div>
             </div>
@@ -623,15 +623,18 @@ export default {
 
 .collection-item {
   background: var(--bg-white);
-  border-radius: 8px;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
   padding: 1.5rem;
   margin-bottom: 1rem;
   cursor: pointer;
-  transition: transform 0.2s;
+  box-shadow: var(--box-shadow-sm);
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
 .collection-item:hover {
   transform: translateY(-2px);
+  box-shadow: var(--box-shadow-md);
 }
 
 .collection-header {
