@@ -535,8 +535,8 @@ a:hover {
   background: var(--error-coral-red);
   color: white;
   border: 1px solid var(--error-coral-red);
-  padding: 0.25rem 0.5rem;
-  border-radius: 50%;
+  padding: 0; /* square button, dimensions controlled by width/height */
+  border-radius: 0; /* make it a square, not a circle */
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;
