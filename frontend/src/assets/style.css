@@ -193,12 +193,10 @@ a:hover {
 .btn-secondary, .secondary-btn {
   background-color: var(--border-light-gray);
   color: var(--primary-deep-teal);
-  border: 1px solid var(--border-light-gray);
 }
 
 .btn-secondary:hover, .secondary-btn:hover {
   background-color: var(--extended-seafoam-green);
-  border-color: var(--extended-seafoam-green);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
@@ -216,7 +214,7 @@ a:hover {
 
 /* Success buttons - used in some views */
 .btn-success {
-  background-color: var(--success-dark-green);
+  background-color: var(--bs-green:);
   color: var(--bg-white);
 }
 .btn-success:hover:not(:disabled) {
@@ -291,7 +289,6 @@ a:hover {
 .btn-secondary:hover, .secondary-btn:hover,
 .btn-secondary.btn-sm:hover, .secondary-btn.btn-sm:hover {
   background-color: var(--extended-seafoam-green);
-  border-color: var(--extended-seafoam-green);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
@@ -536,7 +533,7 @@ a:hover {
   color: white;
   border: 1px solid var(--error-coral-red);
   padding: 0; /* square button, dimensions controlled by width/height */
-  border-radius: 0; /* make it a square, not a circle */
+  border-radius: var(--border-radius-sm); /* match standard small button radius */
   font-size: 1rem;
   font-weight: bold;
   cursor: pointer;

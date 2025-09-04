@@ -1946,7 +1946,6 @@ export default {
   background-color: var(--error-coral-red);
   color: #fff;
   border: 1px solid rgba(0,0,0,.125);
-  border-radius: 6px; /* match .btn-sm radius */
   min-width: 28px;
   height: 28px;
   padding: 0 0.5rem;
