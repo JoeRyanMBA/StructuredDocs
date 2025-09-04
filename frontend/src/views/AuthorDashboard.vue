@@ -877,14 +877,7 @@ export default {
   background-color: #005E7B;
 }
 
-.btn-secondary {
-  background-color: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover {
-  background-color: #545b62;
-}
+/* Use global .btn-secondary styles from assets/style.css */
 
 .btn-success {
   background-color: #009964;

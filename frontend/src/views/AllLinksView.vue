@@ -253,16 +253,7 @@
                 required 
               />
             </div>
-            <div class="form-group">
-              <label>Reference Code</label>
-              <input 
-                v-model="linkForm.reference_code" 
-                type="text"
-                class="form-input"
-                placeholder="e.g., AB-123, DOC-456"
-              />
-              <small class="form-help">Optional unique code to reference this link</small>
-            </div>
+            <!-- Reference code is auto-assigned by the system; no manual entry -->
             <div class="form-group">
               <label>Description</label>
               <textarea 
@@ -338,7 +329,6 @@ export default {
       linkForm: {
         title: '',
         url: '',
-        reference_code: '',
         description: '',
         link_type: 'other',
         is_active: true,
@@ -446,12 +436,11 @@ export default {
       this.showDetailsModal = false
     },
 
-    createNewLink() {
+  createNewLink() {
       this.editingLink = null
       this.linkForm = {
         title: '',
         url: '',
-        reference_code: '',
         description: '',
         link_type: 'other',
         is_active: true,
@@ -460,12 +449,11 @@ export default {
       this.showEditModal = true
     },
 
-    editLink(link) {
+  editLink(link) {
       this.editingLink = link
       this.linkForm = {
         title: link.title || '',
         url: link.url || '',
-        reference_code: link.reference_code || '',
         description: link.description || '',
         link_type: link.link_type || 'other',
         is_active: link.is_active !== false,
@@ -484,12 +472,18 @@ export default {
         const method = this.editingLink ? 'PUT' : 'POST'
         const url = this.editingLink ? `/api/links/${this.editingLink.id}` : '/api/links'
         
+        // Build payload; exclude reference_code on create so server can auto-generate
+        const payload = { ...this.linkForm }
+        if (!this.editingLink) {
+          delete payload.reference_code
+        }
+
         const response = await fetch(url, {
           method,
           headers: {
             'Content-Type': 'application/json'
           },
-          body: JSON.stringify(this.linkForm)
+          body: JSON.stringify(payload)
         })
 
         if (response.ok) {
@@ -626,18 +620,7 @@ export default {
   gap: 1rem;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
+/* Buttons: rely on global button system in assets/style.css */
 
 /* Use global button system from assets/style.css for consistency */
 

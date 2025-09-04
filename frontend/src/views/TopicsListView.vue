@@ -942,8 +942,7 @@ td:nth-child(4) {
 
 .btn-primary { background-color: var(--primary-deep-teal); color: var(--bg-white); }
 .btn-primary:hover:not(:disabled) { background-color: var(--primary-dark-blue); }
-.btn-secondary { background-color: var(--secondary-slate-gray); color: var(--bg-white); }
-.btn-secondary:hover { background-color: var(--secondary-dark-gray); }
+/* Use global .btn-secondary styles from assets/style.css for consistent contrast */
 .btn-success { background-color: var(--success-dark-green); color: var(--bg-white); }
 .btn-success:hover { background-color: #14532d; }
 .btn-warning { background-color: var(--warning-dark-yellow); color: var(--bg-white); }
