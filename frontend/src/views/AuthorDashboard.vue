@@ -89,13 +89,7 @@
               <p>Find reusable links for content</p>
             </div>
           </button>
-          <button class="quick-action-card" @click="navigateTo('/document-builder')">
-            <div class="action-icon">🔨</div>
-            <div class="action-content">
-              <h3>Document Builder</h3>
-              <p>Create complete documents</p>
-            </div>
-          </button>
+          
       </div>
     </div>
 
@@ -303,17 +297,15 @@ export default {
   },
 
   async created() {
-    await this.loadDashboardData()
+  await this.loadDashboardData()
   },
 
   methods: {
     async loadDashboardData() {
       this.loading = true
       try {
-        await Promise.all([
-          this.loadMyTopics(),
-          this.loadStats()
-        ])
+  await this.loadMyTopics()
+  await this.loadStats()
       } catch (error) {
         console.error('Failed to load author dashboard:', error)
       } finally {

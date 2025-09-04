@@ -249,13 +249,16 @@ export default {
     async loadDashboardData() {
       this.loading = true
       try {
+        // Load projects first so we can compute "active" accurately
+        await this.loadProjects()
         await Promise.all([
           this.loadStats(),
-          this.loadProjects(),
           this.loadPendingActions(),
           this.loadRecentActivity(),
           this.loadCalendarEvents()
         ])
+        // After everything loads, recompute project actives
+        this.updateProjectActiveMetric()
       } catch (error) {
         console.error('Failed to load dashboard data:', error)
       } finally {
@@ -273,42 +276,83 @@ export default {
           const data = await response.json();
           console.log('📊 Received stats data:', data);
           
-          // Transform backend data to match frontend expectations
-          this.stats = {
-            projects: { 
-              total: data.projects?.total || 0, 
-              active: data.projects?.active || 0 
+          // Map backend format to frontend expectations using known sections
+          const serverStats = {
+            projects: {
+              total: data?.keyMetrics?.totalProjects ?? data?.databaseMetrics?.projects ?? 0,
+              // compute active from loaded projects below
+              active: 0
             },
-            collections: { 
-              total: data.collections?.total || 0, 
-              new_today: data.collections?.new_today || 0 
+            collections: {
+              total: data?.databaseMetrics?.collections ?? 0,
+              new_today: 0
             },
-            topics: { 
-              total: data.topics?.total || 0, 
-              drafts: data.topics?.drafts || 0 
+            topics: {
+              total: data?.databaseMetrics?.topics ?? data?.contentStats?.totalTopics ?? 0,
+              drafts: data?.contentStats?.draftTopics ?? 0
             },
-            reviews: { 
-              total: data.reviews?.total || 0, 
-              pending: data.reviews?.pending || 0 
+            reviews: {
+              total: data?.databaseMetrics?.reviews ?? 0,
+              pending: data?.reviewAndTaskStats?.pendingReviews ?? 0
             }
-          };
+          }
+          this.stats = serverStats
+          // Fill in active projects if projects already loaded
+          this.updateProjectActiveMetric()
         } else {
           console.warn('📊 Stats API returned error:', response.status, response.statusText);
-          this.stats = {
-            projects: { total: 0, active: 0 },
-            collections: { total: 0, new_today: 0 },
-            topics: { total: 0, drafts: 0 },
-            reviews: { total: 0, pending: 0 }
-          };
+          this.stats = this.computeLocalStats();
         }
       } catch (error) {
         console.error('Failed to load stats:', error)
+        this.stats = this.computeLocalStats();
+      }
+    },
+
+    updateProjectActiveMetric() {
+      try {
+        const projects = Array.isArray(this.projects) ? this.projects : []
+        const active = projects.filter(p => (p.status || '').toLowerCase() === 'active' || !p.status).length
         this.stats = {
+          ...this.stats,
+          projects: {
+            ...this.stats.projects,
+            active
+          }
+        }
+      } catch (e) {
+        // no-op
+      }
+    },
+    
+    computeLocalStats() {
+      try {
+        // Derive from already-loaded lists
+        const projects = Array.isArray(this.projects) ? this.projects : []
+        // Collections and topics may not be loaded on StartPage; default zeros
+        const collectionsTotal = 0
+        const collectionsNewToday = 0
+        const topicsTotal = 0
+        const topicsDrafts = 0
+        const reviewsTotal = 0
+        const reviewsPending = 0
+
+        const projectActive = projects.filter(p => (p.status || '').toLowerCase() === 'active' || !p.status).length
+
+        return {
+          projects: { total: projects.length, active: projectActive },
+          collections: { total: collectionsTotal, new_today: collectionsNewToday },
+          topics: { total: topicsTotal, drafts: topicsDrafts },
+          reviews: { total: reviewsTotal, pending: reviewsPending }
+        }
+      } catch (e) {
+        console.error('Failed to compute local stats:', e)
+        return {
           projects: { total: 0, active: 0 },
           collections: { total: 0, new_today: 0 },
           topics: { total: 0, drafts: 0 },
           reviews: { total: 0, pending: 0 }
-        };
+        }
       }
     },
     
@@ -320,6 +364,8 @@ export default {
         if (response.ok) {
           this.projects = await response.json()
           console.log('📁 Loaded projects:', this.projects.length);
+          // Update active metric now that projects are available
+          this.updateProjectActiveMetric()
         } else {
           console.warn('📁 Projects API returned error:', response.status, response.statusText);
           throw new Error(`HTTP error! status: ${response.status}`)

@@ -722,6 +722,7 @@ export default {
 .card-project { color: var(--text-secondary-cool-gray); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .card-footer { display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary-cool-gray); font-size: 0.85rem; }
 .card-actions { display: flex; gap: 0.5rem; }
+.card-actions .btn.btn-sm { flex: 1 1 0; min-width: 96px; text-align: center; }
 .card-action-btn { border: 1px solid var(--border-light-gray); padding: 0.35rem 0.6rem; border-radius: 6px; background: #fff; cursor: pointer; }
 .card-action-btn.primary { background: var(--extended-steel-blue); color: #fff; border-color: var(--extended-steel-blue); }
 
