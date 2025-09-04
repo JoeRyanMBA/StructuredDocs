@@ -173,7 +173,7 @@ export default {
   min-width: 200px;
 }
 .controls select { padding:0.35rem; }
-.reports td.actions { text-align: center; vertical-align: middle; white-space: nowrap; position: relative; }
+.reports td.actions { display: table-cell !important; background: var(--bg-white); text-align: center; vertical-align: middle; white-space: nowrap; position: relative; }
 .actions .action-buttons { display: flex; gap: 0.5rem; align-items: center; justify-content: center; height: 100%; width: 100%; }
 /* Match User Management action icon sizes */
 .btn-icon {
