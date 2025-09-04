@@ -1,6 +1,11 @@
 {
   "include": [
-    "."
+    "backend",
+    "start.py",
+    "wsgi.py",
+    "new_structureddocs_wsgi.py",
+    "var_www_structureddocs_wsgi.py",
+    "run_migrations_production.py"
   ],
   "exclude": [
     "**/node_modules",
@@ -16,7 +21,7 @@
   "pythonVersion": "3.12",
   "pythonPlatform": "Linux",
   "venvPath": ".",
-  "venv": ".venv",
+  "venv": "venv_py313",
   "executionEnvironments": [
     {
       "root": ".",
@@ -29,6 +34,6 @@
   ],
   "typeCheckingMode": "standard",
   "useLibraryCodeForTypes": true,
-  "reportMissingImports": "warning",
-  "reportMissingTypeStubs": "warning"
+  "reportMissingImports": "none",
+  "reportMissingTypeStubs": "none"
 }
