@@ -127,11 +127,11 @@ export default {
 .publish-pdf {
   margin: 0 auto;
   padding: 2rem;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
 }
 
 .guidance-text {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-left: 4px solid var(--primary-deep-teal);
   border-radius: .75rem;
   padding: 1rem;
@@ -260,7 +260,7 @@ export default {
 
 .help-section {
   margin-top: 3rem;
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   padding: 2rem;
   border-radius: 8px;
   border: 1px solid var(--border-light-gray);

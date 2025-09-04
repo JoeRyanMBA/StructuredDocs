@@ -107,7 +107,7 @@ h1 {
   font-size: 1rem;
 }
 .form-group input:disabled {
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   cursor: not-allowed;
 }
 .field-hint {
@@ -142,7 +142,7 @@ h1 {
   cursor: not-allowed;
 }
 .btn-secondary {
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   border: 1px solid var(--border-color-gray);
   color: var(--text-primary-charcoal);
 }

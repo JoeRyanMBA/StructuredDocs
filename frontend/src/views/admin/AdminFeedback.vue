@@ -1,7 +1,7 @@
 <template>
   <section class="admin-page">
-    <h1>Feedback</h1>
-    <p class="muted">User-submitted feedback from the floating widget.</p>
+  <h1>Feedback</h1>
+  <p class="subtitle">User-submitted feedback from the floating widget.</p>
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else>
@@ -187,11 +187,11 @@ export default {
 
 <style scoped>
 .admin-page { padding: 1rem; }
-.muted { color: #6c757d; margin-bottom: 1rem; }
+.subtitle { margin-bottom: 1rem; }
 .loading { color: #205493; }
 .error { color: #b00020; margin: 1rem 0; }
 .reports { width: 100%; border-collapse: collapse; font-size: 0.95rem; }
-.reports th, .reports td { border: 1px solid #e9ecef; padding: 0.5rem 0.6rem; vertical-align: top; }
+.reports th, .reports td { border: 1px solid #e9ecef; padding: 0.5rem 0.6rem; vertical-align: middle; }
 .reports th { background: #f8f9fa; text-align: left; }
 .reports .message { max-width: 520px; white-space: pre-wrap; }
 .empty { color: #6c757d; }
@@ -203,7 +203,24 @@ export default {
   min-width: 200px;
 }
 .controls select { padding:0.35rem; }
-  .actions button { margin-right:0.4rem; }
+  .actions { height: 100%; display: flex; align-items: center; justify-content: center; }
+  .actions .action-buttons { display: flex; gap: 0.5rem; }
+  /* Match User Management action icon sizes */
+  .btn-icon {
+    width: 32px;
+    height: 32px;
+    padding: 0;
+    border-radius: 4px;
+    border: 1px solid transparent;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    font-size: 14px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+  .btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+  .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
   /* Modal content element spacing */
   .modal-body label { display:block; margin:0.5rem 0; }
   .modal-body textarea { width:100%; min-height:100px; }

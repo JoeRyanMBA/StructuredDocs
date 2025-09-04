@@ -4,8 +4,8 @@
     <!-- Page Header -->
     <div class="page-header">
       <div class="page-header-content">
-        <h1>Task Management</h1>
-        <p class="page-description">Organize and track tasks across projects, collections, and topics</p>
+  <h1>Task Management</h1>
+  <p class="subtitle">Organize and track tasks across projects, collections, and topics</p>
       </div>
       <div class="header-actions">
         <button @click="showCreateModal = true" class="primary-btn">
@@ -1043,7 +1043,7 @@ export default {
   max-width: 1600px;
   margin: 0 auto;
   padding: 0 2rem 2rem; /* remove top space before header */
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
 }
 
 .page-header {
@@ -1111,7 +1111,7 @@ export default {
 
 .summary-icon {
   font-size: 2rem;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   border-radius: 50%;
   width: 50px;
   height: 50px;
@@ -1235,7 +1235,7 @@ export default {
 }
 
 .tasks-table th {
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   font-weight: 600;
   color: var(--text-dark-gray);
 }

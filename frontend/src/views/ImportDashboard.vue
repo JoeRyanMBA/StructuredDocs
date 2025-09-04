@@ -380,7 +380,7 @@ export default {
 .import-dashboard {
   margin: 0 auto;
   padding: 2rem;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
 }
 
 .dashboard-header {
@@ -629,7 +629,7 @@ export default {
 }
 
 .card-action-btn:not(.primary):hover {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-color: var(--text-secondary-cool-gray);
 }
 

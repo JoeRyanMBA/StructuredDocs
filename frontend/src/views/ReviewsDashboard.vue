@@ -394,7 +394,7 @@ export default {
 <style scoped>
 .reviews-dashboard {
   padding: 0 2rem 2rem; /* remove top space before header */
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
 }
 
 .dashboard-header {
@@ -489,7 +489,7 @@ export default {
 
 .review-item:hover {
   border-color: var(--primary-deep-teal);
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
 }
 
 .review-item.urgent {
@@ -650,7 +650,7 @@ export default {
   margin-top: auto;
   padding: 1rem 1.5rem;
   border-top: 1px solid var(--border-light-gray);
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
 }
 

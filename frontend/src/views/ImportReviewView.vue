@@ -188,7 +188,7 @@ export default {
 </script>
 
 <style scoped>
-.import-review-view { padding: 2rem; background-color: var(--bg-light-mist-gray); }
+.import-review-view { padding: 2rem; background-color: var(--bg-white); }
 .loading { font-style: italic; }
 .error { color: var(--error-coral-red); margin-bottom: 1rem; font-weight: bold; }
 
@@ -206,7 +206,7 @@ export default {
 }
 
 .review-status {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border: 1px solid var(--extended-lavender-gray);
   padding: 1rem;
   margin-bottom: 1.5rem;

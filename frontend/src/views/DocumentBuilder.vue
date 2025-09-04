@@ -928,7 +928,7 @@ status: "draft"
 
 .collection-item:hover {
   border-color: var(--primary-deep-teal);
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
 }
 
 .collection-item.active {
@@ -1105,7 +1105,7 @@ status: "draft"
 
 .available-topic-card:hover {
   border-color: var(--primary-deep-teal);
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
 }
 
 .btn-add {
@@ -1152,7 +1152,7 @@ status: "draft"
 }
 
 .link-item:hover {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-color: var(--primary-deep-teal);
 }
 
@@ -1358,7 +1358,7 @@ status: "draft"
 }
 
 .link-details .link-type {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   color: var(--text-secondary-cool-gray);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;

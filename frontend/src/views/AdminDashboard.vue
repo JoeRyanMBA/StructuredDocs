@@ -396,7 +396,7 @@ export default {
   align-items: flex-start;
   gap: 1rem;
   padding: 1rem;
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-radius: var(--border-radius-md);
   border: 1px solid var(--border-light-gray);
 }

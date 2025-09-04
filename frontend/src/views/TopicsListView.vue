@@ -92,39 +92,46 @@
             </span>
           </td>
           <td class="actions-cell">
-            <router-link
-              :to="{ name: 'EditTopic', params: { id: t.id } }"
-              class="btn btn-sm btn-secondary"
-            >
-              <i class="fas fa-edit"></i> Edit
-            </router-link>
+            <div class="action-buttons">
+              <router-link
+                :to="{ name: 'EditTopic', params: { id: t.id } }"
+                class="btn-icon btn-secondary"
+                title="Edit topic"
+                aria-label="Edit topic"
+              >
+                <i class="fas fa-edit"></i>
+              </router-link>
 
-            <button
-              v-if="t.status === 'draft'"
-              @click="submitForReview(t.id)"
-              class="btn btn-sm btn-warning"
-              style="position: relative; z-index: 10;"
-              title="Click to submit for review"
-            >
-              <i class="fas fa-eye"></i> Review
-            </button>
+              <button
+                v-if="t.status === 'draft'"
+                @click="submitForReview(t.id)"
+                class="btn-icon btn-info"
+                title="Submit for review"
+                aria-label="Submit for review"
+              >
+                <i class="fas fa-eye"></i>
+              </button>
 
-            <button
-              v-if="t.status === 'draft'"
-              @click="openSequentialReview(t)"
-              class="btn btn-sm btn-info"
-              title="Set up a sequential review workflow where expert reviewer goes first, then others see the improved version"
-            >
-              <i class="bi bi-arrow-right-circle"></i> Sequential Review
-            </button>
+              <button
+                v-if="t.status === 'draft'"
+                @click="openSequentialReview(t)"
+                class="btn-icon btn-info"
+                title="Sequential review setup"
+                aria-label="Sequential review setup"
+              >
+                <i class="bi bi-arrow-right-circle"></i>
+              </button>
 
-            <button
-              v-if="t.status === 'draft'"
-              @click="publish(t.id)"
-              class="btn btn-sm btn-success"
-            >
-              <i class="fas fa-share"></i> Publish
-            </button>
+              <button
+                v-if="t.status === 'draft'"
+                @click="publish(t.id)"
+                class="btn-icon btn-secondary"
+                title="Publish topic"
+                aria-label="Publish topic"
+              >
+                <i class="fas fa-share"></i>
+              </button>
+            </div>
           </td>
         </tr>
       </tbody>
@@ -743,6 +750,32 @@ export default {
   }
 }
 </script>
+
+<style scoped>
+.topics-table .actions-cell { text-align: center; }
+.action-buttons { display: inline-flex; gap: 0.5rem; align-items: center; justify-content: center; }
+/* Match User Management icon buttons */
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-icon.btn-secondary { background-color: #6c757d; color: #fff; }
+.btn-icon.btn-secondary:hover:not(:disabled) { background-color: #5a6268; }
+.btn-icon.btn-info { background-color: #17a2b8; color: #fff; }
+.btn-icon.btn-info:hover:not(:disabled) { background-color: #138496; }
+</style>
 
 <style scoped>
 .topics-list {

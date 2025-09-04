@@ -684,7 +684,7 @@ export default {
 .access-info {
   font-size: 0.85rem;
   color: var(--text-medium-gray);
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   padding: 0.5rem 1rem;
   border-radius: var(--border-radius-md);
 }
@@ -705,7 +705,7 @@ export default {
 }
 
 .content-viewer {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-md);
   padding: 1.5rem;
@@ -759,7 +759,7 @@ export default {
 }
 
 .content-text code {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
   font-family: var(--font-family-mono);
@@ -767,7 +767,7 @@ export default {
 }
 
 .content-text pre {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   padding: 1rem;
   border-radius: var(--border-radius-lg);
   overflow-x: auto;
@@ -801,7 +801,7 @@ export default {
 }
 
 .content-text th {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   font-weight: 600;
 }
 
@@ -828,7 +828,7 @@ export default {
 }
 
 .editor-container {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-md);
   padding: 1rem;
@@ -990,7 +990,7 @@ export default {
 }
 
 .feedback-item {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-md);
   padding: 1rem;
@@ -1097,7 +1097,7 @@ export default {
   border-radius: var(--border-radius-lg);
   padding: 1.5rem;
   margin-bottom: 1.5rem;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   position: relative;
 }
 

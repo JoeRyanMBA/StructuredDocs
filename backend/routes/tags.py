@@ -12,6 +12,8 @@ from ..models import db, Tag, Task
 
 tags_bp = Blueprint('tags', __name__, url_prefix='/api/tags')
 
+# Support both '/api/tags' and '/api/tags/' to avoid redirects through proxies
+@tags_bp.route('', methods=['GET'])
 @tags_bp.route('/', methods=['GET'])
 def list_tags():
     """Get all tags with full details"""
@@ -22,6 +24,8 @@ def list_tags():
         return jsonify({"error": str(e)}), 500
 
 
+# Support both '/api/tags' and '/api/tags/' for POST
+@tags_bp.route('', methods=['POST'])
 @tags_bp.route('/', methods=['POST'])
 def create_tag():
     """Create a new tag"""
@@ -39,8 +43,10 @@ def create_tag():
         existing_tag = Tag.query.filter_by(name=name).first()
         if existing_tag:
             return jsonify({"error": "Tag already exists"}), 400
-            
-        tag = Tag(name=name)
+        
+        # Avoid kwargs for SQLAlchemy model init to keep type checkers happy
+        tag = Tag()
+        tag.name = name
         db.session.add(tag)
         db.session.commit()
         

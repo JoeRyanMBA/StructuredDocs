@@ -423,7 +423,6 @@ export default {
         
         const stats = await response.json()
         console.log('📊 Stats from backend:', stats)
-        
         this.stats = {
           total: stats.total,
           active: stats.active,
@@ -470,8 +469,10 @@ export default {
         
         console.log(`📊 Fallback stats calculated: total=${total}, active=${active}, totalTopics=${totalTopics}`)
         
-        // Calculate new this week (fallback doesn't support this without created_at)
-        const newThisWeek = 0
+  // Calculate new this week from created_at
+  const now = new Date()
+  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+  const newThisWeek = (this.collections || []).filter(c => c.created_at && new Date(c.created_at) >= weekAgo).length
 
         // Calculate average topics per collection
         const avgTopics = total > 0 ? Math.round(totalTopics / total) : 0
@@ -559,7 +560,7 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 0 2rem 2rem; /* remove top space before header */
-  background-color: var(--bg-light-mist-gray);
+  /* Use app background; remove mist-gray */
 }
 
 .full-width {
@@ -621,7 +622,7 @@ export default {
 }
 
 .collection-item {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-radius: 8px;
   padding: 1.5rem;
   margin-bottom: 1rem;
@@ -688,59 +689,38 @@ export default {
 
 .stats-overview {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(250px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
 }
 
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-bottom: 0.5rem;
+.collections-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(260px, 1fr));
+  gap: 1.25rem;
 }
 
-.card-badge {
-  background: var(--primary-teal);
-  color: white;
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-size: 0.875rem;
-  font-weight: 500;
+.collection-card {
+  background: #fff;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-lg);
+  box-shadow: var(--box-shadow-sm);
+  padding: 1rem;
+  transition: transform 0.2s ease, box-shadow 0.2s ease;
 }
 
-.card-description {
-  font-size: 0.875rem;
-  color: var(--text-primary-charcoal);
-  margin: 0.5rem 0;
+.collection-card:hover {
+  transform: translateY(-2px);
+  box-shadow: var(--box-shadow-md);
 }
 
-.card-project {
-  font-size: 0.875rem;
-  color: var(--text-secondary-cool-gray);
-  margin-bottom: 0.5rem;
-}
-
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  font-size: 0.875rem;
-  color: var(--text-secondary-cool-gray);
-}
-
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.primary {
-  background: var(--extended-steel-blue);
-  color: white;
-}
-
-.primary:hover {
-  background: var(--primary-deep-teal);
-}
+.card-header { display: flex; justify-content: space-between; align-items: center; }
+.card-badge { background: var(--primary-teal); color: #fff; padding: 0.25rem 0.5rem; border-radius: 4px; font-size: 0.8rem; }
+.card-description { color: var(--text-primary-charcoal); font-size: 0.9rem; margin: 0.5rem 0; }
+.card-project { color: var(--text-secondary-cool-gray); font-size: 0.85rem; margin-bottom: 0.5rem; }
+.card-footer { display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary-cool-gray); font-size: 0.85rem; }
+.card-actions { display: flex; gap: 0.5rem; }
+.card-action-btn { border: 1px solid var(--border-light-gray); padding: 0.35rem 0.6rem; border-radius: 6px; background: #fff; cursor: pointer; }
+.card-action-btn.primary { background: var(--extended-steel-blue); color: #fff; border-color: var(--extended-steel-blue); }
 
 .quick-actions-grid {
   display: grid;

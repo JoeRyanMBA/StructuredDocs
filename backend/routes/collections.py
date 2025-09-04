@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from ..models import db, Collection, Topic, collection_topic_tree, Project, Publication, PublicationNode
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
@@ -32,9 +32,16 @@ def get_collections_stats():
         
         # Calculate total topics across all collections
         total_topics = sum(len(c.topics) for c in all_collections)
-        
-        # Since Collection doesn't have created_at, set new this week to 0
+
+        # Calculate new collections created within the last 7 days (inclusive)
+        # Use naive UTC datetimes to match model columns (no timezone=True)
+        now = datetime.utcnow()
+        one_week_ago = now - timedelta(days=7)
         new_this_week = 0
+        for c in all_collections:
+            created = getattr(c, 'created_at', None)
+            if created and created >= one_week_ago:
+                new_this_week += 1
         
         # Calculate average topics per collection
         avg_topics = round(total_topics / total_collections) if total_collections > 0 else 0

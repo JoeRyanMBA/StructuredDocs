@@ -266,7 +266,7 @@ export default {
 .no-feedback {
   padding: 2rem;
   text-align: center;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   border-radius: 0.375rem;
 }
 

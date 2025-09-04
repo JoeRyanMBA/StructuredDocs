@@ -192,7 +192,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/tags');
+  const response = await fetch('/api/tags/');
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
