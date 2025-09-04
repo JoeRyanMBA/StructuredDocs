@@ -43,6 +43,12 @@ export default {
           route: 'Dashboard'
         },
         {
+          key: 'author',
+          label: 'Author',
+          icon: '✍️',
+          route: 'AuthorHome'
+        },
+        {
           key: 'projects',
           label: 'Projects',
           icon: '🎯',

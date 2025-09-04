@@ -771,9 +771,15 @@ a:hover {
 .btn-icon.btn-info:hover:not(:disabled) { background-color: #138496; }
 .btn-icon.btn-danger { background-color: #dc3545; color: white; }
 .btn-icon.btn-danger:hover:not(:disabled) { background-color: #c82333; }
-/* Neutral archive style */
-.btn-icon.btn-archive { background-color: var(--extended-goldenrod); color: #374151; border: 1px solid #e5e7eb; }
-.btn-icon.btn-archive:hover:not(:disabled) { background-color: #e5e7eb; }
+/* Archive icon: global style per design request */
+.btn-icon.btn-archive { 
+  background-color: var(--success-light-green); 
+  color: #374151; 
+  border: 1px solid var(--primary-light-teal-t); 
+}
+.btn-icon.btn-archive:hover:not(:disabled) { 
+  background-color: var(--extended-cool-mint); 
+}
 
 /* Forms */
 input, select, textarea {

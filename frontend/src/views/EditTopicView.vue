@@ -7,7 +7,7 @@
 
     <!-- New Topic Mode -->
     <div v-if="!hasId && !loading" class="new-mode">
-      <h3>📄 Create a New Topic</h3>
+      <h2 class="page-title">📄 Create a New Topic</h2>
       <TopicEditor
         :topicId="null"
         :initialTitle="''"
@@ -112,10 +112,7 @@ export default {
 
 <style scoped>
 .edit-topic-view {
-  padding-top: 0px; /* Top padding to account for fixed header */
-  padding-left: 2rem;
-  padding-right: 2rem;
-  padding-bottom: 2rem;
+  padding: 0 2rem 2rem;
 }
 
 .loading {
@@ -139,10 +136,8 @@ export default {
   font-weight: bold;
 }
 
-/* Optional: style for new-mode header */
-.new-mode h3 {
-  margin-bottom: 1rem;
-}
+/* New topic header aligns with global titles */
+.page-title { margin: 0 0 1rem 0; color: var(--primary-deep-teal); font-weight: 500; }
 
 @media (max-width: 768px) {
   .edit-topic-view {

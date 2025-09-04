@@ -191,6 +191,7 @@ export default {
 }
 .btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
+/* Archive icon uses global styles from assets/style.css */
 /* Modal content element spacing */
 .modal-body label { display:block; margin:0.5rem 0; }
 .modal-body textarea { width:100%; min-height:100px; }

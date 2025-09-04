@@ -131,6 +131,11 @@
             <button @click="showLinkModal = false" class="close-btn">&times;</button>
           </div>
           <div class="modal-body">
+            <div class="tabs">
+              <button :class="['mode-btn', { active: linkInsertMode === 'manual' }]" @click="linkInsertMode = 'manual'">Manual</button>
+              <button :class="['mode-btn', { active: linkInsertMode === 'existing' }]" @click="openExistingLinks">Existing</button>
+            </div>
+            <div v-if="linkInsertMode === 'manual'">
             <div class="form-group">
               <label>Link Text</label>
               <input v-model="linkText" type="text" class="form-input" placeholder="Display text">
@@ -138,6 +143,20 @@
             <div class="form-group">
               <label>URL</label>
               <input v-model="linkUrl" type="url" class="form-input" placeholder="https://example.com">
+            </div>
+            </div>
+            <div v-else>
+              <div class="form-group">
+                <label>Search Links</label>
+                <input v-model="linkSearch" type="text" class="form-input" placeholder="Search by title, description, reference, or URL" @input="debouncedFetchLinks">
+              </div>
+              <div class="resource-list" v-if="availableLinks && availableLinks.length">
+                <div v-for="link in availableLinks" :key="link.id" class="resource-item" @click="selectExistingLink(link)">
+                  <div class="resource-title">{{ link.title }} <span v-if="link.reference_code" class="muted">({{ link.reference_code }})</span></div>
+                  <div class="resource-sub">{{ link.url }}</div>
+                </div>
+              </div>
+              <div class="empty-state" v-else>No links found.</div>
             </div>
           </div>
           <div class="modal-footer">
@@ -155,6 +174,11 @@
             <button @click="showImageModal = false" class="close-btn">&times;</button>
           </div>
           <div class="modal-body">
+            <div class="tabs">
+              <button :class="['mode-btn', { active: imageInsertMode === 'url' }]" @click="imageInsertMode = 'url'">By URL</button>
+              <button :class="['mode-btn', { active: imageInsertMode === 'existing' }]" @click="openExistingImages">Browse</button>
+            </div>
+            <div v-if="imageInsertMode === 'url'">
             <div class="form-group">
               <label>Image URL</label>
               <input v-model="imageUrl" type="url" class="form-input" placeholder="https://example.com/image.jpg">
@@ -162,6 +186,20 @@
             <div class="form-group">
               <label>Alt Text</label>
               <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
+            </div>
+            </div>
+            <div v-else>
+              <div class="form-group">
+                <label>Search Images</label>
+                <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
+              </div>
+              <div class="image-grid" v-if="availableImages && availableImages.length">
+                <div v-for="img in filteredImages" :key="img.id" class="image-item" @click="selectExistingImage(img)">
+                  <img :src="img.public_url" :alt="img.alt_text || img.filename">
+                  <div class="image-caption">{{ img.filename }}</div>
+                </div>
+              </div>
+              <div class="empty-state" v-else>No images found.</div>
             </div>
           </div>
           <div class="modal-footer">
@@ -216,16 +254,20 @@ export default {
       wysiwygUpdateTimeout: null,
       tableRows: 3,
       tableCols: 3,
-      imageInsertMode: 'url',
+  imageInsertMode: 'url',
       selectedImageFile: null,
       imageUrl: '',
       imageAlt: '',
       availableImages: [],
+  filteredImages: [],
+  imageSearch: '',
       linkInsertMode: 'manual',
       linkText: '',
       linkTitle: '',
       linkUrl: '',
-      availableLinks: []
+  availableLinks: [],
+  linkSearch: '',
+  _debounceTimer: null
     }
   },
   computed: {
@@ -280,6 +322,56 @@ export default {
     }
   },
   methods: {
+    // Existing Links/Image helpers
+    debounce(fn, delay = 300) {
+      return (...args) => {
+        clearTimeout(this._debounceTimer)
+        this._debounceTimer = setTimeout(() => fn(...args), delay)
+      }
+    },
+    async openExistingLinks() {
+      this.linkInsertMode = 'existing'
+      await this.fetchLinks()
+    },
+    async fetchLinks() {
+      try {
+        const qs = this.linkSearch ? `?search=${encodeURIComponent(this.linkSearch)}&include_usage=true` : '?include_usage=true'
+        const res = await fetch(`/api/links/${qs}`)
+        if (res.ok) {
+          const data = await res.json()
+          this.availableLinks = data.links || []
+        }
+      } catch (e) { console.error('Failed to fetch links', e) }
+    },
+    debouncedFetchLinks() {
+      this.debounce(this.fetchLinks, 300)()
+    },
+    selectExistingLink(link) {
+      this.linkText = link.title || link.reference_code || 'Link'
+      this.linkUrl = link.url
+    },
+    async openExistingImages() {
+      this.imageInsertMode = 'existing'
+      await this.fetchImages()
+      this.filterImages()
+    },
+    async fetchImages() {
+      try {
+        const res = await fetch('/api/images')
+        if (res.ok) {
+          this.availableImages = await res.json()
+          this.filteredImages = this.availableImages
+        }
+      } catch (e) { console.error('Failed to fetch images', e) }
+    },
+    filterImages() {
+      const q = (this.imageSearch || '').toLowerCase()
+      this.filteredImages = (this.availableImages || []).filter(img => !q || (img.filename || '').toLowerCase().includes(q))
+    },
+    selectExistingImage(img) {
+      this.imageUrl = img.public_url || img.file_path
+      this.imageAlt = img.alt_text || img.filename
+    },
     async saveTopic() {
       if (!this.title.trim()) return
       
@@ -590,6 +682,20 @@ export default {
   gap: 0.75rem;
   align-items: center;
 }
+/* Simple resource picker styles */
+.tabs { display:flex; gap:.5rem; margin-bottom: .75rem; }
+.mode-btn { padding:.35rem .6rem; border:1px solid #ddd; background:#f8f9fa; border-radius:4px; cursor:pointer; }
+.mode-btn.active { background:#e9ecef; border-color:#ccc; }
+.resource-list { max-height: 260px; overflow:auto; border:1px solid #eee; border-radius:6px; }
+.resource-item { padding:.5rem .75rem; border-bottom:1px solid #f1f3f5; cursor:pointer; }
+.resource-item:hover { background:#f8f9fa; }
+.resource-title { font-weight:600; color:#333; }
+.resource-sub { font-size:.85rem; color:#666; }
+.muted { color:#667085; font-weight:400; font-size:.9em; }
+.image-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:.75rem; max-height:320px; overflow:auto; }
+.image-item { border:1px solid #eee; border-radius:6px; padding:.5rem; cursor:pointer; text-align:center; }
+.image-item img { max-width:100%; height:80px; object-fit:cover; display:block; margin:0 auto .5rem; }
+.image-caption { font-size:.8rem; color:#555; word-break: break-all; }
 
 /* Title input styling */
 .title-label {
