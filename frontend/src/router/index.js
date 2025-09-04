@@ -171,6 +171,11 @@ const routes = [
     component: () => import('@/views/AuthorDashboard.vue')
   },
   {
+    path: '/design/buttons',
+    name: 'ButtonCatalog',
+    component: () => import('@/views/ButtonCatalog.vue')
+  },
+  {
     path: '/document-builder',
     name: 'DocumentBuilder',
     component: () => import('@/views/DocumentBuilder.vue')
@@ -405,7 +410,7 @@ function isAuthenticated() {
 // Navigation guard to protect routes
 router.beforeEach((to, from, next) => {
   // Routes that don't require authentication
-  const publicRoutes = ['Login', 'ReviewPortal', 'PasswordSetup', 'PasswordReset']
+  const publicRoutes = ['Login', 'ReviewPortal', 'PasswordSetup', 'PasswordReset', 'ButtonCatalog']
   
   if (publicRoutes.includes(to.name)) {
     // If already logged in and trying to access login, redirect to dashboard
