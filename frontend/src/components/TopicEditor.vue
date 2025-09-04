@@ -33,26 +33,29 @@
 
         <!-- Editor Mode Toggle -->
         <div class="editor-mode-toggle">
-          <button 
-            @click="editorMode = 'markdown'" 
-            :class="{ active: editorMode === 'markdown' }"
-            class="mode-btn"
+          <button
+            type="button"
+            :class="['btn','btn-sm', editorMode === 'markdown' ? 'btn-primary' : 'btn-secondary']"
+            :aria-pressed="editorMode === 'markdown'"
+            @click="editorMode = 'markdown'"
           >
             📝 Markdown
           </button>
-          <button 
-            @click="editorMode = 'wysiwyg'" 
-            :class="{ active: editorMode === 'wysiwyg' }"
-            class="mode-btn"
+          <button
+            type="button"
+            :class="['btn','btn-sm', editorMode === 'wysiwyg' ? 'btn-primary' : 'btn-secondary']"
+            :aria-pressed="editorMode === 'wysiwyg'"
+            @click="editorMode = 'wysiwyg'"
           >
             📄 WYSIWYG
           </button>
-          <button 
-            @click="editorMode = 'preview'" 
-            :class="{ active: editorMode === 'preview' }"
-            class="mode-btn"
+          <button
+            type="button"
+            :class="['btn','btn-sm', editorMode === 'preview' ? 'btn-primary' : 'btn-secondary']"
+            :aria-pressed="editorMode === 'preview'"
+            @click="editorMode = 'preview'"
           >
-            👁️ Preview
+            <i class="bi bi-eye" aria-hidden="true"></i> Preview
           </button>
         </div>
 
@@ -106,16 +109,18 @@
 
         <!-- Actions -->
         <div class="editor-actions">
-          <button 
-            @click="saveTopic" 
+          <button
+            type="button"
+            @click="saveTopic"
             :disabled="isSaving || !title.trim()"
             class="btn btn-primary"
           >
             {{ isSaving ? 'Saving...' : (topicId ? 'Update Topic' : 'Create Topic') }}
           </button>
-          
-          <button 
-            @click="$router.go(-1)" 
+
+          <button
+            type="button"
+            @click="$router.go(-1)"
             class="btn btn-secondary"
           >
             Cancel
@@ -329,16 +334,7 @@ export default {
         })
       }
     },
-    content(newContent) {
-      if (this.editorMode === 'wysiwyg' && this.$refs.wysiwygEditor) {
-        const currentHtml = this.$refs.wysiwygEditor.innerHTML
-        const expectedHtml = marked(newContent || '')
-        const currentMarkdown = this.htmlToMarkdown(currentHtml)
-        if (currentMarkdown !== newContent) {
-          this.$refs.wysiwygEditor.innerHTML = expectedHtml
-        }
-      }
-    },
+    // Remove content->HTML sync in wysiwyg to avoid caret jumping.
     initialContent(newValue) {
       this.content = newValue
     },
@@ -537,7 +533,10 @@ export default {
     updateContentFromWysiwyg() {
       if (this.$refs.wysiwygEditor) {
         const html = this.$refs.wysiwygEditor.innerHTML
-        this.content = this.htmlToMarkdown(html)
+        const md = this.htmlToMarkdown(html)
+        if (md !== this.content) {
+          this.content = md
+        }
       }
     },
 
@@ -812,21 +811,7 @@ export default {
   margin-bottom: 2rem;
 }
 
-/* Save button */
-button {
-  padding: 0.75rem 1.5rem;
-  background: #205493;
-  color: white;
-  border: none;
-  cursor: pointer;
-  border-radius: 4px;
-  margin-right: 0.75rem;
-  margin-bottom: 0.5rem;
-}
-button:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
+/* Remove local global button override; use shared .btn styles from assets/style.css */
 
 /* Save success message */
 .save-success-message {
