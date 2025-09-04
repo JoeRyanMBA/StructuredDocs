@@ -105,17 +105,17 @@
               <button
                 v-if="t.status === 'draft'"
                 @click="submitForReview(t.id)"
-                class="btn-icon btn-info"
+                class="btn-icon btn-send-review"
                 title="Submit for review"
                 aria-label="Submit for review"
               >
-                <i class="fas fa-eye"></i>
+                <i class="fas fa-paper-plane"></i>
               </button>
 
               <button
                 v-if="t.status === 'draft'"
                 @click="openSequentialReview(t)"
-                class="btn-icon btn-info"
+                class="btn-icon btn-seq-review"
                 title="Sequential review setup"
                 aria-label="Sequential review setup"
               >
@@ -125,7 +125,7 @@
               <button
                 v-if="t.status === 'draft'"
                 @click="publish(t.id)"
-                class="btn-icon btn-secondary"
+                class="btn-icon btn-publish"
                 title="Publish topic"
                 aria-label="Publish topic"
               >
@@ -771,10 +771,15 @@ export default {
 }
 .btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-icon.btn-secondary { background-color: #6c757d; color: #fff; }
-.btn-icon.btn-secondary:hover:not(:disabled) { background-color: #5a6268; }
-.btn-icon.btn-info { background-color: #17a2b8; color: #fff; }
-.btn-icon.btn-info:hover:not(:disabled) { background-color: #138496; }
+/* New colored variants per organizational palette */
+.btn-icon.btn-publish { background-color: var(--success-mint-green); color: #fff; }
+.btn-icon.btn-publish:hover:not(:disabled) { background-color: var(--success-dark-mint); }
+
+.btn-icon.btn-seq-review { background-color: var(--extended-plum); color: #fff; }
+.btn-icon.btn-seq-review:hover:not(:disabled) { background-color: #7a3aa0; }
+
+.btn-icon.btn-send-review { background-color: var(--extended-goldenrod); color: #2C3E50; }
+.btn-icon.btn-send-review:hover:not(:disabled) { background-color: #e0be35; }
 </style>
 
 <style scoped>

@@ -365,7 +365,8 @@ export default {
 
 .metric-fill {
   height: 100%;
-  background: linear-gradient(90deg, var(--primary-teal), var(--primary-light-teal));
+  /* Use defined palette variables; fallback to deep/medium teal */
+  background: linear-gradient(90deg, var(--primary-deep-teal), var(--primary-medium-teal));
   border-radius: 4px;
   transition: width 0.3s ease;
 }
