@@ -24,7 +24,7 @@ def create_topic():
     data = request.get_json() or {}
     try:
         topic = Topic(
-            title=data.get('title'),
+            title=(data.get('title') or 'Untitled'),
             content=data.get('content'),
             frontmatter=data.get('frontmatter'),
             status=data.get('status', 'draft')
@@ -89,6 +89,7 @@ def publish_topic(topic_id):
 
 # DELETE /api/topics/bulk → Delete multiple topics by IDs
 @topics_bp.route('/bulk', methods=['DELETE'])
+@topics_bp.route('/bulk/delete', methods=['POST'])
 @jwt_required()
 def bulk_delete_topics():
     try:
@@ -121,7 +122,7 @@ def bulk_delete_topics():
         except Exception:
             is_admin = False
         if not is_admin:
-            return jsonify({'error': 'Forbidden'}), 403
+            return jsonify({'error': 'Admin role required for bulk deletion'}), 403
 
         # Fetch existing topics
         existing = Topic.query.filter(Topic.id.in_(id_list)).all()
