@@ -109,7 +109,12 @@ def bulk_delete_topics():
 
         # Enforce admin authorization
         user_id = get_jwt_identity()
-        current_user = User.query.get(user_id) if user_id else None
+        # Token identity may be a string; cast to int for DB lookup when possible
+        try:
+            user_pk = int(user_id) if user_id is not None else None
+        except (TypeError, ValueError):
+            user_pk = None
+        current_user = User.query.get(user_pk) if user_pk is not None else None
         if not current_user:
             return jsonify({'error': 'Unauthorized'}), 401
         # Accept roles: admin or superadmin (fallback to role string) or boolean is_admin

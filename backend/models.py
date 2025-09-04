@@ -926,6 +926,9 @@ class PasswordResetToken(db.Model):
             
         return True, "Token is valid"
 
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, token: str = ..., user_id: int = ..., token_type: str = 'reset', expires_at: datetime = ..., used_at: datetime | None = None, is_active: bool = True, created_by_admin: bool = False, created_at: datetime | None = None): ...
+
 
 class ReviewToken(db.Model):
     """Secure tokens for external reviewer access without authentication"""
