@@ -196,25 +196,47 @@
                   <td class="updated-cell">{{ formatRelativeTime(topic.updated_at) }}</td>
                   <td class="actions-cell">
                     <div class="action-buttons">
-                      <button 
-                        v-if="topic.status === 'draft'" 
-                        @click.stop="sendForReview(topic)" 
-                        class="btn btn-sm btn-primary"
+                      <router-link
+                        :to="{ name: 'EditTopic', params: { id: topic.id } }"
+                        class="btn-icon btn-secondary"
+                        title="Edit topic"
+                        aria-label="Edit topic"
+                        @click.stop
                       >
-                        <i class="fas fa-paper-plane"></i> Review
-                      </button>
-                      <button 
-                        v-else-if="topic.status === 'published'" 
-                        @click.stop="viewPublished(topic)" 
-                        class="btn btn-sm btn-success"
+                        <i class="fas fa-edit"></i>
+                      </router-link>
+
+                      <button
+                        v-if="topic.status === 'draft'"
+                        @click.stop="submitForReview(topic.id)"
+                        class="btn-icon btn-send-review"
+                        title="Submit for review"
+                        aria-label="Submit for review"
+                        type="button"
                       >
-                        <i class="fas fa-eye"></i> View
+                        <i class="fas fa-paper-plane"></i>
                       </button>
-                      <button @click.stop="editTopic(topic)" class="btn btn-sm btn-secondary">
-                        <i class="fas fa-edit"></i> Edit
+
+                      <button
+                        v-if="topic.status === 'draft'"
+                        @click.stop="openSequentialReview(topic)"
+                        class="btn-icon btn-seq-review"
+                        title="Sequential review setup"
+                        aria-label="Sequential review setup"
+                        type="button"
+                      >
+                        <i class="bi bi-arrow-right-circle"></i>
                       </button>
-                      <button @click.stop="duplicateTopic(topic)" class="btn btn-sm btn-outline">
-                        <i class="fas fa-copy"></i> Copy
+
+                      <button
+                        v-if="topic.status === 'draft'"
+                        @click.stop="publish(topic.id)"
+                        class="btn-icon btn-publish"
+                        title="Publish topic"
+                        aria-label="Publish topic"
+                        type="button"
+                      >
+                        <i class="fas fa-share"></i>
                       </button>
                     </div>
                   </td>
@@ -405,6 +427,47 @@ export default {
 
     viewPublished(topic) {
       this.$router.push(`/topics/${topic.id}`)
+    },
+
+    async publish(id) {
+      try {
+        const res = await fetch(`/api/topics/${id}/publish`, { method: 'POST' })
+        if (!res.ok) throw new Error(`Publish failed (${res.status})`)
+        await this.loadMyTopics()
+      } catch (err) {
+        console.error('Publish failed:', err)
+      }
+    },
+
+    async submitForReview(id) {
+      // Open TopicsListView flow: create review requests via modal or simple POST
+      try {
+        const res = await fetch(`/api/topics/${id}/review`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ status: 'in_review' })
+        })
+        if (!res.ok) throw new Error('Failed to submit for review')
+        await this.loadMyTopics()
+      } catch (err) {
+        console.error('Submit for review failed:', err)
+      }
+    },
+
+    openSequentialReview(topic) {
+      // For now, route to reviews setup if available; fallback: call sendForReview
+      if (this.$router && this.$router.resolve) {
+        try {
+          // If there is a dedicated route, navigate; otherwise, fallback
+          const target = this.$router.resolve({ name: 'SequentialReviewSetup', params: { id: topic.id } })
+          if (target && target.href) {
+            this.$router.push(target)
+            return
+          }
+        } catch (_) { /* ignore */ }
+      }
+      // Fallback simple path if no route exists
+      this.sendForReview(topic)
     },
 
     async sendForReview(topic) {
@@ -847,6 +910,31 @@ export default {
   padding: 0.375rem 0.75rem;
   font-size: 0.8rem;
 }
+
+/* Icon button styles aligned with All Topics */
+.action-buttons { display: inline-flex; gap: 0.5rem; align-items: center; justify-content: center; }
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  cursor: pointer;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  transition: all 0.2s ease;
+  text-decoration: none;
+}
+.btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
+.btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
+.btn-icon.btn-publish { background-color: var(--success-mint-green); color: #fff; }
+.btn-icon.btn-publish:hover:not(:disabled) { background-color: var(--success-dark-mint); }
+.btn-icon.btn-seq-review { background-color: var(--extended-plum); color: #fff; }
+.btn-icon.btn-seq-review:hover:not(:disabled) { background-color: #7a3aa0; }
+.btn-icon.btn-send-review { background-color: var(--extended-goldenrod); color: #2C3E50; }
+.btn-icon.btn-send-review:hover:not(:disabled) { background-color: #e0be35; }
 
 /* Empty States */
 .empty-state {
