@@ -116,8 +116,8 @@
                       <div class="collection-topic-item-row" style="display: flex; align-items: center; width: 100%;">
                         <div v-if="topic.children && topic.children.length > 0" class="expand-toggle" @click.stop="toggleExpansion(topic.id)">
                           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path v-if="expandedTopics.has(topic.id)" d="M3 4.5L6 7.5L9 4.5" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path v-else d="M4.5 3L7.5 6L4.5 9" stroke="#666" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path v-if="expandedTopics.has(topic.id)" d="M3 4.5L6 7.5L9 4.5" :stroke="arrowColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+                            <path v-else d="M4.5 3L7.5 6L4.5 9" :stroke="arrowColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
                           </svg>
                         </div>
                         <div v-else class="expand-spacer"></div>
@@ -406,7 +406,11 @@ export default {
         if (!this.expandedTopics.has(id)) return false;
       }
       return idsWithChildren.size > 0; // only true if there is something to expand
-    }
+    },
+    arrowColor() {
+      // Match Topic Preview icon color; icon-btn uses this token
+      return getComputedStyle(document.documentElement).getPropertyValue('--primary-deep-teal')?.trim() || '#005B6E'
+    },
   },
   async created() {
     // Check if we're in edit mode
@@ -1357,7 +1361,7 @@ export default {
 <style scoped>
 .organize-view {
   padding: 2rem;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
 }
 
 .organize-header {
@@ -1370,7 +1374,7 @@ export default {
 }
 
 .guidance-text {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-left: 4px solid var(--primary-deep-teal);
   padding: 1rem;
   margin-bottom: 1.5rem;
@@ -1512,8 +1516,11 @@ export default {
 
 /* Make arrow buttons clearly visible */
 .topic-btn {
-  color: #000;
+  color: var(--primary-deep-teal);
 }
+
+/* ensure caret/chevron arrows share the same color as preview icon */
+.expand-toggle svg path { stroke: var(--primary-deep-teal); }
 
 .icon-btn {
   background: #ffffff; /* ensure white background for contrast */

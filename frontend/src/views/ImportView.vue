@@ -370,7 +370,7 @@ export default {
 }
 
 .guidance-text {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-left: 4px solid var(--primary-deep-teal);
   border-radius: .75rem;
   padding: 1rem;
@@ -385,7 +385,7 @@ export default {
   padding: 1.5rem;
   border: 1px solid var(--extended-lavender-gray);
   border-radius: 8px;
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
 }
 
 .import-type-selection h3 {
@@ -582,7 +582,7 @@ input[type="file"] {
 .file-preview {
   margin: 1rem 0;
   padding: 1rem;
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border: 1px solid var(--extended-lavender-gray);
   border-radius: 6px;
 }

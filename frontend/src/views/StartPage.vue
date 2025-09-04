@@ -503,7 +503,7 @@ export default {
 
 .project-item:hover {
   border-color: var(--primary-deep-teal);
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   cursor: pointer;
 }
 
@@ -584,7 +584,7 @@ export default {
 
 .action-item:hover {
   border-color: var(--primary-deep-teal);
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   cursor: pointer;
 }
 

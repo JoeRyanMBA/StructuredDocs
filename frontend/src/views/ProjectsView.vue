@@ -1520,7 +1520,7 @@ export default {
 /* General Dashboard Layout */
 .projects-dashboard {
   padding: 0 2rem 2rem; /* remove top space before header */
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   font-family: var(--font-family-sans);
 }
 
@@ -1802,7 +1802,7 @@ export default {
 .loading-state, .error-state, .empty-state {
   text-align: center;
   padding: 4rem 2rem;
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-radius: 8px;
 }
 
@@ -1865,7 +1865,7 @@ export default {
   display: flex;
   justify-content: flex-end;
   gap: 1rem;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   border-radius: 0 0 12px 12px;
 }
 
@@ -1966,7 +1966,7 @@ export default {
   gap: 1rem;
   padding: 0.75rem;
   border-radius: 6px;
-  background-color: var(--bg-light-mist-gray);
+  background-color: var(--bg-white);
   margin-bottom: 0.5rem;
 }
 

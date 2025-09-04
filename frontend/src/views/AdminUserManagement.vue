@@ -3,8 +3,8 @@
     <HeaderBar />
     <div class="page-content">
       <div class="page-header">
-        <h2>User Management</h2>
-        <p class="page-description">Manage user accounts, roles, and permissions</p>
+  <h2>User Management</h2>
+  <p class="subtitle">Manage user accounts, roles, and permissions</p>
       </div>
       
       <UserManagement />
@@ -38,10 +38,7 @@ export default {
 </script>
 
 <style scoped>
-.admin-user-management {
-  min-height: 100vh;
-  background: #f8f9fa;
-}
+.admin-user-management { min-height: 100vh; }
 
 .page-content {
   padding: 30px;
@@ -84,11 +81,7 @@ h1 {
   font-weight: 700;
 }
 
-.page-description {
-  color: #666;
-  margin: 0;
-  font-size: 16px;
-}
+/* Use global .subtitle */
 
 .tabs button.active {
   color: var(--primary-deep-teal);

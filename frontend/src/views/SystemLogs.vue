@@ -398,7 +398,7 @@ table {
 }
 
 th {
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   padding: 1rem;
   text-align: left;
   font-weight: 600;
@@ -591,7 +591,7 @@ td {
 .log-detail {
   margin-bottom: 1rem;
   padding: 0.75rem;
-  background: var(--bg-light-mist-gray);
+  background: var(--bg-white);
   border-radius: var(--border-radius-md);
   font-size: 0.9rem;
 }

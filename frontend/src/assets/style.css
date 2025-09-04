@@ -10,7 +10,8 @@
   --primary-light-teal: #4FC3C9;
 
   /* Background Palette */
-  --bg-light-mist-gray: #F5F9FA;
+  /* Set mist gray to white globally to remove gray page backgrounds */
+  --bg-light-mist-gray: #FFFFFF;
   --bg-dark-slate-blue-gray: #1F2A30;
   /* Common white background used for cards */
   --bg-primary-white: #FFFFFF;
@@ -98,10 +99,18 @@ body {
   padding: 0;
 }
 
+/* Global tweak: remove left border from all guidance text blocks */
+.guidance-text {
+  border-left: 0 !important;
+}
+
 h1, h2, h3, h4, h5, h6 {
   color: var(--primary-deep-teal);
   font-weight: 500;
 }
+
+/* Center page titles globally */
+h1 { text-align: center; }
 
 a {
   color: var(--primary-medium-teal);
