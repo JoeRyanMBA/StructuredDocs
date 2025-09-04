@@ -377,14 +377,17 @@ export default {
           const data = await response.json()
           this.allLinks = data.links || []
         } else {
-          throw new Error('Failed to fetch links')
+          // Treat non-OK as empty state instead of fatal error to match Images UX
+          this.allLinks = []
         }
 
         this.applyFilters()
 
       } catch (error) {
         console.error('Failed to load links:', error)
-        this.error = 'Failed to load links. Please try again.'
+        // Fall back to empty state UX rather than a blocking error
+        this.allLinks = []
+        this.applyFilters()
       } finally {
         this.loading = false
       }
@@ -636,29 +639,7 @@ export default {
   gap: 0.5rem;
 }
 
-.btn-primary {
-  background: #2196f3;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #1976d2;
-}
-
-.btn-primary:disabled {
-  background: #ccc;
-  cursor: not-allowed;
-}
-
-.btn-secondary {
-  background: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
-}
-
-.btn-secondary:hover {
-  background: #ebebeb;
-}
+/* Use global button system from assets/style.css for consistency */
 
 .loading {
   text-align: center;
@@ -666,15 +647,7 @@ export default {
   color: #666;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196f3;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
+/* Use global loading styles */
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -723,7 +696,7 @@ export default {
   display: block;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #2196f3;
+  color: var(--primary-medium-teal);
 }
 
 .stat-label {
@@ -767,8 +740,8 @@ export default {
 }
 
 .link-row.selected {
-  background: #e3f2fd;
-  border-color: #2196f3;
+  background: var(--primary-light-blue);
+  border-color: var(--primary-medium-teal);
 }
 
 .link-main {
@@ -803,8 +776,8 @@ export default {
 }
 
 .reference-code {
-  background: #e3f2fd;
-  color: #1976d2;
+  background: var(--primary-light-blue);
+  color: var(--primary-dark-blue);
   padding: 0.25rem 0.5rem;
   border-radius: 4px;
   font-family: monospace;
@@ -934,7 +907,7 @@ export default {
 
 .url-display a {
   flex: 1;
-  color: #2196f3;
+  color: var(--primary-medium-teal);
   text-decoration: none;
   overflow: hidden;
   text-overflow: ellipsis;
@@ -960,7 +933,7 @@ export default {
 }
 
 .btn-copy {
-  background: #2196f3;
+  background: var(--primary-medium-teal);
   color: white;
   border: none;
   border-radius: 4px;
@@ -970,7 +943,7 @@ export default {
 }
 
 .btn-copy:hover {
-  background: #1976d2;
+  background: var(--primary-light-teal);
 }
 
 .detail-usage h4 {
@@ -988,7 +961,7 @@ export default {
   padding: 0.75rem;
   background: #f8f9fa;
   border-radius: 6px;
-  border-left: 3px solid #2196f3;
+  border-left: 3px solid var(--primary-medium-teal);
 }
 
 .topic-title {

@@ -16,25 +16,31 @@
           placeholder="Search images by filename..." 
           @keyup.enter="loadImages"
         />
-  <button @click="loadImages" class="btn btn-secondary btn-sm">
+  <button @click="loadImages" class="btn btn-secondary btn-sm" type="button">
           🔍 Search
         </button>
       </div>
       <div class="view-controls">
         <button 
-          :class="['btn', 'btn-secondary', viewMode === 'grid' ? 'active' : '']"
+          type="button"
+          :class="['btn','btn-sm', viewMode === 'grid' ? 'btn-primary' : 'btn-secondary']"
+          :aria-pressed="viewMode === 'grid'"
           @click="viewMode = 'grid'"
         >
-          � Grid
+          <i class="bi bi-grid-3x3-gap" aria-hidden="true"></i>
+          Grid
         </button>
         <button 
-          :class="['btn', 'btn-secondary', viewMode === 'list' ? 'active' : '']"
+          type="button"
+          :class="['btn','btn-sm', viewMode === 'list' ? 'btn-primary' : 'btn-secondary']"
+          :aria-pressed="viewMode === 'list'"
           @click="viewMode = 'list'"
         >
-          � List
+          <i class="bi bi-list" aria-hidden="true"></i>
+          List
         </button>
       </div>
-      <button @click="refreshImages" class="btn btn-primary">
+  <button @click="refreshImages" class="btn btn-primary" type="button">
         🔄 Refresh
       </button>
     </div>
@@ -475,30 +481,7 @@ export default {
   gap: 0.5rem;
 }
 
-.btn-primary {
-  background: #2196f3;
-  color: white;
-}
-
-.btn-primary:hover {
-  background: #1976d2;
-}
-
-.btn-secondary {
-  background: #f5f5f5;
-  color: #333;
-  border: 1px solid #ddd;
-}
-
-.btn-secondary:hover {
-  background: #ebebeb;
-}
-
-.btn-secondary.active {
-  background: #2196f3;
-  color: white;
-  border-color: #2196f3;
-}
+/* Use global button styles; any local overrides should lean on CSS vars */
 
 .loading {
   text-align: center;
@@ -506,15 +489,7 @@ export default {
   color: #666;
 }
 
-.loading-spinner {
-  width: 40px;
-  height: 40px;
-  border: 4px solid #f3f3f3;
-  border-top: 4px solid #2196f3;
-  border-radius: 50%;
-  animation: spin 1s linear infinite;
-  margin: 0 auto 1rem;
-}
+
 
 @keyframes spin {
   0% { transform: rotate(0deg); }
@@ -555,7 +530,7 @@ export default {
   display: block;
   font-size: 1.5rem;
   font-weight: bold;
-  color: #2196f3;
+  color: var(--primary-medium-teal);
 }
 
 .stat-label {
@@ -583,13 +558,13 @@ export default {
 }
 
 .image-card:hover {
-  border-color: #2196f3;
-  box-shadow: 0 4px 12px rgba(33, 150, 243, 0.15);
+  border-color: var(--primary-medium-teal);
+  box-shadow: 0 4px 12px rgba(0, 140, 158, 0.15);
 }
 
 .image-card.selected {
-  border-color: #2196f3;
-  box-shadow: 0 0 0 2px rgba(33, 150, 243, 0.2);
+  border-color: var(--primary-medium-teal);
+  box-shadow: 0 0 0 2px rgba(0, 140, 158, 0.2);
 }
 
 .image-container {
