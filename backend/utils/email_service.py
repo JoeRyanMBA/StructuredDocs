@@ -14,23 +14,39 @@ logger = logging.getLogger(__name__)
 class EmailService:
     def __init__(self):
         # Email configuration - can be set via environment variables
-        self.smtp_server = os.getenv('SMTP_SERVER', 'localhost')
-        self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        self.smtp_username = os.getenv('SMTP_USERNAME', '')
-        self.smtp_password = os.getenv('SMTP_PASSWORD', '')
-        self.from_email = os.getenv('FROM_EMAIL', 'noreply@structureddocs.local')
-        self.from_name = os.getenv('FROM_NAME', 'StructuredDocs Review System')
-        
+        def _clean(key, default=None):
+            v = os.getenv(key, default)
+            if isinstance(v, str):
+                # Strip surrounding quotes and whitespace if present
+                v = v.strip().strip("'\"")
+            return v
+
+        self.smtp_server = (_clean('SMTP_SERVER', 'localhost') or 'localhost')
+        self.smtp_port = int(str(_clean('SMTP_PORT', '587') or '587'))
+        self.smtp_username = (_clean('SMTP_USERNAME', '') or '')
+        self.smtp_password = (_clean('SMTP_PASSWORD', '') or '')
+        self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
+        self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
+        # Email debug settings
+        self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
+        # Default debug email directory
+        self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
+
     def reload_config(self):
         """Reload configuration from environment variables"""
-        self.smtp_server = os.getenv('SMTP_SERVER', 'localhost')
-        self.smtp_port = int(os.getenv('SMTP_PORT', '587'))
-        self.smtp_username = os.getenv('SMTP_USERNAME', '')
-        self.smtp_password = os.getenv('SMTP_PASSWORD', '')
-        self.from_email = os.getenv('FROM_EMAIL', 'noreply@structureddocs.local')
-        self.from_name = os.getenv('FROM_NAME', 'StructuredDocs Review System')
-        self.debug_mode = os.getenv('EMAIL_DEBUG', 'true').lower() == 'true'
-        
+        def _clean(key, default=None):
+            v = os.getenv(key, default)
+            if isinstance(v, str):
+                v = v.strip().strip("'\"")
+            return v
+
+        self.smtp_server = (_clean('SMTP_SERVER', 'localhost') or 'localhost')
+        self.smtp_port = int(str(_clean('SMTP_PORT', '587') or '587'))
+        self.smtp_username = (_clean('SMTP_USERNAME', '') or '')
+        self.smtp_password = (_clean('SMTP_PASSWORD', '') or '')
+        self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
+        self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
+        self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
         # Set debug email directory relative to current working directory
         self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
         
@@ -164,6 +180,7 @@ class EmailService:
     
     def _send_email(self, to_email, subject, html_content, text_content):
         """Send email using SMTP or debug mode"""
+        # Only use debug mode when explicitly enabled; do not default to True
         if self.debug_mode:
             # In debug mode, just log the email content
             logger.info("=== EMAIL DEBUG MODE ===")
@@ -172,25 +189,37 @@ class EmailService:
             logger.info("--- EMAIL CONTENT ---")
             logger.info(text_content)
             logger.info("=== END EMAIL ===")
-            
+
             # Also write to a file for easy access
             self._write_debug_email(to_email, subject, text_content)
             return True
-        
+
         try:
             # Create message
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
-            msg['From'] = f"{self.from_name} <{self.from_email}>"
+
+            # Some SMTP providers (e.g., Gmail) require the From address to match the authenticated user
+            from_addr = self.from_email
+            if self.smtp_username and (
+                'gmail' in (self.smtp_server or '').lower() or 'google' in (self.smtp_server or '').lower()
+            ):
+                if self.smtp_username != self.from_email:
+                    # Use SMTP username as the From to pass provider checks
+                    from_addr = self.smtp_username
+                    # Preserve branding via Reply-To so replies go to branded address
+                    msg['Reply-To'] = self.from_email
+
+            msg['From'] = f"{self.from_name} <{from_addr}>"
             msg['To'] = to_email
-            
+
             # Add both text and HTML parts
             text_part = MIMEText(text_content, 'plain')
             html_part = MIMEText(html_content, 'html')
-            
+
             msg.attach(text_part)
             msg.attach(html_part)
-            
+
             # Send email
             use_ssl = (self.smtp_port == 465) or (os.getenv('SMTP_USE_SSL', 'false').lower() == 'true')
             if use_ssl:
@@ -211,12 +240,51 @@ class EmailService:
 
             server.send_message(msg)
             server.quit()
-            
+
             logger.info(f"Email sent successfully to {to_email}")
             return True
-            
+
         except Exception as e:
-            logger.error(f"SMTP error sending email to {to_email}: {str(e)}")
+            logger.error(
+                f"SMTP error sending email to {to_email}: {str(e)} | "
+                f"server={self.smtp_server}:{self.smtp_port}, from={self.from_email}"
+            )
+            return False
+
+    def send_test_email(self, to_email: str, base_url: str | None = None) -> bool:
+        """Send a simple test email to verify SMTP configuration.
+
+        This does not expose secrets and uses the current configuration.
+        """
+        try:
+            if base_url is None:
+                base_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
+            subject = "StructuredDocs Test Email"
+            html_content = f"""
+            <html>
+            <body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\"> 
+                <h2>StructuredDocs Email Test</h2>
+                <p>This is a test email to confirm SMTP delivery from StructuredDocs.</p>
+                <ul>
+                    <li>From: {self.from_name} &lt;{self.from_email}&gt;</li>
+                    <li>Server: {self.smtp_server}:{self.smtp_port}</li>
+                </ul>
+                <p>You can visit the app here: <a href=\"{base_url}\">{base_url}</a></p>
+                <p>Timestamp: {datetime.now().isoformat()}</p>
+            </body>
+            </html>
+            """
+            text_content = (
+                "StructuredDocs Email Test\n\n"
+                f"From: {self.from_name} <{self.from_email}>\n"
+                f"Server: {self.smtp_server}:{self.smtp_port}\n"
+                f"Timestamp: {datetime.now().isoformat()}\n"
+            )
+
+            return self._send_email(to_email, subject, html_content, text_content)
+        except Exception as e:
+            logger.error(f"Failed to send test email: {str(e)}")
             return False
     
     def _write_debug_email(self, to_email, subject, content):
