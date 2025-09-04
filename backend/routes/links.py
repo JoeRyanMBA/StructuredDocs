@@ -68,12 +68,24 @@ def create_link():
         if not data.get('url'):
             return jsonify({'error': 'URL is required'}), 400
         
-        # Check if reference_code is unique if provided
+        # Check if reference_code is unique if provided; otherwise auto-generate
         reference_code = data.get('reference_code')
         if reference_code:
             existing = Link.query.filter_by(reference_code=reference_code).first()
             if existing:
                 return jsonify({'error': f'Reference code "{reference_code}" already exists'}), 400
+        else:
+            # Generate a simple unique code like LINK-XXXX
+            import random, string
+            base_prefix = 'LINK'
+            # Try a handful of times to avoid collision
+            for _ in range(10):
+                suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
+                candidate = f"{base_prefix}-{suffix}"
+                if not Link.query.filter_by(reference_code=candidate).first():
+                    reference_code = candidate
+                    break
+            # If still none, leave as None (optional field)
         
         # Create new link
         link = Link(
