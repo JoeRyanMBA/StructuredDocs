@@ -7,7 +7,11 @@
     "**/__pycache__",
     "**/.venv",
     "**/venv_py313",
-    "**/backend/.venv"
+  "**/backend/.venv",
+  // Exclude optional dev/test utilities that rely on non-runtime deps
+  "scripts/**",
+  "conftest.py",
+  "test_*.py"
   ],
   "pythonVersion": "3.12",
   "pythonPlatform": "Linux",
