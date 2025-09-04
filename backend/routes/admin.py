@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from ..models import db, User, Notification, Topic, Collection, Project, Task
 from sqlalchemy import func
 from datetime import datetime, timedelta
+import os
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -205,6 +206,31 @@ def get_system_logs():
     except Exception as e:
         print(f"❌ Error in get_system_logs: {e}")
         return jsonify([]), 200
+
+@admin_bp.route('/send-test-email', methods=['POST'])
+def send_test_email_endpoint():
+    """Send a test email to verify SMTP configuration.
+
+    Protect with ADMIN_API_KEY in Authorization header as a simple bearer token.
+    Body: { "to": "you@example.com" }
+    """
+    try:
+        auth = request.headers.get('Authorization', '')
+        token = auth.split('Bearer ',-1)[-1].strip() if 'Bearer ' in auth else auth.strip()
+        expected = os.getenv('ADMIN_API_KEY')
+        if not expected or token != expected:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        payload = request.get_json() or {}
+        to_email = (payload.get('to') or '').strip()
+        if not to_email:
+            return jsonify({"error": "Missing 'to' email"}), 400
+
+        from ..utils.email_service import email_service
+        ok = email_service.send_test_email(to_email)
+        return jsonify({"ok": bool(ok)}), (200 if ok else 500)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/users', methods=['GET'])
 def get_admin_users():

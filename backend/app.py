@@ -22,7 +22,15 @@ def load_env_file():
                 line = line.strip()
                 if line and not line.startswith('#') and '=' in line:
                     key, value = line.split('=', 1)
-                    os.environ[key.strip()] = value.strip()
+                    k = key.strip()
+                    v = value.strip()
+                    # Don't override existing environment variables set by the platform
+                    if k in os.environ:
+                        continue
+                    # Strip surrounding quotes if present
+                    if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+                        v = v[1:-1]
+                    os.environ[k] = v
 
 def create_app(environ=None, start_response=None):
     print("🚀 Creating Flask app...")
