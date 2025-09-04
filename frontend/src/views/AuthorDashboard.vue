@@ -922,12 +922,7 @@ export default {
 }
 .btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
-.btn-icon.btn-publish { background-color: var(--success-mint-green); color: #fff; }
-.btn-icon.btn-publish:hover:not(:disabled) { background-color: var(--success-dark-mint); }
-.btn-icon.btn-seq-review { background-color: var(--extended-plum); color: #fff; }
-.btn-icon.btn-seq-review:hover:not(:disabled) { background-color: #7a3aa0; }
-.btn-icon.btn-send-review { background-color: var(--extended-goldenrod); color: #2C3E50; }
-.btn-icon.btn-send-review:hover:not(:disabled) { background-color: #e0be35; }
+/* Colored icon variants are defined globally in assets/style.css */
 
 /* Empty States */
 .empty-state {

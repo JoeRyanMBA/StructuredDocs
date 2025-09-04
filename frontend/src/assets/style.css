@@ -214,6 +214,25 @@ a:hover {
   box-shadow: var(--shadow-sm);
 }
 
+/* Success buttons - used in some views */
+.btn-success {
+  background-color: var(--success-dark-green);
+  color: var(--bg-white);
+}
+.btn-success:hover:not(:disabled) {
+  background-color: #14532d; /* slightly darker for hover */
+}
+
+/* Outline buttons - neutral outline variant */
+.btn-outline {
+  background-color: transparent;
+  color: var(--text-medium-gray);
+  border: 1px solid var(--extended-lavender-gray);
+}
+.btn-outline:hover:not(:disabled) {
+  background-color: var(--bg-light-mist-gray);
+}
+
 /* Small buttons - maintain consistent alignment */
 .btn-sm, .primary-btn.btn-sm, .secondary-btn.btn-sm {
   padding: 0.35rem 0.65rem;
@@ -781,6 +800,16 @@ a:hover {
 .btn-icon.btn-archive:hover:not(:disabled) { 
   background-color: var(--extended-cool-mint); 
 }
+
+/* Canonical colored icon variants used across Topics/Author dashboards */
+.btn-icon.btn-publish { background-color: var(--success-mint-green); color: #fff; }
+.btn-icon.btn-publish:hover:not(:disabled) { background-color: var(--success-dark-mint); }
+
+.btn-icon.btn-seq-review { background-color: var(--extended-plum); color: #fff; }
+.btn-icon.btn-seq-review:hover:not(:disabled) { background-color: #7a3aa0; }
+
+.btn-icon.btn-send-review { background-color: var(--extended-goldenrod); color: #2C3E50; }
+.btn-icon.btn-send-review:hover:not(:disabled) { background-color: #e0be35; }
 
 /* Forms */
 input, select, textarea {

@@ -85,6 +85,7 @@ export default {
           adminOnly: true,
           route: 'Admin',
           children: [
+            { key: 'design-buttons', label: 'Button Catalog', route: 'ButtonCatalog', icon: '🎛️' },
             { key: 'admin-users', label: 'Manage Users', route: 'AdminUsers', icon: '👥' },
             { key: 'admin-feedback', label: 'Feedback', route: 'AdminFeedback', icon: '💬' },
             { key: 'admin-bugs', label: 'Bugs', route: 'AdminBugs', icon: '🐞' }
