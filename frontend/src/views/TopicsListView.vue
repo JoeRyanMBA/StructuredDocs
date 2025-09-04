@@ -141,7 +141,7 @@
       <!-- Bulk actions toolbar -->
       <div class="bulk-actions" v-if="selectedTopicIds.length > 0">
         <span class="selection-count">{{ selectedTopicIds.length }} selected</span>
-        <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting">
+  <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting || !isAdmin">
           <i class="fas fa-trash"></i> Delete Selected
         </button>
         <div class="bulk-actions-spacer"></div>
@@ -220,6 +220,17 @@ export default {
   },
 
   computed: {
+    // Determine if current user is admin for permissioned actions
+    isAdmin() {
+      try {
+        const userStr = localStorage.getItem('user')
+        if (!userStr) return false
+        const user = JSON.parse(userStr)
+        return user && user.role === 'admin'
+      } catch (_) {
+        return false
+      }
+    },
     // Safe stakeholders for template rendering
     safeProjectStakeholders() {
       const projectStakeholders = (this.projectStakeholders || []).filter(s => s && s.id && s.name && s.can_review !== false)
@@ -413,7 +424,8 @@ export default {
       this.deleting = true
       try {
         const token = localStorage.getItem('access_token')
-        const res = await fetch('/api/topics/bulk', {
+        // Try DELETE with JSON body first
+        let res = await fetch('/api/topics/bulk', {
           method: 'DELETE',
           headers: {
             'Content-Type': 'application/json',
@@ -421,6 +433,19 @@ export default {
           },
           body: JSON.stringify({ ids: this.selectedTopicIds })
         })
+
+        // Fallback for environments that strip bodies on DELETE
+        if (res.status === 405 || res.status === 400) {
+          res = await fetch('/api/topics/bulk/delete', {
+            method: 'POST',
+            headers: {
+              'Content-Type': 'application/json',
+              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
+            },
+            body: JSON.stringify({ ids: this.selectedTopicIds })
+          })
+        }
+
         if (!res.ok) {
           let message = `Bulk delete failed (${res.status})`
           if (res.status === 401) {
@@ -436,6 +461,7 @@ export default {
           }
           throw new Error(message)
         }
+
         const result = await res.json()
         const deleted = result.deleted || 0
         const notFound = (result.not_found || []).length
