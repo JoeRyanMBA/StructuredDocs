@@ -1,6 +1,12 @@
 <template>
   <div class="user-management">
-    <!-- <h2>User List</h2> -->
+    <div class="header">
+      <div class="spacer"></div>
+      <button @click="addUser" class="btn btn-primary">
+        <i class="fas fa-plus"></i>
+        Add User
+      </button>
+    </div>
     <!-- Users Table -->
     <div class="users-table">
       <table>
@@ -401,6 +407,8 @@ export default {
   align-items: center;
   margin-bottom: 30px;
 }
+
+.header .spacer { flex: 1; }
 
 .header h2 {
   margin: 0;
