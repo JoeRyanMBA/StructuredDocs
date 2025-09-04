@@ -424,9 +424,9 @@ export default {
       this.deleting = true
       try {
         const token = localStorage.getItem('access_token')
-        // Try DELETE with JSON body first
-        let res = await fetch('/api/topics/bulk', {
-          method: 'DELETE',
+        // Prefer POST alias first (most proxies are fine with POST)
+        let res = await fetch('/api/topics/bulk/delete', {
+          method: 'POST',
           headers: {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -434,10 +434,10 @@ export default {
           body: JSON.stringify({ ids: this.selectedTopicIds })
         })
 
-        // Fallback for environments that strip bodies on DELETE
-        if (res.status === 405 || res.status === 400) {
-          res = await fetch('/api/topics/bulk/delete', {
-            method: 'POST',
+        // Fallback to DELETE in case POST alias is unavailable in older deployments
+        if (res.status === 404 || res.status === 405) {
+          res = await fetch('/api/topics/bulk', {
+            method: 'DELETE',
             headers: {
               'Content-Type': 'application/json',
               ...(token ? { 'Authorization': `Bearer ${token}` } : {})
@@ -451,7 +451,7 @@ export default {
           if (res.status === 401) {
             message = 'Your session has expired. Please log in again.'
           } else if (res.status === 403) {
-            message = 'You do not have permission to delete topics.'
+            message = 'Admin role required for bulk deletion.'
           }
           try {
             const err = await res.json()
