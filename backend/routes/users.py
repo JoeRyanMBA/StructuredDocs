@@ -27,15 +27,16 @@ def login():
             user = User.query.filter(func.lower(User.name) == credential).first()
 
         print(f"👤 User found: {user is not None}")
-        
-        # Fail fast if no user or no password set
-        if not user or not user.password_hash:
+
+        # Fail fast if no user, no password provided, or no password hash set
+        if (not user) or (not isinstance(password, str) or password == '') or (not user.password_hash):
             print("❌ No user or no password hash")
             return jsonify({"msg": "Bad email or password"}), 401
 
         try:
             if check_password_hash(user.password_hash, password):
-                access_token = create_access_token(identity=user.id)
+                # Use string identity to avoid 422 "Subject must be a string" issues in some environments
+                access_token = create_access_token(identity=str(user.id))
                 print("✅ Login successful")
                 return jsonify(access_token=access_token, user=user.to_dict())
         except Exception as e:
@@ -46,7 +47,7 @@ def login():
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Internal server error"}), 500
-        
+
     print("❌ Invalid credentials")
     return jsonify({"msg": "Bad email or password"}), 401
 
@@ -54,7 +55,11 @@ def login():
 @jwt_required()
 def get_me():
     user_id = get_jwt_identity()
-    user = User.query.get(user_id)
+    try:
+        user_pk = int(user_id) if user_id is not None else None
+    except (TypeError, ValueError):
+        user_pk = None
+    user = User.query.get(user_pk) if user_pk is not None else None
     if user:
         return jsonify(user.to_dict()), 200
     return jsonify({"msg": "User not found"}), 404

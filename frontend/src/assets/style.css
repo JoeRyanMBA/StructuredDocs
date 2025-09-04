@@ -214,11 +214,13 @@ a:hover {
 
 /* Success buttons - used in some views */
 .btn-success {
-  background-color: var(--bs-green:);
+  background-color: var(--success-mint-green);
   color: var(--bg-white);
 }
 .btn-success:hover:not(:disabled) {
   background-color: #14532d; /* slightly darker for hover */
+   transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Outline buttons - neutral outline variant */
@@ -229,6 +231,8 @@ a:hover {
 }
 .btn-outline:hover:not(:disabled) {
   background-color: var(--bg-light-mist-gray);
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Small buttons - maintain consistent alignment */
@@ -270,6 +274,8 @@ a:hover {
 
 .btn-info:hover:not(:disabled) {
   background-color: var(--primary-medium-teal); /* Changed to match app's primary color */
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
 }
 
 /* Keep small buttons anchored (no lift on hover) to avoid misalignment in toolbars */
