@@ -229,8 +229,17 @@
     </div>
 
     <!-- Loading State -->
-    <div v-if="loading" class="loading-overlay">
-      <div class="loading-spinner">Loading your content...</div>
+    <div
+      v-if="loading"
+      class="loading-overlay"
+      role="status"
+      aria-live="polite"
+      aria-busy="true"
+    >
+      <div class="loading-container">
+        <div class="loading-spinner" aria-hidden="true"></div>
+        <div class="loading-text">Loading your content...</div>
+      </div>
     </div>
   </div>
 </template>
