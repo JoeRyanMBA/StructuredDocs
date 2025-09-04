@@ -772,7 +772,7 @@ a:hover {
 .btn-icon.btn-danger { background-color: #dc3545; color: white; }
 .btn-icon.btn-danger:hover:not(:disabled) { background-color: #c82333; }
 /* Neutral archive style */
-.btn-icon.btn-archive { background-color: #f3f4f6; color: #374151; border: 1px solid #e5e7eb; }
+.btn-icon.btn-archive { background-color: var(--extended-goldenrod); color: #374151; border: 1px solid #e5e7eb; }
 .btn-icon.btn-archive:hover:not(:disabled) { background-color: #e5e7eb; }
 
 /* Forms */
