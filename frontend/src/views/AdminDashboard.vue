@@ -74,10 +74,8 @@
           </button>
         </div>
       </div>
-      <!-- Database Metrics Panel -->
-      <div class="dashboard-section">
-        <DatabaseMetricsPanel :metrics="dbMetrics" />
-      </div>
+  <!-- Database Metrics Panel -->
+  <DatabaseMetricsPanel :metrics="dbMetrics" />
 
   <!-- System Overview -->
   <div class="dashboard-section full-width">
