@@ -132,8 +132,22 @@
           </div>
           <div class="modal-body">
             <div class="tabs">
-              <button :class="['mode-btn', { active: linkInsertMode === 'manual' }]" @click="linkInsertMode = 'manual'">Manual</button>
-              <button :class="['mode-btn', { active: linkInsertMode === 'existing' }]" @click="openExistingLinks">Existing</button>
+              <button
+                :class="['btn','btn-sm', linkInsertMode === 'manual' ? 'btn-primary' : 'btn-secondary']"
+                :aria-pressed="linkInsertMode === 'manual'"
+                @click="linkInsertMode = 'manual'"
+                type="button"
+              >
+                Manual
+              </button>
+              <button
+                :class="['btn','btn-sm', linkInsertMode === 'existing' ? 'btn-primary' : 'btn-secondary']"
+                :aria-pressed="linkInsertMode === 'existing'"
+                @click="openExistingLinks"
+                type="button"
+              >
+                Existing
+              </button>
             </div>
             <div v-if="linkInsertMode === 'manual'">
             <div class="form-group">
@@ -175,8 +189,22 @@
           </div>
           <div class="modal-body">
             <div class="tabs">
-              <button :class="['mode-btn', { active: imageInsertMode === 'url' }]" @click="imageInsertMode = 'url'">By URL</button>
-              <button :class="['mode-btn', { active: imageInsertMode === 'existing' }]" @click="openExistingImages">Browse</button>
+              <button
+                :class="['btn','btn-sm', imageInsertMode === 'url' ? 'btn-primary' : 'btn-secondary']"
+                :aria-pressed="imageInsertMode === 'url'"
+                @click="imageInsertMode = 'url'"
+                type="button"
+              >
+                By URL
+              </button>
+              <button
+                :class="['btn','btn-sm', imageInsertMode === 'existing' ? 'btn-primary' : 'btn-secondary']"
+                :aria-pressed="imageInsertMode === 'existing'"
+                @click="openExistingImages"
+                type="button"
+              >
+                Browse
+              </button>
             </div>
             <div v-if="imageInsertMode === 'url'">
             <div class="form-group">
@@ -684,8 +712,9 @@ export default {
 }
 /* Simple resource picker styles */
 .tabs { display:flex; gap:.5rem; margin-bottom: .75rem; }
-.mode-btn { padding:.35rem .6rem; border:1px solid #ddd; background:#f8f9fa; border-radius:4px; cursor:pointer; }
-.mode-btn.active { background:#e9ecef; border-color:#ccc; }
+/* Use global .btn styles for tab buttons */
+.mode-btn { font-size: 0.8rem; }
+
 .resource-list { max-height: 260px; overflow:auto; border:1px solid #eee; border-radius:6px; }
 .resource-item { padding:.5rem .75rem; border-bottom:1px solid #f1f3f5; cursor:pointer; }
 .resource-item:hover { background:#f8f9fa; }
