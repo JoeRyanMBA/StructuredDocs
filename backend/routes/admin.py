@@ -215,46 +215,66 @@ def send_test_email_endpoint():
     Body: { "to": "you@example.com" }
     """
     try:
-        # Accept either Authorization: Bearer <token> or plain Authorization: <token>
-        auth = request.headers.get('Authorization', '')
-        token = auth.split('Bearer ',-1)[-1].strip() if 'Bearer ' in auth else auth.strip()
-        # Optional fallback header name to avoid issues with intermediaries stripping Authorization
+        # Auth: Authorization: Bearer <token> OR Authorization: <token> OR X-Admin-Token
+        auth = request.headers.get('Authorization', '') or ''
+        token = ''
+        if auth.startswith('Bearer '):
+            token = auth[7:].strip()
+        elif auth:
+            token = auth.strip()
         if not token:
             token = (request.headers.get('X-Admin-Token', '') or '').strip()
-        expected = os.getenv('ADMIN_API_KEY')
-        expected = expected.strip() if isinstance(expected, str) else expected
+        expected = (os.getenv('ADMIN_API_KEY') or '').strip()
         if not expected or token != expected:
             return jsonify({"error": "Unauthorized"}), 401
 
-        payload = request.get_json() or {}
+        payload = request.get_json(silent=True) or {}
         to_email = (payload.get('to') or '').strip()
         if not to_email:
             return jsonify({"error": "Missing 'to' email"}), 400
 
-        # Prefer SendGrid when configured
-        if os.getenv('SENDGRID_API_KEY'):
+        use_sendgrid = bool(os.getenv('SENDGRID_API_KEY'))
+        status_code = None
+        body_text = None
+        ok = False
+
+        if use_sendgrid:
             try:
-                from email_utils import send_email as sg_send_email  # project root module
-                resp = sg_send_email(to_email, "StructuredDocs Test Email", "This is a test email from StructuredDocs via SendGrid.")
-                ok = bool(resp)
+                from sendgrid import SendGridAPIClient  # type: ignore
+                from sendgrid.helpers.mail import Mail  # type: ignore
+                api_key = os.getenv('SENDGRID_API_KEY')
+                from_email = os.getenv('DEFAULT_FROM_EMAIL', '')
+                message = Mail(
+                    from_email=from_email,
+                    to_emails=to_email,
+                    subject="StructuredDocs Test Email",
+                    plain_text_content="This is a test email from StructuredDocs via SendGrid.",
+                    html_content="<strong>This is a test email from StructuredDocs via SendGrid.</strong>",
+                )
+                sg = SendGridAPIClient(api_key)
+                resp = sg.send(message)
+                status_code = getattr(resp, 'status_code', None)
+                body = getattr(resp, 'body', b'')
+                body_text = body.decode('utf-8', errors='ignore') if isinstance(body, (bytes, bytearray)) else str(body)
+                ok = (status_code == 202)
             except Exception as e:
+                body_text = str(e)
                 ok = False
         else:
             from ..utils.email_service import email_service
             ok = email_service.send_test_email(to_email)
-        # Provide non-secret diagnostics to help troubleshoot setup
-        if os.getenv('SENDGRID_API_KEY'):
-            detail = {
-                "provider": "sendgrid",
-                "from": os.getenv('DEFAULT_FROM_EMAIL', ''),
-                "has_key": bool(os.getenv('SENDGRID_API_KEY')),
-            }
+
+        # Non-secret diagnostics
+        detail = {"provider": "sendgrid" if use_sendgrid else "smtp"}
+        if use_sendgrid:
+            detail["from"] = os.getenv('DEFAULT_FROM_EMAIL', '')
+            detail["has_key"] = str(True)
+            detail["status_code"] = str(status_code) if status_code is not None else ""
+            detail["response"] = body_text or ""
         else:
-            detail = {
-                "provider": "smtp",
-                "server": os.getenv('SMTP_SERVER', ''),
-                "from": os.getenv('FROM_EMAIL', ''),
-            }
+            detail["server"] = os.getenv('SMTP_SERVER', '')
+            detail["from"] = os.getenv('FROM_EMAIL', '')
+
         return jsonify({"ok": bool(ok), "detail": detail}), (200 if ok else 500)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
