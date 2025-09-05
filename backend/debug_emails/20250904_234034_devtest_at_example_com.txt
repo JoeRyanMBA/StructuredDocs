@@ -1,0 +1,9 @@
+To: devtest@example.com
+Subject: StructuredDocs Test Email
+Timestamp: 2025-09-04T23:40:34.099002
+--------------------------------------------------
+StructuredDocs Email Test
+
+From: StructuredDocs Review System <noreply@structureddocs.local>
+Server: localhost:587
+Timestamp: 2025-09-04T23:40:34.098049
