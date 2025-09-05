@@ -215,9 +215,14 @@ def send_test_email_endpoint():
     Body: { "to": "you@example.com" }
     """
     try:
+        # Accept either Authorization: Bearer <token> or plain Authorization: <token>
         auth = request.headers.get('Authorization', '')
         token = auth.split('Bearer ',-1)[-1].strip() if 'Bearer ' in auth else auth.strip()
+        # Optional fallback header name to avoid issues with intermediaries stripping Authorization
+        if not token:
+            token = (request.headers.get('X-Admin-Token', '') or '').strip()
         expected = os.getenv('ADMIN_API_KEY')
+        expected = expected.strip() if isinstance(expected, str) else expected
         if not expected or token != expected:
             return jsonify({"error": "Unauthorized"}), 401
 
