@@ -18,4 +18,8 @@ try:
     print(response.body)
     print(response.headers)
 except Exception as e:
-    print(str(e))
+    print(e)
+    try:
+        print(e.body)
+    except Exception:
+        pass
