@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, User, Notification, Topic, Collection, Project, Task
+from ..utils.email_service import get_email_service
 from sqlalchemy import func
 from datetime import datetime, timedelta
 import os
@@ -276,6 +277,40 @@ def send_test_email_endpoint():
             detail["from"] = os.getenv('FROM_EMAIL', '')
 
         return jsonify({"ok": bool(ok), "detail": detail}), (200 if ok else 500)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
+@admin_bp.route('/email-status', methods=['GET'])
+def email_status():
+    """Return sanitized email configuration status (no secrets)."""
+    try:
+        auth = request.headers.get('Authorization', '') or ''
+        token = ''
+        if auth.startswith('Bearer '):
+            token = auth[7:].strip()
+        elif auth:
+            token = auth.strip()
+        if not token:
+            token = (request.headers.get('X-Admin-Token', '') or '').strip()
+        expected = (os.getenv('ADMIN_API_KEY') or '').strip()
+        if not expected or token != expected:
+            return jsonify({"error": "Unauthorized"}), 401
+
+        svc = get_email_service()
+        svc.reload_config()
+        provider = svc.provider or 'smtp'
+        data = {
+            'provider': provider,
+            'fromEmail': svc.from_email,
+            'fromName': svc.from_name,
+            'debugMode': svc.debug_mode,
+            'smtpServer': svc.smtp_server if provider == 'smtp' else None,
+            'smtpPort': svc.smtp_port if provider == 'smtp' else None,
+            'lastError': svc.last_error,
+            'hasPostmarkToken': bool(getattr(svc, 'postmark_token', '')),
+            'hasResendKey': bool(getattr(svc, 'resend_api_key', '')),
+        }
+        return jsonify(data), 200
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
