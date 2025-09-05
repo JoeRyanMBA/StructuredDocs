@@ -1,6 +1,12 @@
+"""Email service for sending various application emails (review, setup, reset).
+
+Supports two delivery modes:
+1. Provider HTTP API (Postmark, Resend) when EMAIL_PROVIDER is set.
+2. SMTP fallback (STARTTLS or SSL) when no provider chosen or provider fails.
+
+Includes a debug mode (EMAIL_DEBUG=true) that writes emails to files instead.
 """
-Email service for sending review notifications
-"""
+
 import smtplib
 import ssl
 import os
@@ -10,68 +16,65 @@ from datetime import datetime
 import logging
 from typing import Optional
 
-try:
-    import requests  # Used for provider HTTP APIs (Postmark, Resend)
-except Exception:  # pragma: no cover - only needed if provider HTTP path is used
-    requests = None
+try:  # Optional dependency for provider APIs
+    import requests  # type: ignore
+except Exception:  # pragma: no cover
+    requests = None  # Fallback: provider mode will log an error if used
 
 logger = logging.getLogger(__name__)
 
+
+def _clean_env(key: str, default: Optional[str] = None) -> str:
+    """Fetch and normalize an environment variable (strip quotes/whitespace)."""
+    v = os.getenv(key, default)
+    if isinstance(v, str):
+        v = v.strip().strip("'\"")
+    return v or ""
+
+
 class EmailService:
-    def __init__(self):
-        # Email configuration - can be set via environment variables
-        def _clean(key, default=None):
-            v = os.getenv(key, default)
-            if isinstance(v, str):
-                # Strip surrounding quotes and whitespace if present
-                v = v.strip().strip("'\"")
-            return v
+    # Class-level annotation (acceptable to static analyzers)
+    last_error: Optional[str] = None
 
-        # SMTP config
-        self.smtp_server = (_clean('SMTP_SERVER', 'localhost') or 'localhost')
-        self.smtp_port = int(str(_clean('SMTP_PORT', '587') or '587'))
-        self.smtp_username = (_clean('SMTP_USERNAME', '') or '')
-        self.smtp_password = (_clean('SMTP_PASSWORD', '') or '')
-        # From branding
-        self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
-        self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
-        # Optional provider-based sending (avoids SMTP deliverability hassles)
-        self.provider = (os.getenv('EMAIL_PROVIDER', '') or '').strip().lower()  # e.g., 'postmark' or 'resend'
-        self.postmark_token = _clean('POSTMARK_API_TOKEN', '')
-        self.postmark_message_stream = _clean('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
-    self.resend_api_key = _clean('RESEND_API_KEY', '')
-    # Email debug settings
-    self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
-    # Default debug email directory
-    self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
-    # Last error detail for diagnostic endpoints
-    self.last_error: Optional[str] = None
+    def __init__(self) -> None:
+        # SMTP configuration
+        self.smtp_server = _clean_env('SMTP_SERVER', 'localhost') or 'localhost'
+        self.smtp_port = int(_clean_env('SMTP_PORT', '587') or '587')
+        self.smtp_username = _clean_env('SMTP_USERNAME', '')
+        self.smtp_password = _clean_env('SMTP_PASSWORD', '')
 
-    def reload_config(self):
-        """Reload configuration from environment variables"""
-        def _clean(key, default=None):
-            v = os.getenv(key, default)
-            if isinstance(v, str):
-                v = v.strip().strip("'\"")
-            return v
+        # From / branding
+        self.from_email = _clean_env('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local'
+        self.from_name = _clean_env('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System'
 
-        # SMTP config
-        self.smtp_server = (_clean('SMTP_SERVER', 'localhost') or 'localhost')
-        self.smtp_port = int(str(_clean('SMTP_PORT', '587') or '587'))
-        self.smtp_username = (_clean('SMTP_USERNAME', '') or '')
-        self.smtp_password = (_clean('SMTP_PASSWORD', '') or '')
-        # From branding
-        self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
-        self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
-        # Provider config
-        self.provider = (os.getenv('EMAIL_PROVIDER', '') or '').strip().lower()
-        self.postmark_token = _clean('POSTMARK_API_TOKEN', '')
-        self.postmark_message_stream = _clean('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
-        self.resend_api_key = _clean('RESEND_API_KEY', '')
-        # Debug
-        self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
-        # Set debug email directory relative to current working directory
+        # Provider (HTTP) configuration
+        self.provider = os.getenv('EMAIL_PROVIDER', '').strip().lower()  # 'postmark' or 'resend'
+        self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
+        self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
+        self.resend_api_key = _clean_env('RESEND_API_KEY', '')
+
+        # Debug mode
+        self.debug_mode = os.getenv('EMAIL_DEBUG', 'false').strip().lower() == 'true'
         self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
+
+        # Reset last error
+        self.last_error = None
+
+    def reload_config(self) -> None:
+        """Reload environment-driven configuration at runtime."""
+        self.smtp_server = _clean_env('SMTP_SERVER', 'localhost') or 'localhost'
+        self.smtp_port = int(_clean_env('SMTP_PORT', '587') or '587')
+        self.smtp_username = _clean_env('SMTP_USERNAME', '')
+        self.smtp_password = _clean_env('SMTP_PASSWORD', '')
+        self.from_email = _clean_env('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local'
+        self.from_name = _clean_env('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System'
+        self.provider = os.getenv('EMAIL_PROVIDER', '').strip().lower()
+        self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
+        self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
+        self.resend_api_key = _clean_env('RESEND_API_KEY', '')
+        self.debug_mode = os.getenv('EMAIL_DEBUG', 'false').strip().lower() == 'true'
+        self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
+        self.last_error = None
         
     def send_review_notification(self, reviewer_email, reviewer_name, topic_title, 
                                 topic_id, author_message, due_date, priority, 
