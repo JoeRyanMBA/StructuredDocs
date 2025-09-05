@@ -226,8 +226,17 @@ def send_test_email_endpoint():
         if not to_email:
             return jsonify({"error": "Missing 'to' email"}), 400
 
-        from ..utils.email_service import email_service
-        ok = email_service.send_test_email(to_email)
+        # Prefer SendGrid when configured
+        if os.getenv('SENDGRID_API_KEY'):
+            try:
+                from email_utils import send_email as sg_send_email  # project root module
+                resp = sg_send_email(to_email, "StructuredDocs Test Email", "This is a test email from StructuredDocs via SendGrid.")
+                ok = bool(resp)
+            except Exception as e:
+                ok = False
+        else:
+            from ..utils.email_service import email_service
+            ok = email_service.send_test_email(to_email)
         return jsonify({"ok": bool(ok)}), (200 if ok else 500)
     except Exception as e:
         return jsonify({"error": str(e)}), 500

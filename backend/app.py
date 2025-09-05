@@ -14,23 +14,37 @@ from datetime import datetime
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def load_env_file():
-    """Load environment variables from .env file"""
-    env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
-    if os.path.exists(env_file):
-        with open(env_file, 'r') as f:
-            for line in f:
-                line = line.strip()
-                if line and not line.startswith('#') and '=' in line:
-                    key, value = line.split('=', 1)
-                    k = key.strip()
-                    v = value.strip()
-                    # Don't override existing environment variables set by the platform
-                    if k in os.environ:
-                        continue
-                    # Strip surrounding quotes if present
-                    if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
-                        v = v[1:-1]
-                    os.environ[k] = v
+    """Load environment variables from .env files (.env at repo root and backend/.env.email).
+
+    Uses python-dotenv when available (preferred), then falls back to a minimal
+    manual loader for the repo root .env. Never overrides existing env vars.
+    """
+    # Preferred: python-dotenv for both files, without override
+    try:
+        from dotenv import load_dotenv  # type: ignore
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        backend_dir = os.path.dirname(__file__)
+        # Load root .env first, then backend/.env.email
+        load_dotenv(os.path.join(repo_root, '.env'), override=False)
+        load_dotenv(os.path.join(backend_dir, '.env.email'), override=False)
+    except Exception:
+        # Fallback: minimal manual loader for root .env
+        env_file = os.path.join(os.path.dirname(os.path.dirname(__file__)), '.env')
+        if os.path.exists(env_file):
+            with open(env_file, 'r') as f:
+                for line in f:
+                    line = line.strip()
+                    if line and not line.startswith('#') and '=' in line:
+                        key, value = line.split('=', 1)
+                        k = key.strip()
+                        v = value.strip()
+                        # Don't override existing environment variables set by the platform
+                        if k in os.environ:
+                            continue
+                        # Strip surrounding quotes if present
+                        if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
+                            v = v[1:-1]
+                        os.environ[k] = v
 
 def create_app(environ=None, start_response=None):
     print("🚀 Creating Flask app...")
