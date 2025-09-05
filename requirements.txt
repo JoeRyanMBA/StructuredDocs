@@ -17,3 +17,4 @@ click
 itsdangerous
 Jinja2
 requests
+sendgrid
