@@ -456,8 +456,10 @@ def resend_setup_email(user_id):
             print(f"✅ Setup email resent to {user.email}")
             return jsonify({"message": f"Password setup email sent to {user.email}"}), 200
         else:
-            print(f"⚠️ Failed to resend setup email to {user.email}")
-            return jsonify({"error": "Failed to send setup email"}), 500
+            # Surface non-secret last_error for diagnostics
+            last_err = getattr(email_service, 'last_error', None)
+            print(f"⚠️ Failed to resend setup email to {user.email}; last_error={last_err}")
+            return jsonify({"error": "Failed to send setup email", "detail": last_err}), 500
         
     except Exception as e:
         db.session.rollback()
