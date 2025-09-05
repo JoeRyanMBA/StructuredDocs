@@ -242,7 +242,20 @@ def send_test_email_endpoint():
         else:
             from ..utils.email_service import email_service
             ok = email_service.send_test_email(to_email)
-        return jsonify({"ok": bool(ok)}), (200 if ok else 500)
+        # Provide non-secret diagnostics to help troubleshoot setup
+        if os.getenv('SENDGRID_API_KEY'):
+            detail = {
+                "provider": "sendgrid",
+                "from": os.getenv('DEFAULT_FROM_EMAIL', ''),
+                "has_key": bool(os.getenv('SENDGRID_API_KEY')),
+            }
+        else:
+            detail = {
+                "provider": "smtp",
+                "server": os.getenv('SMTP_SERVER', ''),
+                "from": os.getenv('FROM_EMAIL', ''),
+            }
+        return jsonify({"ok": bool(ok), "detail": detail}), (200 if ok else 500)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
