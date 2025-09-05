@@ -16,3 +16,4 @@ Werkzeug
 click
 itsdangerous
 Jinja2
+requests

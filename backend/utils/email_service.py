@@ -8,6 +8,12 @@ from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
 import logging
+from typing import Optional
+
+try:
+    import requests  # Used for provider HTTP APIs (Postmark, Resend)
+except Exception:  # pragma: no cover - only needed if provider HTTP path is used
+    requests = None
 
 logger = logging.getLogger(__name__)
 
@@ -21,12 +27,19 @@ class EmailService:
                 v = v.strip().strip("'\"")
             return v
 
+        # SMTP config
         self.smtp_server = (_clean('SMTP_SERVER', 'localhost') or 'localhost')
         self.smtp_port = int(str(_clean('SMTP_PORT', '587') or '587'))
         self.smtp_username = (_clean('SMTP_USERNAME', '') or '')
         self.smtp_password = (_clean('SMTP_PASSWORD', '') or '')
+        # From branding
         self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
         self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
+        # Optional provider-based sending (avoids SMTP deliverability hassles)
+        self.provider = (os.getenv('EMAIL_PROVIDER', '') or '').strip().lower()  # e.g., 'postmark' or 'resend'
+        self.postmark_token = _clean('POSTMARK_API_TOKEN', '')
+        self.postmark_message_stream = _clean('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
+        self.resend_api_key = _clean('RESEND_API_KEY', '')
         # Email debug settings
         self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
         # Default debug email directory
@@ -40,12 +53,20 @@ class EmailService:
                 v = v.strip().strip("'\"")
             return v
 
+        # SMTP config
         self.smtp_server = (_clean('SMTP_SERVER', 'localhost') or 'localhost')
         self.smtp_port = int(str(_clean('SMTP_PORT', '587') or '587'))
         self.smtp_username = (_clean('SMTP_USERNAME', '') or '')
         self.smtp_password = (_clean('SMTP_PASSWORD', '') or '')
+        # From branding
         self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
         self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
+        # Provider config
+        self.provider = (os.getenv('EMAIL_PROVIDER', '') or '').strip().lower()
+        self.postmark_token = _clean('POSTMARK_API_TOKEN', '')
+        self.postmark_message_stream = _clean('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
+        self.resend_api_key = _clean('RESEND_API_KEY', '')
+        # Debug
         self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
         # Set debug email directory relative to current working directory
         self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
@@ -179,7 +200,7 @@ class EmailService:
             return False
     
     def _send_email(self, to_email, subject, html_content, text_content):
-        """Send email using SMTP or debug mode"""
+        """Send email via provider HTTP API if configured; otherwise use SMTP or debug mode"""
         # Only use debug mode when explicitly enabled; do not default to True
         if self.debug_mode:
             # In debug mode, just log the email content
@@ -193,6 +214,14 @@ class EmailService:
             # Also write to a file for easy access
             self._write_debug_email(to_email, subject, text_content)
             return True
+
+        # Try provider-based delivery first if configured
+        if self.provider:
+            ok = self._send_via_provider(to_email, subject, html_content, text_content)
+            if ok:
+                return True
+            # If provider configured but failed, fall back to SMTP as secondary path
+            logger.warning("Provider email sending failed; falling back to SMTP")
 
         try:
             # Create message
@@ -249,6 +278,73 @@ class EmailService:
                 f"SMTP error sending email to {to_email}: {str(e)} | "
                 f"server={self.smtp_server}:{self.smtp_port}, from={self.from_email}"
             )
+            return False
+
+    def _send_via_provider(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
+        """Send email using a transactional provider HTTP API.
+
+        Supported providers: postmark, resend
+        """
+        provider = (self.provider or '').lower()
+        if not provider:
+            return False
+        if requests is None:
+            logger.error("requests not available; install it or disable EMAIL_PROVIDER")
+            return False
+
+        try:
+            if provider == 'postmark':
+                if not self.postmark_token:
+                    logger.error("POSTMARK_API_TOKEN not set")
+                    return False
+                url = 'https://api.postmarkapp.com/email'
+                headers = {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Postmark-Server-Token': self.postmark_token,
+                }
+                payload = {
+                    'From': f"{self.from_name} <{self.from_email}>",
+                    'To': to_email,
+                    'Subject': subject,
+                    'HtmlBody': html_content,
+                    'TextBody': text_content,
+                    'MessageStream': self.postmark_message_stream or 'outbound',
+                }
+                resp = requests.post(url, json=payload, headers=headers, timeout=10)
+                if resp.status_code in (200, 201):
+                    logger.info(f"Postmark: email sent to {to_email}")
+                    return True
+                logger.error(f"Postmark send failed {resp.status_code}: {resp.text}")
+                return False
+
+            if provider == 'resend':
+                if not self.resend_api_key:
+                    logger.error("RESEND_API_KEY not set")
+                    return False
+                url = 'https://api.resend.com/emails'
+                headers = {
+                    'Authorization': f"Bearer {self.resend_api_key}",
+                    'Content-Type': 'application/json',
+                }
+                payload = {
+                    'from': f"{self.from_name} <{self.from_email}>",
+                    'to': [to_email],
+                    'subject': subject,
+                    'html': html_content,
+                    'text': text_content,
+                }
+                resp = requests.post(url, json=payload, headers=headers, timeout=10)
+                if resp.status_code in (200, 201):
+                    logger.info(f"Resend: email sent to {to_email}")
+                    return True
+                logger.error(f"Resend send failed {resp.status_code}: {resp.text}")
+                return False
+
+            logger.error(f"Unsupported EMAIL_PROVIDER: {provider}")
+            return False
+        except Exception as e:
+            logger.error(f"Provider send error ({provider}) to {to_email}: {str(e)}")
             return False
 
     def send_test_email(self, to_email: str, base_url: str | None = None) -> bool:
