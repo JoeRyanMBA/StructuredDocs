@@ -10,8 +10,10 @@ from datetime import datetime
 import logging
 from typing import Optional
 
-# Optional HTTP client for providers that use direct HTTP APIs (Postmark, Resend).
-# We import lazily inside methods to keep this optional.
+try:
+    import requests  # Used for provider HTTP APIs (Postmark, Resend)
+except Exception:  # pragma: no cover - only needed if provider HTTP path is used
+    requests = None
 
 logger = logging.getLogger(__name__)
 
@@ -34,17 +36,16 @@ class EmailService:
         self.from_email = (_clean('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local')
         self.from_name = (_clean('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System')
         # Optional provider-based sending (avoids SMTP deliverability hassles)
-        self.provider = (os.getenv('EMAIL_PROVIDER', '') or '').strip().lower()  # e.g., 'sendgrid', 'postmark', 'resend'
+        self.provider = (os.getenv('EMAIL_PROVIDER', '') or '').strip().lower()  # e.g., 'postmark' or 'resend'
         self.postmark_token = _clean('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
-        self.resend_api_key = _clean('RESEND_API_KEY', '')
-        # Auto-select SendGrid provider if API key present and no provider explicitly set
-        if not self.provider and (_clean('SENDGRID_API_KEY', '') or ''):
-            self.provider = 'sendgrid'
-        # Email debug settings
-        self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
-        # Default debug email directory
-        self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
+    self.resend_api_key = _clean('RESEND_API_KEY', '')
+    # Email debug settings
+    self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
+    # Default debug email directory
+    self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
+    # Last error detail for diagnostic endpoints
+    self.last_error: Optional[str] = None
 
     def reload_config(self):
         """Reload configuration from environment variables"""
@@ -67,9 +68,6 @@ class EmailService:
         self.postmark_token = _clean('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean('RESEND_API_KEY', '')
-        # Auto-select SendGrid if available
-        if not self.provider and (_clean('SENDGRID_API_KEY', '') or ''):
-            self.provider = 'sendgrid'
         # Debug
         self.debug_mode = (os.getenv('EMAIL_DEBUG', 'false') or 'false').strip().lower() == 'true'
         # Set debug email directory relative to current working directory
@@ -223,6 +221,7 @@ class EmailService:
         if self.provider:
             ok = self._send_via_provider(to_email, subject, html_content, text_content)
             if ok:
+                self.last_error = None
                 return True
             # If provider configured but failed, fall back to SMTP as secondary path
             logger.warning("Provider email sending failed; falling back to SMTP")
@@ -275,6 +274,7 @@ class EmailService:
             server.quit()
 
             logger.info(f"Email sent successfully to {to_email}")
+            self.last_error = None
             return True
 
         except Exception as e:
@@ -282,46 +282,27 @@ class EmailService:
                 f"SMTP error sending email to {to_email}: {str(e)} | "
                 f"server={self.smtp_server}:{self.smtp_port}, from={self.from_email}"
             )
+            self.last_error = f"SMTP error: {e}"
             return False
 
     def _send_via_provider(self, to_email: str, subject: str, html_content: str, text_content: str) -> bool:
-        """Send email using a transactional provider.
+        """Send email using a transactional provider HTTP API.
 
-        Supported providers: sendgrid, postmark, resend
+        Supported providers: postmark, resend
         """
         provider = (self.provider or '').lower()
         if not provider:
             return False
-        # Lazily import requests for providers that need HTTP
-        def _get_requests():
-            try:
-                import requests  # type: ignore
-                return requests
-            except Exception:
-                return None
-            if provider == 'sendgrid':
-                # Prefer using the SendGrid SDK via our email_utils wrapper
-                try:
-                    api_key = os.getenv('SENDGRID_API_KEY', '').strip()
-                    if not api_key:
-                        logger.error("SENDGRID_API_KEY not set")
-                        return False
-                    # Import lazily to avoid hard dependency if not used
-                    from email_utils import send_email as sg_send_email  # type: ignore
-                    resp = sg_send_email(to_email, subject, text_content, html_content)
-                    if resp is not None:
-                        logger.info(f"SendGrid: email sent to {to_email}")
-                        return True
-                    logger.error("SendGrid send returned None")
-                    return False
-                except Exception as e:
-                    logger.error(f"SendGrid send failed: {e}")
-                    return False
+        if requests is None:
+            logger.error("requests not available; install it or disable EMAIL_PROVIDER")
+            return False
 
         try:
             if provider == 'postmark':
                 if not self.postmark_token:
-                    logger.error("POSTMARK_API_TOKEN not set")
+                    msg = "POSTMARK_API_TOKEN not set"
+                    logger.error(msg)
+                    self.last_error = msg
                     return False
                 url = 'https://api.postmarkapp.com/email'
                 headers = {
@@ -337,20 +318,20 @@ class EmailService:
                     'TextBody': text_content,
                     'MessageStream': self.postmark_message_stream or 'outbound',
                 }
-                requests = _get_requests()
-                if requests is None:
-                    logger.error("requests not available; install it or disable EMAIL_PROVIDER")
-                    return False
                 resp = requests.post(url, json=payload, headers=headers, timeout=10)
                 if resp.status_code in (200, 201):
                     logger.info(f"Postmark: email sent to {to_email}")
                     return True
-                logger.error(f"Postmark send failed {resp.status_code}: {resp.text}")
+                msg = f"Postmark failure {resp.status_code}: {resp.text}".strip()
+                logger.error(msg)
+                self.last_error = msg
                 return False
 
             if provider == 'resend':
                 if not self.resend_api_key:
-                    logger.error("RESEND_API_KEY not set")
+                    msg = "RESEND_API_KEY not set"
+                    logger.error(msg)
+                    self.last_error = msg
                     return False
                 url = 'https://api.resend.com/emails'
                 headers = {
@@ -364,21 +345,21 @@ class EmailService:
                     'html': html_content,
                     'text': text_content,
                 }
-                requests = _get_requests()
-                if requests is None:
-                    logger.error("requests not available; install it or disable EMAIL_PROVIDER")
-                    return False
                 resp = requests.post(url, json=payload, headers=headers, timeout=10)
                 if resp.status_code in (200, 201):
                     logger.info(f"Resend: email sent to {to_email}")
                     return True
-                logger.error(f"Resend send failed {resp.status_code}: {resp.text}")
+                msg = f"Resend failure {resp.status_code}: {resp.text}".strip()
+                logger.error(msg)
+                self.last_error = msg
                 return False
 
             logger.error(f"Unsupported EMAIL_PROVIDER: {provider}")
+            self.last_error = f"Unsupported provider {provider}"
             return False
         except Exception as e:
             logger.error(f"Provider send error ({provider}) to {to_email}: {str(e)}")
+            self.last_error = f"Provider error: {e}"
             return False
 
     def send_test_email(self, to_email: str, base_url: str | None = None) -> bool:
