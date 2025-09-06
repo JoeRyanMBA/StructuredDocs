@@ -32,30 +32,39 @@
         </div>
 
         <!-- Editor Mode Toggle -->
-        <div class="editor-mode-toggle">
+    <div class="editor-mode-toggle" role="tablist" aria-label="Select editor mode">
           <button
             type="button"
-            :class="['btn','btn-sm', editorMode === 'markdown' ? 'btn-primary' : 'btn-secondary']"
-            :aria-pressed="editorMode === 'markdown'"
-            @click="editorMode = 'markdown'"
+            role="tab"
+            :aria-selected="(editorMode === 'markdown').toString()"
+            :tabindex="editorMode === 'markdown' ? 0 : -1"
+            :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'markdown' ? 'btn-primary active' : 'btn-secondary']"
+      @click="editorMode = 'markdown'"
+      title="Edit in raw Markdown"
           >
-            📝 Markdown
+            📝 <span class="label-text">Markdown</span>
           </button>
           <button
             type="button"
-            :class="['btn','btn-sm', editorMode === 'wysiwyg' ? 'btn-primary' : 'btn-secondary']"
-            :aria-pressed="editorMode === 'wysiwyg'"
-            @click="editorMode = 'wysiwyg'"
+            role="tab"
+            :aria-selected="(editorMode === 'wysiwyg').toString()"
+            :tabindex="editorMode === 'wysiwyg' ? 0 : -1"
+            :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'wysiwyg' ? 'btn-primary active' : 'btn-secondary']"
+      @click="editorMode = 'wysiwyg'"
+      title="Visual editor"
           >
-            📄 WYSIWYG
+            📄 <span class="label-text">WYSIWYG</span>
           </button>
           <button
             type="button"
-            :class="['btn','btn-sm', editorMode === 'preview' ? 'btn-primary' : 'btn-secondary']"
-            :aria-pressed="editorMode === 'preview'"
-            @click="editorMode = 'preview'"
+            role="tab"
+            :aria-selected="(editorMode === 'preview').toString()"
+            :tabindex="editorMode === 'preview' ? 0 : -1"
+            :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'preview' ? 'btn-primary active' : 'btn-secondary']"
+      @click="editorMode = 'preview'"
+      title="Preview rendered content"
           >
-            <i class="bi bi-eye" aria-hidden="true"></i> Preview
+            <i class="bi bi-eye" aria-hidden="true"></i> <span class="label-text">Preview</span>
           </button>
         </div>
 
@@ -137,22 +146,26 @@
           </div>
           <div class="modal-body">
             <div class="tabs">
-              <button
-                :class="['btn','btn-sm', linkInsertMode === 'manual' ? 'btn-primary' : 'btn-secondary']"
-                :aria-pressed="linkInsertMode === 'manual'"
-                @click="linkInsertMode = 'manual'"
-                type="button"
-              >
-                Manual
-              </button>
-              <button
-                :class="['btn','btn-sm', linkInsertMode === 'existing' ? 'btn-primary' : 'btn-secondary']"
-                :aria-pressed="linkInsertMode === 'existing'"
-                @click="openExistingLinks"
-                type="button"
-              >
-                Existing
-              </button>
+              <div class="segmented-control" role="tablist" aria-label="Insert link mode">
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(linkInsertMode === 'manual').toString()"
+                  :tabindex="linkInsertMode === 'manual' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', linkInsertMode === 'manual' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="linkInsertMode = 'manual'"
+                  title="Enter link text and URL manually"
+                >Manual</button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(linkInsertMode === 'existing').toString()"
+                  :tabindex="linkInsertMode === 'existing' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', linkInsertMode === 'existing' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="openExistingLinks"
+                  title="Choose from existing saved links"
+                >Existing</button>
+              </div>
             </div>
             <div v-if="linkInsertMode === 'manual'">
             <div class="form-group">
@@ -194,22 +207,26 @@
           </div>
           <div class="modal-body">
             <div class="tabs">
-              <button
-                :class="['btn','btn-sm', imageInsertMode === 'url' ? 'btn-primary' : 'btn-secondary']"
-                :aria-pressed="imageInsertMode === 'url'"
-                @click="imageInsertMode = 'url'"
-                type="button"
-              >
-                By URL
-              </button>
-              <button
-                :class="['btn','btn-sm', imageInsertMode === 'existing' ? 'btn-primary' : 'btn-secondary']"
-                :aria-pressed="imageInsertMode === 'existing'"
-                @click="openExistingImages"
-                type="button"
-              >
-                Browse
-              </button>
+              <div class="segmented-control" role="tablist" aria-label="Insert image mode">
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(imageInsertMode === 'url').toString()"
+                  :tabindex="imageInsertMode === 'url' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', imageInsertMode === 'url' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="imageInsertMode = 'url'"
+                  title="Provide a direct image URL"
+                >By URL</button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(imageInsertMode === 'existing').toString()"
+                  :tabindex="imageInsertMode === 'existing' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', imageInsertMode === 'existing' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="openExistingImages"
+                  title="Browse previously uploaded images"
+                >Browse</button>
+              </div>
             </div>
             <div v-if="imageInsertMode === 'url'">
             <div class="form-group">
@@ -601,6 +618,8 @@ export default {
   padding: 1rem;
 }
 
+/* Editor mode segmented control */
+
 /* Page heading */
 .page-heading {
   margin-top: 0;
@@ -693,12 +712,19 @@ export default {
   box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
+/* Visual paragraph separation (mirrors published KB CSS) */
+.wysiwyg-content p { margin: 0 0 1rem 0; line-height: 1.7; }
+.wysiwyg-content p:last-child { margin-bottom: 0; }
 
 .wysiwyg-content:focus {
   outline: none;
   border-color: #205493;
   box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.1);
 }
+
+/* Preview area (when user selects Preview mode) */
+.preview-mode .preview-content p { margin: 0 0 1rem 0; line-height: 1.7; }
+.preview-mode .preview-content p:last-child { margin-bottom: 0; }
 
 /* Editor actions styling */
 .editor-actions {
