@@ -390,7 +390,9 @@ export default {
 /*  background:radial-gradient( var(--bg-light-mist-gray) 0%, #ffffff 100%); */
   display: flex;
   align-items: center;
-  justify-content: center;
+  justify-content: center; /* horizontal centering */
+  margin: 0 auto;          /* ensure block is centered if it ever gets intrinsic width */
+  width: 100%;             /* allow taking full width for proper centering */
   padding: 2rem;
 }
 
