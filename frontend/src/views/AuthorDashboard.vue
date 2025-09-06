@@ -140,14 +140,12 @@
             <table class="topics-table">
               <thead>
                 <tr>
+                  <th class="sortable" @click="toggleSort('id')" :aria-sort="idSortStateAria">ID <span class="sort-indicator" :class="idSortState"></span></th>
                   <th>Title</th>
                   <th>Status</th>
                   <th>Collection</th>
                   <th>Words</th>
-                  <th class="sortable" @click="toggleSort('updated')" :aria-sort="updatedSortStateAria">
-                    Updated
-                    <span class="sort-indicator" :class="updatedSortState"></span>
-                  </th>
+                  <th class="sortable" @click="toggleSort('updated')" :aria-sort="updatedSortStateAria">Updated <span class="sort-indicator" :class="updatedSortState"></span></th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -158,6 +156,7 @@
                   class="topic-row"
                   @click="editTopic(topic)"
                 >
+                  <td class="id-cell" @click.stop="copyId(topic.id)" :title="copyTooltip(topic.id)">{{ topic.id }}</td>
                   <td class="topic-title-cell">
                     <div class="topic-title">{{ topic.title }}</div>
                     <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
@@ -277,7 +276,11 @@ export default {
     uniqueCollections() {
       const collections = [...new Set(this.myTopics.map(t => t.collection_name).filter(col => col))]
       return collections.sort()
-    }
+    },
+
+    idSortState() { return this.sortKey === 'id' ? this.sortDir : '' },
+    updatedSortState() { return this.sortKey === 'updated' ? this.sortDir : '' },
+    idSortStateAria() { return this.sortKey === 'id' ? (this.sortDir === 'asc' ? 'ascending' : 'descending') : 'none' },
   },
   
   data() {
@@ -297,7 +300,9 @@ export default {
       collectionFilter: '',
   recentTopics: [], /* deprecated after removing Recent Work */
   sortKey: 'updated',
-  sortDir: 'desc' // 'asc' | 'desc'
+  sortDir: 'desc', // 'asc' | 'desc'
+      copiedId: null,
+      copiedAt: 0
     }
   },
 
@@ -365,16 +370,20 @@ export default {
           const bDate = new Date(b.updated_at || b.created_at || 0)
           return this.sortDir === 'asc' ? aDate - bDate : bDate - aDate
         })
+      } else if (this.sortKey === 'id') {
+        filtered.sort((a, b) => {
+          return this.sortDir === 'asc' ? a.id - b.id : b.id - a.id
+        })
       }
       this.filteredMyTopics = filtered
     },
     toggleSort(key) {
-      if (key !== 'updated') return
-      if (this.sortKey === key) {
-        this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc'
+      if(!['updated','id'].includes(key)) return
+      if(this.sortKey===key){
+        this.sortDir=this.sortDir==='asc'?'desc':'asc'
       } else {
-        this.sortKey = key
-        this.sortDir = 'desc'
+        this.sortKey=key
+        this.sortDir= key==='id' ? 'asc':'desc'
       }
       this.applyFilters()
     },
@@ -537,7 +546,12 @@ export default {
       if (diffDays < 7) return `${diffDays}d ago`
       
       return time.toLocaleDateString()
-    }
+    },
+
+    copyId(id){
+      try { navigator.clipboard.writeText(String(id)); this.copiedId = id; this.copiedAt = Date.now(); setTimeout(()=>{ if(Date.now()-this.copiedAt>=1800) { this.copiedId=null } }, 2000); } catch(e){ console.error('Copy failed', e); }
+    },
+    copyTooltip(id){ return this.copiedId===id ? 'Copied!' : 'Click to copy ID'; },
   }
 }
 </script>
@@ -672,6 +686,7 @@ export default {
   font-size: 0.7rem;
   font-weight: 500;
   text-transform: uppercase;
+  display: inline-block;
 }
 
 .topic-status.draft {
@@ -1016,4 +1031,10 @@ export default {
     font-size: 2rem;
   }
 }
+
+.id-cell { width:72px; font-family:monospace; cursor:pointer; user-select:text; }
+.id-cell:hover { background: var(--table-row-hover-bg,#f5f7fa); }
+.id-cell:active { background: var(--table-row-active-bg,#e8eef5); }
+.sort-indicator.asc::after{content:'▲'; margin-left:4px; font-size:0.7em;}
+.sort-indicator.desc::after{content:'▼'; margin-left:4px; font-size:0.7em;}
 </style>
