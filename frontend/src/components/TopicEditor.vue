@@ -28,6 +28,8 @@
               placeholder="Enter topic title..."
               required
             />
+  /* Track last saved snapshot for unsaved-changes (dirty) detection */
+  lastSaved: null
           </div>
         </div>
 
@@ -339,6 +341,16 @@ export default {
       const text = this.content || ''
       const shortText = text.length > 200 ? text.substring(0, 200) : text
       return marked(shortText)
+    },
+    /* True if any field differs from last saved snapshot */
+    isDirty() {
+      if (this.readOnly || this.isSaving) return false
+      if (!this.lastSaved) return false
+      return (
+        this.title !== this.lastSaved.title ||
+        this.content !== this.lastSaved.content ||
+        this.frontmatter !== this.lastSaved.frontmatter
+      )
     }
   },
   watch: {
@@ -362,7 +374,37 @@ export default {
       this.frontmatter = newValue
     }
   },
+  mounted() {
+    // Establish initial snapshot after mount
+    this.setSnapshot()
+    // Warn on tab/window close if there are unsaved edits
+    window.addEventListener('beforeunload', this.beforeUnloadHandler)
+  },
+  unmounted() {
+    window.removeEventListener('beforeunload', this.beforeUnloadHandler)
+  },
+  beforeRouteLeave(to, from, next) {
+    if (this.readOnly || !this.isDirty) return next()
+    const answer = window.confirm('You have unsaved changes. Leave this page without saving?')
+    if (answer) {
+      return next()
+    }
+    next(false)
+  },
   methods: {
+    setSnapshot() {
+      this.lastSaved = {
+        title: this.title,
+        content: this.content,
+        frontmatter: this.frontmatter
+      }
+    },
+    beforeUnloadHandler(e) {
+      if (this.isDirty) {
+        e.preventDefault()
+        e.returnValue = '' // Required for Chrome to show prompt
+      }
+    },
     // Existing Links/Image helpers
     debounce(fn, delay = 300) {
       return (...args) => {
@@ -458,6 +500,8 @@ export default {
         }
         
         this.saveSuccess = this.topicId ? 'Topic updated successfully!' : 'Topic created successfully!'
+  // Update snapshot immediately so navigation (manual or automated) won't prompt
+  this.setSnapshot()
         
         // Redirect to Review Dashboard after successful save
         setTimeout(() => { 
