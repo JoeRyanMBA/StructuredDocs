@@ -60,11 +60,26 @@
         <h3>{{ editingVar ? 'Edit Variable' : 'New Variable' }}</h3>
         <form @submit.prevent="saveVar" class="var-form">
           <label>Name*
-            <input v-model="varForm.name" required maxlength="120" />
+            <input v-model="varForm.name" @input="handleNameInput" required maxlength="120" />
           </label>
-          <label>Slug*
-            <input v-model="varForm.slug" required maxlength="120" />
+          <label>Slug* <span v-if="!editingVar && slugAuto" class="badge auto-hint">auto</span>
+            <input
+              v-model="varForm.slug"
+              :disabled="editingVar" 
+              @input="handleSlugInput"
+              required
+              maxlength="120"
+              :class="{ invalid: !slugValid }"
+            />
           </label>
+          <div class="form-help">
+            <p>
+              The slug is the stable token used inside content like <code>{{`{{${previewSlugExample}}}`}}</code>. 
+              {{ editingVar ? 'It cannot be changed after creation.' : 'It will auto-generate from Name; you can edit before saving.' }}
+            </p>
+            <p class="rules">Allowed: lowercase letters, numbers, hyphens and underscores. Must start with a letter. Example: <code>organization_name</code></p>
+            <p v-if="!slugValid" class="error-text">Slug invalid. Use a leading letter, then letters/numbers/_ or -.</p>
+          </div>
           <label>Description
             <textarea v-model="varForm.description" rows="2" />
           </label>
@@ -76,7 +91,7 @@
           </label>
           <div class="modal-actions">
             <button type="button" class="btn btn-secondary" @click="closeVarModal">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="!varForm.name.trim()">{{ editingVar ? 'Update' : 'Create' }}</button>
+            <button type="submit" class="btn btn-primary" :disabled="!formSubmitEnabled">{{ editingVar ? 'Update' : 'Create' }}</button>
           </div>
         </form>
       </div>
@@ -96,9 +111,25 @@ export default {
       varForm:{ name:'', slug:'', description:'', scope:'global' },
       newValue:'',
       newValueDefault:false,
+  slugTouched:false,
+  slugAuto:true,
     }
   },
   created(){ this.refresh() },
+  computed:{
+    slugValid(){
+      if(this.editingVar) return true; // existing slug assumed valid
+      const s = this.varForm.slug;
+      if(!s) return false;
+      return /^[a-z][a-z0-9_-]*$/.test(s);
+    },
+    formSubmitEnabled(){
+      return !!this.varForm.name.trim() && this.slugValid;
+    },
+    previewSlugExample(){
+      return this.varForm.slug || 'organization_name';
+    }
+  },
   methods:{
     navigate(path){ this.$router.push(path) },
     async refresh(){
@@ -114,10 +145,46 @@ export default {
       finally { this.loading = false }
     },
     selectVariable(v){ this.selectedVar = v },
-    openCreateVar(){ this.editingVar=false; this.varForm={ name:'', slug:'', description:'', scope:'global'}; this.showVarModal=true },
-    editVar(v){ this.editingVar=true; this.varForm={ name:v.name, slug:v.slug, description:v.description||'', scope:v.scope }; this.showVarModal=true; this.selectedVar=v },
+    openCreateVar(){
+      this.editingVar=false;
+      this.varForm={ name:'', slug:'', description:'', scope:'global'};
+      this.slugTouched=false; this.slugAuto=true; this.showVarModal=true;
+    },
+    editVar(v){
+      this.editingVar=true;
+      this.varForm={ name:v.name, slug:v.slug, description:v.description||'', scope:v.scope };
+      this.slugTouched=true; this.slugAuto=false; this.showVarModal=true; this.selectedVar=v;
+    },
     closeVarModal(){ this.showVarModal=false },
+    handleNameInput(){
+      if(this.editingVar) return;
+      if(!this.slugTouched){
+        const generated = this.generateSlug(this.varForm.name);
+        this.varForm.slug = generated;
+      }
+    },
+    handleSlugInput(){
+      this.slugTouched = true; this.slugAuto = false;
+      this.varForm.slug = this.sanitizeSlug(this.varForm.slug);
+    },
+    sanitizeSlug(raw){
+      if(!raw) return '';
+      let s = raw.toLowerCase();
+      s = s.replace(/\s+/g,'_');
+      s = s.replace(/[^a-z0-9_-]/g,'');
+      s = s.replace(/^-+/, '');
+      return s;
+    },
+    generateSlug(name){
+      if(!name) return '';
+      let base = name.trim().toLowerCase();
+      base = base.replace(/[^a-z0-9]+/g,'_');
+      base = base.replace(/_+/g,'_').replace(/^_+|_+$/g,'');
+      base = base.replace(/^[^a-z]+/, '');
+      return base;
+    },
     async saveVar(){
+      if(!this.slugValid) return;
       try {
         const payload = { name:this.varForm.name.trim(), slug:this.varForm.slug.trim(), description:this.varForm.description.trim(), scope:this.varForm.scope }
         const method = this.editingVar ? 'PUT' : 'POST'
@@ -170,7 +237,15 @@ export default {
 .add-value-form { display:flex; gap:.5rem; align-items:center; margin-top:.75rem; }
 .add-value-form input[type=text]{ flex:1; }
 .var-modal { max-width:480px; width:100%; padding:1.25rem 1.5rem; }
-.var-form { display:flex; flex-direction:column; gap:.5rem; }
+.var-form { display:flex; flex-direction:column; gap:.6rem; }
 .var-form input, .var-form textarea, .var-form select { width:100%; }
 .modal-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:.5rem; }
+.form-help { font-size:.7rem; color:#64748b; line-height:1.2; margin-top:-.35rem; margin-bottom:.25rem; }
+.form-help code { background:#f1f5f9; padding:0 .25rem; border-radius:4px; }
+.form-help .rules { margin:.15rem 0 0 0; }
+.error-text { color:#dc2626; font-weight:500; }
+input.invalid { border:1px solid #dc2626; }
+.badge.auto-hint { background:#e2e8f0; color:#475569; font-size:.55rem; padding:.15rem .35rem; border-radius:4px; margin-left:.25rem; text-transform:uppercase; letter-spacing:.5px; }
 </style>
+
+<!-- (removed secondary script block; merged into primary export) -->
