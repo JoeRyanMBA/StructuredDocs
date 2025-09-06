@@ -213,8 +213,10 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 export default {
   name: 'AllMilestonesView',
+  mixins: [unsavedChangesGuard],
   data() {
     return {
       milestones: [],
@@ -229,14 +231,15 @@ export default {
       showDeleteModal: false,
       isEditing: false,
       milestoneToDelete: null,
-      milestoneForm: {
+  milestoneForm: {
         id: null,
         name: '',
         project_id: '',
         date: '',
         status: 'planned',
         description: ''
-      }
+  },
+  lastSavedMilestoneSnapshot: ''
     }
   },
 
@@ -325,6 +328,7 @@ export default {
         description: ''
       }
       this.showModal = true
+      this.$nextTick(()=>{ this.lastSavedMilestoneSnapshot = JSON.stringify(this.milestoneForm) })
     },
     
     editMilestone(milestone) {
@@ -338,6 +342,7 @@ export default {
         description: milestone.description || ''
       }
       this.showModal = true
+      this.$nextTick(()=>{ this.lastSavedMilestoneSnapshot = JSON.stringify(this.milestoneForm) })
     },
     
     closeModal() {
@@ -350,9 +355,10 @@ export default {
         status: 'planned',
         description: ''
       }
+      this.lastSavedMilestoneSnapshot = ''
     },
     
-    async saveMilestone() {
+  async saveMilestone() {
       try {
         const url = this.isEditing ? `/api/milestones/${this.milestoneForm.id}` : '/api/milestones/'
         const method = this.isEditing ? 'PUT' : 'POST'
@@ -377,6 +383,7 @@ export default {
         }
         
   await this.fetchMilestones()
+  this.lastSavedMilestoneSnapshot = JSON.stringify(this.milestoneForm)
   this.closeModal()
   toast.success(this.isEditing ? 'Milestone updated' : 'Milestone created')
         
@@ -385,7 +392,7 @@ export default {
   this.error = error.message || 'Failed to save milestone. Please try again.'
   toast.error(this.error)
       }
-    },
+  },
     
     deleteMilestone(milestone) {
       this.milestoneToDelete = milestone
@@ -432,6 +439,10 @@ export default {
         'overdue': 'Overdue'
       }
       return statusMap[status] || status
+    },
+    isDirty() {
+      if (!this.showModal) return false
+      try { return JSON.stringify(this.milestoneForm) !== this.lastSavedMilestoneSnapshot } catch(e){ return false }
     }
   }
 }

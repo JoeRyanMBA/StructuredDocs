@@ -142,7 +142,7 @@
 
 <script>
 import { toast } from '@/composables/useToast'
-import unsavedChangesGuard from '@/mixins/unsavedChangesGuard'
+import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 export default {
   name: 'AllTagsView',
   mixins: [unsavedChangesGuard],
