@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from datetime import datetime, timezone, timedelta
-from ..models import db, Collection, Topic, collection_topic_tree, Project, Publication, PublicationNode
+from ..models import db, Collection, Topic, collection_topic_tree, Project, Publication, PublicationNode, build_variable_mapping_for_collection, substitute_variables_in_text
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
 
@@ -229,125 +229,113 @@ def publish_collection(collection_id):
     """
     try:
         collection = Collection.query.get_or_404(collection_id)
-        
-        # Check if publication already exists for this collection
-        # Use a more specific approach by checking for publications with the exact title
         title_pattern = collection.name
         existing_pub = Publication.query.filter_by(title=title_pattern).first()
-        
+
         if existing_pub:
-            # Update the description to reflect current topic count
+            var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
+            if unresolved:
+                return jsonify({
+                    'error': 'All variables must be selected before publishing.',
+                    'unresolved_variables': unresolved
+                }), 400
             existing_pub.description = f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
-            
-            # Update the created_at timestamp to reflect the latest publication time
             existing_pub.created_at = datetime.now(timezone.utc)
-            
-            # Clear existing publication nodes and recreate them
             PublicationNode.query.filter_by(publication_id=existing_pub.id).delete()
-            
-            # Recreate publication nodes from current collection topics
-            def create_publication_nodes(coll, parent_pub_node_id=None):
+
+            def rebuild_nodes(coll, parent_pub_node_id=None):
                 nodes_created = []
-                
-                # Get hierarchical topic structure instead of flat topics
                 hierarchical_topics = coll.to_tree()
-                
-                def process_topics_recursively(topics, parent_node_id):
+
+                def recurse(topics, parent_node_id):
                     for idx, topic_data in enumerate(topics):
-                        # Create publication node for this topic
+                        topic_obj = Topic.query.get(topic_data['id'])
+                        title_sub = substitute_variables_in_text(getattr(topic_obj, 'title', '') or '', var_mapping) if topic_obj else ''
+                        content_sub = substitute_variables_in_text(getattr(topic_obj, 'content', '') or '', var_mapping) if topic_obj else ''
                         node = PublicationNode(
                             publication_id=existing_pub.id,
                             topic_id=topic_data['id'],
                             parent_id=parent_node_id,
-                            position=idx
+                            position=idx,
+                            title_snapshot=title_sub,
+                            content_snapshot=content_sub
                         )
                         db.session.add(node)
                         db.session.flush()
                         nodes_created.append(node)
-                        
-                        # Recursively process child topics
                         if topic_data.get('children'):
-                            process_topics_recursively(topic_data['children'], node.id)
-                
-                process_topics_recursively(hierarchical_topics, parent_pub_node_id)
-                
-                # Recursively handle child collections
+                            recurse(topic_data['children'], node.id)
+
+                recurse(hierarchical_topics, parent_pub_node_id)
                 for child_coll in sorted(coll.children, key=lambda x: x.position):
-                    child_nodes = create_publication_nodes(child_coll, parent_pub_node_id)
+                    child_nodes = rebuild_nodes(child_coll, parent_pub_node_id)
                     nodes_created.extend(child_nodes)
-                
                 return nodes_created
-            
-            nodes = create_publication_nodes(collection)
+
+            nodes = rebuild_nodes(collection)
             db.session.commit()
-            
-            response_data = {
+            return jsonify({
                 'message': 'Publication updated with current collection content',
                 'publication_id': existing_pub.id,
                 'nodes_created': len(nodes),
-                'redirect_url': f'/publications/{existing_pub.id}'
-            }
-            print(f"🔄 Updated existing publication {existing_pub.id} for collection {collection.id}")
-            print(f"📝 Updated description to reflect {len(collection.topics)} topics")
-            print(f"🔧 Recreated {len(nodes)} publication nodes")
-            print(f"📤 Returning response: {response_data}")
-            return jsonify(response_data), 200
-        
-        # Create a new publication from the collection
+                'redirect_url': f'/publications/{existing_pub.id}',
+                'variable_mapping_used': var_mapping,
+                'unresolved_variables': []
+            }), 200
+
+        # New publication path
+        var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
+        if unresolved:
+            return jsonify({
+                'error': 'All variables must be selected before publishing.',
+                'unresolved_variables': unresolved
+            }), 400
         publication = Publication(
             title=f"{collection.name}",
             description=f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
         )
         db.session.add(publication)
-        db.session.flush()  # Get the publication ID
-        
-        # Convert collection topics to publication nodes
-        def create_publication_nodes(coll, parent_pub_node_id=None):
+        db.session.flush()
+
+        def build_nodes(coll, parent_pub_node_id=None):
             nodes_created = []
-            
-            # Get hierarchical topic structure instead of flat topics
             hierarchical_topics = coll.to_tree()
-            
-            def process_topics_recursively(topics, parent_node_id):
+
+            def recurse(topics, parent_node_id):
                 for idx, topic_data in enumerate(topics):
-                    # Create publication node for this topic
+                    topic_obj = Topic.query.get(topic_data['id'])
+                    title_sub = substitute_variables_in_text(getattr(topic_obj, 'title', '') or '', var_mapping) if topic_obj else ''
+                    content_sub = substitute_variables_in_text(getattr(topic_obj, 'content', '') or '', var_mapping) if topic_obj else ''
                     node = PublicationNode(
                         publication_id=publication.id,
                         topic_id=topic_data['id'],
                         parent_id=parent_node_id,
-                        position=idx
+                        position=idx,
+                        title_snapshot=title_sub,
+                        content_snapshot=content_sub
                     )
                     db.session.add(node)
                     db.session.flush()
                     nodes_created.append(node)
-                    
-                    # Recursively process child topics
                     if topic_data.get('children'):
-                        process_topics_recursively(topic_data['children'], node.id)
-            
-            process_topics_recursively(hierarchical_topics, parent_pub_node_id)
-            
-            # Recursively handle child collections
+                        recurse(topic_data['children'], node.id)
+
+            recurse(hierarchical_topics, parent_pub_node_id)
             for child_coll in sorted(coll.children, key=lambda x: x.position):
-                child_nodes = create_publication_nodes(child_coll, parent_pub_node_id)
+                child_nodes = build_nodes(child_coll, parent_pub_node_id)
                 nodes_created.extend(child_nodes)
-            
             return nodes_created
-        
-        nodes = create_publication_nodes(collection)
-        
+
+        nodes = build_nodes(collection)
         db.session.commit()
-        
-        print(f"✅ Created publication {publication.id} from collection {collection.id} with {len(nodes)} nodes")
-        
         return jsonify({
             'message': 'Collection published successfully',
             'publication_id': publication.id,
             'nodes_created': len(nodes),
-            'redirect_url': f'/publications/{publication.id}'
+            'redirect_url': f'/publications/{publication.id}',
+            'variable_mapping_used': var_mapping,
+            'unresolved_variables': []
         }), 201
-        
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error publishing collection {collection_id}: {e}")
         return jsonify({'error': str(e)}), 500

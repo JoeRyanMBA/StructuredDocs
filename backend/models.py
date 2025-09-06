@@ -316,6 +316,10 @@ class Publication(db.Model):
             base["nodes"] = [n.to_dict() for n in self.nodes]
         return base
 
+    if TYPE_CHECKING:
+        # Hint constructor parameters for static analysis (SQLAlchemy supplies these dynamically at runtime)
+        def __init__(self, id: int | None = None, title: str = ..., description: str | None = None, created_at: datetime | None = None): ...
+
 class PublicationNode(db.Model):
     __tablename__ = 'publication_nodes'
 
@@ -350,6 +354,13 @@ class PublicationNode(db.Model):
         remote_side=[id],
         back_populates='children'
     )
+
+    # Snapshotted substituted text
+    title_snapshot = db.Column(db.String(200), nullable=True)
+    content_snapshot = db.Column(db.Text, nullable=True)
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, publication_id: int = ..., topic_id: int = ..., parent_id: int | None = None, position: int = ..., title_snapshot: str | None = None, content_snapshot: str | None = None): ...
 
 class Notification(db.Model):
     __tablename__ = 'notifications'
@@ -799,6 +810,163 @@ class Tag(db.Model):
             "name": self.name,
             "created_at": self.created_at.isoformat() if self.created_at else None
         }
+
+
+###############################################
+# Variable / Token Substitution Models
+###############################################
+
+class Variable(db.Model):
+    """User-defined variable tokens (e.g., {{Organization}}) that resolve to a selected value at publish time."""
+    __tablename__ = 'variables'
+
+    id = db.Column(db.Integer, primary_key=True)
+    name = db.Column(db.String(120), nullable=False)  # Display name
+    slug = db.Column(db.String(120), nullable=False, unique=True)  # Token slug used inside {{slug}}
+    description = db.Column(db.Text, nullable=True)
+    scope = db.Column(
+        Enum('global', 'collection', name='variable_scope_enum'),
+        nullable=False,
+        default='global',
+        server_default='global'
+    )
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    # Relationship: values
+    values = relationship('VariableValue', back_populates='variable', cascade='all, delete-orphan')
+
+    def to_dict(self, include_values=False, selection_map=None):
+        data = {
+            'id': self.id,
+            'name': self.name,
+            'slug': self.slug,
+            'description': self.description,
+            'scope': self.scope,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None
+        }
+        if include_values:
+            data['values'] = [v.to_dict() for v in self.values]
+            # Attach current selection (if provided mapping of variable_id -> value_id)
+            if selection_map is not None:
+                data['selected_value_id'] = selection_map.get(self.id)
+        return data
+
+
+class VariableValue(db.Model):
+    __tablename__ = 'variable_values'
+
+    id = db.Column(db.Integer, primary_key=True)
+    variable_id = db.Column(db.Integer, db.ForeignKey('variables.id', ondelete='CASCADE'), nullable=False)
+    value = db.Column(db.String(500), nullable=False)
+    is_default = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+
+    variable = relationship('Variable', back_populates='values')
+
+    __table_args__ = (
+        db.UniqueConstraint('variable_id', 'value', name='uq_variable_value'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'variable_id': self.variable_id,
+            'value': self.value,
+            'is_default': self.is_default,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+class CollectionVariableSelection(db.Model):
+    """Stores which value a collection has selected for a variable."""
+    __tablename__ = 'collection_variable_selections'
+
+    id = db.Column(db.Integer, primary_key=True)
+    collection_id = db.Column(db.Integer, db.ForeignKey('collections.id', ondelete='CASCADE'), nullable=False)
+    variable_id = db.Column(db.Integer, db.ForeignKey('variables.id', ondelete='CASCADE'), nullable=False)
+    variable_value_id = db.Column(db.Integer, db.ForeignKey('variable_values.id', ondelete='SET NULL'), nullable=True)
+    locked = db.Column(db.Boolean, nullable=False, default=False, server_default='0')  # future: prevent override at publish time
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+
+    variable = relationship('Variable')
+    value = relationship('VariableValue')
+
+    __table_args__ = (
+        db.UniqueConstraint('collection_id', 'variable_id', name='uq_collection_variable'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'collection_id': self.collection_id,
+            'variable_id': self.variable_id,
+            'variable_value_id': self.variable_value_id,
+            'locked': self.locked,
+            'created_at': self.created_at.isoformat() if self.created_at else None
+        }
+
+
+def build_variable_mapping_for_collection(collection_id):
+    """Helper to build slug -> replacement string mapping for a collection.
+
+    Resolution order:
+      1. Explicit collection selection if exists.
+      2. Variable default value (is_default=True) if present.
+      3. Empty string (or '{{slug}}' left intact) if no value available.
+    Returns (mapping, unresolved_slugs)
+    """
+    # Lazy imports to avoid circular
+    from .models import Variable, VariableValue, CollectionVariableSelection  # type: ignore
+    variables = Variable.query.all()
+    selections = CollectionVariableSelection.query.filter_by(collection_id=collection_id).all()
+    selection_map = {s.variable_id: s.variable_value_id for s in selections}
+    # Load chosen values
+    value_lookup = {}
+    if selection_map:
+        chosen_values = VariableValue.query.filter(VariableValue.id.in_(selection_map.values())).all()
+        value_lookup = {v.id: v for v in chosen_values}
+
+    mapping = {}
+    unresolved = []
+    for var in variables:
+        chosen_value_id = selection_map.get(var.id)
+        replacement = None
+        if chosen_value_id:
+            vv = value_lookup.get(chosen_value_id)
+            if vv:
+                replacement = vv.value
+        if replacement is None:
+            # Try default
+            default_val = next((v for v in var.values if v.is_default), None)
+            replacement = default_val.value if default_val else None
+        if replacement is None:
+            unresolved.append(var.slug)
+            # Leave token unresolved; could choose '' instead
+            continue
+        mapping[var.slug] = replacement
+    return mapping, unresolved
+
+
+def substitute_variables_in_text(text: str, mapping: dict[str, str]) -> str:
+    """Replace occurrences of {{slug}} in text with provided mapping values.
+    Only exact double-brace tokens are replaced. Unknown tokens left intact."""
+    if not text or not mapping:
+        return text
+    import re
+    pattern = re.compile(r'\{\{([A-Za-z0-9_\-]+)\}\}')
+
+    from typing import Match
+
+    def repl(match: 'Match[str]') -> str:  # type: ignore[type-arg]
+        slug = match.group(1)
+        replacement = mapping.get(slug)
+        if replacement is None:
+            return match.group(0)
+        return replacement
+
+    return pattern.sub(repl, text)
 
 
 class Review(db.Model):
