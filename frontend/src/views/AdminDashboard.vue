@@ -72,6 +72,12 @@
               <h3>View Bug Reports</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="navigateTo('/admin/variables')">
+            <div class="action-icon">🏷️</div>
+            <div class="action-content" title="Create and manage publish-time variables">
+              <h3>Manage Variables</h3>
+            </div>
+          </button>
         </div>
       </div>
   <!-- Database Metrics Panel -->

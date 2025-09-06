@@ -24,11 +24,17 @@ const routes = [
     meta: { requiresAuth: true, adminOnly: true },
     beforeEnter: (to, from, next) => {
       const user = JSON.parse(localStorage.getItem('user') || '{}');
-      if (user.role === 'admin') {
-        next();
-      } else {
-        next('/dashboard');
-      }
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
+  {
+    path: '/admin/variables',
+    name: 'AdminVariables',
+    component: () => import('@/views/AdminVariablesView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
     }
   },
   {
