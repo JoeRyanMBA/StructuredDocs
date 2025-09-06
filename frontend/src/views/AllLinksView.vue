@@ -310,9 +310,11 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 
 export default {
   name: 'AllLinksView',
+  mixins: [unsavedChangesGuard],
   data() {
     return {
       allLinks: [],
@@ -326,7 +328,7 @@ export default {
       showDetailsModal: false,
       showEditModal: false,
       editingLink: null,
-      linkForm: {
+  linkForm: {
         title: '',
         url: '',
         description: '',
@@ -334,6 +336,7 @@ export default {
         is_active: true,
         is_internal: false
       },
+  lastSavedLinkSnapshot: '',
       linkTypes: ['form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other'],
   message: '',
   messageType: 'success' // legacy
@@ -447,6 +450,7 @@ export default {
         is_internal: false
       }
       this.showEditModal = true
+      this.$nextTick(()=>{ this.lastSavedLinkSnapshot = JSON.stringify(this.linkForm) })
     },
 
   editLink(link) {
@@ -460,14 +464,16 @@ export default {
         is_internal: link.is_internal || false
       }
       this.showEditModal = true
+      this.$nextTick(()=>{ this.lastSavedLinkSnapshot = JSON.stringify(this.linkForm) })
     },
 
     closeEditModal() {
       this.showEditModal = false
       this.editingLink = null
+      this.lastSavedLinkSnapshot = ''
     },
 
-    async saveLink() {
+  async saveLink() {
       try {
         const method = this.editingLink ? 'PUT' : 'POST'
         const url = this.editingLink ? `/api/links/${this.editingLink.id}` : '/api/links'
@@ -488,6 +494,7 @@ export default {
 
         if (response.ok) {
           toast.success(this.editingLink ? 'Link updated successfully!' : 'Link created successfully!')
+          this.lastSavedLinkSnapshot = JSON.stringify(this.linkForm)
           this.closeEditModal()
           await this.loadLinks()
         } else {
@@ -541,6 +548,10 @@ export default {
 
     showMessage(text, type = 'success') { /* legacy no-op for backward compat */
       if (type === 'error') toast.error(text); else toast.success(text)
+    },
+    isDirty() {
+      if (!this.showEditModal) return false
+      try { return JSON.stringify(this.linkForm) !== this.lastSavedLinkSnapshot } catch(e){ return false }
     }
   },
 

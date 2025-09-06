@@ -577,9 +577,11 @@ import { createStakeholder, addStakeholderToProject } from '../api/stakeholders'
 import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
 import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
+import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 
 export default {
   components: { CalendarWidget },
+  mixins: [unsavedChangesGuard],
   props: {
     notifications: {
       type: Array,
@@ -655,7 +657,11 @@ export default {
       newMilestones: [{ name: '', date: '', status: 'planned' }],
       creatingProject: false,
       exporting: false,
-      toast: { visible: false, type: 'success', message: '' },
+  toast: { visible: false, type: 'success', message: '' },
+  createProjectSnapshot: '',
+  editProjectSnapshot: '',
+  stakeholderModalSnapshot: '',
+  milestoneModalSnapshot: ''
     }
   },
   computed: {
@@ -914,7 +920,7 @@ export default {
       this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' };
     },
 
-    async createProjectBasic() {
+  async createProjectBasic() {
       this.creatingProject = true;
       try {
         const payload = {
@@ -943,6 +949,7 @@ export default {
   // this.showCreateModal = false
   // Optionally, store createdProject in newProject for later steps
   this.newProject.id = createdProject.id
+  this.$nextTick(()=>{ this.createProjectSnapshot = JSON.stringify(this.newProject) })
       } catch (error) {
         console.error('Failed to create project:', error)
         alert('Failed to create project: ' + error.message)
@@ -1119,7 +1126,7 @@ export default {
       return statusMap[status] || status
     },
 
-    editProject(project) {
+  editProject(project) {
       console.log('🔧 Edit Project clicked:', project)
       console.log('🔧 Current showEditModal:', this.showEditModal)
       
@@ -1143,7 +1150,8 @@ export default {
       console.log('🔧 showEditModal set to:', this.showEditModal)
       
       // Force Vue to re-render
-      this.$forceUpdate()
+  this.$forceUpdate()
+  this.$nextTick(()=>{ this.editProjectSnapshot = JSON.stringify(this.editingProject) })
     },
 
 
@@ -1443,7 +1451,7 @@ export default {
         alert('Failed to add stakeholder: ' + err.message)
       }
     },
-    async addNewStakeholderToProject() {
+  async addNewStakeholderToProject() {
       if (!this.newStakeholder.name || !this.newStakeholder.email || !this.newStakeholder.role) {
         alert('Please fill in all required fields for the new stakeholder.');
         return;
@@ -1457,16 +1465,19 @@ export default {
       this.projectStakeholders.push(newStakeholderData);
 
       // Reset the form for the next entry
-      this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' };
+  this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' };
+  this.$nextTick(()=>{ this.stakeholderModalSnapshot = JSON.stringify({ projectStakeholders: this.projectStakeholders }) })
     },
 
     addMilestoneRow() {
       this.newMilestones.push({ name: '', date: '', status: 'planned' })
+      this.$nextTick(()=>{ this.milestoneModalSnapshot = JSON.stringify({ newMilestones: this.newMilestones }) })
     },
     removeMilestone(idx) {
       this.newMilestones.splice(idx, 1)
+      this.$nextTick(()=>{ this.milestoneModalSnapshot = JSON.stringify({ newMilestones: this.newMilestones }) })
     },
-    async saveMilestonesAndFinish() {
+  async saveMilestonesAndFinish() {
       if (!this.createdProjectId) return
       try {
         for (const m of this.newMilestones) {
@@ -1489,7 +1500,8 @@ export default {
         this.projectStakeholders = []
         this.newMilestones = [{ name: '', date: '', status: 'planned' }]
         // Show success toast
-        this.showToast('Milestones saved successfully.')
+  this.showToast('Milestones saved successfully.')
+  this.$nextTick(()=>{ this.milestoneModalSnapshot = '' })
       } catch (err) {
         alert('Failed to add milestones: ' + err.message)
       }
@@ -1506,6 +1518,15 @@ export default {
       if (!this.toast) return
       this.toast.visible = false
       clearTimeout(this.toast._timer)
+    },
+    isDirty() {
+      try {
+        if (this.showEditModal) return JSON.stringify(this.editingProject) !== this.editProjectSnapshot
+        if (this.showCreateModal) return JSON.stringify(this.newProject) !== this.createProjectSnapshot
+        if (this.showStakeholderModal) return JSON.stringify({ projectStakeholders: this.projectStakeholders }) !== this.stakeholderModalSnapshot
+        if (this.showMilestoneModal) return JSON.stringify({ newMilestones: this.newMilestones }) !== this.milestoneModalSnapshot
+      } catch(e) { return false }
+      return false
     },
   },
   mounted() {

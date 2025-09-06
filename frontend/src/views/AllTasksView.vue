@@ -323,8 +323,10 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 export default {
   name: 'AllTasksView',
+  mixins: [unsavedChangesGuard],
   data() {
     return {
       tasks: [],
@@ -369,7 +371,9 @@ export default {
       
       // Tags input
       newTag: '',
-      selectedExistingTag: ''
+  selectedExistingTag: '',
+  // snapshot for unsaved-changes detection
+  lastSavedTaskSnapshot: ''
     }
   },
   
@@ -455,7 +459,7 @@ export default {
       this.applyFilters()
     },
     
-    openCreateModal() {
+  openCreateModal() {
       this.isEditing = false
       this.taskForm = {
         id: null,
@@ -473,10 +477,12 @@ export default {
       }
       this.newTag = ''
       this.selectedExistingTag = ''
-      this.showModal = true
+  this.showModal = true
+  // establish snapshot after next tick so bindings updated
+  this.$nextTick(() => { this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm) })
     },
     
-    editTask(task) {
+  editTask(task) {
       this.isEditing = true
       
       // Convert email to name for the dropdown if needed
@@ -502,10 +508,11 @@ export default {
       }
       this.newTag = ''
       this.selectedExistingTag = ''
-      this.showModal = true
+  this.showModal = true
+  this.$nextTick(() => { this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm) })
     },
     
-    closeModal() {
+  closeModal() {
       this.showModal = false
       this.taskForm = {
         id: null,
@@ -522,7 +529,8 @@ export default {
         tags: []
       }
       this.newTag = ''
-      this.selectedExistingTag = ''
+  this.selectedExistingTag = ''
+  this.lastSavedTaskSnapshot = ''
     },
 
     resetAssociation() {
@@ -531,7 +539,7 @@ export default {
       this.taskForm.topic_id = null
     },
     
-    async saveTask() {
+  async saveTask() {
       try {
         const url = this.isEditing ? `/api/tasks/${this.taskForm.id}` : '/api/tasks/'
         const method = this.isEditing ? 'PUT' : 'POST'
@@ -570,6 +578,8 @@ export default {
         
   await this.fetchTasks()
   await this.fetchAllTags()
+  // update snapshot to reflect saved state before closing
+  this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm)
   this.closeModal()
   toast.success(this.isEditing ? 'Task updated.' : 'Task created.')
         
@@ -693,6 +703,13 @@ export default {
         'high': 'High'
       }
       return priorityMap[priority] || priority
+    },
+    // Dirty detection for mixin
+    isDirty() {
+      if (!this.showModal) return false
+      try {
+        return JSON.stringify(this.taskForm) !== this.lastSavedTaskSnapshot
+      } catch (e) { return false }
     }
   }
 }
