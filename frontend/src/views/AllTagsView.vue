@@ -61,10 +61,10 @@
             </tr>
           </thead>
           <tbody>
-            <tr v-for="tag in filteredTags" :key="tag.id || tag.name">
+            <tr v-for="tag in filteredTags" :key="tag.id || ('name-'+tag.name)">
               <td class="id-cell">{{ tag.id }}</td>
               <td class="tag-name-cell">
-                <div class="tag-name-display">{{ tag.name }}</div>
+                <div class="tag-name-display">{{ formatTagName(tag.name) }}</div>
               </td>
               <td class="created-date">{{ formatDate(tag.created_at) }}</td>
               <td class="usage-count">{{ tag.usage_count || 0 }} topics</td>
@@ -142,8 +142,10 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import unsavedChangesGuard from '@/mixins/unsavedChangesGuard'
 export default {
   name: 'AllTagsView',
+  mixins: [unsavedChangesGuard],
   data() {
     return {
       tags: [],
@@ -155,10 +157,11 @@ export default {
       showDeleteModal: false,
       isEditing: false,
       tagToDelete: null,
-      tagForm: {
+  tagForm: {
         id: null,
         name: ''
-      }
+  },
+  lastSavedSnapshot: ''
     }
   },
   
@@ -234,6 +237,7 @@ export default {
         name: ''
       }
       this.showModal = true
+      this.$nextTick(() => { this.lastSavedSnapshot = JSON.stringify(this.tagForm) })
     },
     
     editTag(tag) {
@@ -243,6 +247,7 @@ export default {
         name: tag.name
       }
       this.showModal = true
+      this.$nextTick(() => { this.lastSavedSnapshot = JSON.stringify(this.tagForm) })
     },
     
     closeModal() {
@@ -251,9 +256,10 @@ export default {
         id: null,
         name: ''
       }
+      this.lastSavedSnapshot = ''
     },
     
-    async saveTag() {
+  async saveTag() {
       try {
         const url = this.isEditing ? `/api/tags/${this.tagForm.id}` : '/api/tags/'
         const method = this.isEditing ? 'PUT' : 'POST'
@@ -274,6 +280,7 @@ export default {
         }
         
   await this.fetchTags()
+  this.lastSavedSnapshot = JSON.stringify(this.tagForm)
   this.closeModal()
   toast.success(this.isEditing ? 'Tag updated' : 'Tag created')
         
@@ -282,7 +289,7 @@ export default {
   this.error = error.message || 'Failed to save tag. Please try again.'
   toast.error(this.error)
       }
-    },
+  },
     
     deleteTag(tag) {
       this.tagToDelete = tag
@@ -319,7 +326,15 @@ export default {
     formatDate(dateString) {
       if (!dateString) return 'N/A'
       return new Date(dateString).toLocaleDateString()
-    }
+    },
+    isDirty() {
+      if (!this.showModal) return false
+      try { return JSON.stringify(this.tagForm) !== this.lastSavedSnapshot } catch(e){ return false }
+    },
+    formatTagName(name){
+      if(typeof name !== 'string') return ''
+      return name
+    },
   }
 }
 </script>
