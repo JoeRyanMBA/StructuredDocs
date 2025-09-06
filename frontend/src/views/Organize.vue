@@ -394,7 +394,9 @@ export default {
         content: '',
         title: '',
         frontmatter: ''
-      }
+  },
+  /* Snapshot of last saved state for unsaved-changes detection */
+  lastSavedSnapshot: null
     }
   },
   computed: {
@@ -455,8 +457,40 @@ export default {
     this.unassignedTopics = this.getUnassignedTopics()
     
     this.unassignedTopics = this.getUnassignedTopics()
+    // Establish initial snapshot once data is loaded
+    this.setSnapshot()
+    window.addEventListener('beforeunload', this.beforeUnloadHandler)
+  },
+  unmounted() {
+    window.removeEventListener('beforeunload', this.beforeUnloadHandler)
+  },
+  beforeRouteLeave(to, from, next) {
+    if (!this.isDirty()) return next()
+    const confirmLeave = window.confirm('You have unsaved collection changes. Leave this page without saving?')
+    if (confirmLeave) return next()
+    next(false)
   },
   methods: {
+    serializeState() {
+      // Minimal representation for dirty detection (avoid functions/circular)
+      return JSON.stringify({
+        collection: this.currentCollection,
+        unassigned: this.unassignedTopics
+      })
+    },
+    setSnapshot() {
+      this.lastSavedSnapshot = this.serializeState()
+    },
+    isDirty() {
+      if (!this.lastSavedSnapshot) return false
+      return this.serializeState() !== this.lastSavedSnapshot
+    },
+    beforeUnloadHandler(e) {
+      if (this.isDirty()) {
+        e.preventDefault()
+        e.returnValue = ''
+      }
+    },
     // Move topic up in its current list
     moveTopicUp(topic) {
       // Find the parent and index of this topic in the tree
@@ -1187,6 +1221,7 @@ export default {
       await saveCollections(this.allCollections)
       this.confirmation = 'Collection saved!'
       setTimeout(() => { this.confirmation = '' }, 1500)
+  this.setSnapshot()
     },
 
     // Add publish methods from CollectionTree
