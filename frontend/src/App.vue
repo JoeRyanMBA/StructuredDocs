@@ -140,6 +140,9 @@ export default {
   max-width: 100vw;
   padding: 0;
   margin-left: 0;
+  /* Ensure full available width so inner flex centering in LoginView isn't constrained by sidebar calc width */
+  width: 100% !important;
+  margin-right: 0;
 }
 
 @media (max-width: 768px) {
