@@ -358,11 +358,27 @@ export default {
     }
   },
   
-  async mounted() {
-    await this.loadReview()
+  mounted() {
+    window.addEventListener('beforeunload', this.beforeUnloadHandler)
+    this.loadReview()
+  },
+  unmounted() {
+    window.removeEventListener('beforeunload', this.beforeUnloadHandler)
+  },
+  beforeRouteLeave(to, from, next) {
+    if (!this.isDirty()) return next()
+    const leave = window.confirm('You have unsaved review feedback. Leave without saving?')
+    if (leave) return next()
+    next(false)
   },
   
   methods: {
+    isDirty() {
+      if (this.submitted) return false
+      const hasFeedbackItems = (this.feedbackItems || []).some(item => Object.values(item).some(v => (v||'').toString().trim()))
+      return !!(this.overallRecommendation || this.overallFeedback || hasFeedbackItems || this.hasChanges)
+    },
+    beforeUnloadHandler(e) { if (this.isDirty()) { e.preventDefault(); e.returnValue = '' } },
     async loadReview() {
       try {
         this.loading = true
