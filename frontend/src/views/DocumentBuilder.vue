@@ -438,6 +438,8 @@
       </div>
     </div>
   </div>
+      <!-- Close root wrapper -->
+      </div>
 </template>
 <script>
 import { getCollections, saveCollections } from '@/api/collections.js'
