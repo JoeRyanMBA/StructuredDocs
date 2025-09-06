@@ -56,6 +56,10 @@
                   <h3>Browse Images</h3>
                 </div>
               </router-link>
+              <button class="quick-action-card" @click="showVariablesPanel = !showVariablesPanel" :aria-pressed="showVariablesPanel.toString()">
+                <div class="action-icon">🏷️</div>
+                <div class="action-content"><h3>{{ showVariablesPanel ? 'Hide' : 'Variables' }}</h3></div>
+              </button>
             </div>
           </div>
             <!-- Collection Topics -->
@@ -374,10 +378,67 @@
       </div>
     </div>
 
-  <!-- Success/Error Messages moved to global ToastContainer -->
+    <div class="variables-panel" v-if="showVariablesPanel">
+    <h3>Variables</h3>
+    <div class="variable-actions">
+      <button class="btn btn-sm" @click="loadVariables">Refresh</button>
+      <button class="btn btn-sm btn-primary" @click="openNewVariableModal">New Variable</button>
+    </div>
+    <div v-if="variablesLoading" class="loading-small">Loading variables...</div>
+    <div v-else>
+      <table class="vars-table">
+        <thead>
+          <tr><th>Slug</th><th>Name</th><th>Selected Value</th><th>Actions</th></tr>
+        </thead>
+        <tbody>
+          <tr v-for="v in variables" :key="v.id">
+            <td><code>{{ v.slug }}</code></td>
+            <td>{{ v.name }}</td>
+            <td>
+              <select v-model="selectionMap[v.id]" @change="saveSelections" class="var-select">
+                <option disabled value="">-- choose --</option>
+                <option v-for="val in v.values" :key="val.id" :value="val.id">{{ val.value }}<span v-if="val.is_default"> (default)</span></option>
+              </select>
+            </td>
+            <td>
+              <button class="btn-icon" @click="editVariable(v)" title="Edit"><i class="fas fa-edit"></i></button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+      <div class="unresolved-warning" v-if="unresolvedSlugs.length">
+        <strong>Unresolved:</strong> {{ unresolvedSlugs.join(', ') }}
+      </div>
+      <div class="preview-actions">
+        <button class="btn btn-secondary btn-sm" :disabled="!canPreview" @click="openPreview">Preview Substitution</button>
+        <button class="btn btn-primary btn-sm" :disabled="!canPublish" @click="publishCollectionWithVariables">Publish</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- Preview Modal -->
+  <div v-if="showPreview" class="modal-overlay" @click.self="closePreview">
+    <div class="modal">
+      <h3>Variable Preview</h3>
+      <div class="mapping-summary">
+        <h4>Mapping</h4>
+        <ul>
+          <li v-for="(val,slug) in previewMapping" :key="slug"><code>{{ slug }}</code> → {{ val }}</li>
+        </ul>
+      </div>
+      <div class="preview-topics">
+        <h4>Sample Topics</h4>
+        <div v-for="t in previewTopics" :key="t.id" class="preview-topic">
+          <h5>{{ t.title }}</h5>
+          <div class="content" v-html="t.content"></div>
+        </div>
+      </div>
+      <div class="modal-actions">
+        <button class="btn btn-secondary" @click="closePreview">Close</button>
+      </div>
+    </div>
   </div>
 </template>
-
 <script>
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { getTopics, createTopic } from '@/api/topics.js'
@@ -437,6 +498,16 @@ export default {
       recentImages: [],
       showImagesModal: false,
       imagesSearch: '',
+      
+      // Variables
+      showVariablesPanel:false,
+      variables:[],
+      variablesLoading:false,
+      selectionMap:{},
+      unresolvedSlugs:[],
+      showPreview:false,
+      previewTopics:[],
+      previewMapping:{},
       
   // UI State
   loading: true
@@ -505,7 +576,10 @@ export default {
       return this.allImages.filter(image => 
         image.filename.toLowerCase().includes(search)
       )
-    }
+    },
+    
+    canPreview(){ return Object.keys(this.selectionMap).length>0 },
+    canPublish(){ return this.unresolvedSlugs.length===0 && Object.keys(this.selectionMap).length>0 },
   },
   
   async created() {
@@ -513,6 +587,168 @@ export default {
   },
   
   methods: {
+    openNewCollectionModal() {
+      this.showCreateCollection = true
+    },
+    async loadData() {
+      this.loading = true
+      try {
+        await Promise.all([
+          this.loadCollections(),
+          this.loadProjects(),
+          this.loadTopics(),
+          this.loadLinks(),
+          this.loadImages()
+        ])
+      } catch (error) {
+        console.error('Failed to load data:', error)
+        toast.error('Failed to load data')
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async loadCollections() {
+      try {
+        this.collections = await getCollections()
+      } catch (error) {
+        console.error('Failed to load collections:', error)
+        this.collections = []
+      }
+    },
+    
+    async loadProjects() {
+      try {
+        const response = await fetch('/api/projects/')
+        if (response.ok) {
+          this.allProjects = await response.json()
+        }
+      } catch (error) {
+        console.error('Failed to load projects:', error)
+        this.allProjects = []
+      }
+    },
+    
+    async loadTopics() {
+      try {
+        this.allTopics = await getTopics()
+      } catch (error) {
+        console.error('Failed to load topics:', error)
+        this.allTopics = []
+      }
+    },
+    
+    async loadLinks() {
+      try {
+        const response = await fetch('/api/links?include_usage=true')
+        if (response.ok) {
+          const data = await response.json()
+          this.allLinks = data.links || []
+          this.recentLinks = this.allLinks.slice(0, 5) // Show 5 most recent
+        }
+      } catch (error) {
+        console.error('Failed to load links:', error)
+        this.allLinks = []
+        this.recentLinks = []
+      }
+    },
+    
+    async loadImages() {
+      try {
+        // Load images from various import documents
+        const response = await fetch('/api/import/history')
+        if (response.ok) {
+          const imports = await response.json()
+          let allImages = []
+          
+          // Load images from each import
+          for (const importDoc of imports.slice(0, 5)) { // Limit for performance
+            try {
+              const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
+              if (imagesResponse.ok) {
+                const imagesData = await imagesResponse.json()
+                allImages = allImages.concat(imagesData.images || [])
+              }
+            } catch (e) {
+              console.warn(`Failed to load images for import ${importDoc.id}:`, e)
+            }
+          }
+          
+          this.allImages = allImages
+          this.recentImages = allImages.slice(0, 6) // Show 6 most recent
+        }
+      } catch (error) {
+        console.error('Failed to load images:', error)
+        this.allImages = []
+        this.recentImages = []
+      }
+    },
+    
+    async loadVariables(){
+      if(!this.selectedCollection) return
+      this.variablesLoading=true
+      try {
+        const res = await fetch('/api/variables?include_values=1')
+        const varsData = await res.json()
+        this.variables = varsData
+        // load selections
+        const selRes = await fetch(`/api/variables/collections/${this.selectedCollection.id}/selections`)
+        if(selRes.ok){
+          const selData = await selRes.json()
+          this.selectionMap = {}
+          selData.selections.forEach(s=>{ this.selectionMap[s.variable_id]=s.variable_value_id || '' })
+          this.calculateUnresolved()
+        }
+      } catch(e){ console.error('Failed to load variables', e) }
+      finally { this.variablesLoading=false }
+    },
+    calculateUnresolved(){
+      // unresolved if variable has no selection and no default
+      this.unresolvedSlugs = this.variables.filter(v=>{
+        const sel = this.selectionMap[v.id]
+        if(sel) return false
+        const hasDefault = v.values.some(val=>val.is_default)
+        return !hasDefault
+      }).map(v=>v.slug)
+    },
+    async saveSelections(){
+      if(!this.selectedCollection) return
+      try {
+        const payload = { selections: Object.entries(this.selectionMap).map(([vid,val])=>({variable_id:Number(vid), variable_value_id: val || null})) }
+        await fetch(`/api/variables/collections/${this.selectedCollection.id}/selections`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
+        this.calculateUnresolved()
+      } catch(e){ console.error('Failed to save selections', e) }
+    },
+    async openPreview(){
+      if(!this.selectedCollection) return
+      try {
+        const map = {}
+        // Build slug mapping from selectionMap
+        this.variables.forEach(v=>{
+          const selValId = this.selectionMap[v.id]
+            if(selValId){
+              const valObj = v.values.find(vv=>vv.id==selValId)
+              if(valObj) map[v.slug]=valObj.value
+            } else {
+              const defObj = v.values.find(vv=>vv.is_default)
+              if(defObj) map[v.slug]=defObj.value
+            }
+        })
+        const res = await fetch(`/api/variables/collections/${this.selectedCollection.id}/preview`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ map }) })
+        if(res.ok){
+          const data = await res.json()
+          this.previewTopics = data.topics.slice(0,5)
+          this.previewMapping = data.mapping
+          this.showPreview=true
+        }
+      } catch(e){ console.error('Preview failed', e) }
+    },
+    closePreview(){ this.showPreview=false },
+    async publishCollectionWithVariables(){
+      await this.publishCollection() // existing method
+    },
+    openNewVariableModal(){ /* placeholder for future UI */ },
+    editVariable(v){ /* placeholder */ },
     openNewCollectionModal() {
       this.showCreateCollection = true
     },
@@ -1498,4 +1734,17 @@ status: "draft"
   margin-top: 0.25rem;
   line-height: 1.4;
 }
+
+.variables-panel { border:1px solid var(--border-color,#ddd); padding:1rem; margin-top:1rem; background:#fff; border-radius:6px; }
+.vars-table { width:100%; border-collapse:collapse; margin-top:.5rem; }
+.vars-table th, .vars-table td { padding:.4rem .5rem; border-bottom:1px solid #eee; font-size:.85rem; }
+.var-select { width:100%; }
+.unresolved-warning { margin-top:.5rem; color:#b45309; font-size:.75rem; }
+.preview-actions { display:flex; gap:.5rem; margin-top:.75rem; }
+.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-start; justify-content:center; padding-top:5vh; z-index:2000; }
+.modal { background:#fff; padding:1rem 1.25rem; width:60%; max-height:80vh; overflow:auto; border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,.2); }
+.preview-topic { border:1px solid #eee; padding:.5rem .6rem; margin-bottom:.6rem; border-radius:4px; background:#fafafa; }
+.preview-topic h5 { margin:0 0 .25rem; font-size:.85rem; }
+.mapping-summary ul { list-style:none; padding:0; margin:.25rem 0 .75rem; columns:2; font-size:.75rem; }
+.mapping-summary li code { background:#f1f5f9; padding:2px 4px; border-radius:3px; }
 </style>
