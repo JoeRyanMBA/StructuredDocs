@@ -575,13 +575,16 @@ export default {
         .replace(/<p[^>]*>/gi, '')
         .replace(/<\/p>/gi, '\n\n')
         .replace(/<br[^>]*>/gi, '\n')
-        .replace(/<div[^>]*>/gi, '')
-        .replace(/<\/div>/gi, '\n')
+  /* Treat block-level divs as paragraphs: many contenteditable environments emit <div> wraps */
+  .replace(/<div[^>]*>/gi, '')
+  .replace(/<\/div>/gi, '\n\n')
         .replace(/&nbsp;/gi, ' ')
         .replace(/&amp;/gi, '&')
         .replace(/&lt;/gi, '<')
         .replace(/&gt;/gi, '>')
-        .trim()
+  /* Collapse 3+ newlines to double newlines */
+  .replace(/\n{3,}/g, '\n\n')
+  .trim()
     },
 
     handleWysiwygPaste(event) {
