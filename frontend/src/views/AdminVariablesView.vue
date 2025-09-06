@@ -79,6 +79,10 @@
             </p>
             <p class="rules">Allowed: lowercase letters, numbers, hyphens and underscores. Must start with a letter. Example: <code>organization_name</code></p>
             <p v-if="!slugValid" class="error-text">Slug invalid. Use a leading letter, then letters/numbers/_ or -.</p>
+            <div v-if="!editingVar && slugValid && !slugAvailable" class="error-text" style="margin-top:.25rem;">
+              Slug already exists.
+              <button type="button" class="btn btn-sm" @click="applySuggestedSlug" v-if="slugSuggestion">Use suggestion: <code>{{ slugSuggestion }}</code></button>
+            </div>
           </div>
           <label>Description
             <textarea v-model="varForm.description" rows="2" />
@@ -113,6 +117,8 @@ export default {
       newValueDefault:false,
   slugTouched:false,
   slugAuto:true,
+  slugAvailable:true,
+  slugSuggestion:'',
     }
   },
   created(){ this.refresh() },
@@ -124,7 +130,7 @@ export default {
       return /^[a-z][a-z0-9_-]*$/.test(s);
     },
     formSubmitEnabled(){
-      return !!this.varForm.name.trim() && this.slugValid;
+  return !!this.varForm.name.trim() && this.slugValid && this.slugAvailable;
     },
     previewSlugExample(){
       return this.varForm.slug || 'organization_name';
@@ -166,6 +172,30 @@ export default {
     handleSlugInput(){
       this.slugTouched = true; this.slugAuto = false;
       this.varForm.slug = this.sanitizeSlug(this.varForm.slug);
+      this.queueValidateSlug();
+    },
+    queueValidateSlug(){
+      clearTimeout(this._slugTimer);
+      this._slugTimer = setTimeout(()=>{ this.validateSlugRemote(); }, 300);
+    },
+    async validateSlugRemote(){
+      if(this.editingVar) return;
+      const slug = this.varForm.slug;
+      if(!slug) { this.slugAvailable=false; return; }
+      try {
+        const res = await fetch(`/api/variables/validate_slug?slug=${encodeURIComponent(slug)}`);
+        if(!res.ok) return;
+        const data = await res.json();
+        this.slugAvailable = data.available;
+        this.slugSuggestion = data.suggested;
+      } catch(e){ /* silent */ }
+    },
+    applySuggestedSlug(){
+      if(this.slugSuggestion && !this.slugAvailable){
+        this.varForm.slug = this.slugSuggestion;
+        this.slugTouched = true;
+        this.slugAvailable = true;
+      }
     },
     sanitizeSlug(raw){
       if(!raw) return '';
