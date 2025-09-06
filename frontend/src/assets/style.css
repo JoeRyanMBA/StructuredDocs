@@ -305,6 +305,13 @@ a:hover {
   line-height: 1.7;
 }
 .rendered-markdown p:last-child, .topic-preview-content p:last-child, .preview-content p:last-child { margin-bottom: 0; }
+/* Fallback: if HTML content uses <br><br> for paragraphs (legacy saved content), simulate spacing */
+.topic-preview-content br + br,
+.preview-content br + br {
+  display: block;
+  content: "";
+  margin-bottom: 1rem;
+}
 
 /* Inline Edit button: improve contrast using org colors */
 .edit-inline-btn {
