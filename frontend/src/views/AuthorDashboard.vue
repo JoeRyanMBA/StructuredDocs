@@ -93,36 +93,7 @@
       </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="content-grid two-col">
-
-      <!-- Recent Topics -->
-      <div class="dashboard-section">
-        <h2>Recent Work</h2>
-        <div class="topics-list">
-          <div v-if="recentTopics.length === 0" class="empty-state">
-            <p>No topics yet. Create your first topic to get started!</p>
-          </div>
-          <div v-else>
-            <div 
-              v-for="topic in recentTopics" 
-              :key="topic.id"
-              class="topic-item"
-              @click="editTopic(topic)"
-            >
-              <div class="topic-icon">📝</div>
-              <div class="topic-content">
-                <div class="topic-title">{{ topic.title }}</div>
-                <div class="topic-description">{{ topic.collection_name || 'No collection' }}</div>
-                <div class="topic-meta">{{ formatRelativeTime(topic.updated_at) }}</div>
-              </div>
-              <div class="topic-status" :class="topic.status">{{ formatStatus(topic.status) }}</div>
-            </div>
-          </div>
-        </div>
-      </div>
-
-  <!-- Writing Progress -->
+  <!-- Main Content (full width after removing Recent Work) -->
   <div class="dashboard-section">
         <h2>Writing Progress</h2>
         <div class="progress-overview">
@@ -173,7 +144,10 @@
                   <th>Status</th>
                   <th>Collection</th>
                   <th>Words</th>
-                  <th>Updated</th>
+                  <th class="sortable" @click="toggleSort('updated')" :aria-sort="updatedSortStateAria">
+                    Updated
+                    <span class="sort-indicator" :class="updatedSortState"></span>
+                  </th>
                   <th>Actions</th>
                 </tr>
               </thead>
@@ -248,8 +222,6 @@
         </div>
       </div>
 
-    </div>
-
     <!-- Loading State -->
     <div
       v-if="loading"
@@ -318,12 +290,14 @@ export default {
         inReview: 0,
         createdThisWeek: 0
       },
-      myTopics: [],
-      filteredMyTopics: [],
+  myTopics: [],
+  filteredMyTopics: [],
       searchQuery: '',
       statusFilter: '',
       collectionFilter: '',
-      recentTopics: []
+  recentTopics: [], /* deprecated after removing Recent Work */
+  sortKey: 'updated',
+  sortDir: 'desc' // 'asc' | 'desc'
     }
   },
 
@@ -384,7 +358,30 @@ export default {
         filtered = filtered.filter(topic => topic.collection_name === this.collectionFilter)
       }
       
+      // Apply sorting
+      if (this.sortKey === 'updated') {
+        filtered.sort((a, b) => {
+          const aDate = new Date(a.updated_at || a.created_at || 0)
+          const bDate = new Date(b.updated_at || b.created_at || 0)
+          return this.sortDir === 'asc' ? aDate - bDate : bDate - aDate
+        })
+      }
       this.filteredMyTopics = filtered
+    },
+    toggleSort(key) {
+      if (key !== 'updated') return
+      if (this.sortKey === key) {
+        this.sortDir = this.sortDir === 'asc' ? 'desc' : 'asc'
+      } else {
+        this.sortKey = key
+        this.sortDir = 'desc'
+      }
+      this.applyFilters()
+    },
+
+    updatedSortStateAria() {
+      if (this.sortKey !== 'updated') return 'none'
+      return this.sortDir === 'asc' ? 'ascending' : 'descending'
     },
     
     clearFilters() {
