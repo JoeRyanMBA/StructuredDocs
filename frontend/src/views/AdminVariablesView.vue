@@ -56,7 +56,7 @@
 
     <!-- Create / Edit Variable Modal -->
     <div v-if="showVarModal" class="modal-overlay" @click.self="closeVarModal">
-      <div class="modal">
+      <div class="modal-content var-modal" @click.stop>
         <h3>{{ editingVar ? 'Edit Variable' : 'New Variable' }}</h3>
         <form @submit.prevent="saveVar" class="var-form">
           <label>Name*
@@ -169,8 +169,7 @@ export default {
 .muted { color:#94a3b8; font-size:.75rem; }
 .add-value-form { display:flex; gap:.5rem; align-items:center; margin-top:.75rem; }
 .add-value-form input[type=text]{ flex:1; }
-.modal-overlay { position:fixed; inset:0; background:rgba(0,0,0,.45); display:flex; align-items:flex-start; justify-content:center; padding-top:8vh; }
-.modal { background:#fff; padding:1rem 1.25rem; width:420px; border-radius:8px; box-shadow:0 4px 24px rgba(0,0,0,.2); }
+.var-modal { max-width:480px; width:100%; padding:1.25rem 1.5rem; }
 .var-form { display:flex; flex-direction:column; gap:.5rem; }
 .var-form input, .var-form textarea, .var-form select { width:100%; }
 .modal-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:.5rem; }
