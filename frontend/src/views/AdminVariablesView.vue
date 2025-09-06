@@ -74,7 +74,7 @@
           </label>
           <div class="form-help">
             <p>
-              The slug is the stable token used inside content like <code>{{ '{' }}{{ previewSlugExample }}{{ '}' }}</code>.
+              The slug is the stable token used inside content like <code>{{ slugTokenDisplay }}</code>.
               {{ editingVar ? 'It cannot be changed after creation.' : 'It will auto-generate from Name; you can edit before saving.' }}
             </p>
             <p class="rules">Allowed: lowercase letters, numbers, hyphens and underscores. Must start with a letter. Example: <code>organization_name</code></p>
@@ -134,6 +134,9 @@ export default {
     },
     previewSlugExample(){
       return this.varForm.slug || 'organization_name';
+    },
+    slugTokenDisplay(){
+      return `{{${this.previewSlugExample}}}`;
     }
   },
   methods:{
