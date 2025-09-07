@@ -114,9 +114,32 @@ def create_topic_review(topic_id):
         requested_by = data.get('requested_by')
 
         if not reviewer_id or not requested_by:
-            first = Stakeholder.query.filter(Stakeholder.can_review == True).first()  # noqa: E712
+            # Try to locate any existing active reviewer-capable stakeholder
+            first = Stakeholder.query.filter(Stakeholder.can_review == True, Stakeholder.active == True).first()  # noqa: E712
             if not first:
-                return jsonify({'error': 'No reviewer/requester supplied and no available stakeholders found. Provide reviewer_id and requested_by.'}), 400
+                # Auto-provision a default reviewer to keep UX simple for first-time deployments
+                import os
+                default_email = os.environ.get('DEFAULT_REVIEWER_EMAIL', 'reviewer@example.com')
+                default_name = os.environ.get('DEFAULT_REVIEWER_NAME', 'Auto Reviewer')
+                # Re-check by email in case created concurrently
+                existing = Stakeholder.query.filter(Stakeholder.email == default_email).first()
+                if existing:
+                    first = existing
+                else:
+                    try:
+                        first = Stakeholder()  # type: ignore[call-arg]
+                        # Manually assign fields (avoids strict type stubs complaining about signature)
+                        first.name = default_name
+                        first.email = default_email
+                        first.can_review = True
+                        first.active = True
+                        db.session.add(first)
+                        db.session.flush()  # Assign ID within current txn
+                        current_app.logger.info('Auto-provisioned default reviewer stakeholder (%s)', default_email)
+                    except Exception:
+                        # If creation fails, abort with guidance
+                        current_app.logger.warning('Failed to auto-provision default reviewer stakeholder')
+                        return jsonify({'error': 'No reviewer/requester supplied and no stakeholders exist. Create a stakeholder or pass reviewer_id & requested_by.'}), 400
             if not reviewer_id:
                 reviewer_id = first.id
             if not requested_by:
