@@ -9,9 +9,10 @@ def test_variable_crud_basic(tmp_path):
     os.environ.pop('SKIP_BLUEPRINTS', None)
     # Limit to only needed blueprints for speed
     os.environ['ENABLE_BLUEPRINTS'] = 'variables'
+    # Point app to an isolated temp DB before creation so no pre-existing data leaks in
+    os.environ['DATABASE_URL'] = f"sqlite:///{tmp_path/'vars.db'}"
     app = create_app()
     app.config['TESTING'] = True
-    app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{tmp_path/'vars.db'}"
     with app.app_context():
         db.create_all()
         client = app.test_client()

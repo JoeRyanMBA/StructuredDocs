@@ -122,7 +122,6 @@
               @input="onWysiwygInput"
               contenteditable="true" 
               class="wysiwyg-content"
-              :innerHTML="renderedMarkdown"
             ></div>
           </div>
 
@@ -400,6 +399,10 @@ export default {
     window.addEventListener('beforeunload', this.beforeUnloadHandler)
   this.loadVariables()
   this.loadRecentVariables()
+    // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
+    if(this.editorMode === 'wysiwyg' && this.$refs.wysiwygEditor){
+      this.$refs.wysiwygEditor.innerHTML = this.renderedMarkdown
+    }
   },
   unmounted() {
     window.removeEventListener('beforeunload', this.beforeUnloadHandler)
@@ -450,7 +453,8 @@ export default {
     },
     handleInsertVariable(){
       if(!this.selectedVariableSlug) return
-      const token = `{{${this.selectedVariableSlug}}}`
+      const slug = this.selectedVariableSlug
+      const token = `{{${slug}}}`
       if(this.editorMode === 'markdown'){
         const ta = this.$refs.markdownEditor
         if(ta && ta.selectionStart != null){
@@ -483,8 +487,9 @@ export default {
         }
         this.onWysiwygInput()
       }
-      this.selectedVariableSlug = ''
-  this.pushRecent(this.selectedVariableSlug)
+  // Track recent before clearing selection
+  this.pushRecent(slug)
+  this.selectedVariableSlug = ''
     },
     openVariablesAdmin(){
       if(this.$router) this.$router.push({ name: 'AdminVariables' })
