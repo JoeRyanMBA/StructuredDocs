@@ -29,12 +29,18 @@
               required
             />
             <div class="variable-insert" v-if="variableSlugs.length">
-              <label class="var-insert-label">Insert Variable:</label>
-              <select v-model="selectedVariableSlug" @change="handleInsertVariable" class="var-insert-select">
+              <label class="var-insert-label">Variables</label>
+              <input v-model="variableSearch" class="var-search" placeholder="Search…" @input="filterVariables" />
+              <select v-model="selectedVariableSlug" @change="handleInsertVariable" class="var-insert-select" :title="selectedVariableSlug ? tokenPreview(selectedVariableSlug) : 'Select variable to insert'">
                 <option value="">-- choose --</option>
-                <option v-for="slug in variableSlugs" :key="slug" :value="slug">{{ slug }}</option>
+                <optgroup v-if="recentVariables.length" label="Recent">
+                  <option v-for="slug in recentVariables" :key="'r-'+slug" :value="slug">{{ slug }}</option>
+                </optgroup>
+                <optgroup label="All">
+                  <option v-for="slug in filteredVariables" :key="slug" :value="slug">{{ slug }}</option>
+                </optgroup>
               </select>
-              <button type="button" class="btn btn-sm btn-secondary" @click="openVariablesAdmin" title="Manage variables">
+              <button type="button" class="btn btn-sm btn-secondary" @click="openVariablesAdmin" title="Manage variables in new tab">
                 Manage
               </button>
             </div>
@@ -328,8 +334,11 @@ export default {
   availableLinks: [],
   linkSearch: '',
   _debounceTimer: null,
-      variableSlugs: [],
-      selectedVariableSlug: ''
+  variableSlugs: [],
+  filteredVariables: [],
+  recentVariables: [],
+  variableSearch: '',
+  selectedVariableSlug: ''
     }
   },
   computed: {
@@ -390,6 +399,7 @@ export default {
     // Warn on tab/window close if there are unsaved edits
     window.addEventListener('beforeunload', this.beforeUnloadHandler)
   this.loadVariables()
+  this.loadRecentVariables()
   },
   unmounted() {
     window.removeEventListener('beforeunload', this.beforeUnloadHandler)
@@ -408,9 +418,35 @@ export default {
         const res = await fetch('/api/variables')
         if(res.ok){
           const arr = await res.json()
-          if(Array.isArray(arr)) this.variableSlugs = arr.map(v=>v.slug).sort()
+          if(Array.isArray(arr)) {
+            this.variableSlugs = arr.map(v=>v.slug).sort()
+            this.filteredVariables = this.variableSlugs.slice()
+          }
         }
       } catch(e){ /* silent */ }
+    },
+    filterVariables(){
+      const q = this.variableSearch.trim().toLowerCase()
+      if(!q){ this.filteredVariables = this.variableSlugs.slice(); return }
+      this.filteredVariables = this.variableSlugs.filter(s=>s.toLowerCase().includes(q))
+    },
+    tokenPreview(slug){
+      return `Inserts {{${slug}}}`
+    },
+    loadRecentVariables(){
+      try {
+        const raw = localStorage.getItem('recentVariableSlugs')
+        if(raw){
+          const arr = JSON.parse(raw)
+          if(Array.isArray(arr)) this.recentVariables = arr.filter(s=>typeof s==='string')
+        }
+      } catch(_e){ /* ignore */ }
+    },
+    pushRecent(slug){
+      if(!slug) return
+      const set = [slug, ...this.recentVariables.filter(s=>s!==slug)]
+      this.recentVariables = set.slice(0,8)
+      try { localStorage.setItem('recentVariableSlugs', JSON.stringify(this.recentVariables)) } catch(_e){ }
     },
     handleInsertVariable(){
       if(!this.selectedVariableSlug) return
@@ -448,6 +484,7 @@ export default {
         this.onWysiwygInput()
       }
       this.selectedVariableSlug = ''
+  this.pushRecent(this.selectedVariableSlug)
     },
     openVariablesAdmin(){
       if(this.$router) this.$router.push({ name: 'AdminVariables' })
