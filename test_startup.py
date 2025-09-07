@@ -10,30 +10,27 @@ sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
 
 def test_flask_startup():
     """Test basic Flask app startup"""
-    try:
-        print("🧪 Testing Flask import...")
-        from backend.app import create_app
-        print("✅ Flask import successful")
+    print("🧪 Testing Flask import...")
+    from backend.app import create_app
+    print("✅ Flask import successful")
 
-        print("🧪 Testing Flask app creation...")
-        # Skip blueprints for faster testing
-        os.environ['SKIP_BLUEPRINTS'] = '1'
-        app = create_app()
-        print("✅ Flask app creation successful")
+    # Ensure at least one blueprint loads; include variables so later tests have them
+    if 'SKIP_BLUEPRINTS' in os.environ:
+        os.environ.pop('SKIP_BLUEPRINTS', None)
+    if 'ENABLE_BLUEPRINTS' not in os.environ:
+        os.environ['ENABLE_BLUEPRINTS'] = 'users,variables'
 
-        print("🧪 Testing basic route...")
-        with app.test_client() as client:
-            response = client.get('/')
-            print(f"✅ Root route responded with status: {response.status_code}")
+    print("🧪 Testing Flask app creation...")
+    app = create_app()
+    print("✅ Flask app creation successful")
 
-        print("🎉 All tests passed! Flask app is ready.")
-        return True
+    print("🧪 Testing basic route...")
+    with app.test_client() as client:
+        response = client.get('/')
+        assert response.status_code in (200, 302)
+        print(f"✅ Root route responded with status: {response.status_code}")
 
-    except Exception as e:
-        print(f"❌ Test failed: {e}")
-        import traceback
-        traceback.print_exc()
-        return False
+    print("🎉 Flask startup test passed.")
 
 if __name__ == '__main__':
     success = test_flask_startup()

@@ -4,6 +4,11 @@ from backend.models import db
 
 
 def test_variable_crud_basic(tmp_path):
+    import os
+    # Ensure variables blueprint loads
+    os.environ.pop('SKIP_BLUEPRINTS', None)
+    # Limit to only needed blueprints for speed
+    os.environ['ENABLE_BLUEPRINTS'] = 'variables'
     app = create_app()
     app.config['TESTING'] = True
     app.config['SQLALCHEMY_DATABASE_URI'] = f"sqlite:///{tmp_path/'vars.db'}"
