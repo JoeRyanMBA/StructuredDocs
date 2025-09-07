@@ -20,8 +20,9 @@ if [[ "${RUN_DB_MIGRATIONS}" == "1" ]]; then
 fi
 
 # Start Gunicorn
+PORT_TO_BIND=${PORT:-8080}
 exec python3 -m gunicorn \
-    --bind 0.0.0.0:8080 \
+    --bind 0.0.0.0:${PORT_TO_BIND} \
     --workers 2 \
     --timeout 120 \
     --access-logfile - \
