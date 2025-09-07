@@ -28,8 +28,16 @@
               placeholder="Enter topic title..."
               required
             />
-  /* Track last saved snapshot for unsaved-changes (dirty) detection */
-  lastSaved: null
+            <div class="variable-insert" v-if="variableSlugs.length">
+              <label class="var-insert-label">Insert Variable:</label>
+              <select v-model="selectedVariableSlug" @change="handleInsertVariable" class="var-insert-select">
+                <option value="">-- choose --</option>
+                <option v-for="slug in variableSlugs" :key="slug" :value="slug">{{ slug }}</option>
+              </select>
+              <button type="button" class="btn btn-sm btn-secondary" @click="openVariablesAdmin" title="Manage variables">
+                Manage
+              </button>
+            </div>
           </div>
         </div>
 
@@ -319,7 +327,9 @@ export default {
       linkUrl: '',
   availableLinks: [],
   linkSearch: '',
-  _debounceTimer: null
+  _debounceTimer: null,
+      variableSlugs: [],
+      selectedVariableSlug: ''
     }
   },
   computed: {
@@ -379,6 +389,7 @@ export default {
     this.setSnapshot()
     // Warn on tab/window close if there are unsaved edits
     window.addEventListener('beforeunload', this.beforeUnloadHandler)
+  this.loadVariables()
   },
   unmounted() {
     window.removeEventListener('beforeunload', this.beforeUnloadHandler)
@@ -392,6 +403,55 @@ export default {
     next(false)
   },
   methods: {
+    async loadVariables(){
+      try {
+        const res = await fetch('/api/variables')
+        if(res.ok){
+          const arr = await res.json()
+          if(Array.isArray(arr)) this.variableSlugs = arr.map(v=>v.slug).sort()
+        }
+      } catch(e){ /* silent */ }
+    },
+    handleInsertVariable(){
+      if(!this.selectedVariableSlug) return
+      const token = `{{${this.selectedVariableSlug}}}`
+      if(this.editorMode === 'markdown'){
+        const ta = this.$refs.markdownEditor
+        if(ta && ta.selectionStart != null){
+          const start = ta.selectionStart
+          const end = ta.selectionEnd
+          const before = this.content.slice(0,start)
+          const after = this.content.slice(end)
+          this.content = before + token + after
+          this.$nextTick(()=>{
+            ta.focus()
+            const pos = start + token.length
+            ta.selectionStart = ta.selectionEnd = pos
+          })
+        } else {
+          this.content += token
+        }
+      } else if(this.editorMode === 'wysiwyg') {
+        const el = this.$refs.wysiwygEditor
+        if(el){
+          const sel = window.getSelection()
+          if(sel && sel.rangeCount){
+            const range = sel.getRangeAt(0)
+            range.deleteContents()
+            range.insertNode(document.createTextNode(token))
+            range.collapse(false)
+            sel.removeAllRanges(); sel.addRange(range)
+          } else {
+            el.appendChild(document.createTextNode(token))
+          }
+        }
+        this.onWysiwygInput()
+      }
+      this.selectedVariableSlug = ''
+    },
+    openVariablesAdmin(){
+      if(this.$router) this.$router.push({ name: 'AdminVariables' })
+    },
     setSnapshot() {
       this.lastSaved = {
         title: this.title,
@@ -664,6 +724,11 @@ export default {
 .topic-editor {
   padding: 1rem;
 }
+
+/* Variable insertion UI */
+.variable-insert { display:flex; gap:.4rem; align-items:center; margin-top:.4rem; flex-wrap:wrap; }
+.variable-insert select { padding:.25rem .4rem; font-size:.7rem; }
+.var-insert-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; color:#475569; }
 
 /* Editor mode segmented control */
 
