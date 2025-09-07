@@ -11,6 +11,10 @@
     <div v-if="loading" class="loading">Loading...</div>
 
     <div v-else class="variables-layout">
+      <div v-if="loadError" class="error-banner">
+        <strong>Load failed:</strong>
+        <span v-if="loadError.type">{{ loadError.type }} - </span>{{ loadError.detail || loadError.error || 'Unknown error' }}
+      </div>
       <div class="variables-list">
         <table class="vars-table">
           <thead>
@@ -110,8 +114,9 @@ export default {
   // (import added below after <script> tag adjustment)
   data(){
     return {
-      variables:[],
-      loading:false,
+  variables:[],
+  loading:false,
+  loadError:null,
       selectedVar:null,
       showVarModal:false,
       editingVar:false,
@@ -152,9 +157,11 @@ export default {
         const data = await res.json()
         if(Array.isArray(data)) {
           this.variables = data.map(v=>({ ...v, values: Array.isArray(v.values)? v.values : [] }))
+          this.loadError = null
         } else {
           console.error('Variables endpoint error', data)
           this.variables = []
+          this.loadError = data
         }
         if(this.selectedVar){
           this.selectedVar = this.variables.find(v=>v.id===this.selectedVar.id) || null
@@ -318,6 +325,7 @@ export default {
 .error-text { color:#dc2626; font-weight:500; }
 input.invalid { border:1px solid #dc2626; }
 .badge.auto-hint { background:#e2e8f0; color:#475569; font-size:.55rem; padding:.15rem .35rem; border-radius:4px; margin-left:.25rem; text-transform:uppercase; letter-spacing:.5px; }
+.error-banner { background:#fef2f2; color:#b91c1c; padding:.5rem .75rem; border:1px solid #fecaca; border-radius:6px; font-size:.7rem; margin-bottom:.75rem; }
 </style>
 
 <!-- (removed secondary script block; merged into primary export) -->
