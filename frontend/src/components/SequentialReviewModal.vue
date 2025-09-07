@@ -408,13 +408,14 @@ export default {
 <style>
 /* Sequential Review Modal refined styling for consistency */
 .seq-modal-content {
-  max-width: 720px;
+  max-width: 880px; /* widened for better horizontal space */
   width: 100%;
   display: flex;
   flex-direction: column;
   max-height: 90vh;
-  overflow: hidden;
   padding: 0; /* rely on inner sections */
+  /* Allow focus box-shadows to render outside without clipping */
+  overflow: visible;
   scrollbar-gutter: stable; /* avoid right shift on scrollbar */
 }
 
@@ -423,7 +424,7 @@ export default {
   align-items: center;
   justify-content: space-between;
   margin-bottom: 1rem;
-  padding-bottom: 0.25rem;
+  padding: 1rem 1.25rem .75rem;
   border-bottom: 1px solid var(--border-light-gray, #e2e6ea);
 }
 
@@ -445,14 +446,16 @@ export default {
 .plain-close:hover { color: var(--text-primary, #205493); }
 
 .seq-modal-body {
-  padding: 0 0 0.5rem; /* remove extra side padding; use internal spacing blocks */
+  padding: 0 .75rem .75rem; /* base horizontal padding before inner sections */
   overflow-y: auto;
   flex: 1;
 }
+.seq-modal-body > .mb-4:first-of-type,
+.seq-modal-body > .topic-info-box:first-child { margin-top: .25rem; }
 
 .seq-modal-footer {
   background: transparent;
-  padding: 0.75rem 0 0;
+  padding: .75rem 1.25rem 1rem;
   border-top: 1px solid var(--border-light-gray, #e2e6ea);
   display: flex;
   align-items: center;
@@ -482,7 +485,7 @@ export default {
 .remove-reviewer-btn { padding: .35rem .6rem; }
 
 @media (max-width: 640px) {
-  .seq-modal-content { max-width: 95%; }
+  .seq-modal-content { max-width: 96%; }
   .seq-modal-body { padding: 0 0 .5rem; }
   .reviewer-card-body { padding: .75rem .65rem .25rem; }
 }
