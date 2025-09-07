@@ -25,7 +25,7 @@
               <i class="bi bi-file-text me-1"></i>Topic: {{ topic?.title }}
             </h6>
             <p class="small mb-0 text-muted">
-              Current Status: <span class="badge" style="background-color: #6c757d; color: white; padding: 0.25rem 0.5rem;">{{ formatStatus(topic?.status) }}</span>
+              Current Status: <span class="badge topic-status-badge">{{ formatStatus(topic?.status) }}</span>
             </p>
           </div>
           
@@ -458,12 +458,16 @@ export default {
 .plain-close:active { background: rgba(32,84,147,0.15); }
 
 .seq-modal-body {
-  padding: 0 .75rem .75rem; /* base horizontal padding before inner sections */
+  padding: 0 1.25rem .75rem; /* symmetrical horizontal padding */
   overflow-y: auto;
   flex: 1;
 }
 .seq-modal-body > .mb-4:first-of-type,
 .seq-modal-body > .topic-info-box:first-child { margin-top: .25rem; }
+
+/* Remove bootstrap-style negative gutters inside this isolated modal */
+.seq-modal-body .row { margin-left: 0; margin-right: 0; row-gap: .5rem; }
+.seq-modal-body .row > [class^='col-'] { padding-left: 0; padding-right: 0; }
 
 .seq-modal-footer {
   background: transparent;
@@ -489,6 +493,17 @@ export default {
 }
 .topic-info-heading { color: #205493; font-weight: 600; font-size: .9rem; }
 
+/* Badge refinement (remove bold/blur appearance) */
+.topic-status-badge {
+  background-color: #6c757d;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  font-weight: 400 !important;
+  letter-spacing: .2px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
 .reviewer-card { border: 1px solid #dee2e6; border-radius: 6px; }
 .reviewer-card-body { padding: 1rem 1rem .5rem; }
 
@@ -498,7 +513,7 @@ export default {
 
 @media (max-width: 640px) {
   .seq-modal-content { max-width: 96%; }
-  .seq-modal-body { padding: 0 0 .5rem; }
+  .seq-modal-body { padding: 0 .75rem .5rem; }
   .reviewer-card-body { padding: .75rem .65rem .25rem; }
 }
 .card {
