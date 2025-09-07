@@ -58,7 +58,12 @@ def create_variable():
         while Variable.query.filter_by(slug=slug).first():
             slug = f"{base_slug}-{counter}"
             counter += 1
-        variable = Variable(name=name, slug=slug, description=description, scope=scope)
+        # Instantiate then assign attributes to satisfy static analysis (Pylance) that doesn't know dynamic constructor kwargs
+        variable = Variable()
+        variable.name = name  # type: ignore[attr-defined]
+        variable.slug = slug  # type: ignore[attr-defined]
+        variable.description = description  # type: ignore[attr-defined]
+        variable.scope = scope  # type: ignore[attr-defined]
         db.session.add(variable)
         db.session.commit()
         return jsonify(variable.to_dict(include_values=True)), 201
@@ -120,7 +125,10 @@ def add_variable_value(var_id):
             for v in variable.values:
                 if v.is_default:
                     v.is_default = False
-        vv = VariableValue(variable_id=variable.id, value=value, is_default=is_default)
+        vv = VariableValue()
+        vv.variable_id = variable.id  # type: ignore[attr-defined]
+        vv.value = value  # type: ignore[attr-defined]
+        vv.is_default = is_default  # type: ignore[attr-defined]
         db.session.add(vv)
         db.session.commit()
         return jsonify(vv.to_dict()), 201
@@ -204,7 +212,9 @@ def upsert_collection_variable_selections(collection_id):
                 continue
             row = CollectionVariableSelection.query.filter_by(collection_id=collection_id, variable_id=var_id).first()
             if not row:
-                row = CollectionVariableSelection(collection_id=collection_id, variable_id=var_id)
+                row = CollectionVariableSelection()
+                row.collection_id = collection_id  # type: ignore[attr-defined]
+                row.variable_id = var_id  # type: ignore[attr-defined]
                 db.session.add(row)
             row.variable_value_id = value_id
         db.session.commit()
