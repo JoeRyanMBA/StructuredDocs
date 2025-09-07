@@ -6,8 +6,8 @@
           <i class="bi bi-arrow-right-circle me-2" aria-hidden="true"></i>
           Sequential Review Setup
         </h3>
-        <button type="button" class="btn btn-sm btn-icon plain-close" @click="closeModal" aria-label="Close sequential review setup">
-          <i class="bi bi-x" aria-hidden="true"></i>
+        <button type="button" class="plain-close" @click="closeModal" aria-label="Close sequential review setup" title="Close">
+          <i class="bi bi-x-lg" aria-hidden="true"></i>
         </button>
       </div>
       <div class="modal-body seq-modal-body">
@@ -440,10 +440,22 @@ export default {
   background: transparent;
   border: none;
   color: var(--text-secondary-cool-gray, #666);
-  padding: .25rem .4rem;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
   line-height: 1;
+  border-radius: 4px;
+  font-size: 1.35rem; /* enlarges icon */
 }
-.plain-close:hover { color: var(--text-primary, #205493); }
+.plain-close:hover, .plain-close:focus {
+  color: var(--text-primary, #205493);
+  background: rgba(32,84,147,0.08);
+  outline: none;
+}
+.plain-close:active { background: rgba(32,84,147,0.15); }
 
 .seq-modal-body {
   padding: 0 .75rem .75rem; /* base horizontal padding before inner sections */
