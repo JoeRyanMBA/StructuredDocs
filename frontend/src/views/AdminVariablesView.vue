@@ -289,6 +289,7 @@ export default {
 .admin-variables { padding:1.25rem; }
 .subtitle { color:#64748b; margin-bottom:1rem; }
 .actions-bar { display:flex; gap:.5rem; margin-bottom:1rem; }
+.actions-bar .btn { min-width:120px; }
 .variables-layout { display:flex; gap:1rem; }
 .variables-list { flex:1 1 50%; overflow:auto; }
 .variable-detail { flex:1 1 50%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; }
@@ -299,11 +300,13 @@ export default {
 .vars-table tbody tr.selected { background:#f1f5f9; }
 .muted { color:#94a3b8; font-size:.75rem; }
 .add-value-form { display:flex; gap:.5rem; align-items:center; margin-top:.75rem; }
+.add-value-form .btn { min-width:70px; }
 .add-value-form input[type=text]{ flex:1; }
 .var-modal { max-width:480px; width:100%; padding:1.25rem 1.5rem; }
 .var-form { display:flex; flex-direction:column; gap:.6rem; }
 .var-form input, .var-form textarea, .var-form select { width:100%; }
 .modal-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:.5rem; }
+.modal-actions .btn { min-width:90px; }
 .form-help { font-size:.7rem; color:#64748b; line-height:1.2; margin-top:-.35rem; margin-bottom:.25rem; }
 .form-help code { background:#f1f5f9; padding:0 .25rem; border-radius:4px; }
 .form-help .rules { margin:.15rem 0 0 0; }

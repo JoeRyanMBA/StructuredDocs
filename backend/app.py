@@ -469,6 +469,7 @@ p { color: #666; }
                 metrics,
                 milestones,
                 notifications,
+                variables,
                 projects,
                 publications,
                 review_tokens,
@@ -491,6 +492,7 @@ p { color: #666; }
             app.register_blueprint(metrics.metrics_bp)
             app.register_blueprint(milestones.milestones_bp)
             app.register_blueprint(notifications.notifications_bp)
+            app.register_blueprint(variables.variables_bp)
             app.register_blueprint(projects.projects_bp)
             app.register_blueprint(publications.pubs_bp)
             app.register_blueprint(review_tokens.review_tokens_bp)
