@@ -103,8 +103,11 @@
   </div>
 </template>
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name:'AdminVariablesView',
+  // Inject global toast composable
+  // (import added below after <script> tag adjustment)
   data(){
     return {
       variables:[],
@@ -199,6 +202,7 @@ export default {
         this.varForm.slug = this.slugSuggestion;
         this.slugTouched = true;
         this.slugAvailable = true;
+  toast.success('Applied suggested slug')
       }
     },
     sanitizeSlug(raw){
@@ -241,10 +245,14 @@ export default {
         if(!res.ok) {
           // If server returns slug collision simultaneously, refresh availability
             await this.validateSlugRemote();
+            toast.error('Failed to save variable');
             throw new Error('Save failed');
         }
-        await this.refresh(); this.showVarModal=false
-      } catch(e){ console.error(e) }
+        const data = await res.json();
+        await this.refresh();
+        toast.success(this.editingVar ? 'Variable updated' : `Variable created (${data.slug})`);
+        this.showVarModal=false
+      } catch(e){ console.error(e); }
       finally { this.isSaving = false }
     },
     async addValue(){
@@ -252,24 +260,27 @@ export default {
       try {
         const res = await fetch(`/api/variables/${this.selectedVar.id}/values`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ value:this.newValue.trim(), is_default:this.newValueDefault }) })
         if(!res.ok) throw new Error('Add failed')
-        this.newValue=''; this.newValueDefault=false; await this.refresh()
-      } catch(e){ console.error(e) }
+        this.newValue=''; this.newValueDefault=false; await this.refresh();
+        toast.success('Value added');
+      } catch(e){ console.error(e); toast.error('Failed to add value'); }
     },
     async deleteValue(val){
       if(!confirm('Delete this value?')) return
       try {
         const res = await fetch(`/api/variables/values/${val.id}`, { method:'DELETE' })
         if(!res.ok) throw new Error('Delete failed')
-        await this.refresh()
-      } catch(e){ console.error(e) }
+        await this.refresh();
+        toast.success('Value deleted');
+      } catch(e){ console.error(e); toast.error('Failed to delete value'); }
     },
     async makeDefault(val){
       if(!this.selectedVar) return
       try {
         const res = await fetch(`/api/variables/values/${val.id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ is_default:true }) })
         if(!res.ok) throw new Error('Default update failed')
-        await this.refresh()
-      } catch(e){ console.error(e) }
+        await this.refresh();
+        toast.success('Default updated');
+      } catch(e){ console.error(e); toast.error('Failed to update default'); }
     }
   }
 }
