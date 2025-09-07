@@ -36,8 +36,17 @@ def list_variables():
         vars_ = Variable.query.order_by(Variable.created_at.desc()).all()
         return jsonify([v.to_dict(include_values=include_values) for v in vars_]), 200
     except Exception as e:
+        msg = str(e).lower()
+        if 'no such table' in msg and 'variables' in msg:
+            current_app.logger.warning('variables table missing; attempting create_all fallback')
+            try:
+                db.create_all()
+                vars_ = Variable.query.order_by(Variable.created_at.desc()).all()
+                return jsonify([v.to_dict(include_values=True) for v in vars_]), 200
+            except Exception:
+                current_app.logger.exception('Fallback create_all failed')
         current_app.logger.exception('Failed to list variables')
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'list_variables_failed', 'detail': str(e)}), 500
 
 
 @variables_bp.route('', methods=['POST'])

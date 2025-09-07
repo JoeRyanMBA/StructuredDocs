@@ -22,7 +22,7 @@
               <td>{{ v.name }}</td>
               <td class="muted">{{ v.description || '—' }}</td>
               <td>{{ v.scope }}</td>
-              <td>{{ v.values.length }}</td>
+              <td>{{ (v.values && Array.isArray(v.values)) ? v.values.length : 0 }}</td>
               <td><button class="btn btn-sm" @click.stop="editVar(v)">Edit</button></td>
             </tr>
           </tbody>
@@ -149,12 +149,17 @@ export default {
       this.loading = true
       try {
         const res = await fetch('/api/variables?include_values=1')
-        this.variables = await res.json()
+        const data = await res.json()
+        if(Array.isArray(data)) {
+          this.variables = data.map(v=>({ ...v, values: Array.isArray(v.values)? v.values : [] }))
+        } else {
+          console.error('Variables endpoint error', data)
+          this.variables = []
+        }
         if(this.selectedVar){
-          // refresh selected reference
           this.selectedVar = this.variables.find(v=>v.id===this.selectedVar.id) || null
         }
-      } catch(e){ console.error('Load failed', e) }
+      } catch(e){ console.error('Load failed', e); this.variables=[] }
       finally { this.loading = false }
     },
     selectVariable(v){ this.selectedVar = v },
