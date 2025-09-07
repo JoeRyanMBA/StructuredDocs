@@ -1,16 +1,16 @@
 <template>
-  <!-- Vue-controlled modal overlay matching app colors -->
-  <div class="modal-overlay" @click.self="closeModal" style="position: fixed; top: 0; left: 0; width: 100%; height: 100%; background: rgba(0,0,0,0.5); z-index: 1050; display: flex; align-items: center; justify-content: center;">
-    <div class="modal-dialog modal-lg" style="background: white; border-radius: 8px; max-width: 800px; max-height: 90vh; overflow-y: auto; margin: 20px; box-shadow: 0 4px 12px rgba(0,0,0,0.15);">
-      <div class="modal-content" style="border: none;">
-        <div class="modal-header" style="padding: 1.5rem; border-bottom: 2px solid #205493; background: linear-gradient(135deg, #205493 0%, #005E7B 100%); color: white;">
-          <h5 class="modal-title" style="margin: 0; font-weight: 600;">
-            <i class="bi bi-arrow-right-circle me-2"></i>Set Up Sequential Review
-          </h5>
-          <button type="button" class="btn-close btn-close-white" @click="closeModal" aria-label="Close" style="filter: brightness(0) invert(1);"></button>
-        </div>
-        
-        <div class="modal-body" style="padding: 1.5rem;">
+  <div class="modal-overlay" @click.self="closeModal">
+    <div class="modal-content seq-modal-content" @click.stop>
+      <div class="modal-header-row">
+        <h3 class="modal-heading">
+          <i class="bi bi-arrow-right-circle me-2" aria-hidden="true"></i>
+          Sequential Review Setup
+        </h3>
+        <button type="button" class="btn btn-sm btn-icon plain-close" @click="closeModal" aria-label="Close sequential review setup">
+          <i class="bi bi-x" aria-hidden="true"></i>
+        </button>
+      </div>
+      <div class="modal-body seq-modal-body">
           <div v-if="error" class="alert alert-danger" role="alert" style="margin-bottom: 1.5rem;">
             {{ error }}
           </div>
@@ -20,11 +20,11 @@
           </div>
           
           <!-- Topic Info -->
-          <div class="mb-4 p-3 rounded" style="background: linear-gradient(135deg, #f8f9fa 0%, #e9ecef 100%); border: 1px solid #205493; border-left: 4px solid #205493;">
-            <h6 class="mb-2" style="color: #205493; font-weight: 600;">
+          <div class="topic-info-box mb-4">
+            <h6 class="mb-2 topic-info-heading">
               <i class="bi bi-file-text me-1"></i>Topic: {{ topic?.title }}
             </h6>
-            <p class="small mb-0" style="color: #6c757d;">
+            <p class="small mb-0 text-muted">
               Current Status: <span class="badge" style="background-color: #6c757d; color: white; padding: 0.25rem 0.5rem;">{{ formatStatus(topic?.status) }}</span>
             </p>
           </div>
@@ -96,8 +96,8 @@
               <i class="bi bi-person-plus fs-3 d-block mb-2"></i>
               No reviewers added yet. Click "Add Reviewer" to get started.
             </div>
-            <div v-for="(reviewer, index) in form.reviewers" :key="index" class="card mb-3">
-              <div class="card-body">
+            <div v-for="(reviewer, index) in form.reviewers" :key="index" class="card reviewer-card mb-3">
+              <div class="card-body reviewer-card-body">
                 <div class="d-flex justify-content-between align-items-start mb-3">
                   <div class="d-flex align-items-center">
                     <span class="badge bg-primary me-2">{{ index + 1 }}</span>
@@ -111,7 +111,7 @@
                   <button 
                     @click="removeReviewer(index)" 
                     type="button" 
-                    class="btn btn-outline-danger btn-sm"
+                    class="btn btn-outline-danger btn-sm remove-reviewer-btn"
                   >
                     <i class="bi bi-trash"></i>
                   </button>
@@ -156,12 +156,8 @@
               </div>
             </div>
             <div class="d-flex justify-content-center mt-3">
-              <button 
-                @click="addReviewer" 
-                type="button" 
-                class="primary-btn"
-              >
-                <i class="bi bi-plus me-1"></i>Add Reviewer
+              <button @click="addReviewer" type="button" class="btn btn-outline-primary add-reviewer-btn">
+                <i class="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Reviewer
               </button>
             </div>
           </div>
@@ -200,25 +196,16 @@
               When paused, you can incorporate changes and manually advance to the next reviewer.
             </small>
           </div>
-        </div>
-        
-        <div class="modal-footer" style="padding: 1.5rem; border-top: 1px solid #dee2e6; background: #f8f9fa;">
-          <button type="button" class="btn btn-secondary me-3" @click="closeModal" style="background-color: #6c757d; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px;">
-            Cancel
-          </button>
-          <button 
-            @click="createSequence" 
-            type="button" 
-            class="btn btn-primary"
-            :disabled="loading || !isFormValid"
-            style="background-color: #205493; color: white; border: none; padding: 0.75rem 1.5rem; border-radius: 4px; min-width: 180px;"
-            :style="{ 'background-color': (loading || !isFormValid) ? '#ccc' : '#205493' }"
-          >
-            <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
-            <i v-else class="bi bi-check-circle me-2"></i>
-            {{ loading ? 'Creating...' : 'Start Sequential Review' }}
-          </button>
-        </div>
+      </div>
+
+      <div class="modal-footer seq-modal-footer">
+        <div class="flex-spacer"></div>
+        <button type="button" class="btn btn-secondary" @click="closeModal" :disabled="loading">Cancel</button>
+        <button @click="createSequence" type="button" class="btn btn-primary start-seq-btn" :disabled="loading || !isFormValid">
+          <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-check-circle me-2" aria-hidden="true"></i>
+          {{ loading ? 'Creating...' : 'Start Sequential Review' }}
+        </button>
       </div>
     </div>
   </div>
@@ -352,14 +339,8 @@ export default {
         // Emit event to parent component
         this.$emit('sequence-created', response.data.sequence)
         
-        // Close modal after short delay
-        setTimeout(() => {
-          const modal = document.getElementById('sequentialReviewModal')
-          const bootstrapModal = bootstrap.Modal.getInstance(modal)
-          if (bootstrapModal) {
-            bootstrapModal.hide()
-          }
-        }, 2000)
+  // Close modal after short delay via emitted event (consistent with other modals)
+  setTimeout(() => { this.$emit('close') }, 1600)
 
       } catch (error) {
         console.error('Failed to create sequence:', error)
@@ -425,6 +406,86 @@ export default {
 </script>
 
 <style>
+/* Sequential Review Modal refined styling for consistency */
+.seq-modal-content {
+  max-width: 720px;
+  width: 100%;
+  display: flex;
+  flex-direction: column;
+  max-height: 90vh;
+  overflow: hidden;
+  padding: 0; /* rely on inner sections */
+  scrollbar-gutter: stable; /* avoid right shift on scrollbar */
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 1rem;
+  padding-bottom: 0.25rem;
+  border-bottom: 1px solid var(--border-light-gray, #e2e6ea);
+}
+
+.modal-heading {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.plain-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary-cool-gray, #666);
+  padding: .25rem .4rem;
+  line-height: 1;
+}
+.plain-close:hover { color: var(--text-primary, #205493); }
+
+.seq-modal-body {
+  padding: 0 0 0.5rem; /* remove extra side padding; use internal spacing blocks */
+  overflow-y: auto;
+  flex: 1;
+}
+
+.seq-modal-footer {
+  background: transparent;
+  padding: 0.75rem 0 0;
+  border-top: 1px solid var(--border-light-gray, #e2e6ea);
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+}
+
+.seq-modal-content .modal-body > *:first-child { margin-top: 0; }
+
+.start-seq-btn { min-width: 190px; }
+
+/* Topic info */
+.topic-info-box {
+  background: var(--bg-white, #fff);
+  border: 1px solid var(--border-light-gray, #e2e6ea);
+  border-left: 4px solid #205493;
+  border-radius: 4px;
+  padding: .75rem .85rem .5rem;
+  margin: 0 0 1.25rem;
+}
+.topic-info-heading { color: #205493; font-weight: 600; font-size: .9rem; }
+
+.reviewer-card { border: 1px solid #dee2e6; border-radius: 6px; }
+.reviewer-card-body { padding: 1rem 1rem .5rem; }
+
+.add-reviewer-btn { min-width: 180px; }
+
+.remove-reviewer-btn { padding: .35rem .6rem; }
+
+@media (max-width: 640px) {
+  .seq-modal-content { max-width: 95%; }
+  .seq-modal-body { padding: 0 0 .5rem; }
+  .reviewer-card-body { padding: .75rem .65rem .25rem; }
+}
 .card {
   border: 1px solid #dee2e6;
 }
