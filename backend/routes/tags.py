@@ -103,31 +103,65 @@ def update_tag(tag_id):
 
 @tags_bp.route('/<int:tag_id>', methods=['DELETE'])
 def delete_tag(tag_id):
-    """Delete a tag"""
+    """Delete a tag.
+
+    Optional query params:
+      force=1 | true  -> Remove the tag from all tasks (including completed/cancelled) then delete.
+      active_only=1   -> (default) Only block deletion if tag is used by active tasks (todo, in_progress, review).
+    """
     try:
         tag = Tag.query.get_or_404(tag_id)
-        
-        # Check if tag is used in any tasks
-        tasks_with_tag = Task.query.all()
-        task_usage = []
-        for task in tasks_with_tag:
+
+        force = request.args.get('force', '').lower() in ('1', 'true', 'yes')
+        active_only = request.args.get('active_only', '1') not in ('0', 'false', 'no')
+
+        # Gather tasks referencing this tag
+        tasks_query = Task.query
+        tasks_with_tag = []
+        for task in tasks_query:  # (Small datasets acceptable; if large consider LIKE filter)
             try:
                 task_tags = json.loads(task.tags or '[]')
-                if tag.name in task_tags:
-                    task_usage.append(task.title)
-            except:
+                if isinstance(task_tags, list) and tag.name in task_tags:
+                    tasks_with_tag.append(task)
+            except Exception:
                 continue
-                
-        if task_usage:
-            return jsonify({
-                "error": f"Cannot delete tag that is currently used in {len(task_usage)} task(s): {', '.join(task_usage[:3])}{'...' if len(task_usage) > 3 else ''}"
-            }), 400
-            
+
+        if tasks_with_tag:
+            # Optionally filter to only active tasks
+            if active_only:
+                active_statuses = {'todo', 'in_progress', 'review'}
+                active_usage = [t for t in tasks_with_tag if t.status in active_statuses]
+            else:
+                active_usage = tasks_with_tag
+
+            if active_usage and not force:
+                sample_titles = ', '.join([t.title for t in active_usage[:3]])
+                return jsonify({
+                    "error": (
+                        f"Cannot delete tag; referenced by {len(active_usage)} active task(s): {sample_titles}"
+                        + ("..." if len(active_usage) > 3 else "")
+                        + ". Add ?force=1 to remove it from all tasks and delete, or ?active_only=0 to consider completed tasks."
+                    )
+                }), 400
+
+            if force:
+                removed_from = 0
+                for task in tasks_with_tag:
+                    try:
+                        tag_list = json.loads(task.tags or '[]')
+                        if tag.name in tag_list:
+                            tag_list = [t for t in tag_list if t != tag.name]
+                            task.tags = json.dumps(tag_list)
+                            removed_from += 1
+                    except Exception:
+                        continue
+                # Commit intermediate task updates before deleting tag
+                db.session.flush()
+
         db.session.delete(tag)
         db.session.commit()
-        
-        return jsonify({"message": "Tag deleted successfully"})
-        
+        return jsonify({"message": "Tag deleted successfully", "force": force, "removed_task_refs": len(tasks_with_tag) if force else 0})
+
     except Exception as e:
         db.session.rollback()
         return jsonify({"error": str(e)}), 500
