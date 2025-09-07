@@ -415,6 +415,7 @@ p { color: #666; }
                 'metrics': ('metrics', 'metrics_bp'),
                 'milestones': ('milestones', 'milestones_bp'),
                 'notifications': ('notifications', 'notifications_bp'),
+                'variables': ('variables', 'variables_bp'),
                 'projects': ('projects', 'projects_bp'),
                 'publications': ('publications', 'pubs_bp'),
                 'review_tokens': ('review_tokens', 'review_tokens_bp'),
