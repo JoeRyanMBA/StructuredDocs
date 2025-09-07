@@ -94,8 +94,8 @@
             </select>
           </label>
           <div class="modal-actions">
-            <button type="button" class="btn btn-secondary" @click="closeVarModal">Cancel</button>
-            <button type="submit" class="btn btn-primary" :disabled="!formSubmitEnabled">{{ editingVar ? 'Update' : 'Create' }}</button>
+            <button type="button" class="btn btn-secondary btn-sm" @click="closeVarModal">Cancel</button>
+            <button type="submit" class="btn btn-primary btn-sm" :disabled="!formSubmitEnabled || isSaving">{{ isSaving ? (editingVar ? 'Saving…' : 'Creating…') : (editingVar ? 'Update' : 'Create') }}</button>
           </div>
         </form>
       </div>
@@ -119,6 +119,7 @@ export default {
   slugAuto:true,
   slugAvailable:true,
   slugSuggestion:'',
+  isSaving:false,
     }
   },
   created(){ this.refresh() },
@@ -217,15 +218,34 @@ export default {
       return base;
     },
     async saveVar(){
-      if(!this.slugValid) return;
+      if(this.isSaving) return;
+      // Validate slug format
+      if(!this.slugValid){
+        // attempt auto-generate if empty
+        if(!this.varForm.slug && this.varForm.name){
+          this.varForm.slug = this.generateSlug(this.varForm.name);
+        }
+        if(!this.slugValid) return; // still invalid
+      }
+      // Remote availability check if not already confirmed
+      if(!this.slugAvailable){
+        await this.validateSlugRemote();
+        if(!this.slugAvailable) return; // wait for user to apply suggestion
+      }
+      this.isSaving = true;
       try {
         const payload = { name:this.varForm.name.trim(), slug:this.varForm.slug.trim(), description:this.varForm.description.trim(), scope:this.varForm.scope }
         const method = this.editingVar ? 'PUT' : 'POST'
         const url = this.editingVar ? `/api/variables/${this.selectedVar.id}` : '/api/variables'
         const res = await fetch(url,{ method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-        if(!res.ok) throw new Error('Save failed')
+        if(!res.ok) {
+          // If server returns slug collision simultaneously, refresh availability
+            await this.validateSlugRemote();
+            throw new Error('Save failed');
+        }
         await this.refresh(); this.showVarModal=false
       } catch(e){ console.error(e) }
+      finally { this.isSaving = false }
     },
     async addValue(){
       if(!this.selectedVar || !this.newValue.trim()) return
