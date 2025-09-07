@@ -4,6 +4,30 @@ from ..models import db, Variable, VariableValue, CollectionVariableSelection, b
 variables_bp = Blueprint('variables', __name__, url_prefix='/api/variables')
 
 
+@variables_bp.route('/validate_slug', methods=['GET'])
+def validate_slug():
+    """Validate a proposed slug; returns normalized slug, availability, and auto-incremented suggestion."""
+    import re
+    raw = request.args.get('slug', '')
+    original = raw
+    # Normalize like frontend
+    s = raw.lower()
+    s = re.sub(r'\s+', '_', s)
+    s = re.sub(r'[^a-z0-9_\-]', '', s)
+    s = re.sub(r'^-+', '', s)
+    s = re.sub(r'^[^a-z]+', '', s)  # must start with a letter
+    if not s:
+        return jsonify({'slug': '', 'available': False, 'suggested': ''}), 200
+    base = s
+    counter = 2
+    available = True
+    while Variable.query.filter_by(slug=s).first():
+        available = False
+        s = f"{base}-{counter}"
+        counter += 1
+    return jsonify({'slug': base, 'available': available, 'suggested': s if not available else base, 'original': original}), 200
+
+
 @variables_bp.route('', methods=['GET'])
 @variables_bp.route('/', methods=['GET'])
 def list_variables():
@@ -28,9 +52,12 @@ def create_variable():
         # Basic slug normalization
         import re
         slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', slug)
-        existing = Variable.query.filter_by(slug=slug).first()
-        if existing:
-            return jsonify({'error': f'slug "{slug}" already exists'}), 400
+        # Auto-increment slug if collision: slug, slug-2, slug-3 ...
+        base_slug = slug
+        counter = 2
+        while Variable.query.filter_by(slug=slug).first():
+            slug = f"{base_slug}-{counter}"
+            counter += 1
         variable = Variable(name=name, slug=slug, description=description, scope=scope)
         db.session.add(variable)
         db.session.commit()
@@ -52,14 +79,7 @@ def update_variable(var_id):
             variable.name = data['name']
         if 'description' in data:
             variable.description = data['description']
-        if 'slug' in data and data['slug'] != variable.slug:
-            slug = data['slug']
-            import re
-            slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', slug)
-            collision = Variable.query.filter(Variable.slug == slug, Variable.id != var_id).first()
-            if collision:
-                return jsonify({'error': f'slug "{slug}" already exists'}), 400
-            variable.slug = slug
+    # Slug changes disabled (immutability enforced); ignore if provided
         db.session.commit()
         return jsonify(variable.to_dict(include_values=True)), 200
     except Exception as e:
