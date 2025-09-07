@@ -330,6 +330,21 @@ p { color: #666; }
             print(f"Database URI: {app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')}")
             print("ℹ️ This might be normal during first deployment if tables don't exist yet")
             # Don't fail here, just log the error
+
+        # Ensure critical new tables exist (lightweight safety net if migrations not yet run)
+        try:
+            from sqlalchemy import inspect as _inspect
+            inspector = _inspect(db.engine)
+            existing_tables = set(inspector.get_table_names())
+            critical = {'variables', 'variable_values', 'collection_variable_selections'}
+            missing = critical - existing_tables
+            if missing:
+                print(f"🛠  Creating missing critical tables (fallback): {missing}")
+                db.create_all()
+            else:
+                print("✅ Critical tables present")
+        except Exception as _crit_e:
+            print(f"⚠️ Could not ensure critical tables: {_crit_e}")
         
         # Reload email service configuration with loaded environment variables
         try:
