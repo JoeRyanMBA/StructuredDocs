@@ -303,18 +303,32 @@ export default {
     
     async confirmDelete() {
       try {
-        const response = await fetch(`/api/tags/${this.tagToDelete.id}`, {
-          method: 'DELETE'
-        })
-        
+        const response = await fetch(`/api/tags/${this.tagToDelete.id}`, { method: 'DELETE' })
         if (!response.ok) {
           const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+          const msg = errorData.error || `HTTP error! status: ${response.status}`
+          // If backend indicates active usage, offer force delete
+          if (/Cannot delete tag; referenced by/.test(msg)) {
+            const proceed = window.confirm(msg + '\n\nForce delete? This will remove the tag from all referencing tasks.')
+            if (proceed) {
+              const forceResp = await fetch(`/api/tags/${this.tagToDelete.id}?force=1`, { method: 'DELETE' })
+              if (!forceResp.ok) {
+                const fd = await forceResp.json().catch(()=>({}))
+                throw new Error(fd.error || 'Force delete failed')
+              }
+              const body = await forceResp.json()
+              toast.success(`Tag force deleted (removed from ${body.removed_task_refs || 0} task(s))`)
+              await this.fetchTags()
+              this.closeDeleteModal()
+              return
+            }
+          }
+          throw new Error(msg)
         }
-        
-  await this.fetchTags()
-  this.closeDeleteModal()
-  toast.success('Tag deleted')
+        const body = await response.json().catch(()=>({}))
+        toast.success(body.message || 'Tag deleted')
+        await this.fetchTags()
+        this.closeDeleteModal()
         
       } catch (error) {
         console.error('Failed to delete tag:', error)
