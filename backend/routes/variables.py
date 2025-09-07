@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Variable, VariableValue, CollectionVariableSelection, build_variable_mapping_for_collection, substitute_variables_in_text, Topic, Collection
+from ..models import db, Variable, VariableValue, CollectionVariableSelection, build_variable_mapping_for_collection, substitute_variables_in_text, Collection
 
 variables_bp = Blueprint('variables', __name__, url_prefix='/api/variables')
 
