@@ -1,7 +1,9 @@
 # backend/routes/topics.py
 
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Topic, Link, TopicLink, User
+from ..models import db, Topic, Link, TopicLink, User, Review, Stakeholder, ReviewToken
+from datetime import datetime, timedelta
+from ..utils.email_service import email_service
 from flask_jwt_extended import jwt_required, get_jwt_identity
 
 topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
@@ -85,6 +87,101 @@ def publish_topic(topic_id):
     except Exception as e:
         db.session.rollback()
         current_app.logger.exception("Failed to publish topic")
+        return jsonify({'error': str(e)}), 500
+
+# POST /api/topics/<id>/review → Convenience wrapper to create a review request
+@topics_bp.route('/<int:topic_id>/review', methods=['POST'])
+def create_topic_review(topic_id):
+    """Create a simple review request for a topic.
+
+    Accepts JSON body (all optional for quick path):
+      reviewer_id: Stakeholder ID of reviewer
+      requested_by: Stakeholder ID of requester
+      priority: low|medium|high|urgent (default medium)
+      message: author message
+      due_in_days: int (default 7)
+
+    If reviewer_id or requested_by missing, attempts to auto-select the first Stakeholder with can_review.
+    Returns 400 if no stakeholders available and not provided explicitly.
+    """
+    data = request.get_json(silent=True) or {}
+    topic = Topic.query.get(topic_id)
+    if not topic:
+        return jsonify({'error': 'Topic not found'}), 404
+
+    try:
+        reviewer_id = data.get('reviewer_id')
+        requested_by = data.get('requested_by')
+
+        if not reviewer_id or not requested_by:
+            first = Stakeholder.query.filter(Stakeholder.can_review == True).first()  # noqa: E712
+            if not first:
+                return jsonify({'error': 'No reviewer/requester supplied and no available stakeholders found. Provide reviewer_id and requested_by.'}), 400
+            if not reviewer_id:
+                reviewer_id = first.id
+            if not requested_by:
+                requested_by = first.id
+
+        reviewer = Stakeholder.query.get(reviewer_id)
+        requester = Stakeholder.query.get(requested_by)
+        if not reviewer or not requester:
+            return jsonify({'error': 'Invalid reviewer_id or requested_by'}), 400
+        if not reviewer.can_review:
+            return jsonify({'error': 'Selected reviewer cannot review'}), 400
+
+        priority = data.get('priority', 'medium')
+        if priority not in ('low','medium','high','urgent'):
+            priority = 'medium'
+        due_in_days = data.get('due_in_days')
+        try:
+            due_in_days = int(due_in_days) if due_in_days is not None else 7
+        except Exception:
+            due_in_days = 7
+        due_date = datetime.utcnow() + timedelta(days=max(1, min(due_in_days, 30)))
+
+        review = Review(
+            topic_id=topic.id,
+            requested_by=requester.id,
+            reviewer_id=reviewer.id,
+            priority=priority,
+            due_date=due_date,
+            author_message=data.get('message','')
+        )
+        topic.status = 'pending_review'
+        topic.updated_at = datetime.utcnow()
+        db.session.add(review)
+        db.session.flush()
+
+        # Create token for external access
+        token = ReviewToken(
+            token=__import__('secrets').token_urlsafe(32),
+            review_id=review.id,
+            reviewer_email=reviewer.email,
+            expires_at=due_date + timedelta(days=7)
+        )
+        db.session.add(token)
+        db.session.commit()
+
+        # Best-effort email (non-fatal on failure)
+        try:
+            if email_service:
+                email_service.send_review_notification(
+                    reviewer_email=reviewer.email,
+                    reviewer_name=reviewer.name,
+                    topic_title=topic.title,
+                    topic_id=topic.id,
+                    author_message=review.author_message,
+                    due_date=due_date,
+                    priority=priority,
+                    review_token=token.token
+                )
+        except Exception:
+            current_app.logger.warning('Email dispatch failed for review %s', review.id)
+
+        return jsonify({'message':'Review requested','review': review.to_dict()}), 201
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Failed to create review via topic convenience endpoint')
         return jsonify({'error': str(e)}), 500
 
 # DELETE /api/topics/bulk → Delete multiple topics by IDs
