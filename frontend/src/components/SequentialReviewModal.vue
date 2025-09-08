@@ -156,9 +156,9 @@
               </div>
             </div>
             <div class="d-flex justify-content-center mt-3">
-              <button @click="addReviewer" type="button" class="btn btn-outline-primary add-reviewer-btn">
-                <i class="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Reviewer
-              </button>
+                          <button @click="addReviewer" type="button" class="btn btn-primary add-reviewer-btn">
+                            <i class="bi bi-plus-circle me-1" aria-hidden="true"></i> Add Reviewer
+                          </button>
             </div>
           </div>
           
@@ -465,6 +465,28 @@ export default {
 .seq-modal-body > .mb-4:first-of-type,
 .seq-modal-body > .topic-info-box:first-child { margin-top: .25rem; }
 
+/* Field container to ensure focus halo is not clipped on left */
+.seq-modal-body .row, .seq-modal-body .topic-info-box, .seq-modal-body .mb-3, .seq-modal-body .mb-4 {
+  position: relative;
+}
+
+/* Provide slight inset so box-shadow (focus ring) stays fully visible */
+.seq-modal-body .form-control, .seq-modal-body .form-select, .seq-modal-body textarea {
+  outline: none;
+  box-shadow: none;
+  border: 1px solid #ced4da;
+  transition: box-shadow .15s ease, border-color .15s ease;
+  outline-offset: 2px; /* extra space before any outline (accessibility) */
+}
+
+.seq-modal-body .form-control:focus, .seq-modal-body .form-select:focus, .seq-modal-body textarea:focus {
+  border-color: #205493;
+  box-shadow: 0 0 0 3px rgba(32,84,147,0.25);
+}
+
+/* Add a small left internal padding zone to overall body to balance focus halo */
+.seq-modal-content { padding-left: 2px; }
+
 /* Remove bootstrap-style negative gutters inside this isolated modal */
 .seq-modal-body .row { margin-left: 0; margin-right: 0; row-gap: .5rem; }
 .seq-modal-body .row > [class^='col-'] { padding-left: 0; padding-right: 0; }
@@ -481,6 +503,19 @@ export default {
 .seq-modal-content .modal-body > *:first-child { margin-top: 0; }
 
 .start-seq-btn { min-width: 190px; }
+/* Ensure cancel button consistent height/spacing */
+.seq-modal-footer .btn { padding: 0.55rem 1.1rem; }
+.seq-modal-footer .btn-secondary { background:#6c757d; border:1px solid #6c757d; }
+.seq-modal-footer .btn-secondary:hover:not(:disabled) { background:#5a6268; }
+.seq-modal-footer .btn-primary { background:#205493; border:1px solid #205493; }
+.seq-modal-footer .btn-primary:disabled { background:#9cb2cc; border-color:#9cb2cc; opacity:1; }
+.seq-modal-footer .btn-primary:not(:disabled):hover { background:#16406d; border-color:#16406d; }
+
+/* Add Reviewer button adopt same palette */
+.add-reviewer-btn { background:#205493; border:1px solid #205493; color:#fff; }
+.add-reviewer-btn:hover { background:#16406d; border-color:#16406d; }
+.add-reviewer-btn:active { background:#113454; border-color:#113454; }
+.add-reviewer-btn:focus { box-shadow:0 0 0 3px rgba(32,84,147,0.35); }
 
 /* Topic info */
 .topic-info-box {
