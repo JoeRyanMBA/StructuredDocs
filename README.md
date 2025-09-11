@@ -2,35 +2,36 @@
 
 ## Quick Start
 
-### SSH Setup for Deployment
-Before deploying to PythonAnywhere, set up SSH keys:
-```bash
-./setup_ssh_keys.sh
-```
+### Frontend (Vercel)
+- Repo root contains `frontend/` linked to your Vercel project.
+- On push to `main`, Vercel builds the frontend with Vite.
+- Ensure `VITE_API_BASE_URL` is set in Vercel Project Settings → Environment Variables to your DigitalOcean backend URL, e.g. `https://api.yourdomain.com`.
 
-This configures passwordless SSH authentication for deployment scripts.
+### Backend (DigitalOcean)
+Use whichever DO target you’ve set up:
 
-📖 **Detailed SSH Setup**: See [SSH_SETUP_README.md](SSH_SETUP_README.md) for complete instructions.
+- App Platform: push to `main` triggers a deploy. Otherwise, click Redeploy in the dashboard.
+- Droplet + systemd + Gunicorn:
+	- SSH into the Droplet and pull/restart:
+		```bash
+		ssh <user>@<droplet-ip>
+		cd /srv/StructuredDocs  # your project directory
+		git pull origin main
+		sudo systemctl restart structureddocs.service
+		sudo systemctl status structureddocs.service --no-pager
+		```
+- Droplet + Docker Compose:
+	- Build and start the production stack:
+		```bash
+		docker compose -f docker-compose.prod.yml build
+		docker compose -f docker-compose.prod.yml up -d
+		docker ps --filter name=structureddocs_app
+		```
 
-### Deployment
-```bash
-Preferred: Docker-based deployment
+### Environment variables
+- Frontend (Vercel): `VITE_API_BASE_URL=https://your-backend-domain`
+- Backend (DO): `DATABASE_URL`, `JWT_SECRET_KEY`, and any email/SMTP settings required.
 
-- Use the multi-stage `Dockerfile` (builds frontend and bundles with backend)
-- Local/VPS run:
-	- `docker compose -f docker-compose.prod.yml build`
-	- `docker compose -f docker-compose.prod.yml up -d`
-	- App listens on port 8080
-
-Helper script:
-
-- `./deploy_docker.sh` builds and starts the prod stack
-- `./deploy_docker.sh --rebuild` for a clean rebuild
-- `./deploy_docker.sh --down` to stop/remove
-
-Legacy: PythonAnywhere
-
-- `deploy_to_pythonanywhere.sh` and `deploy_pythonanywhere.sh` contain the old flow if needed.
-./upload_frontend.sh  # Deploy frontend changes
-```
+### Legacy
+PythonAnywhere artifacts and scripts have been removed. Docker-based deployment remains available via `docker-compose.prod.yml` and `deploy_docker.sh` for servers you control.
 
