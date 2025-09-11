@@ -1,14 +1,17 @@
 import axios from 'axios'
 
-const API_BASE_URL = 'http://localhost:5050/api'
+// Use Vercel-provided env var in production; fallback to relative for local dev
+const RAW_API_BASE = import.meta.env.VITE_API_BASE_URL || ''
+const API_BASE = RAW_API_BASE.replace(/\/+$/, '') // remove trailing slashes
 
 // Create axios instance with default config
 const apiClient = axios.create({
-  baseURL: API_BASE_URL,
+  baseURL: `${API_BASE}/api`,
   timeout: 10000,
   headers: {
     'Content-Type': 'application/json'
-  }
+  },
+  withCredentials: true
 })
 
 // User management API
