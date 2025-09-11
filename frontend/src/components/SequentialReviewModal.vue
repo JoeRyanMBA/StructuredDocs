@@ -504,18 +504,10 @@ export default {
 
 .start-seq-btn { min-width: 190px; }
 /* Ensure cancel button consistent height/spacing */
-.seq-modal-footer .btn { padding: 0.55rem 1.1rem; }
-.seq-modal-footer .btn-secondary { background:#6c757d; border:1px solid #6c757d; }
-.seq-modal-footer .btn-secondary:hover:not(:disabled) { background:#5a6268; }
-.seq-modal-footer .btn-primary { background:#205493; border:1px solid #205493; }
-.seq-modal-footer .btn-primary:disabled { background:#9cb2cc; border-color:#9cb2cc; opacity:1; }
-.seq-modal-footer .btn-primary:not(:disabled):hover { background:#16406d; border-color:#16406d; }
-
-/* Add Reviewer button adopt same palette */
-.add-reviewer-btn { background:#205493; border:1px solid #205493; color:#fff; }
-.add-reviewer-btn:hover { background:#16406d; border-color:#16406d; }
-.add-reviewer-btn:active { background:#113454; border-color:#113454; }
-.add-reviewer-btn:focus { box-shadow:0 0 0 3px rgba(32,84,147,0.35); }
+/* Normalize footer buttons with global button system */
+.seq-modal-footer .btn { padding: 0.55rem 1.05rem; min-height: 38px; }
+.seq-modal-footer .btn-primary:disabled { opacity: .65; filter: grayscale(.15); }
+.add-reviewer-btn { min-width: 180px; }
 
 /* Topic info */
 .topic-info-box {
