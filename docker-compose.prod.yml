@@ -1,0 +1,18 @@
+version: '3.8'
+
+services:
+  app:
+    build: .
+    container_name: structureddocs_app
+    environment:
+      - PORT=8080
+      # Override this in production via environment or .env if using an external DB
+      - DATABASE_URL=${DATABASE_URL:-sqlite:///structured_docs.db}
+      - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    # Persist SQLite DB on host (optional). Comment out if using Postgres.
+    volumes:
+      - ./instance:/app/instance
+    command: ["./start.sh"]
