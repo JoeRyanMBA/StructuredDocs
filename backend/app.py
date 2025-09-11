@@ -255,7 +255,7 @@ p { color: #666; }
         if os.environ.get('DISABLE_SQLITE_FALLBACK') == '1':
             raise RuntimeError(
                 'DATABASE_URL is not set and DISABLE_SQLITE_FALLBACK=1; refusing to start with SQLite. '\
-                'Set DATABASE_URL in your environment (e.g., PythonAnywhere Web tab).' 
+                'Set DATABASE_URL in your server environment or hosting control panel.' 
             )
         # Default local development database - use app root instead of instance for container compatibility
         # In production, use a more reliable path
