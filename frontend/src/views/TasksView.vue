@@ -1299,26 +1299,7 @@ export default {
   gap: 0.5rem;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: var(--border-radius-md);
-  font-weight: 500;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-}
-.btn-sm { padding: 0.25rem 0.75rem; font-size: 0.8rem; }
-.btn-secondary { 
-  background-color: var(--extended-lavender-gray); 
-  color: var(--primary-deep-teal);
-  border: 1px solid var(--extended-lavender-gray);
-}
-.btn-secondary:hover { 
-  background-color: var(--extended-seafoam-green); 
-  border-color: var(--extended-seafoam-green);
-}
-.btn-danger { background-color: var(--error-coral-red); color: var(--bg-white); }
-.btn-danger:hover { background-color: var(--error-dark-red); }
+/* Use global button system from assets/style.css */
 
 .start-btn { background-color: var(--primary-deep-teal); color: var(--bg-white); }
 .review-btn { background-color: var(--warning-dark-yellow); color: var(--bg-white); }
