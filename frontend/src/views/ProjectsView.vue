@@ -127,7 +127,7 @@
               <button @click="applyFilters" class="btn btn-primary btn-sm search-btn">
                 <i class="fas fa-search"></i> Search
               </button>
-              <button @click="clearFilter" class="btn btn-secondary btn-sm clear-btn">Clear Filters</button>
+              <button @click="clearFilter" class="btn btn-secondary btn-sm clear-btn"><i class="fas fa-times"></i> Clear Filters</button>
             </div>
           </div>
         </div>
@@ -1686,7 +1686,7 @@ export default {
 .button-group {
   display: flex;
   gap: 0.5rem;
-  align-items: center; /* vertically align Search and Clear buttons */
+  align-items: center !important; /* Force center alignment, override parent flex-end */
 }
 
 /* Projects Grid */

@@ -30,7 +30,7 @@
             <button @click="applyFilters" class="btn btn-primary btn-sm">
               <i class="fas fa-search"></i> Search
             </button>
-            <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Search</button>
+            <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Search</button>
           </div>
         </div>
       </div>
@@ -419,7 +419,7 @@ export default {
 .button-group {
   display: flex;
   gap: 0.5rem;
-  align-items: center; /* vertically align Search and Clear buttons */
+  align-items: center !important; /* Force center alignment, override parent flex-end */
 }
 
 .table-instruction {

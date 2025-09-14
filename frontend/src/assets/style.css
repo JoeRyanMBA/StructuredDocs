@@ -246,6 +246,11 @@ a:hover {
   gap: 0.375rem;
 }
 
+/* Ensure filter action buttons don't jitter across views */
+.filters-section .button-group .btn-sm {
+  min-width: 120px;
+}
+
 /* Icon alignment inside buttons */
 .btn i {
   flex-shrink: 0;

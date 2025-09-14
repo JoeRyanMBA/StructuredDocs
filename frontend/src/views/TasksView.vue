@@ -108,7 +108,7 @@
           @click="clearFilters" 
           class="btn btn-secondary btn-sm"
         >
-          ✕ Clear Filters
+          <i class="fas fa-times"></i> Clear Filters
         </button>
       </div>
     </div>

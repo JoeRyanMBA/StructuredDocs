@@ -131,7 +131,7 @@
                   </select>
                 </div>
                 <div class="filter-group">
-                  <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
+                  <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Filters</button>
                 </div>
               </div>
             </div>
