@@ -17,7 +17,7 @@
           @keyup.enter="loadImages"
         />
   <button @click="loadImages" class="btn btn-secondary btn-sm" type="button">
-          🔍 Search
+          <i class="fas fa-search"></i> Search
         </button>
       </div>
       <div class="view-controls">
@@ -59,7 +59,7 @@
       <div class="empty-icon">📷</div>
       <h3>No Images Found</h3>
       <p>{{ searchQuery ? 'No images match your search criteria.' : 'No images are currently available.' }}</p>
-  <button @click="clearSearch" v-if="searchQuery" class="btn btn-secondary btn-sm">Clear Search</button>
+  <button @click="clearSearch" v-if="searchQuery" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Search</button>
     </div>
 
     <div v-else class="images-content">

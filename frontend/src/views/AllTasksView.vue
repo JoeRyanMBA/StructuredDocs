@@ -760,7 +760,7 @@ export default {
 .button-group {
   display: flex;
   gap: 0.5rem;
-  align-items: center;
+  align-items: center !important; /* Force center alignment, override parent flex-end */
 }
 
 .filter-input {
