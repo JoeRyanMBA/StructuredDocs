@@ -251,6 +251,22 @@ a:hover {
   min-width: 120px;
 }
 
+/* Normalize margins for filter action buttons to prevent external overrides */
+.filters-section .button-group button,
+.filters-section .button-group .btn,
+.filters-section .button-group .btn-primary,
+.filters-section .button-group .btn-secondary {
+  margin: 0 !important;
+}
+
+/* Also normalize margins in Projects list filter toolbar */
+.projects-list-panel .button-group button,
+.projects-list-panel .button-group .btn,
+.projects-list-panel .button-group .btn-primary,
+.projects-list-panel .button-group .btn-secondary {
+  margin: 0 !important;
+}
+
 /* Icon alignment inside buttons */
 .btn i {
   flex-shrink: 0;
