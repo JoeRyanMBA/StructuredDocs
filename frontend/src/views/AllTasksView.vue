@@ -970,6 +970,7 @@ export default {
 .status-column {
   white-space: nowrap;
   width: 1%;
+  font-weight: 400;
 }
 
 .no-data {
