@@ -1,0 +1,114 @@
+/* Shared Modal Utilities (imported by src/style.css)
+   Keeps modal visuals consistent across the app. */
+
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background-color: rgba(0, 0, 0, 0.6);
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  padding: 0.5rem 0.75rem;
+  z-index: 1000;
+  overflow-y: auto;
+}
+
+.modal-content {
+  background: var(--bg-white);
+  border-radius: var(--border-radius-xl);
+  box-shadow: var(--shadow-lg);
+  width: 92%;
+  max-width: 720px;
+  padding: 0; /* Sections handle their own padding */
+  overflow: visible; /* Avoid focus halo clipping */
+}
+
+.modal-header-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid var(--border-light-gray);
+}
+
+.modal-heading {
+  margin: 0;
+  font-size: 1.15rem;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+}
+
+.modal-body {
+  padding: 0 1.25rem 1rem;
+  max-height: calc(90vh - 140px);
+  overflow-y: auto;
+}
+
+.modal-footer {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.75rem 1.25rem 1.25rem;
+  border-top: 1px solid var(--border-light-gray);
+  background: transparent;
+}
+
+/* Close button */
+.plain-close {
+  background: transparent;
+  border: none;
+  color: var(--text-secondary-cool-gray);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  padding: 0;
+  line-height: 1;
+  border-radius: 4px;
+  font-size: 1.35rem;
+}
+.plain-close:hover, .plain-close:focus {
+  color: var(--text-primary, #205493);
+  background: rgba(32,84,147,0.08);
+  outline: none;
+}
+.plain-close:active { background: rgba(32,84,147,0.15); }
+
+/* Form control focus ring (consistent) */
+.modal-content .form-control:focus,
+.modal-content .form-select:focus,
+.modal-content textarea:focus {
+  border-color: #205493;
+  box-shadow: 0 0 0 3px rgba(32,84,147,0.25);
+  outline: none;
+}
+
+/* Modal button palette normalization */
+.modal-footer .btn { padding: 0.55rem 1.1rem; }
+.modal-footer .btn-secondary { background:#6c757d; border:1px solid #6c757d; }
+.modal-footer .btn-secondary:hover:not(:disabled) { background:#5a6268; }
+.modal-footer .btn-primary { background: var(--primary-teal); border:1px solid var(--primary-teal); }
+.modal-footer .btn-primary:not(:disabled):hover { background: var(--primary-medium-teal); border-color: var(--primary-medium-teal); }
+.modal-footer .btn-primary:disabled { background:#9cb2cc; border-color:#9cb2cc; opacity:1; }
+
+/* Accent badge inside modals */
+.modal-content .topic-status-badge {
+  background-color: #6c757d;
+  color: #fff;
+  padding: 0.25rem 0.5rem;
+  font-weight: 400;
+  letter-spacing: .2px;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+/* Remove bootstrap grid negative margins within modals only */
+.modal-content .row { margin-left: 0; margin-right: 0; row-gap: .5rem; }
+.modal-content .row > [class^='col-'] { padding-left: 0; padding-right: 0; }
+
+@media (max-width: 640px) {
+  .modal-content { width: 96%; max-width: 96%; }
+  .modal-body { padding: 0 .75rem .75rem; }
+}
