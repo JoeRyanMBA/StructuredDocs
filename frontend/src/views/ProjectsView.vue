@@ -1654,7 +1654,7 @@ export default {
 .filter-row {
   display: flex;
   flex-wrap: wrap;
-  align-items: flex-end;
+  align-items: center;
   gap: 1.5rem;
 }
 

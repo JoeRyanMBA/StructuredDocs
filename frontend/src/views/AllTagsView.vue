@@ -387,7 +387,7 @@ export default {
   display: grid;
   grid-template-columns: 1fr auto;
   gap: 1rem;
-  align-items: end;
+  align-items: center;
 }
 
 .filter-group {

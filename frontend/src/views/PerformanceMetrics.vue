@@ -751,7 +751,7 @@ export default {
 
 .chart-bars {
   display: flex;
-  align-items: end;
+  align-items: center;
   justify-content: space-between;
   height: 160px;
   padding: 0 8px;

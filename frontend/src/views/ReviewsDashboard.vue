@@ -692,7 +692,7 @@ export default {
 .card-status-group {
   display: flex;
   flex-direction: column;
-  align-items: flex-end;
+  align-items: center;
   gap: 0.25rem;
 }
 
