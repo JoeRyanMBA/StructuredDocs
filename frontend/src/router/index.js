@@ -122,6 +122,20 @@ const routes = [
     }
   },
   {
+    path: '/notifications/manage',
+    name: 'NotificationManagement',
+    component: () => import('@/views/NotificationManagement.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') {
+        next();
+      } else {
+        next('/dashboard');
+      }
+    }
+  },
+  {
     path: '/notifications/edit/:id',
     name: 'EditNotification',
     component: EditNotification,

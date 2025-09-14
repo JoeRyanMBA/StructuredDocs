@@ -210,7 +210,7 @@
               </td>
               <td class="actions-cell">
                 <div class="task-actions">
-                  <button @click="editTask(task)" class="btn btn-sm btn-secondary">
+                  <button @click="editTask(task)" class="btn btn-secondary btn-sm">
                     <i class="fas fa-edit"></i> Edit
                   </button>
                   <button 

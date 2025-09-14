@@ -439,13 +439,14 @@ th {
 td {
   padding: 12px;
   border-bottom: 1px solid #e9ecef;
+  font-size: 14px; /* Standardize font size for all table cells */
 }
 
 .role-badge {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 500;
   text-transform: uppercase;
 }
 
@@ -463,7 +464,7 @@ td {
   padding: 4px 8px;
   border-radius: 4px;
   font-size: 12px;
-  font-weight: 400;
+  font-weight: 500;
 }
 
 .status-badge.active {
@@ -474,6 +475,11 @@ td {
 .status-badge.inactive {
   background: #ffebee;
   color: #d32f2f;
+}
+
+/* Ensure Created column uses consistent font size */
+td:nth-child(5) {
+  font-size: 14px;
 }
 
 .actions {
