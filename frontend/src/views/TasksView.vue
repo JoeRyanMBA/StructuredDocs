@@ -1285,9 +1285,13 @@ export default {
 .association-tag.collection { background-color: #d1fae5; color: #065f46; }
 .association-tag.topic { background-color: #fef3c7; color: #92400e; }
 
+.due-date-cell {
+  font-size: 0.9rem;
+}
+
 .due-date.overdue {
   color: var(--error-dark-red);
-  font-weight: 600;
+  font-weight: 500;
 }
 
 .task-actions {
@@ -1298,14 +1302,21 @@ export default {
 .btn {
   padding: 0.5rem 1rem;
   border-radius: var(--border-radius-md);
-  font-weight: 600;
+  font-weight: 500;
   cursor: pointer;
   transition: all 0.2s;
   border: 1px solid transparent;
 }
 .btn-sm { padding: 0.25rem 0.75rem; font-size: 0.8rem; }
-.btn-secondary { background-color: var(--secondary-slate-gray); color: var(--bg-white); }
-.btn-secondary:hover { background-color: var(--secondary-dark-gray); }
+.btn-secondary { 
+  background-color: var(--extended-lavender-gray); 
+  color: var(--primary-deep-teal);
+  border: 1px solid var(--extended-lavender-gray);
+}
+.btn-secondary:hover { 
+  background-color: var(--extended-seafoam-green); 
+  border-color: var(--extended-seafoam-green);
+}
 .btn-danger { background-color: var(--error-coral-red); color: var(--bg-white); }
 .btn-danger:hover { background-color: var(--error-dark-red); }
 
