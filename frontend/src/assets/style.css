@@ -690,6 +690,7 @@ a:hover {
 /* === LOADING AND MESSAGE STYLES === */
 
 /* Loading messages - standardized across the app */
+/* .loading-message styles remain for spinner container, but no text will be shown */
 .loading-message {
   background: var(--primary-deep-teal);
   color: white;
@@ -754,11 +755,7 @@ a:hover {
   animation: spin 1s linear infinite;
 }
 
-.loading-text {
-  color: var(--text-secondary-cool-gray);
-  font-size: 1rem;
-  margin: 0;
-}
+/* .loading-text removed: no loading text will be shown */
 
 /* Success messages - standardized positioning and styling */
 .success-message {

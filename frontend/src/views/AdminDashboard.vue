@@ -66,6 +66,12 @@
               <h3>Create Notification</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="navigateTo('/notifications/manage')">
+            <div class="action-icon">📋</div>
+            <div class="action-content" title="View and manage existing notifications">
+              <h3>Manage Notifications</h3>
+            </div>
+          </button>
           <button class="quick-action-card" @click="navigateTo('/admin/bugs')">
             <div class="action-icon">🐛</div>
             <div class="action-content" title="Review user-submitted bug reports">
