@@ -863,6 +863,7 @@ export default {
 .button-group {
   display: flex;
   gap: 0.5rem;
+  align-items: center; /* vertically align Search and Clear buttons */
 }
 
 .table-instruction {
