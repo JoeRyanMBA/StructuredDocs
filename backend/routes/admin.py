@@ -364,6 +364,7 @@ def get_admin_notifications():
 
 @admin_bp.route('/clear-database', methods=['POST'])
 def clear_database():
+    db.session.execute(text("DELETE FROM tags;"))
     """Clear all data from the database except the admin user (admin-only endpoint)."""
     # NOTE: In production, you should add authentication/authorization checks here!
     # Adjust this email if your admin user uses a different address
