@@ -369,7 +369,10 @@ def clear_database():
     # Adjust this email if your admin user uses a different address
     admin_email = 'admin@example.com'
     try:
-        db.session.execute(text("DELETE FROM password_reset_tokens;"))
+    db.session.execute(text("DELETE FROM review_feedback;"))
+    db.session.execute(text("DELETE FROM review_tokens;"))
+    db.session.execute(text("DELETE FROM reviews;"))
+    db.session.execute(text("DELETE FROM password_reset_tokens;"))
         db.session.execute(text("DELETE FROM notifications;"))
         db.session.execute(text("DELETE FROM links;"))
         db.session.execute(text("DELETE FROM topic_links;"))
