@@ -90,27 +90,6 @@
               <h3>Clear Database</h3>
             </div>
           </button>
-  methods: {
-    ...,
-    async confirmClearDatabase() {
-      if (!window.confirm('Are you sure you want to clear ALL data except the admin user? This cannot be undone!')) return;
-      try {
-        const response = await fetch('/api/admin/clear-database', {
-          method: 'POST',
-          headers: this.getAuthHeaders(),
-        });
-        const result = await response.json();
-        if (response.ok) {
-          alert('Database cleared successfully!');
-          await this.loadDashboardData();
-        } else {
-          alert('Error clearing database: ' + (result.message || 'Unknown error'));
-        }
-      } catch (e) {
-        alert('Error clearing database: ' + (e.message || e));
-      }
-    },
-  },
 <style>
 .quick-action-card.danger {
   background: #fff0f0;
@@ -240,6 +219,24 @@ export default {
     await this.loadDashboardData()
   },
   methods: {
+    async confirmClearDatabase() {
+      if (!window.confirm('Are you sure you want to clear ALL data except the admin user? This cannot be undone!')) return;
+      try {
+        const response = await fetch('/api/admin/clear-database', {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+        });
+        const result = await response.json();
+        if (response.ok) {
+          alert('Database cleared successfully!');
+          await this.loadDashboardData();
+        } else {
+          alert('Error clearing database: ' + (result.message || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Error clearing database: ' + (e.message || e));
+      }
+    },
     getAuthHeaders() {
       const token = localStorage.getItem('access_token')
       return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
