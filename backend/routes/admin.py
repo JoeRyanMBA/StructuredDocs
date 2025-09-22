@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, User, Notification, Topic, Collection, Project, Task
 from ..utils.email_service import get_email_service
-from sqlalchemy import func
+from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import os
 
@@ -361,3 +361,31 @@ def get_admin_notifications():
     except Exception as e:
         print(f"❌ Error in get_admin_notifications: {e}")
         return jsonify({'error': str(e)}), 500
+
+@admin_bp.route('/clear-database', methods=['POST'])
+def clear_database():
+    """Clear all data from the database except the admin user (admin-only endpoint)."""
+    # NOTE: In production, you should add authentication/authorization checks here!
+    try:
+        db.session.execute(text("DELETE FROM users WHERE name != 'admin' AND email != 'admin';"))
+        db.session.execute(text("DELETE FROM notifications;"))
+        db.session.execute(text("DELETE FROM links;"))
+        db.session.execute(text("DELETE FROM topic_links;"))
+        db.session.execute(text("DELETE FROM import_items;"))
+        db.session.execute(text("DELETE FROM import_documents;"))
+        db.session.execute(text("DELETE FROM import_images;"))
+        db.session.execute(text("DELETE FROM publication_nodes;"))
+        db.session.execute(text("DELETE FROM publications;"))
+        db.session.execute(text("DELETE FROM project_stakeholders;"))
+        db.session.execute(text("DELETE FROM project_milestones;"))
+        db.session.execute(text("DELETE FROM collections;"))
+        db.session.execute(text("DELETE FROM collection_topic_tree;"))
+        db.session.execute(text("DELETE FROM tasks;"))
+        db.session.execute(text("DELETE FROM stakeholders;"))
+        db.session.execute(text("DELETE FROM topics;"))
+        db.session.execute(text("DELETE FROM projects;"))
+        db.session.commit()
+        return jsonify({'status': 'success', 'message': 'Database cleared except for admin user.'}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'status': 'error', 'message': str(e)}), 500

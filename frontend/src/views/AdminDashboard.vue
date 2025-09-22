@@ -84,6 +84,44 @@
               <h3>Manage Variables</h3>
             </div>
           </button>
+          <button class="quick-action-card danger" @click="confirmClearDatabase">
+            <div class="action-icon">⚠️</div>
+            <div class="action-content" title="Clear all data except admin user">
+              <h3>Clear Database</h3>
+            </div>
+          </button>
+  methods: {
+    ...,
+    async confirmClearDatabase() {
+      if (!window.confirm('Are you sure you want to clear ALL data except the admin user? This cannot be undone!')) return;
+      try {
+        const response = await fetch('/api/admin/clear-database', {
+          method: 'POST',
+          headers: this.getAuthHeaders(),
+        });
+        const result = await response.json();
+        if (response.ok) {
+          alert('Database cleared successfully!');
+          await this.loadDashboardData();
+        } else {
+          alert('Error clearing database: ' + (result.message || 'Unknown error'));
+        }
+      } catch (e) {
+        alert('Error clearing database: ' + (e.message || e));
+      }
+    },
+  },
+<style>
+.quick-action-card.danger {
+  background: #fff0f0;
+  border: 1px solid #e57373;
+  color: #b71c1c;
+}
+.quick-action-card.danger:hover {
+  background: #ffeaea;
+  border-color: #b71c1c;
+}
+</style>
         </div>
       </div>
   <!-- Database Metrics Panel -->
