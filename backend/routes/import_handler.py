@@ -521,13 +521,13 @@ def _parse_and_store(file, imp_doc, source):
 
             try:
                 doc = Document(io.BytesIO(file_content))
+                # Extract paragraphs and headings
                 for p in doc.paragraphs:
                     text = (p.text or '').strip()
                     if not text:
                         continue
                     style_name = ''
                     try:
-                        # Some styles may be None; guard access safely
                         ps = getattr(p, 'style', None)
                         style_name = (getattr(ps, 'name', '') or '').lower()
                     except Exception:
@@ -546,6 +546,23 @@ def _parse_and_store(file, imp_doc, source):
                         lines.append(f"{hashes} {text}")
                     else:
                         lines.append(text)
+                # Extract tables and convert to Markdown
+                for table in doc.tables:
+                    # Get all rows as lists of cell text
+                    table_rows = []
+                    for row in table.rows:
+                        table_rows.append([cell.text.strip().replace('\n', ' ') for cell in row.cells])
+                    if not table_rows:
+                        continue
+                    # Build Markdown pipe table
+                    header = table_rows[0]
+                    aligns = ['---'] * len(header)
+                    md_table = ['| ' + ' | '.join(header) + ' |', '| ' + ' | '.join(aligns) + ' |']
+                    for row in table_rows[1:]:
+                        md_table.append('| ' + ' | '.join(row) + ' |')
+                    lines.append('')
+                    lines.extend(md_table)
+                    lines.append('')
                 md_snippet = '\n'.join(lines[:10])
                 print(f"DOCX FALLBACK SNIPPET (first 10 lines):\n{md_snippet}")
                 current_app.logger.info(f"DOCX fallback parsed snippet for {imp_doc.filename}:\n{md_snippet}")
