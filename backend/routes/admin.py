@@ -366,24 +366,27 @@ def get_admin_notifications():
 def clear_database():
     """Clear all data from the database except the admin user (admin-only endpoint)."""
     # NOTE: In production, you should add authentication/authorization checks here!
+    # Adjust this email if your admin user uses a different address
+    admin_email = 'admin@example.com'
     try:
-        db.session.execute(text("DELETE FROM users WHERE name != 'admin' AND email != 'admin';"))
-        db.session.execute(text("DELETE FROM notifications;"))
-        db.session.execute(text("DELETE FROM links;"))
-        db.session.execute(text("DELETE FROM topic_links;"))
-        db.session.execute(text("DELETE FROM import_items;"))
-        db.session.execute(text("DELETE FROM import_documents;"))
-        db.session.execute(text("DELETE FROM import_images;"))
-        db.session.execute(text("DELETE FROM publication_nodes;"))
-        db.session.execute(text("DELETE FROM publications;"))
-        db.session.execute(text("DELETE FROM project_stakeholders;"))
-        db.session.execute(text("DELETE FROM project_milestones;"))
-        db.session.execute(text("DELETE FROM collections;"))
-        db.session.execute(text("DELETE FROM collection_topic_tree;"))
-        db.session.execute(text("DELETE FROM tasks;"))
-        db.session.execute(text("DELETE FROM stakeholders;"))
-        db.session.execute(text("DELETE FROM topics;"))
-        db.session.execute(text("DELETE FROM projects;"))
+        db.session.execute("DELETE FROM password_reset_tokens;")
+        db.session.execute("DELETE FROM notifications;")
+        db.session.execute("DELETE FROM links;")
+        db.session.execute("DELETE FROM topic_links;")
+        db.session.execute("DELETE FROM import_items;")
+        db.session.execute("DELETE FROM import_documents;")
+        db.session.execute("DELETE FROM import_images;")
+        db.session.execute("DELETE FROM publication_nodes;")
+        db.session.execute("DELETE FROM publications;")
+        db.session.execute("DELETE FROM project_stakeholders;")
+        db.session.execute("DELETE FROM project_milestones;")
+        db.session.execute("DELETE FROM collections;")
+        db.session.execute("DELETE FROM collection_topic_tree;")
+        db.session.execute("DELETE FROM tasks;")
+        db.session.execute("DELETE FROM stakeholders;")
+        db.session.execute("DELETE FROM topics;")
+        db.session.execute("DELETE FROM projects;")
+        db.session.execute(text("DELETE FROM users WHERE email != :admin_email"), {"admin_email": admin_email})
         db.session.commit()
         return jsonify({'status': 'success', 'message': 'Database cleared except for admin user.'}), 200
     except Exception as e:
