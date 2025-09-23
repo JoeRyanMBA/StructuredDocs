@@ -40,9 +40,10 @@
             <label>Status:</label>
             <select v-model="statusFilter" @change="applyFilters" class="filter-input">
               <option value="">All Statuses</option>
-              <option value="pending">Pending</option>
-              <option value="in_progress">In Progress</option>
+              <option value="planned">Planned</option>
+              <option value="in-progress">In Progress</option>
               <option value="completed">Completed</option>
+              <option value="overdue">Overdue</option>
             </select>
           </div>
           <div class="filter-group">
