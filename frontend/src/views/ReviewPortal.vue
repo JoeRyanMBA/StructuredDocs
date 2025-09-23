@@ -1,5 +1,6 @@
 <template>
   <div class="review-portal">
+    
     <!-- Loading State -->
     <div v-if="loading" class="loading-container">
       <div class="loading-spinner"></div>
@@ -286,6 +287,7 @@
 import { marked } from 'marked'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'ReviewPortal',
@@ -542,10 +544,11 @@ export default {
           throw new Error(data.error || 'Failed to submit review')
         }
         
-        this.submitted = true
+  this.submitted = true
+  toast.success('Review submitted successfully!')
         
       } catch (error) {
-        alert('Error submitting review: ' + error.message)
+  toast.error('Failed to submit review: ' + error.message)
       } finally {
         this.submitting = false
       }
@@ -560,8 +563,8 @@ export default {
         savedAt: new Date().toISOString()
       }
       
-      localStorage.setItem(`review_draft_${this.token}`, JSON.stringify(draft))
-      alert('Draft saved successfully!')
+  localStorage.setItem(`review_draft_${this.token}`, JSON.stringify(draft))
+  toast.success('Draft saved successfully!')
     },
     
     formatDate(dateString) {
@@ -575,7 +578,9 @@ export default {
     
     formatFeedbackType(type) {
       return type.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
-    }
+    },
+
+    
   }
 }
 </script>

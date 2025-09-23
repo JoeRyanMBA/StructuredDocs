@@ -1,5 +1,6 @@
 <template>
   <div class="create-notification-view">
+    
     <h1>Create Notification</h1>
     <form @submit.prevent="submitNotification">
       <div class="form-group">
@@ -33,6 +34,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'CreateNotificationView',
   data() {
@@ -57,17 +59,17 @@ export default {
           })
         })
         if (res.ok) {
-          alert('Notification created!')
+          toast.success('Notification created!')
           // Trigger global notification refresh if available
           if (this.$root && typeof this.$root.fetchNotifications === 'function') {
             await this.$root.fetchNotifications()
           }
           this.$router.push('/admin')
         } else {
-          alert('Failed to create notification.')
+          toast.error('Failed to create notification.')
         }
       } catch (err) {
-        alert('Error creating notification.')
+        toast.error('Error creating notification.')
         console.error(err)
       } finally {
         this.loading = false

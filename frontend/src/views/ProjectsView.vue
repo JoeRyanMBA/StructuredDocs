@@ -1,12 +1,7 @@
 <template>
   
   <div class="projects-dashboard">
-    <!-- Global success toast -->
-    <div v-if="toast && toast.visible && toast.type === 'success'" class="success-message" role="status" aria-live="polite">
-      <span>✔</span>
-      <span>{{ toast.message }}</span>
-      <button class="message-close-btn" @click="hideToast" aria-label="Dismiss">×</button>
-    </div>
+    
     
     <!-- Dashboard Header -->
     <div class="dashboard-header">
@@ -219,15 +214,12 @@
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
     <form @submit.prevent="handleCreateProject" class="modal-body">
+          <p v-if="createdProjectId" class="subtitle" style="margin-top:0;margin-bottom:0.75rem;">
+            Project created — click Next to add stakeholders.
+          </p>
           <!-- Basic Information -->
           <div class="form-section">
             <h3>Basic Information</h3>
-            <div v-if="confirmationMessage" class="confirmation-message">
-              {{ confirmationMessage }}
-              <div class="confirmation-actions">
-                <button type="button" class="btn btn-primary" @click="proceedToStakeholders">OK</button>
-              </div>
-            </div>
             <div class="form-row">
               <div class="form-group">
                 <label for="projectName">Project Name *</label>
@@ -264,7 +256,7 @@
             <button type="button" @click="showCreateModal = false" class="btn btn-secondary">
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary" :disabled="creatingProject || !!confirmationMessage">Next</button>
+            <button type="submit" class="btn btn-primary" :disabled="creatingProject">Next</button>
           </div>
         </form>
       </div>
@@ -578,6 +570,7 @@ import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
 import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   components: { CalendarWidget },
@@ -652,12 +645,11 @@ export default {
       createdProjectName: '',
       showStakeholderModal: false,
       showMilestoneModal: false,
-      confirmationMessage: '',
       projectStakeholders: [],
       newMilestones: [{ name: '', date: '', status: 'planned' }],
       creatingProject: false,
       exporting: false,
-  toast: { visible: false, type: 'success', message: '' },
+  
   createProjectSnapshot: '',
   editProjectSnapshot: '',
   stakeholderModalSnapshot: '',
@@ -741,11 +733,15 @@ export default {
   },
   methods: {
     proceedToStakeholders() {
-      this.confirmationMessage = '';
       this.showStakeholderModal = true;
     },
     handleCreateProject() {
-      this.createProjectBasic();
+      // If a project was just created, the Next button should advance to Stakeholders
+      if (this.createdProjectId) {
+        this.proceedToStakeholders();
+      } else {
+        this.createProjectBasic();
+      }
     },
 
     async handleUpdateProject() {
@@ -821,12 +817,14 @@ export default {
         // Refresh the projects list to get updated stakeholder information
         await this.fetchProjects()
 
-        this.showEditModal = false
-        this.resetEditingProject()
+  // Show success toast and close modal
+  toast.success('Project updated successfully.')
+  this.showEditModal = false
+  this.resetEditingProject()
         
       } catch (error) {
         console.error('Failed to update project:', error)
-        alert('Failed to update project. Please try again.')
+  toast.error('Failed to update project. Please check the fields and try again.')
       }
     },
     async fetchProjects() {
@@ -905,7 +903,7 @@ export default {
 
     async addNewStakeholderToProject() {
       if (!this.newStakeholder.name || !this.newStakeholder.email || !this.newStakeholder.role) {
-        alert('Please fill in all required fields for the new stakeholder.');
+  toast.error('Please fill in all required fields for the new stakeholder.');
         return;
       }
 
@@ -942,7 +940,8 @@ export default {
         const createdProject = await response.json()
   this.createdProjectId = createdProject.id
   this.createdProjectName = createdProject.name
-  this.confirmationMessage = `Project #${createdProject.id} (${createdProject.name}) was created successfully!`;
+  // Show success as a toast instead of inline confirmation with OK
+  toast.success(`Project #${createdProject.id} (${createdProject.name}) was created successfully!`)
   this.createProjectStep = 2
   // Only close the modal after user clicks OK (handled in proceedToStakeholders)
   // this.showStakeholderModal = true
@@ -952,7 +951,7 @@ export default {
   this.$nextTick(()=>{ this.createProjectSnapshot = JSON.stringify(this.newProject) })
       } catch (error) {
         console.error('Failed to create project:', error)
-        alert('Failed to create project: ' + error.message)
+  toast.error('Failed to create project: ' + error.message)
       } finally {
         this.creatingProject = false;
       }
@@ -1034,11 +1033,11 @@ export default {
         URL.revokeObjectURL(url);
         
         // Show success message
-        alert(`Successfully exported ${this.filteredProjects.length} projects with comprehensive data!`);
+  toast.success(`Successfully exported ${this.filteredProjects.length} projects with comprehensive data!`)
         
       } catch (error) {
         console.error('Export failed:', error);
-        alert('Export failed. Please try again.');
+  toast.error('Export failed. Please try again.');
       } finally {
         this.exporting = false;
       }
@@ -1195,7 +1194,7 @@ export default {
       // Check if stakeholder is already added
       const alreadyAdded = target.stakeholders.some(s => s.stakeholder_id === selectedStakeholder.id)
       if (alreadyAdded) {
-        alert('This stakeholder is already added to the project.')
+  toast.error('This stakeholder is already added to the project.')
         return
       }
 
@@ -1222,7 +1221,7 @@ export default {
       // Check if email is already used
       const emailExists = target.stakeholders.some(s => s.email === this.newStakeholderEmail)
       if (emailExists) {
-        alert('A stakeholder with this email is already added to the project.')
+  toast.error('A stakeholder with this email is already added to the project.')
         return
       }
 
@@ -1263,7 +1262,7 @@ export default {
         const newCollection = await res.json()
         target.collections.push(newCollection)
       } catch (error) {
-        alert('Failed to add collection: ' + error.message)
+  toast.error('Failed to add collection: ' + error.message)
       }
     },
 
@@ -1281,7 +1280,7 @@ export default {
         if (!res.ok) throw new Error(await res.text())
         target.collections.splice(index, 1)
       } catch (error) {
-        alert('Failed to remove collection: ' + error.message)
+  toast.error('Failed to remove collection: ' + error.message)
       }
     },
 
@@ -1296,7 +1295,7 @@ export default {
         collection[field] = value
         await updateCollection(collection.id, { [field]: value })
       } catch (error) {
-        alert('Failed to update collection: ' + error.message)
+  toast.error('Failed to update collection: ' + error.message)
       }
     },
 
@@ -1313,7 +1312,7 @@ export default {
         const newDoc = await createPublication(payload)
         target.publishedDocuments.push(newDoc)
       } catch (error) {
-        alert('Failed to add document: ' + error.message)
+  toast.error('Failed to add document: ' + error.message)
       }
     },
 
@@ -1328,7 +1327,7 @@ export default {
         await deletePublication(doc.id)
         target.publishedDocuments.splice(index, 1)
       } catch (error) {
-        alert('Failed to remove document: ' + error.message)
+  toast.error('Failed to remove document: ' + error.message)
       }
     },
 
@@ -1343,7 +1342,7 @@ export default {
         doc[field] = value
         await updatePublication(doc.id, { [field]: value })
       } catch (error) {
-        alert('Failed to update document: ' + error.message)
+  toast.error('Failed to update document: ' + error.message)
       }
     },
 
@@ -1361,7 +1360,7 @@ export default {
         target.milestones.push(newMilestone)
         this.sortMilestones(type)
       } catch (error) {
-        alert('Failed to add milestone: ' + error.message)
+  toast.error('Failed to add milestone: ' + error.message)
       }
     },
 
@@ -1376,7 +1375,7 @@ export default {
         await deleteMilestone(milestone.id)
         target.milestones.splice(index, 1)
       } catch (error) {
-        alert('Failed to remove milestone: ' + error.message)
+  toast.error('Failed to remove milestone: ' + error.message)
       }
     },
 
@@ -1391,7 +1390,7 @@ export default {
         milestone[field] = value
         await updateMilestone(milestone.id, { [field]: value })
       } catch (error) {
-        alert('Failed to update milestone: ' + error.message)
+  toast.error('Failed to update milestone: ' + error.message)
       }
     },
 
@@ -1412,7 +1411,7 @@ export default {
     proceedToMilestones() {
       // Validate that at least one stakeholder is added, unless skipping
       if (!this.projectStakeholders || this.projectStakeholders.length === 0) {
-        alert('Please add at least one stakeholder before proceeding, or click Not Now to skip.');
+  toast.error('Please add at least one stakeholder before proceeding, or click Not Now to skip.');
         return;
       }
       this.showStakeholderModal = false;
@@ -1428,13 +1427,12 @@ export default {
     skipMilestones() {
       // Always finish project creation, regardless of milestones
       this.showMilestoneModal = false;
-      this.confirmationMessage = `Project #${this.createdProjectId} (${this.createdProjectName}) was created successfully!`;
       this.createProjectStep = 1;
       this.createdProjectId = null;
       this.createdProjectName = '';
       this.projectStakeholders = [];
       this.newMilestones = [{ name: '', date: '', status: 'planned' }];
-      alert(this.confirmationMessage);
+  toast.success('Project created. You can add milestones later.');
     },
 
     async addSelectedStakeholderToProject() {
@@ -1448,12 +1446,12 @@ export default {
         this.selectedStakeholderId = ''
         this.selectedStakeholderRole = ''
       } catch (err) {
-        alert('Failed to add stakeholder: ' + err.message)
+  toast.error('Failed to add stakeholder: ' + err.message)
       }
     },
   async addNewStakeholderToProject() {
       if (!this.newStakeholder.name || !this.newStakeholder.email || !this.newStakeholder.role) {
-        alert('Please fill in all required fields for the new stakeholder.');
+  toast.error('Please fill in all required fields for the new stakeholder.');
         return;
       }
 
@@ -1493,32 +1491,19 @@ export default {
         this.showMilestoneModal = false
         this.showStakeholderModal = false
         this.showCreateModal = false
-        this.confirmationMessage = ''
         this.createProjectStep = 1
         this.createdProjectId = null
         this.createdProjectName = ''
         this.projectStakeholders = []
         this.newMilestones = [{ name: '', date: '', status: 'planned' }]
         // Show success toast
-  this.showToast('Milestones saved successfully.')
+  toast.success('Milestones saved successfully.')
   this.$nextTick(()=>{ this.milestoneModalSnapshot = '' })
       } catch (err) {
-        alert('Failed to add milestones: ' + err.message)
+  toast.error('Failed to add milestones: ' + err.message)
       }
     },
-    showToast(message, type = 'success', durationMs = 3000) {
-      if (!this.toast) this.toast = { visible: false, type: 'success', message: '' }
-      this.toast.message = message
-      this.toast.type = type
-      this.toast.visible = true
-      clearTimeout(this.toast._timer)
-      this.toast._timer = setTimeout(() => { this.toast.visible = false }, durationMs)
-    },
-    hideToast() {
-      if (!this.toast) return
-      this.toast.visible = false
-      clearTimeout(this.toast._timer)
-    },
+    
     isDirty() {
       try {
         if (this.showEditModal) return JSON.stringify(this.editingProject) !== this.editProjectSnapshot

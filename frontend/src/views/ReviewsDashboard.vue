@@ -1,5 +1,6 @@
 <template>
   <div class="reviews-dashboard">
+    
     <div class="dashboard-header">
       <h1>Reviews Dashboard</h1>
       <p class="subtitle">Manage topic reviews and stakeholder feedback</p>
@@ -204,15 +205,19 @@ export default {
   data() {
     return {
       loading: true,
+      error: null,
       stats: {
         total: 0,
         pending: 0,
+        in_progress: 0,
         completed: 0,
+        declined: 0,
         overdue: 0,
         avg_completion_days: 0
       },
       urgentReviews: [],
       recentReviews: [],
+      
       currentUser: JSON.parse(localStorage.getItem('user') || '{}')
     }
   },
@@ -317,15 +322,15 @@ export default {
         // Send the follow-up reminder
         const response = await sendFollowUpReminder(review.id)
         
-        // Show success message
-        alert(`✅ Follow-up reminder sent to ${review.reviewer_name}!`)
+  // Show success toast
+  import('@/composables/useToast').then(({ toast }) => toast.success(`Follow-up reminder sent to ${review.reviewer_name}!`))
         
         // Refresh the reviews list to show updated data
         await this.loadReviews()
         
       } catch (error) {
-        console.error('Error sending follow-up reminder:', error)
-        alert(`❌ Failed to send follow-up reminder: ${error.message}`)
+  console.error('Error sending follow-up reminder:', error)
+  import('@/composables/useToast').then(({ toast }) => toast.error(`Failed to send follow-up reminder: ${error.message}`))
       }
     },
 

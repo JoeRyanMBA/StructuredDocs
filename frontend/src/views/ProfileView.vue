@@ -1,5 +1,6 @@
 <template>
   <div class="profile-container">
+    
     <h1>Update Your Profile</h1>
     <div v-if="success" class="success-message">
       Profile updated successfully!
@@ -32,6 +33,7 @@
   </div>
 </template>
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   data() {
     return {
@@ -67,11 +69,12 @@ export default {
         setTimeout(() => { this.success = false }, 3000)
       } catch (error) {
         console.error('Failed to update profile:', error)
-        alert('Failed to update profile. Please try again.')
+        toast.error('Failed to update profile. Please try again.')
       } finally {
         this.loading = false
       }
-    }
+    },
+    
   }
 }
 </script>

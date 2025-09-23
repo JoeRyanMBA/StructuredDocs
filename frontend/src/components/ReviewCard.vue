@@ -1,5 +1,6 @@
 <template>
   <div class="review-card">
+    
     <div class="review-header">
       <div class="review-info">
         <h4>{{ review.topic_title }}</h4>
@@ -117,6 +118,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 import { startReview, submitReview } from '@/api/reviews.js'
 
 export default {
@@ -151,12 +153,12 @@ export default {
     async startReview() {
       this.loading = true
       try {
-        await startReview(this.review.id)
-        this.$emit('review-updated')
-        alert('Review started!')
+  await startReview(this.review.id)
+  this.$emit('review-updated')
+  toast.success('Review started!')
       } catch (error) {
-        console.error('Failed to start review:', error)
-        alert('Failed to start review: ' + error.message)
+  console.error('Failed to start review:', error)
+  toast.error('Failed to start review: ' + error.message)
       } finally {
         this.loading = false
       }
@@ -171,10 +173,10 @@ export default {
           review_notes: this.reviewNotes
         }
         
-        await submitReview(this.review.id, reviewData)
-        this.$emit('review-updated')
-        this.showReviewForm = false
-        alert('Review submitted successfully!')
+    await submitReview(this.review.id, reviewData)
+    this.$emit('review-updated')
+    this.showReviewForm = false
+    toast.success('Review submitted successfully!')
         
         // Reset form
         this.recommendation = ''
@@ -182,8 +184,8 @@ export default {
         this.reviewNotes = ''
         
       } catch (error) {
-        console.error('Failed to submit review:', error)
-        alert('Failed to submit review: ' + error.message)
+  console.error('Failed to submit review:', error)
+  toast.error('Failed to submit review: ' + error.message)
       } finally {
         this.loading = false
       }

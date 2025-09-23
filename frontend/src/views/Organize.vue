@@ -1,5 +1,6 @@
 <template>
   <div class="organize-view">
+    
     <div class="organize-header">
       <h1>{{ isEditMode ? '✏️ Edit Collection' : '📋 Organize Collection' }}</h1>
       <p class="guidance-text">
@@ -353,6 +354,7 @@ import { getCollections, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { getTopics } from '@/api/topics.js' // You may need to implement this
 import TopicEditor from '@/components/TopicEditor.vue'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'OrganizeView',
@@ -396,7 +398,7 @@ export default {
         frontmatter: ''
   },
   /* Snapshot of last saved state for unsaved-changes detection */
-  lastSavedSnapshot: null
+      lastSavedSnapshot: null
     }
   },
   computed: {
@@ -471,6 +473,7 @@ export default {
     next(false)
   },
   methods: {
+    
     serializeState() {
       // Minimal representation for dirty detection (avoid functions/circular)
       return JSON.stringify({
@@ -765,7 +768,7 @@ export default {
       const targetTopic = this.findTopicById(this.currentCollection.topics, parseInt(this.moveTargetId))
       
       if (!targetTopic) {
-        alert('Target topic not found')
+  toast.error('Target topic not found')
         return
       }
       
@@ -1097,11 +1100,11 @@ export default {
           console.log(`✅ Updated collection ${propertyName}`)
         } else {
           const error = await response.json()
-          alert(`Failed to update ${propertyName}: ${error.error || 'Unknown error'}`)
+          toast.error(`Failed to update ${propertyName}: ${error.error || 'Unknown error'}`)
         }
       } catch (error) {
         console.error(`Failed to update collection ${propertyName}:`, error)
-        alert(`Failed to update ${propertyName}. Please try again.`)
+  toast.error(`Failed to update ${propertyName}. Please try again.`)
       }
     },
 
@@ -1251,7 +1254,7 @@ export default {
         
       } catch (error) {
         console.error('Error publishing collection:', error)
-        alert(`Error publishing collection: ${error.message}`)
+  toast.error(`Error publishing collection: ${error.message}`)
         
         if (button) {
           button.disabled = false
@@ -1286,7 +1289,7 @@ export default {
         
       } catch (error) {
         console.error('Error publishing collection:', error)
-        alert(`Error publishing collection: ${error.message}`)
+  toast.error(`Error publishing collection: ${error.message}`)
         
         if (button) {
           button.disabled = false

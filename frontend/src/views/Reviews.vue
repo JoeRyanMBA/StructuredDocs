@@ -1,5 +1,6 @@
 <template>
   <div class="reviews">
+    
     <h2>Review Dashboard</h2>
     
     <p class="guidance-text">
@@ -170,6 +171,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'Reviews',
@@ -240,14 +242,13 @@ export default {
 
         if (!res.ok) throw new Error(`Failed to ${action} topic`)
 
-        // Reload data
-        await this.loadReviewData()
-        
-        alert(`Topic ${action}d successfully`)
+  // Reload data
+  await this.loadReviewData()
+  toast.success(`Topic ${action}d successfully`)
 
       } catch (err) {
-        console.error(`Failed to ${action} topic:`, err)
-        alert(`Failed to ${action} topic`)
+  console.error(`Failed to ${action} topic:`, err)
+  toast.error(`Failed to ${action} topic`)
       }
     },
     async reviewImport(importItem, action) {
@@ -266,14 +267,13 @@ export default {
 
         if (!res.ok) throw new Error(`Failed to ${action} import`)
 
-        // Reload data
-        await this.loadReviewData()
-        
-        alert(`Import ${action.replace('_', ' ')}d successfully`)
+  // Reload data
+  await this.loadReviewData()
+  toast.success(`Import ${action.replace('_', ' ')}d successfully`)
 
       } catch (err) {
-        console.error(`Failed to ${action} import:`, err)
-        alert(`Failed to ${action} import`)
+  console.error(`Failed to ${action} import:`, err)
+  toast.error(`Failed to ${action} import`)
       }
     },
     formatDate(dateString) {

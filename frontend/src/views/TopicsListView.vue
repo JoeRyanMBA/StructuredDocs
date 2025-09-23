@@ -1,6 +1,7 @@
 <template>
   <div class="topics-list">
     
+    
     <div class="dashboard-header">
       <h1>All Topics</h1>
       <p class="subtitle">Browse, review, and manage topics</p>
@@ -168,7 +169,7 @@
 
 <script>
 import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
-import { useToast } from '@/composables/useToast'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TopicListView',
@@ -214,8 +215,8 @@ export default {
   // Bulk selection state
   selectedTopicIds: [],
   deleting: false,
-  toast: null,
-  lastSelectedIndex: null
+  lastSelectedIndex: null,
+      // Removed local toast state
     }
   },
 
@@ -243,24 +244,9 @@ export default {
       // Otherwise, fall back to general reviewers if project is selected but has no stakeholders
       if (this.reviewData.project_id && this.availableReviewers.length > 0) {
         return (this.availableReviewers || []).filter(s => s && s.id && s.name).map(reviewer => ({
-          ...reviewer,
-          can_review: true // Mark general reviewers as able to review
         }))
       }
       
-      return []
-    },
-
-    mergedNotifications() {
-      // Use global notifications since we only have globalNotifications prop now
-      return (this.globalNotifications || []).filter(n => n && n.id)
-    },
-
-    uniqueCollections() {
-      const collections = [...new Set(this.topics.map(t => t.collection_name).filter(col => col))]
-      return collections.sort()
-    },
-    todayDate() {
       const today = new Date()
       return today.toISOString().split('T')[0]
     },
@@ -280,8 +266,6 @@ export default {
     this.fetchTopics()
     this.fetchProjects()
     this.fetchReviewers()
-  // Initialize toast helper
-  this.toast = useToast()
   },
 
   methods: {
@@ -470,19 +454,11 @@ export default {
         await this.fetchTopics()
         this.selectedTopicIds = []
 
-        if (this.toast && this.toast.success) {
-          const extra = notFound ? ` (${notFound} not found)` : ''
-          this.toast.success(`Deleted ${deleted} topic${deleted !== 1 ? 's' : ''}${extra}.`)
-        } else {
-          alert(`Deleted ${deleted} topics${notFound ? ` (${notFound} not found)` : ''}.`)
-        }
+  const extra = notFound ? ` (${notFound} not found)` : ''
+  toast.success(`Deleted ${deleted} topic${deleted !== 1 ? 's' : ''}${extra}.`)
       } catch (err) {
-        console.error('Bulk delete error:', err)
-        if (this.toast && this.toast.error) {
-          this.toast.error(err.message || 'Bulk delete failed')
-        } else {
-          alert('Bulk delete failed')
-        }
+  console.error('Bulk delete error:', err)
+  toast.error(err.message || 'Bulk delete failed')
       } finally {
         this.deleting = false
       }
@@ -543,30 +519,30 @@ export default {
 
     async publish(id) {
       console.log('🔥 publish called with ID:', id)
-      alert(`Publish clicked! Topic ID: ${id}`)
+  toast.info(`Publish clicked (Topic #${id})`)
       
       try {
         const res = await fetch(`/api/topics/${id}/publish`, {
           method: 'POST'
         })
         if (!res.ok) throw new Error(`Publish failed (${res.status})`)
-        await this.fetchTopics()
-        alert('Topic published successfully!')
+  await this.fetchTopics()
+  toast.success('Topic published successfully!')
       } catch (err) {
         console.error(err)
-        this.error = 'Publish action failed'
-        alert('Publish failed - backend not available')
+  this.error = 'Publish action failed'
+  toast.error('Publish failed - backend not available')
       }
     },
 
     async submitForReview(id) {
       console.log('🔥 submitForReview called with ID:', id)
-      alert(`Submit for review clicked! Topic ID: ${id}`)
+  toast.info(`Submit for review clicked (Topic #${id})`)
       
       // Find the topic and open the modal
       const topic = this.topics.find(t => t.id === id)
       if (!topic) {
-        alert('Topic not found')
+  toast.error('Topic not found')
         return
       }
 
@@ -664,7 +640,7 @@ export default {
           this.closeReviewModal()
           await this.fetchTopics()
           
-          alert(`"${topicTitle}" has been submitted for sequential review! First reviewer has been notified.`)
+          toast.success(`"${topicTitle}" submitted for sequential review. First reviewer notified.`)
           
         } else {
           // Regular parallel review process
@@ -713,12 +689,12 @@ export default {
           this.closeReviewModal()
           await this.fetchTopics()
           
-          alert(`"${topicTitle}" has been submitted for review to ${reviewerCount} reviewer(s) successfully!`)
+          toast.success(`"${topicTitle}" submitted for review to ${reviewerCount} reviewer(s).`)
         }
 
       } catch (err) {
         console.error('Submit for review failed:', err)
-        alert('Failed to submit topic for review. Please try again.')
+  toast.error('Failed to submit topic for review. Please try again.')
       }
     },
 
@@ -757,10 +733,10 @@ export default {
         // TODO: Implement full sequential review logic
         await this.submitForReview(topic.id)
         
-        alert(`Sequential review process started for "${topic.title}".\n\nNote: This is a simplified implementation. Full sequential review features will be restored in a future update.`)
+  toast.success(`Sequential review started for "${topic.title}" (simplified).`)
       } catch (error) {
         console.error('Error creating sequential review:', error)
-        alert('Error creating sequential review - please try again')
+  toast.error('Error creating sequential review - please try again')
       }
     },
 
@@ -771,7 +747,7 @@ export default {
       this.fetchTopics()
       
       // Show success message
-      alert(`Sequential review created for "${sequence.topic_title}"! First reviewer has been notified.`)
+  toast.success(`Sequential review created for "${sequence.topic_title}". First reviewer notified.`)
     }
   }
 }

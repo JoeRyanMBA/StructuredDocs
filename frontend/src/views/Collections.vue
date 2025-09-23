@@ -1,5 +1,7 @@
 <template>
   <div class="collections-view">
+    <!-- Toasts -->
+      
     <h2>📁 Collections</h2>
     
     <p class="guidance-text">
@@ -57,6 +59,7 @@
 import CollectionTree from '@/components/CollectionTree.vue'
 import { getCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'CollectionsTree',
@@ -102,9 +105,10 @@ export default {
         this.newCollection.name = '';
         this.newCollection.form_number = '';
         this.newCollection.projectId = '';
+  toast.success('Collection created successfully.')
       } else {
         const error = await res.json();
-        alert(`Error: ${error.error || 'Failed to create collection'}`);
+  toast.error(`Failed to create collection: ${error.error || 'Unknown error'}`)
       }
     }
   }

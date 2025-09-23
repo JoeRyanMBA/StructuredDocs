@@ -619,7 +619,12 @@ export default {
         
       } catch (error) {
         console.error('Save error:', error)
-        alert('Failed to save topic. Please try again.')
+        try {
+          const { toast } = await import('@/composables/useToast')
+          toast.error('Failed to save topic. Please try again.')
+        } catch (_e) {
+          /* no-op if import fails at runtime */
+        }
       } finally {
         this.isSaving = false
       }

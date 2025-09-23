@@ -27,6 +27,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'TopicsListViewSimple',
   props: {
@@ -61,9 +62,10 @@ export default {
   
   methods: {
     testButton(id) {
-      alert(`Button clicked for topic ${id}!`)
+      toast.info(`Button clicked for topic ${id}!`)
       console.log(`Button clicked for topic ${id}`)
-    }
+    },
+    
   }
 }
 </script>

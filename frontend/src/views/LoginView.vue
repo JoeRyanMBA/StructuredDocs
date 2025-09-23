@@ -232,6 +232,7 @@
 <script>
 import axios from 'axios';
 import { store } from '../store';
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'LoginView',
@@ -257,7 +258,8 @@ export default {
         email: ''
       },
       // Track when the top-of-card logo has loaded to hide shimmer
-      symbolLogoLoaded: false
+      symbolLogoLoaded: false,
+      
     }
   },
   computed: {
@@ -343,7 +345,7 @@ export default {
         // Mock API call - in real implementation, this would send to backend
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        alert(`Access request submitted for ${this.accessRequest.name}. You will receive an email notification once your request is reviewed.`)
+        toast.success(`Access request submitted for ${this.accessRequest.name}. You will receive an email notification once your request is reviewed.`)
         
         // Reset form
         this.accessRequest = {
@@ -363,12 +365,12 @@ export default {
     async submitPasswordReset() {
       try {
         await axios.post('/api/users/reset-password', { email: this.passwordReset.email });
-        alert(`Password reset link sent to ${this.passwordReset.email}`);
+        toast.success(`Password reset link sent to ${this.passwordReset.email}`);
         this.passwordReset.email = '';
         this.showForgotPassword = false;
       } catch (error) {
         console.error('Failed to send password reset:', error);
-        alert(error.response?.data?.error || 'Failed to send password reset link.');
+        toast.error(error.response?.data?.error || 'Failed to send password reset link.');
       }
     }
   },
