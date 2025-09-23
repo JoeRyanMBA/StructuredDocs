@@ -901,22 +901,6 @@ export default {
       }
     },
 
-    async addNewStakeholderToProject() {
-      if (!this.newStakeholder.name || !this.newStakeholder.email || !this.newStakeholder.role) {
-  toast.error('Please fill in all required fields for the new stakeholder.');
-        return;
-      }
-
-      const newStakeholderData = {
-        ...this.newStakeholder,
-        isNew: true, // Mark as a new stakeholder to be created
-      };
-
-      this.projectStakeholders.push(newStakeholderData);
-
-      // Reset the form for the next entry
-      this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' };
-    },
 
   async createProjectBasic() {
       this.creatingProject = true;
@@ -1456,17 +1440,40 @@ export default {
   toast.error('Please fill in all required fields for the new stakeholder.');
         return;
       }
-
-      const newStakeholderData = {
-        ...this.newStakeholder,
-        isNew: true, // Mark as a new stakeholder to be created
-      };
-
-      this.projectStakeholders.push(newStakeholderData);
-
-      // Reset the form for the next entry
-  this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' };
-  this.$nextTick(()=>{ this.stakeholderModalSnapshot = JSON.stringify({ projectStakeholders: this.projectStakeholders }) })
+      if (!this.createdProjectId) {
+        toast.error('Please create the project before adding stakeholders.');
+        return;
+      }
+      try {
+        const res = await fetch(`/api/projects/${this.createdProjectId}/stakeholders`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({
+            name: this.newStakeholder.name,
+            email: this.newStakeholder.email,
+            title: this.newStakeholder.title || undefined,
+            organization: this.newStakeholder.organization || undefined,
+            role: this.newStakeholder.role
+          })
+        })
+        if (!res.ok) {
+          const text = await res.text()
+          throw new Error(text || 'Failed to add stakeholder')
+        }
+        const added = await res.json()
+        this.projectStakeholders.push({
+          id: added.stakeholder_id || added.id,
+          name: added.name,
+          email: added.email,
+          role: added.role,
+          organization: this.newStakeholder.organization || ''
+        })
+        this.newStakeholder = { name: '', email: '', title: '', organization: '', role: '' }
+        toast.success('Stakeholder added to project.')
+        this.$nextTick(()=>{ this.stakeholderModalSnapshot = JSON.stringify({ projectStakeholders: this.projectStakeholders }) })
+      } catch (e) {
+        toast.error('Failed to add stakeholder: ' + (e?.message || e))
+      }
     },
 
     addMilestoneRow() {
@@ -1481,14 +1488,15 @@ export default {
       if (!this.createdProjectId) return
       try {
         for (const m of this.newMilestones) {
-          if (m.name) {
-            await fetch(`/api/projects/${this.createdProjectId}/milestones`, {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify({ name: m.name, date: m.date, status: m.status })
-            })
-          }
+          if (!m.name) continue
+          await createMilestone({
+            project_id: this.createdProjectId,
+            name: m.name,
+            date: m.date || null,
+            status: m.status || 'planned'
+          })
         }
+        await this.fetchProjects()
         // Close all modals and reset state, return to dashboard
         this.showMilestoneModal = false
         this.showStakeholderModal = false
