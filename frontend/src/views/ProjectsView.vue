@@ -287,7 +287,7 @@
                 <option value="stakeholder">Stakeholder</option>
                 <option value="sponsor">Sponsor</option>
               </select>
-              <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="btn btn-primary add-btn">
+              <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="btn btn-primary btn-sm add-btn">
                 + Add Selected
               </button>
             </div>
@@ -307,7 +307,7 @@
                 <option value="stakeholder">Stakeholder</option>
                 <option value="sponsor">Sponsor</option>
               </select>
-              <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholder.name || !newStakeholder.email || !newStakeholder.role" class="btn add-btn">
+              <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholder.name || !newStakeholder.email || !newStakeholder.role" class="btn btn-primary btn-sm add-btn">
                 + Add Stakeholder
               </button>
             </div>
@@ -349,7 +349,7 @@
               </select>
               <button type="button" @click="removeMilestone(idx)" class="btn btn-danger btn-sm remove-btn">×</button>
             </div>
-            <button type="button" @click="addMilestoneRow" class="btn btn-primary add-btn">+ Add Milestone</button>
+            <button type="button" @click="addMilestoneRow" class="btn btn-primary btn-sm add-btn">+ Add Milestone</button>
           </div>
           <div class="modal-actions">
             <button type="button" class="btn btn-primary" @click="saveMilestonesAndFinish">Add Milestones</button>
@@ -433,7 +433,7 @@
                 type="button" 
                 @click="addExistingStakeholder('edit')" 
                 :disabled="!selectedStakeholderId || !selectedStakeholderRole"
-                class="btn add-btn"
+                class="btn btn-primary btn-sm add-btn"
               >
                 + Add Selected
               </button>
@@ -507,7 +507,7 @@
                   type="button" 
                   @click="addNewStakeholder('edit')"
                   :disabled="!newStakeholderName || !newStakeholderEmail || !newStakeholderRole"
-                  class="btn btn-primary add-btn"
+                  class="btn btn-primary btn-sm add-btn"
                 >
                   + Add New Stakeholder
                 </button>
@@ -542,9 +542,9 @@
                 <option value="completed">Completed</option>
                 <option value="delayed">Delayed</option>
               </select>
-              <button type="button" @click="removeMilestone(index, 'edit')" class="remove-btn">✕</button>
+              <button type="button" @click="removeMilestone(index, 'edit')" class="btn btn-danger btn-sm remove-btn">✕</button>
             </div>
-            <button type="button" @click="addMilestone('edit')" class="btn add-btn">+ Add Milestone</button>
+            <button type="button" @click="addMilestone('edit')" class="btn btn-primary btn-sm add-btn">+ Add Milestone</button>
           </div>
         </div>
 
@@ -938,17 +938,19 @@ export default {
           throw new Error(`Failed to create project: ${response.status} ${errorText}`)
         }
         const createdProject = await response.json()
-  this.createdProjectId = createdProject.id
-  this.createdProjectName = createdProject.name
-  // Show success as a toast instead of inline confirmation with OK
-  toast.success(`Project #${createdProject.id} (${createdProject.name}) was created successfully!`)
-  this.createProjectStep = 2
-  // Only close the modal after user clicks OK (handled in proceedToStakeholders)
-  // this.showStakeholderModal = true
-  // this.showCreateModal = false
-  // Optionally, store createdProject in newProject for later steps
-  this.newProject.id = createdProject.id
-  this.$nextTick(()=>{ this.createProjectSnapshot = JSON.stringify(this.newProject) })
+        this.createdProjectId = createdProject.id
+        this.createdProjectName = createdProject.name
+        // Immediately reflect in dashboard list/metrics
+        this.projects = [createdProject, ...this.projects]
+        // Show success as a toast instead of inline confirmation with OK
+        toast.success(`Project #${createdProject.id} (${createdProject.name}) was created successfully!`)
+        this.createProjectStep = 2
+        // Only close the modal after user clicks OK (handled in proceedToStakeholders)
+        // this.showStakeholderModal = true
+        // this.showCreateModal = false
+        // Optionally, store createdProject in newProject for later steps
+        this.newProject.id = createdProject.id
+        this.$nextTick(()=>{ this.createProjectSnapshot = JSON.stringify(this.newProject) })
       } catch (error) {
         console.error('Failed to create project:', error)
   toast.error('Failed to create project: ' + error.message)
@@ -1931,8 +1933,6 @@ export default {
   margin-top: 1rem;
   text-align: right;
 }
-
-/* Stakeholder/Milestone specific */
 .selector-row, .milestone-row, .new-stakeholder-form {
   display: flex;
   flex-wrap: wrap;
