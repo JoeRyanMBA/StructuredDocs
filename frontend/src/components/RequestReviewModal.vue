@@ -74,6 +74,7 @@
 
 <script>
 import { getReviewers, requestReview } from '@/api/reviews.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'RequestReviewModal',
@@ -120,7 +121,7 @@ export default {
         this.reviewers = await getReviewers()
       } catch (error) {
         console.error('Failed to load reviewers:', error)
-        alert('Failed to load available reviewers')
+        toast.error('Failed to load available reviewers')
       }
     },
     
@@ -144,11 +145,11 @@ export default {
         
         this.$emit('review-requested')
         this.closeModal()
-        alert('Review requested successfully!')
+        toast.success('Review requested successfully!')
         
       } catch (error) {
         console.error('Failed to request review:', error)
-        alert('Failed to request review: ' + error.message)
+        toast.error('Failed to request review: ' + error.message)
       } finally {
         this.loading = false
       }

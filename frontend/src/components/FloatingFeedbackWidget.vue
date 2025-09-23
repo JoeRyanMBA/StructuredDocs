@@ -41,6 +41,7 @@
 
 <script>
 import axios from 'axios'
+import { toast } from '@/composables/useToast'
 export default {
   name: 'FloatingFeedbackWidget',
   data() {
@@ -69,7 +70,7 @@ export default {
     },
     async submit() {
       if (!this.message || !this.message.trim()) {
-        alert('Please enter a description')
+        toast.error('Please enter a description')
         return
       }
       this.submitting = true;
@@ -89,10 +90,10 @@ export default {
         modal.hide()
         this.message = ''
         this.contact = ''
-        alert('Thanks — your report has been submitted.')
+        toast.success('Thanks — your report has been submitted.')
       } catch (err) {
         console.error(err)
-        alert('Failed to submit feedback')
+        toast.error('Failed to submit feedback')
       } finally {
         this.submitting = false;
       }

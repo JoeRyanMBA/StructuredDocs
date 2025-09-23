@@ -1,5 +1,6 @@
 <template>
   <div class="reviews-list-view">
+    
     <div class="page-header">
       <h1>📝 Review Tasks</h1>
       <p>Review topics and provide feedback to authors</p>
@@ -60,6 +61,7 @@
 <script>
 import ReviewCard from '@/components/ReviewCard.vue'
 import { getPendingReviews, getReviews } from '@/api/reviews.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'ReviewsListView',
@@ -105,7 +107,7 @@ export default {
         
       } catch (error) {
         console.error('Failed to load reviews:', error)
-        alert('Failed to load reviews')
+        toast.error('Failed to load reviews')
       } finally {
         this.loading = false
       }

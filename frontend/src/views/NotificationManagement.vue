@@ -1,5 +1,6 @@
 <template>
   <div class="notification-management">
+    
     <div class="page-header">
       <div class="page-header-content">
         <h1>Notification Management</h1>
@@ -110,6 +111,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'NotificationManagement',
   data() {
@@ -147,7 +149,7 @@ export default {
         await this.fetchNotifications()
       } catch (error) {
         console.error('Error toggling notification:', error)
-        alert('Failed to toggle notification')
+        toast.error('Failed to toggle notification')
       }
     },
     async deleteNotification(notification) {
@@ -158,7 +160,7 @@ export default {
         await this.fetchNotifications()
       } catch (error) {
         console.error('Error deleting notification:', error)
-        alert('Failed to delete notification')
+        toast.error('Failed to delete notification')
       }
     },
     formatType(type) {

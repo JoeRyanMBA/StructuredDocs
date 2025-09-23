@@ -13,6 +13,7 @@
 import { ref, onMounted } from 'vue'
 import { getCollections, saveCollections } from '@/api/collections'
 import CollectionTree from '@/components/CollectionTree.vue'
+import { toast } from '@/composables/useToast'
 
 export default {
   components: { CollectionTree },
@@ -27,10 +28,10 @@ export default {
     const saveTree = async () => {
       try {
         await saveCollections(treeData.value)
-        alert('Structure saved!')
+        toast.success('Structure saved!')
       } catch (e) {
         console.error(e)
-        alert('Failed to save structure')
+        toast.error('Failed to save structure')
       }
     }
 

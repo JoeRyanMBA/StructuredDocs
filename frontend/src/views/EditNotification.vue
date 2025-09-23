@@ -26,6 +26,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'EditNotification',
   data() {
@@ -36,7 +37,7 @@ export default {
         type: 'global',
       },
       loading: true,
-      error: null,
+      error: null
     }
   },
   async created() {
@@ -68,15 +69,15 @@ export default {
           body: JSON.stringify(this.notification)
         })
         if (!response.ok) throw new Error('Failed to update notification')
-        alert('Notification updated!')
+        toast.success('Notification updated!')
         this.$router.push('/admin')
       } catch (err) {
-        alert('Failed to update notification.')
+        toast.error('Failed to update notification.')
       }
     },
     cancelEdit() {
       this.$router.back()
-    },
+    }
   },
 }
 </script>

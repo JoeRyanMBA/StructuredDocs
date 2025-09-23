@@ -72,6 +72,7 @@
 </template>
 
 <script>
+import { toast } from '@/composables/useToast'
 export default {
   name: 'FeedbackWidget',
   data() {
@@ -99,10 +100,10 @@ export default {
         if (!res.ok) throw new Error('Submit failed')
         this.showFeedbackModal = false
         this.feedback = { type: 'general', message: '' }
-        alert('Thank you for your feedback!')
+        toast.success('Thank you for your feedback!')
       } catch (err) {
         console.error('Failed to submit feedback', err)
-        alert('Failed to submit feedback')
+        toast.error('Failed to submit feedback')
       }
     },
     async submitBugReport() {
@@ -121,10 +122,10 @@ export default {
         if (!res.ok) throw new Error('Submit failed')
         this.showBugModal = false
         this.bugReport = { area: '', description: '', reproduction_steps: '' }
-        alert('Thank you for reporting this bug!')
+        toast.success('Thank you for reporting this bug!')
       } catch (err) {
         console.error('Failed to submit bug', err)
-        alert('Failed to submit bug report')
+        toast.error('Failed to submit bug report')
       }
     }
   }

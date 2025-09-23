@@ -1,5 +1,6 @@
 <template>
   <div class="admin-dashboard">
+    
     <div class="dashboard-header">
       <h1>Admin Dashboard</h1>
       <p class="subtitle">System administration and user management</p>
@@ -164,6 +165,7 @@
 
 <script>
 import DatabaseMetricsPanel from '../components/DatabaseMetricsPanel.vue'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'AdminDashboard',
@@ -228,13 +230,13 @@ export default {
         });
         const result = await response.json();
         if (response.ok) {
-          alert('Database cleared successfully!');
+          toast.success('Database cleared successfully!');
           await this.loadDashboardData();
         } else {
-          alert('Error clearing database: ' + (result.message || 'Unknown error'));
+          toast.error('Error clearing database: ' + (result.message || 'Unknown error'));
         }
       } catch (e) {
-        alert('Error clearing database: ' + (e.message || e));
+  toast.error('Error clearing database: ' + (e.message || e));
       }
     },
     getAuthHeaders() {
@@ -345,7 +347,9 @@ export default {
 
     navigateTo(path) {
       this.$router.push(path)
-    }
+    },
+
+    
   }
 }
 </script>

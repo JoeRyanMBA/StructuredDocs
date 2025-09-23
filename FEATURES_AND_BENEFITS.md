@@ -1,6 +1,6 @@
 # StructuredDocs: Features & Benefits Overview
 
-*A comprehensive content management and collaboration platform designed for structured documentation workflows*
+## A comprehensive content management and collaboration platform designed for structured documentation workflows
 
 
 ## 🎯 Executive Summary

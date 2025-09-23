@@ -1,5 +1,6 @@
 <template>
-  <draggable
+  <div>
+    <draggable
     :list="localTree"
     item-key="id"
     group="collections"
@@ -69,12 +70,14 @@
       </div>
     </template>
   </draggable>
+  </div>
 </template>
 
 <script>
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
 import { getCollections, getDocuments } from '@/api/collections.js'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'CollectionTree',
@@ -171,7 +174,7 @@ export default {
         
       } catch (error) {
         console.error('Error publishing collection:', error)
-        alert(`Error publishing collection: ${error.message}`)
+        toast.error(`Error publishing collection: ${error.message}`)
         
         // Reset button state
         if (button) {
@@ -211,7 +214,7 @@ export default {
         
       } catch (error) {
         console.error('Error publishing collection:', error)
-        alert(`Error publishing collection: ${error.message}`)
+        toast.error(`Error publishing collection: ${error.message}`)
         
         // Reset button state
         if (button) {
