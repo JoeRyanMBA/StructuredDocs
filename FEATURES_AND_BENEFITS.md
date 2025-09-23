@@ -2,7 +2,6 @@
 
 ## A comprehensive content management and collaboration platform designed for structured documentation workflows
 
-
 ## 🎯 Executive Summary
 
 StructuredDocs is a modern web-based platform that transforms how organizations create, manage, review, and publish structured documents. Built with a robust backend (Flask/Python) and intuitive frontend (Vue.js), it provides a complete solution for content teams, subject matter experts, and administrators to collaborate effectively on documentation projects.
