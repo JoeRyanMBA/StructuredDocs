@@ -538,9 +538,9 @@
                 class="milestone-input"
               >
                 <option value="planned">Planned</option>
-                <option value="in_progress">In Progress</option>
+                <option value="in-progress">In Progress</option>
                 <option value="completed">Completed</option>
-                <option value="delayed">Delayed</option>
+                <option value="overdue">Overdue</option>
               </select>
               <button type="button" @click="removeMilestone(index, 'edit')" class="btn btn-danger btn-sm remove-btn">✕</button>
             </div>
