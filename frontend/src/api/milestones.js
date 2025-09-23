@@ -1,7 +1,7 @@
 // src/api/milestones.js
 
 export async function createMilestone(milestone) {
-  const res = await fetch('/api/milestones', {
+  const res = await fetch('/api/milestones/', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(milestone)

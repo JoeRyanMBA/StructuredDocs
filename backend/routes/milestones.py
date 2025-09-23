@@ -14,6 +14,7 @@ from ..models import db, ProjectMilestone, Project
 milestones_bp = Blueprint('milestones', __name__, url_prefix='/api/milestones')
 
 @milestones_bp.route('/', methods=['GET'])
+@milestones_bp.route('', methods=['GET'])
 def list_milestones():
     """Get all milestones with project information"""
     try:
@@ -29,6 +30,7 @@ def list_milestones():
 
 
 @milestones_bp.route('/', methods=['POST'])
+@milestones_bp.route('', methods=['POST'])
 def create_milestone():
     """Create a new milestone"""
     try:
