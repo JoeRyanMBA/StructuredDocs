@@ -11,8 +11,9 @@ if [ ! -f "dist/index.html" ]; then
     exit 1
 fi
 
-if [ ! -f "dist/assets/index-*.js" ]; then
+if ! compgen -G "dist/assets/index-*.js" > /dev/null; then
     echo "ERROR: Frontend build failed - main JS bundle not found"
+    ls -la dist/assets/ | sed -n '1,100p'
     exit 1
 fi
 
