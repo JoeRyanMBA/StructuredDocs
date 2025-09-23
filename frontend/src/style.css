@@ -1,6 +1,11 @@
 /* frontend/src/style.css */
 @import url('./styles/modal.css');
 
+:root {
+  /* Standard height for Search / Clear Filters buttons */
+  --filter-button-height: 36px;
+}
+
 /* Main Layout Styles */
 .sidebar-layout {
   display: flex;
@@ -186,6 +191,22 @@
   align-items: center;
 }
 
+/* Ensure equal height for buttons in filter toolbars */
+.filters-section .button-group .btn,
+.projects-list-panel .button-group .btn,
+.filters-section .button-group .search-btn,
+.filters-section .button-group .clear-btn,
+.projects-list-panel .button-group .search-btn,
+.projects-list-panel .button-group .clear-btn {
+  min-height: var(--filter-button-height);
+}
+
+/* Apply the same height in other common toolbars */
+.action-buttons .btn,
+.empty-actions .btn {
+  min-height: var(--filter-button-height);
+}
+
 /* Centralized Button Styling */
 .search-btn, .clear-btn {
   padding: 0.5rem 1rem;
@@ -198,7 +219,7 @@
   display: flex;
   align-items: center;
   gap: 0.5rem;
-  min-height: 36px;
+  min-height: var(--filter-button-height);
 }
 
 .search-btn {
