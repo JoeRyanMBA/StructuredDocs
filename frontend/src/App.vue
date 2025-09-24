@@ -122,9 +122,7 @@ export default {
 
   .content {
   padding: 2rem;
-  max-width: 1200px;
   margin-left: var(--sidebar-width);
-  margin-right: auto;
   margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem); /* reduced spacing */
   width: calc(100% - var(--sidebar-width));
   cursor: default;
