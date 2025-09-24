@@ -353,6 +353,33 @@ export default {
           ],
           exampleTag: 'button',
           exampleBind: { type: 'button' }
+        },
+        {
+          name: 'Submit',
+          classes: 'submit-btn',
+          text: 'Submit Review',
+          icon: 'fas fa-check',
+          stylesheet: 'assets/style.css (.submit-btn)',
+          usedIn: [
+            'ReviewPortal.vue (form submission)',
+            'NotificationManagement.vue (save changes)'
+          ],
+          exampleTag: 'button',
+          exampleBind: { type: 'submit' }
+        },
+        {
+          name: 'Create First',
+          classes: 'create-first-btn',
+          text: 'Create Your First Task',
+          icon: 'fas fa-plus',
+          stylesheet: 'assets/style.css (.create-first-btn)',
+          usedIn: [
+            'TasksView.vue (empty state)',
+            'ProjectsView.vue (empty state)',
+            'CollectionsDashboard.vue (empty states)'
+          ],
+          exampleTag: 'button',
+          exampleBind: { type: 'button' }
         }
       ]
     }
