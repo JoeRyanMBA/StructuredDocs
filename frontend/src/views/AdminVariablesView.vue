@@ -8,7 +8,9 @@
       <button class="btn btn-secondary" @click="refresh">Refresh</button>
     </div>
 
-    <div v-if="loading" class="loading">Loading...</div>
+    <div v-if="loading" class="loading-overlay">
+      <div class="loading-spinner"></div>
+    </div>
 
     <div v-else class="variables-layout">
       <div v-if="loadError" class="error-banner">

@@ -116,12 +116,8 @@
     <!-- Tasks List -->
     <div class="tasks-section">
       <!-- Loading State -->
-      <div v-if="loading" class="loading-state">
-        <div class="loading-content">
-          <div class="loading-spinner">⏳</div>
-          <h3>Loading Tasks...</h3>
-          <p>Please wait while we fetch your tasks.</p>
-        </div>
+      <div v-if="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
       </div>
 
       <!-- Error State -->
