@@ -573,7 +573,7 @@ export default {
 }
 
 .milestone-name {
-  font-weight: 600;
+  font-weight: 400;
   color: #333;
   margin-bottom: 0.25rem;
 }
