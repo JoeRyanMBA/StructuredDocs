@@ -5,47 +5,48 @@
       <p class="subtitle">Import and manage your document imports</p>
     </div>
 
-    <!-- Key Metrics Cards -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-icon">📥</div>
-        <div class="metric-content">
-          <h3>Total Imports</h3>
-            <div class="metric-number">{{ stats.total || 0 }}</div> <!-- metric-number now centralized in global style.css -->
-            <div class="metric-detail">All time</div> <!-- metric-detail now centralized in global style.css -->
-        </div>
-      </div>
+    <!-- Compact Toolbar for Metrics -->
+    <CompactToolbar :showMetrics="true" :showCalendar="false">
+      <template #metrics>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon">📥</div>
+            <div class="metric-content">
+              <h3>Total Imports</h3>
+              <div class="metric-number">{{ stats.total || 0 }}</div>
+              <div class="metric-detail">All time</div>
+            </div>
+          </div>
 
-      <div class="metric-card">
-        <div class="metric-icon">⏳</div>
-        <div class="metric-content">
-          <h3>Pending Review</h3>
-            <div class="metric-number">{{ stats.pending || 0 }}</div> <!-- metric-number now centralized in global style.css -->
-            <div class="metric-detail">Need approval</div> <!-- metric-detail now centralized in global style.css -->
-        </div>
-      </div>
+          <div class="metric-card">
+            <div class="metric-icon">⏳</div>
+            <div class="metric-content">
+              <h3>Pending Review</h3>
+              <div class="metric-number">{{ stats.pending || 0 }}</div>
+              <div class="metric-detail">Need approval</div>
+            </div>
+          </div>
 
-      <div class="metric-card">
-        <div class="metric-icon">✅</div>
-        <div class="metric-content">
-          <h3>Approved</h3>
-            <div class="metric-number">{{ stats.approved || 0 }}</div> <!-- metric-number now centralized in global style.css -->
-            <div class="metric-detail">This month</div> <!-- metric-detail now centralized in global style.css -->
-        </div>
-      </div>
+          <div class="metric-card">
+            <div class="metric-icon">✅</div>
+            <div class="metric-content">
+              <h3>Approved</h3>
+              <div class="metric-number">{{ stats.approved || 0 }}</div>
+              <div class="metric-detail">This month</div>
+            </div>
+          </div>
 
-      <div class="metric-card">
-        <div class="metric-icon">🆕</div>
-        <div class="metric-content">
-          <h3>This Week</h3>
-            <div class="metric-number">{{ stats.thisWeek || 0 }}</div> <!-- metric-number now centralized in global style.css -->
-            <div class="metric-detail">New imports</div> <!-- metric-detail now centralized in global style.css -->
+          <div class="metric-card">
+            <div class="metric-icon">🆕</div>
+            <div class="metric-content">
+              <h3>This Week</h3>
+              <div class="metric-number">{{ stats.thisWeek || 0 }}</div>
+              <div class="metric-detail">New imports</div>
+            </div>
+          </div>
         </div>
-      </div>
-      </div>
-    </div>
+      </template>
+    </CompactToolbar>
 
     <!-- Quick Actions Section (Start Page style) -->
     <div class="quick-actions-section">
@@ -171,10 +172,13 @@
 </template>
 
 <script>
+import CompactToolbar from '@/components/CompactToolbar.vue'
 
 export default {
   name: 'ImportDashboard',
-  components: { },
+  components: { 
+    CompactToolbar
+  },
   props: {
     notifications: {
       type: Array,

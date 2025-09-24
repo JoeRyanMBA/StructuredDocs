@@ -1,14 +1,9 @@
 <template>
   <div class="collections-dashboard">
-    <div class="dashboard-header">
-      <h1>Collections Dashboard</h1>
-      <p class="subtitle">Manage and organize your document collections</p>
-    </div>
-
-    <!-- Key Metrics Cards -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
+    
+    <!-- Compact Toolbar -->
+    <CompactToolbar :show-metrics="true">
+      <template #metrics>
         <div class="metric-card">
           <div class="metric-icon">📚</div>
           <div class="metric-content">
@@ -44,7 +39,12 @@
             <div class="metric-detail">Per collection</div>
           </div>
         </div>
-      </div>
+      </template>
+    </CompactToolbar>
+    
+    <div class="dashboard-header">
+      <h1>Collections Dashboard</h1>
+      <p class="subtitle">Manage and organize your document collections</p>
     </div>
 
     <!-- Quick Actions Section (aligned with Start Page) -->
@@ -235,12 +235,13 @@
 </template>
 
 <script>
+import CompactToolbar from '../components/CompactToolbar.vue'
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'CollectionsDashboard',
-  components: { },
+  components: { CompactToolbar },
   props: {
     notifications: {
       type: Array,
