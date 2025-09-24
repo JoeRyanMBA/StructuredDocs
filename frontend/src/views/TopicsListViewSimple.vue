@@ -5,7 +5,9 @@
     
     <div class="test-section">
       <h3>Test Data:</h3>
-      <div v-if="loading">Loading...</div>
+      <div v-if="loading" class="loading-overlay">
+        <div class="loading-spinner"></div>
+      </div>
       <div v-else>
         <div v-for="topic in topics" :key="topic.id" class="topic-item">
           <h4>{{ topic.title }}</h4>
