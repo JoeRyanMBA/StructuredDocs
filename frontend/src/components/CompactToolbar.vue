@@ -20,29 +20,29 @@
       <i class="fas fa-calendar"></i>
     </button>
 
-    <!-- Metrics Modal -->
-    <div v-if="metricsModalOpen" class="modal-overlay" @click.self="closeMetricsModal">
-      <div class="modal metrics-modal">
-        <div class="modal-header">
+    <!-- Metrics Slide-out Panel -->
+    <div v-if="metricsModalOpen" class="slide-overlay" @click.self="closeMetricsModal">
+      <div class="slide-panel metrics-panel" :class="{ 'slide-in': metricsModalOpen }">
+        <div class="panel-header">
           <h2>Key Metrics</h2>
           <button @click="closeMetricsModal" class="close-btn">×</button>
         </div>
-        <div class="modal-body">
-          <div class="metrics-grid">
+        <div class="panel-body">
+          <div class="metrics-stack">
             <slot name="metrics"></slot>
           </div>
         </div>
       </div>
     </div>
 
-    <!-- Calendar Modal -->
-    <div v-if="calendarModalOpen" class="modal-overlay" @click.self="closeCalendarModal">
-      <div class="modal calendar-modal">
-        <div class="modal-header">
+    <!-- Calendar Slide-out Panel -->
+    <div v-if="calendarModalOpen" class="slide-overlay" @click.self="closeCalendarModal">
+      <div class="slide-panel calendar-panel" :class="{ 'slide-in': calendarModalOpen }">
+        <div class="panel-header">
           <h2>Calendar</h2>
           <button @click="closeCalendarModal" class="close-btn">×</button>
         </div>
-        <div class="modal-body">
+        <div class="panel-body">
           <slot name="calendar"></slot>
         </div>
       </div>
@@ -123,43 +123,94 @@ export default {
   transform: scale(0.95);
 }
 
-.modal {
+/* Slide-out overlay */
+.slide-overlay {
+  position: fixed;
+  top: 0;
+  left: 0;
+  width: 100%;
+  height: 100%;
+  background: rgba(0, 0, 0, 0.5);
+  z-index: 1000;
+  display: flex;
+  justify-content: flex-end;
+  align-items: stretch;
+}
+
+/* Slide panel base */
+.slide-panel {
+  background: white;
+  width: 400px;
   max-width: 90vw;
-  max-height: 90vh;
+  height: 100%;
+  box-shadow: var(--shadow-lg);
+  transform: translateX(100%);
+  transition: transform 0.3s ease-in-out;
   overflow-y: auto;
+  display: flex;
+  flex-direction: column;
 }
 
-.metrics-modal {
-  width: 800px;
-  max-width: 90vw;
+.slide-panel.slide-in {
+  transform: translateX(0);
 }
 
-.calendar-modal {
-  width: 700px;
-  max-width: 90vw;
-}
-
-.modal-header {
+/* Panel header */
+.panel-header {
   display: flex;
   justify-content: space-between;
   align-items: center;
   padding: 1.5rem;
   border-bottom: 1px solid var(--border-light-gray);
+  background: var(--bg-white);
+  flex-shrink: 0;
 }
 
-.modal-header h2 {
+.panel-header h2 {
   margin: 0;
+  color: var(--primary-deep-teal);
+  font-size: 1.25rem;
+}
+
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.5rem;
+  cursor: pointer;
+  color: var(--text-secondary-cool-gray);
+  padding: 0.25rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 4px;
+  transition: all 0.2s ease;
+}
+
+.close-btn:hover {
+  background: var(--extended-lavender-gray);
   color: var(--primary-deep-teal);
 }
 
-.modal-body {
+/* Panel body */
+.panel-body {
   padding: 1.5rem;
+  flex: 1;
+  overflow-y: auto;
 }
 
-.metrics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1.5rem;
+/* Stacked metrics layout */
+.metrics-stack {
+  display: flex;
+  flex-direction: column;
+  gap: 1rem;
+}
+
+/* Override metric card layout for stacked display */
+.metrics-stack .metric-card {
+  width: 100%;
+  min-width: unset;
 }
 
 @media (max-width: 768px) {
@@ -174,9 +225,21 @@ export default {
     font-size: 1rem;
   }
   
-  .metrics-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .slide-panel {
+    width: 100%;
+    max-width: 100vw;
+  }
+  
+  .panel-header {
+    padding: 1rem;
+  }
+  
+  .panel-body {
+    padding: 1rem;
+  }
+  
+  .metrics-stack {
+    gap: 0.75rem;
   }
 }
 </style>
