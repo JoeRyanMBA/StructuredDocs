@@ -1,23 +1,10 @@
 <template>
   
   <div class="tasks-page">
-    <!-- Page Header -->
-    <div class="page-header">
-      <div class="page-header-content">
-  <h1>Task Management</h1>
-  <p class="subtitle">Organize and track tasks across projects, collections, and topics</p>
-      </div>
-      <div class="header-actions">
-        <button @click="showCreateModal = true" class="primary-btn">
-          ➕ Create Task
-        </button>
-      </div>
-    </div>
-
-    <!-- Key Metrics (uses global metric-card styles) -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
+    
+    <!-- Compact Toolbar -->
+    <CompactToolbar :show-metrics="true">
+      <template #metrics>
         <div class="metric-card">
           <div class="metric-icon">📋</div>
           <div class="metric-content">
@@ -62,6 +49,19 @@
             <div class="metric-detail">Past due</div>
           </div>
         </div>
+      </template>
+    </CompactToolbar>
+
+    <!-- Page Header -->
+    <div class="page-header">
+      <div class="page-header-content">
+  <h1>Task Management</h1>
+  <p class="subtitle">Organize and track tasks across projects, collections, and topics</p>
+      </div>
+      <div class="header-actions">
+        <button @click="showCreateModal = true" class="primary-btn">
+          ➕ Create Task
+        </button>
       </div>
     </div>
 
@@ -472,11 +472,12 @@
 </template>
 
 <script>
+import CompactToolbar from '../components/CompactToolbar.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TasksView',
-  components: { },
+  components: { CompactToolbar },
   props: {
     notifications: {
       type: Array,

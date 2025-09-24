@@ -2,52 +2,54 @@
   
   <div class="projects-dashboard">
     
+    <!-- Compact Toolbar -->
+    <CompactToolbar :show-metrics="true" :show-calendar="true">
+      <template #metrics>
+        <div class="metric-card">
+          <div class="metric-icon">📊</div>
+          <div class="metric-content">
+            <h3>Total Projects</h3>
+            <div class="metric-number">{{ projectMetrics.total }}</div>
+            <div class="metric-detail">+{{ projectMetrics.newThisMonth }} this month</div>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-icon">🚀</div>
+          <div class="metric-content">
+            <h3>Active Projects</h3>
+            <div class="metric-number">{{ projectMetrics.active }}</div>
+            <div class="metric-detail">{{ projectMetrics.activePercentage }}% of total</div>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-icon">👥</div>
+          <div class="metric-content">
+            <h3>Total Stakeholders</h3>
+            <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
+            <div class="metric-detail">Across all projects</div>
+          </div>
+        </div>
+        
+        <div class="metric-card">
+          <div class="metric-icon">✅</div>
+          <div class="metric-content">
+            <h3>Completed</h3>
+            <div class="metric-number">{{ projectMetrics.completed }}</div>
+            <div class="metric-detail">{{ projectMetrics.completionRate }}% completion rate</div>
+          </div>
+        </div>
+      </template>
+      <template #calendar>
+        <CalendarWidget :events="calendarEvents" />
+      </template>
+    </CompactToolbar>
     
     <!-- Dashboard Header -->
     <div class="dashboard-header">
       <h1>Projects Dashboard</h1>
       <p class="subtitle">Manage projects, stakeholders, and review workflows</p>
-    </div>
-    <!-- Metrics Overview -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-icon">📊</div>
-        <div class="metric-content">
-          <h3>Total Projects</h3>
-          <div class="metric-number">{{ projectMetrics.total }}</div>
-          <div class="metric-detail">+{{ projectMetrics.newThisMonth }} this month</div>
-        </div>
-      </div>
-      
-      <div class="metric-card">
-        <div class="metric-icon">🚀</div>
-        <div class="metric-content">
-          <h3>Active Projects</h3>
-          <div class="metric-number">{{ projectMetrics.active }}</div>
-          <div class="metric-detail">{{ projectMetrics.activePercentage }}% of total</div>
-        </div>
-      </div>
-      
-      <div class="metric-card">
-        <div class="metric-icon">👥</div>
-        <div class="metric-content">
-          <h3>Total Stakeholders</h3>
-          <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
-          <div class="metric-detail">Across all projects</div>
-        </div>
-      </div>
-      
-      <div class="metric-card">
-        <div class="metric-icon">✅</div>
-        <div class="metric-content">
-          <h3>Completed</h3>
-          <div class="metric-number">{{ projectMetrics.completed }}</div>
-          <div class="metric-detail">{{ projectMetrics.completionRate }}% completion rate</div>
-        </div>
-      </div>
-      </div>
     </div>
 
     <!-- Quick Actions -->
@@ -80,13 +82,7 @@
       </div>
     </div>
 
-    <!-- Project Calendar -->
-    <div class="section-card">
-      <div class="section-header">
-        <h2 class="section-title">Project Calendar</h2>
-      </div>
-      <CalendarWidget :events="calendarEvents" />
-    </div>
+
 
   <!-- Projects List -->
   <div class="section-card" id="projectsSection" ref="projectsSection">
@@ -564,6 +560,7 @@
 
 <script>
 import CalendarWidget from '../components/CalendarWidget.vue'
+import CompactToolbar from '../components/CompactToolbar.vue'
 import { createStakeholder, addStakeholderToProject } from '../api/stakeholders';
 import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
@@ -572,7 +569,7 @@ import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { toast } from '@/composables/useToast'
 
 export default {
-  components: { CalendarWidget },
+  components: { CalendarWidget, CompactToolbar },
   mixins: [unsavedChangesGuard],
   props: {
     notifications: {

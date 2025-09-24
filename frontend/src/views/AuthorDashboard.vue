@@ -1,50 +1,50 @@
 <template>
   <div class="author-dashboard">
+    
+    <!-- Compact Toolbar -->
+    <CompactToolbar :show-metrics="true">
+      <template #metrics>
+        <div class="metric-card" @click="navigateTo('/topics')">
+          <div class="metric-icon">📝</div>
+          <div class="metric-content">
+            <h3>My Topics</h3>
+            <div class="metric-number">{{ stats.myTopics || 0 }}</div>
+            <div class="metric-detail">{{ stats.drafts || 0 }} Drafts</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">✅</div>
+          <div class="metric-content">
+            <h3>Published</h3>
+            <div class="metric-number">{{ stats.published || 0 }}</div>
+            <div class="metric-detail">Live topics</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">🔄</div>
+          <div class="metric-content">
+            <h3>In Review</h3>
+            <div class="metric-number">{{ stats.inReview || 0 }}</div>
+            <div class="metric-detail">Pending feedback</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">📊</div>
+          <div class="metric-content">
+            <h3>This Week</h3>
+            <div class="metric-number">{{ stats.createdThisWeek || 0 }}</div>
+            <div class="metric-detail">Topics created</div>
+          </div>
+        </div>
+      </template>
+    </CompactToolbar>
+    
     <div class="dashboard-header">
       <h1>Author Dashboard</h1>
       <p class="subtitle">Create and manage your content</p>
-    </div>
-
-    <!-- Key Metrics Cards -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
-      <div class="metric-card" @click="navigateTo('/topics')">
-        <div class="metric-icon">📝</div>
-        <div class="metric-content">
-          <h3>My Topics</h3>
-          <div class="metric-number">{{ stats.myTopics || 0 }}</div>
-          <div class="metric-detail">{{ stats.drafts || 0 }} Drafts</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">✅</div>
-        <div class="metric-content">
-          <h3>Published</h3>
-          <div class="metric-number">{{ stats.published || 0 }}</div>
-          <div class="metric-detail">Live topics</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">🔄</div>
-        <div class="metric-content">
-          <h3>In Review</h3>
-          <div class="metric-number">{{ stats.inReview || 0 }}</div>
-          <div class="metric-detail">Pending feedback</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">📊</div>
-        <div class="metric-content">
-          <h3>This Week</h3>
-          <div class="metric-number">{{ stats.createdThisWeek || 0 }}</div>
-          <div class="metric-detail">Topics created</div>
-        </div>
-      </div>
-      </div>
     </div>
 
     <!-- Quick Actions Section (Start Page style) -->
@@ -238,12 +238,13 @@
 </template>
 
 <script>
+import CompactToolbar from '../components/CompactToolbar.vue'
 
 export default {
   name: 'AuthorDashboard',
   
   components: {
-    
+    CompactToolbar
   },
   
   props: {

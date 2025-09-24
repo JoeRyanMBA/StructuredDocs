@@ -6,47 +6,48 @@
       <p class="subtitle">System administration and user management</p>
     </div>
 
-    <!-- Key Metrics Cards -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
-        <div class="metric-card">
-          <div class="metric-icon">👥</div>
-          <div class="metric-content">
-            <h3>Total Users</h3>
-            <div class="metric-number">{{ stats.totalUsers || 0 }}</div>
-            <div class="metric-detail">{{ stats.activeUsers || 0 }} Active</div>
+    <!-- Compact Toolbar for Metrics -->
+    <CompactToolbar :showMetrics="true" :showCalendar="false">
+      <template #metrics>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon">👥</div>
+            <div class="metric-content">
+              <h3>Total Users</h3>
+              <div class="metric-number">{{ stats.totalUsers || 0 }}</div>
+              <div class="metric-detail">{{ stats.activeUsers || 0 }} Active</div>
+            </div>
           </div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-icon">✏️</div>
-          <div class="metric-content">
-            <h3>Authors</h3>
-            <div class="metric-number">{{ stats.authors || 0 }}</div>
-            <div class="metric-detail">Content creators</div>
+          <div class="metric-card">
+            <div class="metric-icon">✏️</div>
+            <div class="metric-content">
+              <h3>Authors</h3>
+              <div class="metric-number">{{ stats.authors || 0 }}</div>
+              <div class="metric-detail">Content creators</div>
+            </div>
           </div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-icon">📝</div>
-          <div class="metric-content">
-            <h3>Reviewers</h3>
-            <div class="metric-number">{{ stats.reviewers || 0 }}</div>
-            <div class="metric-detail">SME reviewers</div>
+          <div class="metric-card">
+            <div class="metric-icon">📝</div>
+            <div class="metric-content">
+              <h3>Reviewers</h3>
+              <div class="metric-number">{{ stats.reviewers || 0 }}</div>
+              <div class="metric-detail">SME reviewers</div>
+            </div>
           </div>
-        </div>
 
-        <div class="metric-card">
-          <div class="metric-icon">🔧</div>
-          <div class="metric-content">
-            <h3>System Health</h3>
-            <div class="metric-number">{{ stats.systemHealth || 'Good' }}</div>
-            <div class="metric-detail">{{ stats.uptime || '99.9%' }} Uptime</div>
+          <div class="metric-card">
+            <div class="metric-icon">🔧</div>
+            <div class="metric-content">
+              <h3>System Health</h3>
+              <div class="metric-number">{{ stats.systemHealth || 'Good' }}</div>
+              <div class="metric-detail">{{ stats.uptime || '99.9%' }} Uptime</div>
+            </div>
           </div>
         </div>
-      </div>
-    </div>
+      </template>
+    </CompactToolbar>
 
   <!-- Main Content Grid: Quick Actions and Database Metrics side-by-side -->
   <div class="content-grid two-col">
@@ -165,11 +166,15 @@
 
 <script>
 import DatabaseMetricsPanel from '../components/DatabaseMetricsPanel.vue'
+import CompactToolbar from '@/components/CompactToolbar.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'AdminDashboard',
-  components: { DatabaseMetricsPanel },
+  components: { 
+    DatabaseMetricsPanel,
+    CompactToolbar
+  },
   props: {
     notifications: {
       type: Array,

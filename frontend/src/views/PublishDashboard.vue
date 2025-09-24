@@ -5,44 +5,45 @@
       <h1>Publish Dashboard</h1>
       <p class="subtitle">Create and manage your publications</p>
     </div>
-    <!-- Key Metrics Cards -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-icon">📤</div>
-        <div class="metric-content">
-          <h3>Publications</h3>
-          <div class="metric-number">{{ stats.totalPublications || 0 }}</div>
-          <div class="metric-detail">{{ stats.activePublications || 0 }} Active</div>
+    <!-- Compact Toolbar for Metrics -->
+    <CompactToolbar :showMetrics="true" :showCalendar="false">
+      <template #metrics>
+        <div class="metrics-grid">
+          <div class="metric-card">
+            <div class="metric-icon">📤</div>
+            <div class="metric-content">
+              <h3>Publications</h3>
+              <div class="metric-number">{{ stats.totalPublications || 0 }}</div>
+              <div class="metric-detail">{{ stats.activePublications || 0 }} Active</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">📱</div>
+            <div class="metric-content">
+              <h3>Mobile KB</h3>
+              <div class="metric-number">{{ stats.mobileKBPages || 0 }}</div>
+              <div class="metric-detail">Pages published</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">📄</div>
+            <div class="metric-content">
+              <h3>PDF Documents</h3>
+              <div class="metric-number">{{ stats.pdfDocuments || 0 }}</div>
+              <div class="metric-detail">Ready for download</div>
+            </div>
+          </div>
+          <div class="metric-card">
+            <div class="metric-icon">🗓️</div>
+            <div class="metric-content">
+              <h3>This Month</h3>
+              <div class="metric-number">{{ stats.publishedThisMonth || 0 }}</div>
+              <div class="metric-detail">New publications</div>
+            </div>
+          </div>
         </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">📱</div>
-        <div class="metric-content">
-          <h3>Mobile KB</h3>
-          <div class="metric-number">{{ stats.mobileKBPages || 0 }}</div>
-          <div class="metric-detail">Pages published</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">📄</div>
-        <div class="metric-content">
-          <h3>PDF Documents</h3>
-          <div class="metric-number">{{ stats.pdfDocuments || 0 }}</div>
-          <div class="metric-detail">Ready for download</div>
-        </div>
-      </div>
-      <div class="metric-card">
-        <div class="metric-icon">🗓️</div>
-        <div class="metric-content">
-          <h3>This Month</h3>
-          <div class="metric-number">{{ stats.publishedThisMonth || 0 }}</div>
-          <div class="metric-detail">New publications</div>
-        </div>
-      </div>
-      </div>
-    </div>
+      </template>
+    </CompactToolbar>
     <!-- Quick Actions Section (Start Page style) -->
     <div class="quick-actions-section">
       <h2>Quick Actions</h2>
@@ -144,8 +145,12 @@
   </div>
 </template>
 <script>
+import CompactToolbar from '@/components/CompactToolbar.vue'
+
 export default {
-  components: { },
+  components: { 
+    CompactToolbar
+  },
   name: 'PublishDashboard',
   props: {
     notifications: {

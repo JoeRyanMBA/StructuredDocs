@@ -1,60 +1,59 @@
 <template>
   <div class="reviews-dashboard">
     
+    <!-- Compact Toolbar -->
+    <CompactToolbar :show-metrics="true">
+      <template #metrics>
+        <div class="metric-card">
+          <div class="metric-icon">📝</div>
+          <div class="metric-content">
+            <h3>Total Reviews</h3>
+            <div class="metric-number">{{ stats.total || 0 }}</div>
+            <div class="metric-detail">All time</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">⏳</div>
+          <div class="metric-content">
+            <h3>Pending</h3>
+            <div class="metric-number">{{ stats.pending || 0 }}</div>
+            <div class="metric-detail">Need attention</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">✅</div>
+          <div class="metric-content">
+            <h3>Completed</h3>
+            <div class="metric-number">{{ stats.completed || 0 }}</div>
+            <div class="metric-detail">This month</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">⚡</div>
+          <div class="metric-content">
+            <h3>Avg Time</h3>
+            <div class="metric-number">{{ stats.avg_completion_days || 0 }}</div>
+            <div class="metric-detail">Days to complete</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">⚠️</div>
+          <div class="metric-content">
+            <h3>Overdue</h3>
+            <div class="metric-number">{{ stats.overdue || 0 }}</div>
+            <div class="metric-detail">Past due date</div>
+          </div>
+        </div>
+      </template>
+    </CompactToolbar>
+    
     <div class="dashboard-header">
       <h1>Reviews Dashboard</h1>
       <p class="subtitle">Manage topic reviews and stakeholder feedback</p>
-    </div>
-
-    <!-- Key Metrics Cards -->
-    <div class="dashboard-section">
-      <h2>Key Metrics</h2>
-      <div class="metrics-grid">
-      <div class="metric-card">
-        <div class="metric-icon">📝</div>
-        <div class="metric-content">
-          <h3>Total Reviews</h3>
-          <div class="metric-number">{{ stats.total || 0 }}</div>
-          <div class="metric-detail">All time</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">⏳</div>
-        <div class="metric-content">
-          <h3>Pending</h3>
-          <div class="metric-number">{{ stats.pending || 0 }}</div>
-          <div class="metric-detail">Need attention</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">✅</div>
-        <div class="metric-content">
-          <h3>Completed</h3>
-          <div class="metric-number">{{ stats.completed || 0 }}</div>
-          <div class="metric-detail">This month</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">⚡</div>
-        <div class="metric-content">
-          <h3>Avg Time</h3>
-          <div class="metric-number">{{ stats.avg_completion_days || 0 }}</div>
-          <div class="metric-detail">Days to complete</div>
-        </div>
-      </div>
-
-      <div class="metric-card">
-        <div class="metric-icon">⚠️</div>
-        <div class="metric-content">
-          <h3>Overdue</h3>
-          <div class="metric-number">{{ stats.overdue || 0 }}</div>
-          <div class="metric-detail">Past due date</div>
-        </div>
-      </div>
-      </div>
     </div>
 
     <!-- Quick Actions Section (Start Page style) -->
@@ -184,10 +183,11 @@
 </template>
 
 <script>
+import CompactToolbar from '../components/CompactToolbar.vue'
 
 export default {
   name: 'ReviewsDashboard',
-  components: { },
+  components: { CompactToolbar },
   props: {
     notifications: {
       type: Array,
