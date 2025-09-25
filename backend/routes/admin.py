@@ -4,6 +4,7 @@ from ..utils.email_service import get_email_service
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import os
+from typing import Any
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -238,6 +239,9 @@ def send_test_email_endpoint():
         status_code = None
         body_text = None
         ok = False
+        # Ensure these are always defined to avoid unbound variable errors if SendGrid initialization fails
+        from_email = (os.getenv('DEFAULT_FROM_EMAIL', '') or '').strip()
+        verified_sender = ''
 
         if use_sendgrid:
             try:
@@ -275,9 +279,8 @@ def send_test_email_endpoint():
         else:
             from ..utils.email_service import email_service
             ok = email_service.send_test_email(to_email)
-
         # Non-secret diagnostics
-        detail = {"provider": "sendgrid" if use_sendgrid else "smtp"}
+        detail: dict[str, Any] = {"provider": "sendgrid" if use_sendgrid else "smtp"}
         if use_sendgrid:
             detail["from"] = from_email
             detail["verifiedSenderUsed"] = bool(verified_sender)
@@ -286,7 +289,7 @@ def send_test_email_endpoint():
             detail["response"] = body_text or ""
         else:
             detail["server"] = os.getenv('SMTP_SERVER', '')
-            detail["from"] = os.getenv('FROM_EMAIL', '')
+            detail["from"] = from_email or os.getenv('FROM_EMAIL', '') or os.getenv('DEFAULT_FROM_EMAIL', '')
 
         return jsonify({"ok": bool(ok), "detail": detail}), (200 if ok else 500)
     except Exception as e:
