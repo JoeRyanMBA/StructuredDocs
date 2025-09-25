@@ -32,6 +32,9 @@ Use whichever DO target you’ve set up:
 - Frontend (Vercel): `VITE_API_BASE_URL=https://your-backend-domain`
 - Backend (DO): `DATABASE_URL`, `JWT_SECRET_KEY`, and any email/SMTP settings required.
 
+See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuration and DMARC alignment guidance.
+
 ### Legacy
+
 PythonAnywhere artifacts and scripts have been removed. Docker-based deployment remains available via `docker-compose.prod.yml` and `deploy_docker.sh` for servers you control.
 

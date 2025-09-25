@@ -45,7 +45,16 @@ class EmailService:
 
         # From / branding
         self.from_email = _clean_env('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local'
+        # Fallback to DEFAULT_FROM_EMAIL if FROM_EMAIL isn't set correctly
+        default_from_email = _clean_env('DEFAULT_FROM_EMAIL', '')
+        if (not self.from_email or self.from_email.endswith('.local')) and default_from_email:
+            self.from_email = default_from_email
+
         self.from_name = _clean_env('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System'
+        # Optional fallback for name
+        default_from_name = _clean_env('DEFAULT_FROM_NAME', '')
+        if default_from_name:
+            self.from_name = self.from_name or default_from_name
 
         # Provider (HTTP) configuration
         self.provider = os.getenv('EMAIL_PROVIDER', '').strip().lower()  # 'postmark' | 'resend' | 'sendgrid'
@@ -53,6 +62,8 @@ class EmailService:
         self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean_env('RESEND_API_KEY', '')
         self.sendgrid_api_key = _clean_env('SENDGRID_API_KEY', '')
+        # Optional SendGrid verified single sender (or authenticated domain address)
+        self.sendgrid_verified_sender = _clean_env('SENDGRID_VERIFIED_SENDER', '')
         if not self.provider and self.sendgrid_api_key:
             # Auto-detect sendgrid when API key provided and no explicit provider set
             self.provider = 'sendgrid'
@@ -71,12 +82,20 @@ class EmailService:
         self.smtp_username = _clean_env('SMTP_USERNAME', '')
         self.smtp_password = _clean_env('SMTP_PASSWORD', '')
         self.from_email = _clean_env('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local'
+        default_from_email = _clean_env('DEFAULT_FROM_EMAIL', '')
+        if (not self.from_email or self.from_email.endswith('.local')) and default_from_email:
+            self.from_email = default_from_email
+
         self.from_name = _clean_env('FROM_NAME', 'StructuredDocs Review System') or 'StructuredDocs Review System'
+        default_from_name = _clean_env('DEFAULT_FROM_NAME', '')
+        if default_from_name:
+            self.from_name = self.from_name or default_from_name
         self.provider = os.getenv('EMAIL_PROVIDER', '').strip().lower()
         self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean_env('RESEND_API_KEY', '')
         self.sendgrid_api_key = _clean_env('SENDGRID_API_KEY', '')
+        self.sendgrid_verified_sender = _clean_env('SENDGRID_VERIFIED_SENDER', '')
         if not self.provider and self.sendgrid_api_key:
             self.provider = 'sendgrid'
         self.debug_mode = os.getenv('EMAIL_DEBUG', 'false').strip().lower() == 'true'
@@ -380,7 +399,12 @@ class EmailService:
                     'Authorization': f"Bearer {self.sendgrid_api_key}",
                     'Content-Type': 'application/json'
                 }
-                from_email = self.from_email
+                # Use a verified sender if provided to satisfy SendGrid/DMARC
+                from_email = self.sendgrid_verified_sender or self.from_email
+                reply_to = None
+                if self.sendgrid_verified_sender and self.sendgrid_verified_sender != self.from_email:
+                    # Preserve branding via Reply-To when using a verified sender
+                    reply_to = {'email': self.from_email, 'name': self.from_name}
                 payload = {
                     'personalizations': [ {'to': [{'email': to_email}]} ],
                     'from': {'email': from_email, 'name': self.from_name},
@@ -390,6 +414,8 @@ class EmailService:
                         {'type': 'text/html', 'value': html_content}
                     ]
                 }
+                if reply_to:
+                    payload['reply_to'] = reply_to
                 resp = requests.post(url, json=payload, headers=headers, timeout=10)
                 if resp.status_code in (200, 201, 202):
                     logger.info(f"SendGrid: email sent to {to_email}")
