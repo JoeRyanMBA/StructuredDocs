@@ -399,22 +399,24 @@ p { color: #666; }
         # - Else if ENABLE_BLUEPRINTS env var is set, use that.
         # - Else if SKIP_BLUEPRINTS=="1", skip all blueprint registration.
         enable_list = None
-        eb_file = os.environ.get('ENABLE_BLUEPRINTS_FILE')
-        if eb_file:
-            print(f"📄 Checking ENABLE_BLUEPRINTS_FILE: {eb_file}")
-            if os.path.exists(eb_file):
-                try:
-                    with open(eb_file, 'r') as _f:
-                        enable_list = _f.read().strip()
-                    print(f"✅ Read blueprints from file: {enable_list}")
-                except Exception as _e:
-                    print(f"⚠️ Could not read ENABLE_BLUEPRINTS_FILE '{eb_file}': {_e}")
-            else:
-                print(f"⚠️ ENABLE_BLUEPRINTS_FILE '{eb_file}' does not exist, ignoring")
-        if not enable_list:
-            enable_list = os.environ.get('ENABLE_BLUEPRINTS')
-            if enable_list:
-                print(f"✅ Using ENABLE_BLUEPRINTS env var: {enable_list}")
+        # Precedence change: if ENABLE_BLUEPRINTS env var is explicitly set, honor it FIRST.
+        env_enable = os.environ.get('ENABLE_BLUEPRINTS')
+        if env_enable:
+            enable_list = env_enable
+            print(f"✅ Using ENABLE_BLUEPRINTS env var (takes precedence over file): {enable_list}")
+        else:
+            eb_file = os.environ.get('ENABLE_BLUEPRINTS_FILE')
+            if eb_file:
+                print(f"📄 Checking ENABLE_BLUEPRINTS_FILE: {eb_file}")
+                if os.path.exists(eb_file):
+                    try:
+                        with open(eb_file, 'r') as _f:
+                            enable_list = _f.read().strip()
+                        print(f"✅ Read blueprints from file: {enable_list}")
+                    except Exception as _e:
+                        print(f"⚠️ Could not read ENABLE_BLUEPRINTS_FILE '{eb_file}': {_e}")
+                else:
+                    print(f"⚠️ ENABLE_BLUEPRINTS_FILE '{eb_file}' does not exist, ignoring")
         
         if enable_list:
             print("🔧 Registering selective blueprints...")

@@ -62,6 +62,7 @@ class Collection(db.Model):
     parent_id = db.Column(db.Integer, db.ForeignKey('collections.id'), nullable=True)
     project_id = db.Column(db.Integer, db.ForeignKey('projects.id'), nullable=True)
     position  = db.Column(db.Integer, nullable=False, default=0)
+    archived  = db.Column(db.Boolean, nullable=False, default=False, server_default='0')  # Soft archive flag
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -104,6 +105,7 @@ class Collection(db.Model):
             'position': self.position,
             'parentId': self.parent_id,
             'projectId': self.project_id,
+            'archived': self.archived,
             'topics_count': len(self.topics),  # Add topic count
             'created_at': self.created_at.isoformat() if hasattr(self, 'created_at') and self.created_at else None,
             'updated_at': self.updated_at.isoformat() if hasattr(self, 'updated_at') and self.updated_at else None,

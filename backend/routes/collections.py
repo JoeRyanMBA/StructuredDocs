@@ -339,3 +339,52 @@ def publish_collection(collection_id):
     except Exception as e:
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
+
+@collections_bp.route('/<int:collection_id>', methods=['DELETE'])
+def delete_collection(collection_id):
+    """Delete a collection (and its nested children) by ID.
+
+    This performs a hard delete. Because the SQLAlchemy relationship on
+    Collection.children uses cascade='all, delete-orphan', child collections
+    will be deleted automatically. The association table entries in
+    collection_topic_tree use ON DELETE CASCADE (if supported by the DB) so
+    topic associations are removed. Topics themselves are NOT deleted; they
+    simply become un-associated from this collection hierarchy.
+
+    Returns JSON: { message: str, deleted_id: int }
+    """
+    try:
+        collection = Collection.query.get_or_404(collection_id)
+
+        # Safeguard: prevent hard delete if published (has a publication with same title)
+        existing_pub = Publication.query.filter_by(title=collection.name).first()
+        if existing_pub:
+            return jsonify({'error': 'Collection is published. Archive it first or unpublish to delete.'}), 400
+
+        db.session.delete(collection)
+        db.session.commit()
+        return jsonify({'message': 'Collection deleted', 'deleted_id': collection_id}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+@collections_bp.route('/<int:collection_id>/archive', methods=['POST'])
+def archive_collection(collection_id):
+    """Soft archive (toggle) a collection.
+    Request body (optional): {"archived": true|false}
+    Returns updated collection object.
+    """
+    try:
+        collection = Collection.query.get_or_404(collection_id)
+        data = request.get_json(silent=True) or {}
+        target_state = data.get('archived')
+        if target_state is None:
+            # toggle
+            collection.archived = not collection.archived
+        else:
+            collection.archived = bool(target_state)
+        db.session.commit()
+        return jsonify({'message': 'Collection archive state updated', 'collection': collection.to_dict()}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
