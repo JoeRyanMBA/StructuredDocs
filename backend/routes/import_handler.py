@@ -13,6 +13,36 @@ import uuid
 import_bp = Blueprint('import_handler', __name__, url_prefix='/api/import')
 SOURCES = ('word', 'markdown')
 
+def detect_heading_level_from_style(style_name: str):
+    """Extract heading level (1-6) from a Word style name.
+
+    Supports variants like:
+      - Heading 1
+      - SC Heading 2 / Heading 2, SC Heading 2
+      - Heading 3 (SC)
+      - Heading Level 4
+      - HEADING LEVEL 5 (case-insensitive)
+    Returns int or None if not matched.
+    """
+    if not style_name:
+        return None
+    sn = style_name.lower()
+    patterns = [
+        r'(?:^|[\s,;:()\-])heading\s+level\s*(\d)\b',   # heading level 2
+        r'(?:^|[\s,;:()\-])sc\s+heading\s*(\d)\b',      # sc heading 2
+        r'(?:^|[\s,;:()\-])heading\s*(\d)\b',            # heading 2
+    ]
+    for pat in patterns:
+        m = re.search(pat, sn)
+        if m:
+            try:
+                lvl = int(m.group(1))
+                if 1 <= lvl <= 6:
+                    return lvl
+            except ValueError:
+                return None
+    return None
+
 
 def _convert_word_to_markdown(file_content, import_doc_id):
     """Convert Word document to Markdown using pandoc with proper image handling"""
@@ -526,19 +556,17 @@ def _parse_and_store(file, imp_doc, source):
                     text = (p.text or '').strip()
                     if not text:
                         continue
-                    style_name = ''
                     try:
                         ps = getattr(p, 'style', None)
-                        style_name = (getattr(ps, 'name', '') or '').lower()
+                        style_name_raw = getattr(ps, 'name', '') or ''
                     except Exception:
-                        style_name = ''
-                    level = None
-                    m = re.search(r'heading\s*(\d+)', style_name)
-                    if m:
-                        try:
-                            level = int(m.group(1))
-                        except ValueError:
-                            level = None
+                        style_name_raw = ''
+                    style_name = style_name_raw.lower()
+
+                    level = detect_heading_level_from_style(style_name)
+                    if level is not None and style_name and not re.search(r'heading\s*'+str(level), style_name):
+                        # Log only when mapping from a non-standard variant
+                        print(f"STYLE->HEADING: '{style_name_raw}' -> H{level}")
                     if level == 1:
                         lines.append(f"# {text}")
                     elif level and level > 1:

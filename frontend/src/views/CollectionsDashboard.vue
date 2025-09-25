@@ -53,7 +53,12 @@
       <p class="section-description">Manage your collections and topics</p>
       <div class="quick-actions-grid">
         <button class="quick-action-card" @click="showCreateModal = true">
-          <div class="action-icon">➕</div>
+          <!-- Switched to inline SVG so we can control color for contrast on different backgrounds -->
+          <div class="action-icon create-icon" aria-hidden="true">
+            <svg class="plus-svg" width="28" height="28" viewBox="0 0 24 24" role="img" focusable="false">
+              <path d="M11 4c-.552 0-1 .448-1 1v6H4c-.552 0-1 .448-1 1s.448 1 1 1h6v6c0 .552.448 1 1 1s1-.448 1-1v-6h6c.552 0 1-.448 1-1s-.448-1-1-1h-6V5c0-.552-.448-1-1-1z" fill="currentColor"/>
+            </svg>
+          </div>
           <div class="action-content" title="Start organizing topics into collections">
             <h3>Create New Collection</h3>
           </div>
@@ -136,6 +141,10 @@
                 <div class="card-actions">
                   <button @click.stop="editCollection(collection)" class="btn btn-secondary btn-sm">Edit</button>
                   <button @click.stop="viewCollection(collection)" class="btn btn-primary btn-sm">View</button>
+                  <button v-if="isAdmin" @click.stop="toggleArchive(collection)" class="btn btn-sm" :class="collection.archived ? 'btn-warning' : 'btn-outline'">
+                    {{ collection.archived ? 'Unarchive' : 'Archive' }}
+                  </button>
+                  <button v-if="isAdmin" @click.stop="promptDelete(collection)" class="btn btn-danger btn-sm">Delete</button>
                 </div>
               </div>
             </div>
@@ -231,6 +240,25 @@
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner"></div>
     </div>
+
+    <!-- Delete Confirmation Modal -->
+    <div v-if="showDeleteModal" class="modal-overlay" @click.self="cancelDelete">
+      <div class="modal" @click.stop>
+        <div class="modal-header">
+          <h2>Delete Collection</h2>
+          <button @click="cancelDelete" class="close-btn">×</button>
+        </div>
+        <div class="modal-body">
+          <p><strong>Warning:</strong> This will permanently remove the collection <strong>{{ collectionToDelete?.name }}</strong> and all nested child collections. Topics inside remain in the system and are not deleted.</p>
+          <p>Type the collection name to confirm:</p>
+          <input v-model="deleteConfirmText" :placeholder="collectionToDelete?.name" />
+          <div class="modal-actions" style="margin-top:1rem;">
+            <button type="button" class="cancel-btn" @click="cancelDelete">Cancel</button>
+            <button type="button" class="btn btn-danger" :disabled="deleteConfirmText !== collectionToDelete?.name" @click="confirmDelete">Delete</button>
+          </div>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -260,6 +288,9 @@ export default {
     return {
       loading: true,
       showCreateModal: false,
+      showDeleteModal: false,
+      collectionToDelete: null,
+      deleteConfirmText: '',
       newCollection: {
         name: '',
         description: '',
@@ -294,6 +325,12 @@ export default {
         return true
       })
     },
+    isAdmin() {
+      try {
+        const stored = JSON.parse(localStorage.getItem('user') || 'null')
+        return stored && stored.role === 'admin'
+      } catch { return false }
+    }
   },
 
   methods: {
@@ -336,6 +373,40 @@ export default {
       } catch (error) {
   toast.error('Failed to delete collection: ' + error.message)
       }
+    },
+    async toggleArchive(collection) {
+      try {
+        const response = await fetch(`/api/collections/${collection.id}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ archived: !collection.archived })
+        })
+        if (!response.ok) {
+          throw new Error(await response.text())
+        }
+        const data = await response.json()
+        toast.success(collection.archived ? 'Collection unarchived' : 'Collection archived')
+        // Update local state
+        const idx = this.collections.findIndex(c => c.id === collection.id)
+        if (idx !== -1) this.$set(this.collections, idx, { ...collection, archived: data.collection.archived })
+      } catch (e) {
+        toast.error('Failed to update archive state')
+      }
+    },
+    promptDelete(collection) {
+      this.collectionToDelete = collection
+      this.deleteConfirmText = ''
+      this.showDeleteModal = true
+    },
+    cancelDelete() {
+      this.collectionToDelete = null
+      this.deleteConfirmText = ''
+      this.showDeleteModal = false
+    },
+    async confirmDelete() {
+      if (!this.collectionToDelete) return
+      await this.deleteCollection(this.collectionToDelete.id)
+      this.cancelDelete()
     },
     async submitNewCollection() {
       try {
@@ -757,6 +828,43 @@ export default {
 .action-icon {
   font-size: 2rem;
   margin-bottom: 0.5rem;
+}
+
+/* Enhanced theming for create button icon */
+.create-icon {
+  width: 48px;
+  height: 48px;
+  border-radius: 12px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: linear-gradient(135deg, var(--extended-cool-mint, #d1f5ed) 0%, #ffffff 95%);
+  color: var(--primary-deep-teal, #006d77);
+  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
+  transition: transform .15s ease, box-shadow .2s ease, background .3s ease;
+}
+.create-icon .plus-svg { display: block; }
+.quick-action-card:hover .create-icon {
+  transform: translateY(-2px);
+  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
+}
+
+/* Dark container / dark mode support (if a parent adds .dark or body has .dark-theme) */
+.dark .create-icon, .dark-theme .create-icon, .quick-action-card.dark-bg .create-icon {
+  background: var(--primary-deep-teal, #006d77);
+  color: #ffffff;
+}
+
+/* Fallback high-contrast mode detection */
+@media (prefers-contrast: more) {
+  .create-icon { box-shadow: 0 0 0 2px var(--primary-deep-teal, #006d77); }
+  .dark .create-icon, .dark-theme .create-icon { box-shadow: 0 0 0 2px #ffffff; }
+}
+
+/* Optional: reduce motion */
+@media (prefers-reduced-motion: reduce) {
+  .create-icon { transition: none; }
+  .quick-action-card:hover .create-icon { transform: none; }
 }
 
 .action-content h3 {
