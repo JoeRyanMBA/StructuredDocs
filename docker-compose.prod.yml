@@ -9,6 +9,15 @@ services:
       # Override this in production via environment or .env if using an external DB
       - DATABASE_URL=${DATABASE_URL:-sqlite:///structured_docs.db}
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+      # Email configuration (set these in your deployment environment)
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
+      - FROM_EMAIL=${FROM_EMAIL:-}
+      - FROM_NAME=${FROM_NAME:-StructuredDocs}
+      - SENDGRID_VERIFIED_SENDER=${SENDGRID_VERIFIED_SENDER:-}
+      - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-}
     ports:
       - "8080:8080"
     restart: unless-stopped

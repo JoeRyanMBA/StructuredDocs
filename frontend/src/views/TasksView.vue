@@ -1065,6 +1065,10 @@ export default {
   text-align: center;
 }
 
+.header-actions {
+  margin-right: 120px; /* Create space for CompactToolbar floating icons */
+}
+
 .page-description {
   margin: 0.5rem 0 0;
   color: var(--text-secondary-cool-gray);
@@ -1354,6 +1358,20 @@ export default {
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-light-gray);
 }
+
 .cancel-btn { background-color: var(--secondary-light-gray); color: var(--text-dark-gray); }
 .save-btn { background-color: var(--primary-deep-teal); color: var(--bg-white); }
+
+/* Responsive adjustments for CompactToolbar overlap */
+@media (max-width: 768px) {
+  .header-actions {
+    margin-right: 70px; /* Smaller margin on mobile as toolbar icons are smaller */
+  }
+}
+
+@media (max-width: 480px) {
+  .header-actions {
+    margin-right: 60px; /* Even smaller margin on very small screens */
+  }
+}
 </style>

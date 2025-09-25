@@ -244,14 +244,25 @@ def send_test_email_endpoint():
                 from sendgrid import SendGridAPIClient  # type: ignore
                 from sendgrid.helpers.mail import Mail  # type: ignore
                 api_key = os.getenv('SENDGRID_API_KEY')
-                from_email = os.getenv('DEFAULT_FROM_EMAIL', '')
+                # Prefer verified sender to satisfy DMARC if provided
+                verified_sender = (os.getenv('SENDGRID_VERIFIED_SENDER') or '').strip()
+                from_email = (verified_sender or os.getenv('DEFAULT_FROM_EMAIL', '')).strip()
+                branding_from = (os.getenv('DEFAULT_FROM_EMAIL', '')).strip()
+                branding_name = (os.getenv('FROM_NAME', 'StructuredDocs')).strip()
+
                 message = Mail(
-                    from_email=from_email,
+                    from_email={"email": from_email, "name": branding_name},
                     to_emails=to_email,
                     subject="StructuredDocs Test Email",
                     plain_text_content="This is a test email from StructuredDocs via SendGrid.",
                     html_content="<strong>This is a test email from StructuredDocs via SendGrid.</strong>",
                 )
+                # If using a verified sender that differs from branding, set Reply-To
+                if verified_sender and branding_from and verified_sender != branding_from:
+                    try:
+                        message.reply_to = {"email": branding_from, "name": branding_name}
+                    except Exception:
+                        pass
                 sg = SendGridAPIClient(api_key)
                 resp = sg.send(message)
                 status_code = getattr(resp, 'status_code', None)
@@ -268,7 +279,8 @@ def send_test_email_endpoint():
         # Non-secret diagnostics
         detail = {"provider": "sendgrid" if use_sendgrid else "smtp"}
         if use_sendgrid:
-            detail["from"] = os.getenv('DEFAULT_FROM_EMAIL', '')
+            detail["from"] = from_email
+            detail["verifiedSenderUsed"] = bool(verified_sender)
             detail["has_key"] = str(True)
             detail["status_code"] = str(status_code) if status_code is not None else ""
             detail["response"] = body_text or ""
