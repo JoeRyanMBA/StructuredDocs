@@ -462,21 +462,33 @@ export default {
       }
     },
 
+
+    // Recursively flatten a tree of collections
+    flattenCollections(collections) {
+      let flat = [];
+      for (const col of collections) {
+        flat.push(col);
+        if (col.children && col.children.length > 0) {
+          flat = flat.concat(this.flattenCollections(col.children));
+        }
+      }
+      return flat;
+    },
+
     async loadCollections() {
       try {
         const response = await fetch('/api/collections')
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
         const data = await response.json()
-        this.collections = data
-        
+        // Flatten the tree so all collections (roots and children) are shown
+        const flat = this.flattenCollections(data)
+        this.collections = flat
         // Get recent collections (last 5, sorted by updated_at)
-        this.recentCollections = [...this.collections]
+        this.recentCollections = [...flat]
           .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
           .slice(0, 5)
-          
       } catch (error) {
         console.error('Failed to load collections:', error)
         this.collections = []
@@ -492,9 +504,8 @@ export default {
         if (!response.ok) {
           throw new Error(`HTTP error! status: ${response.status}`)
         }
-        
         const stats = await response.json()
-        console.log('📊 Stats from backend:', stats)
+        // Use total from backend (all collections)
         this.stats = {
           total: stats.total,
           active: stats.active,
@@ -502,60 +513,17 @@ export default {
           newThisWeek: stats.newThisWeek,
           avgTopics: stats.avgTopics
         }
-        console.log('📊 Final stats applied:', this.stats)
       } catch (error) {
-        console.error('Failed to load stats from backend, falling back to frontend calculation:', error)
-        
-        // Fallback to frontend calculation with hierarchical support
-        
-        // Helper function to recursively count all collections and topics
-        const countCollectionsAndTopics = (collections) => {
-          let totalCollections = 0
-          let totalTopics = 0
-          let activeCollections = 0
-          
-          collections.forEach(collection => {
-            totalCollections++
-            if (collection.status === 'active' || !collection.status) {
-              activeCollections++
-            }
-            totalTopics += (collection.topics_count || 0)
-            console.log(`Collection ${collection.name}: topics_count = ${collection.topics_count}`)
-            
-            // Recursively count children
-            if (collection.children && collection.children.length > 0) {
-              const childCounts = countCollectionsAndTopics(collection.children)
-              totalCollections += childCounts.collections
-              totalTopics += childCounts.topics
-              activeCollections += childCounts.active
-            }
-          })
-          
-          return { collections: totalCollections, topics: totalTopics, active: activeCollections }
-        }
-        
-        const counts = countCollectionsAndTopics(this.collections)
-        const total = counts.collections
-        const active = counts.active
-        const totalTopics = counts.topics
-        
-        console.log(`📊 Fallback stats calculated: total=${total}, active=${active}, totalTopics=${totalTopics}`)
-        
-  // Calculate new this week from created_at
-  const now = new Date()
-  const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
-  const newThisWeek = (this.collections || []).filter(c => c.created_at && new Date(c.created_at) >= weekAgo).length
-
-        // Calculate average topics per collection
+        // Fallback: count all loaded collections (flat)
+        const flat = this.collections || []
+        const total = flat.length
+        const active = flat.filter(c => c.status === 'active' || !c.status).length
+        const totalTopics = flat.reduce((sum, c) => sum + (c.topics_count || 0), 0)
+        const now = new Date()
+        const weekAgo = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000)
+        const newThisWeek = flat.filter(c => c.created_at && new Date(c.created_at) >= weekAgo).length
         const avgTopics = total > 0 ? Math.round(totalTopics / total) : 0
-
-        this.stats = {
-          total,
-          active,
-          totalTopics,
-          newThisWeek,
-          avgTopics
-        };
+        this.stats = { total, active, totalTopics, newThisWeek, avgTopics }
       }
     },
 
