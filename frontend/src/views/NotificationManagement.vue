@@ -8,7 +8,7 @@
       </div>
       <div class="header-actions">
         <button @click="$router.push('/notifications/new')" class="btn btn-primary">
-          <i class="fas fa-plus"></i> Create Notification
+          <span class="icon-plus">➕</span> Create Notification
         </button>
       </div>
     </div>
@@ -35,7 +35,7 @@
           <h3>No Notifications</h3>
           <p>There are no notifications in the system yet.</p>
           <button @click="$router.push('/notifications/new')" class="btn btn-primary">
-            <i class="fas fa-plus"></i> Create First Notification
+            <span class="icon-plus">➕</span> Create First Notification
           </button>
         </div>
       </div>

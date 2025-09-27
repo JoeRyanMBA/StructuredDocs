@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="showModal = true" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Create New Milestone
+        <span class="icon-plus">➕</span> Create New Milestone
       </button>
     </div>
 

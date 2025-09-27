@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="openCreateModal" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Create New Tag
+        <span class="icon-plus">➕</span> Create New Tag
       </button>
     </div>
 
