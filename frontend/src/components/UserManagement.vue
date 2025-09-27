@@ -3,7 +3,7 @@
     <div class="header">
       <div class="spacer"></div>
       <button @click="addUser" class="btn btn-primary">
-        <i class="fas fa-plus"></i>
+        <i class="bi bi-plus-lg"></i>
         Add User
       </button>
     </div>
@@ -42,7 +42,7 @@
                   class="btn-icon btn-secondary"
                   title="Edit user details"
                 >
-                  <i class="fas fa-edit"></i>
+                  <i class="bi bi-pencil-square"></i>
                 </button>
                 <button 
                   v-if="!user.password_hash && user.active"
@@ -51,7 +51,7 @@
                   :disabled="loading"
                   title="Resend password setup email"
                 >
-                  <i class="fas fa-envelope"></i>
+                  <i class="bi bi-envelope"></i>
                 </button>
                 <button 
                   @click="deleteUser(user)" 
@@ -59,7 +59,7 @@
                   :disabled="user.role === 'admin' && adminCount <= 1"
                   title="Delete user"
                 >
-                  <i class="fas fa-trash"></i>
+                  <i class="bi bi-trash"></i>
                 </button>
               </div>
             </td>
@@ -274,7 +274,7 @@ export default {
           this.success = 'User updated successfully'
         } else {
           // Create new user
-          console.log('➕ Creating new user')
+          console.log('➕︎ Creating new user')
           const response = await axios.post('/api/users', this.userForm)
           console.log('✅ User creation response:', response.data)
           

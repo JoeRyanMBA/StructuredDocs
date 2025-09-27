@@ -7,7 +7,7 @@
       class="toolbar-icon" 
       title="View Key Metrics"
     >
-      <i class="fas fa-chart-bar"></i>
+      <i class="bi bi-bar-chart"></i>
     </button>
     
     <!-- Calendar Icon -->
@@ -17,7 +17,7 @@
       class="toolbar-icon"
       title="View Calendar"
     >
-      <i class="fas fa-calendar"></i>
+      <i class="bi bi-calendar-event"></i>
     </button>
 
     <!-- Metrics Slide-out Panel -->

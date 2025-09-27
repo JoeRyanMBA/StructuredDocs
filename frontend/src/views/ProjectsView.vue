@@ -116,9 +116,9 @@
           <div class="filter-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm search-btn">
-                <i class="fas fa-search"></i> Search
+                <i class="bi bi-search"></i> Search
               </button>
-              <button @click="clearFilter" class="btn btn-secondary btn-sm clear-btn"><i class="fas fa-times"></i> Clear Filters</button>
+              <button @click="clearFilter" class="btn btn-secondary btn-sm clear-btn"><i class="bi bi-x"></i> Clear Filters</button>
             </div>
           </div>
         </div>
@@ -146,7 +146,7 @@
           <h3>{{ projects.length === 0 ? 'No Projects Yet' : 'No Projects Match Filter' }}</h3>
           <p>{{ projects.length === 0 ? 'Get started by creating your first project to organize topics, stakeholders, and review workflows.' : 'Try adjusting your filters or create a new project.' }}</p>
           <button @click="showCreateModal = true" class="btn btn-primary create-first-btn">
-            ➕ {{ projects.length === 0 ? 'Create Your First Project' : 'Create New Project' }}
+            ➕︎ {{ projects.length === 0 ? 'Create Your First Project' : 'Create New Project' }}
           </button>
         </div>
       </div>

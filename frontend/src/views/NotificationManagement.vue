@@ -8,7 +8,7 @@
       </div>
       <div class="header-actions">
         <button @click="$router.push('/notifications/new')" class="btn btn-primary">
-          <span class="icon-plus">➕</span> Create Notification
+          <span class="icon-plus">➕︎</span> Create Notification
         </button>
       </div>
     </div>
@@ -35,7 +35,7 @@
           <h3>No Notifications</h3>
           <p>There are no notifications in the system yet.</p>
           <button @click="$router.push('/notifications/new')" class="btn btn-primary">
-            <span class="icon-plus">➕</span> Create First Notification
+            <span class="icon-plus">➕︎</span> Create First Notification
           </button>
         </div>
       </div>
@@ -82,7 +82,7 @@
                     class="btn btn-secondary btn-sm"
                     title="Edit notification"
                   >
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="bi bi-pencil-square"></i> Edit
                   </button>
                   <button
                     @click="toggleNotification(notification)"
@@ -90,7 +90,7 @@
                     :class="notification.is_active ? 'btn-outline' : 'btn-success'"
                     :title="notification.is_active ? 'Deactivate notification' : 'Activate notification'"
                   >
-                    <i class="fas" :class="notification.is_active ? 'fa-pause' : 'fa-play'"></i>
+                    <i :class="['bi', notification.is_active ? 'bi-pause-fill' : 'bi-play-fill']"></i>
                     {{ notification.is_active ? 'Deactivate' : 'Activate' }}
                   </button>
                   <button
@@ -98,7 +98,7 @@
                     class="btn btn-danger btn-sm"
                     title="Delete notification"
                   >
-                    <i class="fas fa-trash"></i> Delete
+                    <i class="bi bi-trash"></i> Delete
                   </button>
                 </div>
               </td>

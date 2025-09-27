@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="openCreateModal" class="btn btn-primary">
-        <span class="icon-plus">➕</span> Create New Tag
+  <span class="icon-plus">➕︎</span> Create New Tag
       </button>
     </div>
 
@@ -28,9 +28,9 @@
         <div class="filter-group">
           <div class="button-group">
             <button @click="applyFilters" class="btn btn-primary btn-sm">
-              <i class="fas fa-search"></i> Search
+              <i class="bi bi-search"></i> Search
             </button>
-            <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Search</button>
+            <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Search</button>
           </div>
         </div>
       </div>
@@ -71,10 +71,10 @@
               <td class="actions-cell">
                 <div class="tag-actions">
                   <button @click="editTag(tag)" class="btn btn-sm btn-secondary">
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="bi bi-pencil-square"></i> Edit
                   </button>
                   <button @click="deleteTag(tag)" class="btn btn-sm btn-danger">
-                    <i class="fas fa-trash"></i> Delete
+                    <i class="bi bi-trash"></i> Delete
                   </button>
                 </div>
               </td>

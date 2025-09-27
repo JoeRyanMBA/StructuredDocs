@@ -30,10 +30,10 @@
       </div>
       <div class="action-buttons">
   <button @click="loadLinks" class="btn btn-secondary btn-sm">
-          <i class="fas fa-search"></i> Search
+          <i class="bi bi-search"></i> Search
         </button>
         <button @click="createNewLink" class="btn btn-primary">
-          ➕ Create Link
+          ➕︎ Create Link
         </button>
   <button @click="refreshLinks" class="btn btn-secondary btn-sm">
           🔄 Refresh
@@ -56,7 +56,7 @@
       <h3>No Links Found</h3>
       <p>{{ hasFilters ? 'No links match your search criteria.' : 'No links are currently available.' }}</p>
       <div class="empty-actions">
-  <button @click="clearFilters" v-if="hasFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Filters</button>
+  <button @click="clearFilters" v-if="hasFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Filters</button>
         <button @click="createNewLink" class="btn btn-primary">Create First Link</button>
       </div>
     </div>

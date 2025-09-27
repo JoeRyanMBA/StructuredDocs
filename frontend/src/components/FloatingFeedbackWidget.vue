@@ -1,8 +1,8 @@
 <template>
   <div class="floating-feedback">
     <div class="btn-group-vertical">
-      <button class="btn btn-danger btn-sm" @click="open('bug')"><i class="fas fa-bug"></i> Report Bug</button>
-      <button class="btn btn-primary btn-sm" @click="open('suggestion')"><i class="fas fa-lightbulb"></i> Suggest Improvement</button>
+  <button class="btn btn-danger btn-sm" @click="open('bug')"><i class="bi bi-bug"></i> Report Bug</button>
+  <button class="btn btn-primary btn-sm" @click="open('suggestion')"><i class="bi bi-lightbulb"></i> Suggest Improvement</button>
     </div>
 
     <div class="modal fade" id="feedbackModal" tabindex="-1" aria-hidden="true" ref="modal">

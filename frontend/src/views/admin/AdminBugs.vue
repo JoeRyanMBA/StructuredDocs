@@ -47,7 +47,7 @@
                   title="Edit bug"
                   aria-label="Edit bug"
                 >
-                  <i class="fas fa-edit"></i>
+                    <i class="bi bi-pencil-square"></i>
                 </button>
                 <button
                   @click="archive(r)"
@@ -55,7 +55,7 @@
                   title="Archive bug"
                   aria-label="Archive bug"
                 >
-                  <i class="fas fa-box-archive"></i>
+                    <i class="bi bi-archive"></i>
                 </button>
               </div>
             </td>

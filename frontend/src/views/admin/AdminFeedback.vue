@@ -52,7 +52,7 @@
                   title="Edit feedback"
                   aria-label="Edit feedback"
                 >
-                  <i class="fas fa-edit"></i>
+                    <i class="bi bi-pencil-square"></i>
                 </button>
                 <button
                   @click="archive(r)"
@@ -60,7 +60,7 @@
                   title="Archive feedback"
                   aria-label="Archive feedback"
                 >
-                  <i class="fas fa-box-archive"></i>
+                    <i class="bi bi-archive"></i>
                 </button>
               </div>
             </td>

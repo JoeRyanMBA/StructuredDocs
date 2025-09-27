@@ -46,9 +46,9 @@
           <div class="filter-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm">
-                <i class="fas fa-search"></i> Search
+                <i class="bi bi-search"></i> Search
               </button>
-              <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Filters</button>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Filters</button>
             </div>
           </div>
         </div>
@@ -100,7 +100,7 @@
                 title="Edit topic"
                 aria-label="Edit topic"
               >
-                <i class="fas fa-edit"></i>
+                <i class="bi bi-pencil-square"></i>
               </router-link>
 
               <button
@@ -110,7 +110,7 @@
                 title="Submit for review"
                 aria-label="Submit for review"
               >
-                <i class="fas fa-paper-plane"></i>
+                <i class="bi bi-send"></i>
               </button>
 
               <button
@@ -130,7 +130,7 @@
                 title="Publish topic"
                 aria-label="Publish topic"
               >
-                <i class="fas fa-share"></i>
+                <i class="bi bi-share"></i>
               </button>
             </div>
           </td>
@@ -143,7 +143,7 @@
       <div class="bulk-actions" v-if="selectedTopicIds.length > 0">
         <span class="selection-count">{{ selectedTopicIds.length }} selected</span>
   <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting || !isAdmin">
-          <i class="fas fa-trash"></i> Delete Selected
+    <i class="bi bi-trash"></i> Delete Selected
         </button>
         <div class="bulk-actions-spacer"></div>
         <button class="btn btn-sm btn-secondary" @click="selectAllResults" :disabled="deleting">
