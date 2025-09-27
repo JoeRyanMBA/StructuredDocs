@@ -20,6 +20,7 @@
       </router-view>
     </main>
     <FeedbackWidget />
+    <VersionFooter />
     <ToastContainer />
   </div>
 </template>
@@ -30,9 +31,10 @@ import HeaderBar from '@/components/HeaderBar.vue'
 import NotificationTicker from './components/NotificationTicker.vue'
 import FeedbackWidget from '@/components/FeedbackWidget.vue';
 import ToastContainer from '@/components/ToastContainer.vue'
+import VersionFooter from '@/components/VersionFooter.vue'
 
 export default {
-  components: { SideBar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer },
+  components: { SideBar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter },
   data() {
     return {
       notifications: [],

@@ -26,6 +26,14 @@ RUN test -d dist && test -f dist/index.html && echo "Build successful" || (echo 
 # Stage 2: Python application
 FROM python:3.11-slim as backend
 
+# Build metadata args (optional; provided by CI)
+ARG APP_VERSION
+ARG GIT_COMMIT
+ARG BUILD_TIME
+ENV APP_VERSION=${APP_VERSION} \
+    GIT_COMMIT=${GIT_COMMIT} \
+    BUILD_TIME=${BUILD_TIME}
+
 # Install system dependencies
 RUN apt-get update && apt-get install -y \
     gcc \

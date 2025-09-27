@@ -8,7 +8,6 @@
     "serve": "vite preview"
   },
   "dependencies": {
-    "@fortawesome/fontawesome-free": "^7.0.0",
     "@tinymce/tinymce-vue": "^6.3.0",
     "axios": "^1.4.0",
     "bootstrap": "^5.3.7",

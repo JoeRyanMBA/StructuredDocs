@@ -59,3 +59,119 @@ See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuratio
 
 PythonAnywhere scripts are deprecated. Safe to delete when no longer referenced in docs.
 
+## Operational Enhancements (Infrastructure Overview)
+
+### Version & Build Metadata
+
+`/api/version` returns JSON:
+
+```json
+{
+  "service": "StructuredDocs",
+  "version": "0.2.0",
+  "commit": "abc1234",
+  "build_time": "2025-09-27T12:34:56Z"
+}
+```
+
+Values come from build args (`APP_VERSION`, `GIT_COMMIT`, `BUILD_TIME`) set in CI or fall back to git at runtime.
+
+### Database Connection Pooling
+
+```env
+DB_POOL_SIZE=5
+DB_MAX_OVERFLOW=10
+DB_POOL_RECYCLE=1800
+DB_POOL_TIMEOUT=30
+```
+
+Applied via `SQLALCHEMY_ENGINE_OPTIONS` (ignored for SQLite).
+
+### Rate Limiting (Flask-Limiter)
+
+```env
+RATE_LIMIT_DEFAULT=200 per day;50 per hour
+RATE_LIMIT_LOGIN=5 per minute
+RATE_LIMIT_AUTH=30 per hour
+RATE_LIMIT_WRITE=100 per hour
+```
+
+Defaults override limiter internal defaults; per-endpoint limits applied best-effort.
+
+### Security Headers
+
+```env
+ENABLE_SECURITY_HEADERS=1
+CSP_HEADER="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src *; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'"
+PERMISSIONS_POLICY="geolocation=(), microphone=(), camera=()"
+```
+
+Disable by setting `ENABLE_SECURITY_HEADERS=0`.
+
+### Background Jobs (Redis + RQ)
+
+Provide `REDIS_URL`. Worker entrypoint:
+
+```bash
+python -m backend.worker
+```
+
+Enqueue programmatically:
+
+```python
+from backend.utils.tasks import enqueue_task
+enqueue_task('backend.tasks.examples.example_long_task', duration=10)
+```
+
+HTTP example:
+
+```bash
+curl -X POST -H 'Content-Type: application/json' \
+   -d '{"duration":3}' http://localhost:8080/api/tasks/enqueue-example
+```
+
+### Build Metadata Injection
+
+Docker build args -> environment -> `/api/version`.
+
+### Frontend Version Footer
+
+`VersionFooter.vue` surfaces build info in UI footer.
+
+### Removed Font Awesome
+
+Replaced with Bootstrap Icons, inline SVG, or Unicode to reduce bundle size.
+
+### Sentry (Optional)
+
+Set `SENTRY_DSN` to enable error and trace capture (sample rate 0.1).
+
+### Adding New Tasks
+
+Add task function under `backend/tasks/` then enqueue via dotted path.
+
+### Structured Logging (Optional)
+
+Set `LOG_FORMAT=json` to emit structured JSON logs with `event`, `ts`, and a short request id propagated via `X-Request-ID` header.
+
+### Local Run Cheat Sheet
+
+```bash
+# Backend (with Docker compose)
+docker compose -f docker-compose.app.yml up --build
+
+# Run worker (requires REDIS_URL)
+python -m backend.worker
+
+# Enqueue example task
+python -c "from backend.utils.tasks import enqueue_task; print(enqueue_task('backend.tasks.examples.example_long_task', duration=3))"
+```
+
+### Future Hardening Ideas
+
+- Structured JSON logging w/ request IDs
+- Metrics exporter (Prometheus or OTLP)
+- Nonce / hashed CSP
+- Scheduled tasks (cron + RQ)
+
+

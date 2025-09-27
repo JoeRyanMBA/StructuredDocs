@@ -11,6 +11,8 @@ import json
 
 # Import models
 from ..models import db, Task, Project, Collection, Topic, Tag
+from backend.utils.tasks import enqueue_task  # enqueue helper
+from backend.extensions import limiter  # optional limiter
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
@@ -84,6 +86,29 @@ def list_tasks():
 
     except Exception as e:
         return jsonify({"error": str(e)}), 500
+
+
+@tasks_bp.route('/enqueue-example', methods=['POST'])
+def enqueue_example_task():
+    """Enqueue the example long-running task.
+
+    Body JSON (optional): {"duration": <int seconds>} (default 5)
+    Returns job id and enqueued parameters.
+    """
+    try:
+        data = request.get_json(silent=True) or {}
+        duration = int(data.get('duration', 5))
+        job = enqueue_task('backend.tasks.examples.example_long_task', duration=duration)
+        return jsonify({
+            'status': 'enqueued',
+            'job_id': job.get_id(),
+            'duration': duration
+        }), 202
+    except RuntimeError as re:
+        # Likely Redis / queue not configured
+        return jsonify({'error': str(re), 'hint': 'Configure REDIS_URL to enable background jobs'}), 503
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
 
 @tasks_bp.route('/', methods=['POST'])
 def create_task():

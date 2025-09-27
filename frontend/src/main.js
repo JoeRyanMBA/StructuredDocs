@@ -1,7 +1,7 @@
 import { createApp, reactive } from 'vue'
 import App from './App.vue'
 import router from './router'
-import '@fortawesome/fontawesome-free/css/all.css'
+// Font Awesome removed to reduce bundle size; using Bootstrap Icons / inline SVG instead.
 import 'bootstrap/dist/css/bootstrap.min.css'
 import 'bootstrap-icons/font/bootstrap-icons.css'
 // Import global styles last so they override Bootstrap defaults

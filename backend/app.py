@@ -5,10 +5,12 @@ import os
 import mimetypes
 from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
-from .extensions import db, migrate, jwt
+from .extensions import db, migrate, jwt, limiter, init_sentry, redis_conn, task_queue
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode, quote
 import socket
 from datetime import datetime
+import json
+import uuid
 
 # Add the backend directory to Python path
 sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
@@ -45,6 +47,40 @@ def load_env_file():
                         if (v.startswith("'") and v.endswith("'")) or (v.startswith('"') and v.endswith('"')):
                             v = v[1:-1]
                         os.environ[k] = v
+
+def _load_version_metadata():
+    """Load version/build metadata from environment or version.json (non-fatal)."""
+    meta = {
+        'version': os.environ.get('APP_VERSION'),
+        'commit': os.environ.get('GIT_COMMIT'),
+        'build_time': os.environ.get('BUILD_TIME')
+    }
+    candidate_paths = [
+        os.path.join(os.getcwd(), 'backend', 'version.json'),
+        os.path.join(os.getcwd(), 'version.json')
+    ]
+    for p in candidate_paths:
+        if os.path.exists(p):
+            try:
+                import json
+                with open(p, 'r') as f:
+                    data = json.load(f)
+                for k, v in data.items():
+                    if v and not meta.get(k):
+                        meta[k] = v
+                break
+            except Exception as e:
+                print(f"⚠️  Failed reading version metadata from {p}: {e}")
+    # Fallback commit using git (best-effort)
+    if not meta.get('commit'):
+        try:
+            import subprocess
+            meta['commit'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.DEVNULL).decode().strip()
+        except Exception:
+            pass
+    if not meta.get('build_time'):
+        meta['build_time'] = datetime.utcnow().isoformat() + 'Z'
+    return meta
 
 def create_app(environ=None, start_response=None):
     print("🚀 Creating Flask app...")
@@ -286,12 +322,104 @@ p { color: #666; }
     except OSError as e:
         print(f"⚠️ Could not create instance directory {instance_dir}: {e}")
 
+    # --- Database engine pooling (non-SQLite) ---------------------------------
+    try:
+        db_uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
+        if not db_uri.startswith('sqlite'):
+            def _int_env(name: str, default: int):
+                try:
+                    raw = os.environ.get(name, '').strip()
+                    if not raw:
+                        return default
+                    val = int(raw)
+                    return val if val >= 0 else default
+                except Exception:
+                    return default
+            engine_opts = {
+                'pool_size': _int_env('DB_POOL_SIZE', 5),
+                'max_overflow': _int_env('DB_MAX_OVERFLOW', 10),
+                'pool_recycle': _int_env('DB_POOL_RECYCLE', 1800),
+                'pool_timeout': _int_env('DB_POOL_TIMEOUT', 30),
+            }
+            app.config['SQLALCHEMY_ENGINE_OPTIONS'] = engine_opts
+            print(f"🛢️ Applied SQLAlchemy engine options: {engine_opts}")
+        else:
+            print("🛢️ Skipping engine pool options for SQLite")
+    except Exception as _e_pool:
+        print(f"⚠️ Could not set engine options: {_e_pool}")
+
+    # --- Centralized rate limit configuration BEFORE limiter.init_app --------
+    rate_default = os.environ.get('RATE_LIMIT_DEFAULT')  # e.g. "200 per day;50 per hour"
+    if rate_default and limiter:
+        try:
+            parsed = [r.strip() for r in rate_default.replace(',', ';').split(';') if r.strip()]
+            if parsed:
+                limiter._default_limits = parsed  # type: ignore (private attr acceptable here)
+                print(f"🚦 Overriding default rate limits: {parsed}")
+        except Exception as _rl_e:
+            print(f"⚠️ Could not apply RATE_LIMIT_DEFAULT: {_rl_e}")
+    rate_login = os.environ.get('RATE_LIMIT_LOGIN')
+    rate_auth = os.environ.get('RATE_LIMIT_AUTH')
+    rate_write = os.environ.get('RATE_LIMIT_WRITE')
+
     # Initialize extensions
     print("🔧 Initializing extensions...")
     db.init_app(app)
     migrate.init_app(app, db)
     jwt.init_app(app)
+    if limiter:
+        limiter.init_app(app)
+        print("✅ Limiter initialized")
     print("✅ Extensions initialized")
+
+    # Structured logging helper (opt-in via LOG_FORMAT=json)
+    log_json = os.environ.get('LOG_FORMAT') == 'json'
+    def log_event(event: str, **fields):  # lightweight structured log
+        if log_json:
+            payload = {'event': event, 'ts': datetime.utcnow().isoformat() + 'Z', **fields}
+            try:
+                print(json.dumps(payload, ensure_ascii=False))
+            except Exception:
+                print(f"{event} | {fields}")
+        else:
+            print(f"{event}: {fields}")
+
+    @app.before_request
+    def _assign_request_id():  # type: ignore
+        rid = request.headers.get('X-Request-ID') or uuid.uuid4().hex[:12]
+        request.environ['request_id'] = rid
+        if log_json:
+            log_event('request_start', path=request.path, method=request.method, rid=rid, ip=request.remote_addr)
+
+    @app.after_request
+    def _after(resp):  # type: ignore
+        rid = request.environ.get('request_id')
+        if log_json:
+            log_event('request_end', path=request.path, status=resp.status_code, rid=rid)
+        resp.headers.setdefault('X-Request-ID', rid)
+        return resp
+
+    # Sentry (optional)
+    sentry_dsn = os.environ.get('SENTRY_DSN')
+    if sentry_dsn:
+        try:
+            ok = init_sentry(sentry_dsn)
+            print(f"🛰  Sentry enabled: {ok}")
+        except Exception as e:
+            print(f"⚠️  Sentry init failed: {e}")
+
+    # Redis / RQ queue (optional)
+    global redis_conn, task_queue
+    redis_url = os.environ.get('REDIS_URL') or os.environ.get('REDISCLOUD_URL')
+    if redis_url:
+        try:
+            import redis as _redis  # type: ignore
+            import rq as _rq  # type: ignore
+            redis_conn = _redis.from_url(redis_url)
+            task_queue = _rq.Queue('default', connection=redis_conn)
+            print('✅ Redis task queue initialized')
+        except Exception as e:
+            print(f"⚠️  Redis/RQ init failed: {e}")
     
     # Configure CORS - use production URL if available, otherwise allow the current origin
     print("🌐 Configuring CORS...")
@@ -554,6 +682,15 @@ p { color: #666; }
                     'frontend_folder': app.config['FRONTEND_FOLDER']
                 }), 500
 
+        version_meta = _load_version_metadata()
+
+        @app.route('/api/version', methods=['GET'])
+        def version():
+            return jsonify({
+                'service': 'StructuredDocs',
+                **{k: v for k, v in version_meta.items() if v}
+            }), 200
+
         @app.route('/api/ping', methods=['GET'])
         def ping():
             print("🏓 Ping requested at", datetime.now().isoformat())
@@ -607,6 +744,34 @@ p { color: #666; }
             }
             print(f"🏥 Sending response: {response_data}")
             return jsonify(response_data), 200
+
+        # --- Specific endpoint rate limits (post-registration) ---------------
+        try:
+            if limiter:
+                applied = []
+                def _apply(name: str, limit_val: str | None):
+                    if not limit_val:
+                        return
+                    if name in app.view_functions:
+                        try:
+                            limiter.limit(limit_val)(app.view_functions[name])  # type: ignore
+                            applied.append((name, limit_val))
+                        except Exception as _a_e:
+                            print(f"⚠️ Could not apply rate limit '{limit_val}' to {name}: {_a_e}")
+                # Login endpoints
+                _apply('login', rate_login)
+                _apply('users.login', rate_login)
+                # Auth/refresh
+                _apply('users.refresh', rate_auth)
+                # Representative write endpoints (best-effort; ignore if absent)
+                for ep in ['collections.create_collection', 'publications.create_publication', 'reviews.create_review']:
+                    _apply(ep, rate_write)
+                if applied:
+                    print(f"🚦 Applied specific rate limits: {applied}")
+                else:
+                    print("ℹ️ No specific rate limits applied (endpoints may differ or env vars unset)")
+        except Exception as _spec_e:
+            print(f"⚠️ Error applying specific limits: {_spec_e}")
 
         @app.route('/test-route')
         def test_route():
@@ -754,6 +919,23 @@ p { color: #666; }
                 print(f"❌ Error serving frontend path {path}: {e}")
                 return f"Error: {str(e)}", 500
 
+    # Security headers middleware (toggle via ENABLE_SECURITY_HEADERS=0 to disable)
+    if os.environ.get('ENABLE_SECURITY_HEADERS', '1') == '1':
+        @app.after_request
+        def _security_headers(resp):  # type: ignore
+            try:
+                resp.headers.setdefault('X-Content-Type-Options', 'nosniff')
+                resp.headers.setdefault('X-Frame-Options', 'DENY')
+                resp.headers.setdefault('Referrer-Policy', 'no-referrer-when-downgrade')
+                resp.headers.setdefault('Permissions-Policy', os.environ.get('PERMISSIONS_POLICY', 'geolocation=(), microphone=(), camera=()'))
+                resp.headers.setdefault('Content-Security-Policy', os.environ.get('CSP_HEADER', "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src *; frame-ancestors 'none'; object-src 'none'"))
+            except Exception as e:
+                print(f"⚠️  Security headers error: {e}")
+            return resp
+        print("🛡️ Security headers middleware active")
+    else:
+        print("🛡️ Security headers disabled via ENABLE_SECURITY_HEADERS=0")
+
     # Add error handlers
     @app.errorhandler(500)
     def internal_error(error):
@@ -798,6 +980,15 @@ p { color: #666; }
             "python_path": sys.path[:5],  # First 5 paths
             "database_uri": app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50] + "..." if app.config.get('SQLALCHEMY_DATABASE_URI') else 'not set'
         }, 200
+
+    # Apply rate limit to login if route imported
+    if limiter:
+        try:
+            from backend.routes.users import login as _login
+            limiter.limit("5 per minute")(_login)  # type: ignore
+            print("✅ Rate limit applied to login endpoint")
+        except Exception as e:
+            print(f"⚠️  Could not attach rate limit to login: {e}")
 
     print("✅ Flask app created successfully!")
     return app
