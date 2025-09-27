@@ -1088,7 +1088,7 @@ export default {
 }
 
 .primary-btn:hover {
-  background-color: var(--primary-dark-blue);
+  background-color: var(--primary-medium-teal);
 }
 
 /* Summary Cards */
