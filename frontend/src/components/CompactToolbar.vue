@@ -209,8 +209,10 @@ export default {
 
 /* Override metric card layout for stacked display */
 .metrics-stack .metric-card {
-  width: 100%;
+  width: fit-content;
+  max-width: 100%;
   min-width: unset;
+  align-self: flex-start;
 }
 
 @media (max-width: 768px) {
