@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="showModal = true" class="btn btn-primary">
-        <span class="icon-plus">➕</span> Create New Milestone
+  <span class="icon-plus">➕︎</span> Create New Milestone
       </button>
     </div>
 
@@ -49,7 +49,7 @@
           <div class="filter-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm">
-                <i class="fas fa-search"></i> Search
+                <i class="bi bi-search"></i> Search
               </button>
               <button @click="clearFilters" class="btn btn-secondary btn-sm">Clear Filters</button>
             </div>
@@ -89,10 +89,10 @@
               <td>{{ formatDate(milestone.completion_date) || '-' }}</td>
               <td class="actions-cell">
                 <button @click="editMilestone(milestone)" class="btn btn-sm btn-secondary">
-                  <i class="fas fa-edit"></i> Edit
+                  <i class="bi bi-pencil-square"></i> Edit
                 </button>
                 <button @click="deleteMilestone(milestone)" class="btn btn-sm btn-danger">
-                  <i class="fas fa-trash"></i> Delete
+                  <i class="bi bi-trash"></i> Delete
                 </button>
               </td>
             </tr>

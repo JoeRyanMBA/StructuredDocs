@@ -20,7 +20,7 @@
           <h3>Welcome to Document Builder</h3>
           <p>Create a new collection to begin building your document.</p>
           <div class="empty-actions" v-if="collections.length === 0">
-            <button class="btn btn-primary" @click="showCreateCollection = true">➕ New Collection</button>
+            <button class="btn btn-primary" @click="showCreateCollection = true">➕︎ New Collection</button>
           </div>
         </div>
 
@@ -118,7 +118,7 @@
                   </span>
                 </div>
                 <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
-                <button class="btn-add" @click.stop="addTopicToCollection(topic)">➕ Add</button>
+                <button class="btn-add" @click.stop="addTopicToCollection(topic)">➕︎ Add</button>
               </div>
             </div>
           </div>
@@ -202,7 +202,7 @@
       <div class="section-header">
         <h3>📁 Collections</h3>
         <button class="btn btn-primary btn-sm" @click="showCreateCollection = true" title="Create New Collection">
-          ➕ New Collection
+          ➕︎ New Collection
         </button>
       </div>
       <div class="collections-list">
@@ -308,7 +308,7 @@
                 placeholder="Search links..." 
                 class="search-input"
               />
-              <button class="btn btn-primary" @click="createNewLink">➕ New Link</button>
+              <button class="btn btn-primary" @click="createNewLink">➕︎ New Link</button>
             </div>
             
             <div class="links-table">
@@ -401,7 +401,7 @@
               </select>
             </td>
             <td>
-              <button class="btn-icon" @click="editVariable(v)" title="Edit"><i class="fas fa-edit"></i></button>
+              <button class="btn-icon" @click="editVariable(v)" title="Edit"><i class="bi bi-pencil-square"></i></button>
             </td>
           </tr>
         </tbody>

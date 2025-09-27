@@ -60,7 +60,7 @@
       </div>
       <div class="header-actions">
         <button @click="showCreateModal = true" class="primary-btn">
-          ➕ Create Task
+          <span class="icon-plus">➕︎</span> Create Task
         </button>
       </div>
     </div>
@@ -108,7 +108,7 @@
           @click="clearFilters" 
           class="btn btn-secondary btn-sm"
         >
-          <i class="fas fa-times"></i> Clear Filters
+          <i class="bi bi-x"></i> Clear Filters
         </button>
       </div>
     </div>
@@ -137,7 +137,7 @@
           <h3>{{ tasks.length === 0 ? 'No Tasks Yet' : 'No Tasks Match Filter' }}</h3>
           <p>{{ tasks.length === 0 ? 'Get started by creating your first task.' : 'Try adjusting your filters or create a new task.' }}</p>
           <button @click="showCreateModal = true" class="create-first-btn">
-            ➕ {{ tasks.length === 0 ? 'Create Your First Task' : 'Create New Task' }}
+            <span class="icon-plus">➕︎</span> {{ tasks.length === 0 ? 'Create Your First Task' : 'Create New Task' }}
           </button>
         </div>
       </div>
@@ -182,32 +182,32 @@
               </td>
               <td class="association-cell">
                 <span v-if="task.project_name" class="association-tag project">
-                  <i class="fas fa-project-diagram"></i> {{ task.project_name }}
+                  <i class="bi bi-diagram-3"></i> {{ task.project_name }}
                 </span>
                 <span v-else-if="task.collection_name" class="association-tag collection">
-                  <i class="fas fa-folder"></i> {{ task.collection_name }}
+                  <i class="bi bi-folder"></i> {{ task.collection_name }}
                 </span>
                 <span v-else-if="task.topic_name" class="association-tag topic">
-                  <i class="fas fa-file-alt"></i> {{ task.topic_name }}
+                  <i class="bi bi-file-text"></i> {{ task.topic_name }}
                 </span>
                 <span v-else class="association-tag none">-</span>
               </td>
               <td class="due-date-cell">
                 <div v-if="task.due_date" class="due-date" :class="{ overdue: isOverdue(task) }">
-                  <i class="fas fa-calendar"></i> {{ formatDate(task.due_date) }}
+                  <i class="bi bi-calendar-event"></i> {{ formatDate(task.due_date) }}
                 </div>
                 <span v-else class="no-date">-</span>
               </td>
               <td class="assigned-cell">
                 <div v-if="task.assigned_to" class="assigned-to">
-                  <i class="fas fa-user"></i> {{ task.assigned_to }}
+                  <i class="bi bi-person"></i> {{ task.assigned_to }}
                 </div>
                 <span v-else class="no-assignment">-</span>
               </td>
               <td class="actions-cell">
                 <div class="task-actions">
                   <button @click="editTask(task)" class="btn btn-secondary btn-sm">
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="bi bi-pencil-square"></i> Edit
                   </button>
                   <button 
                     v-if="getNextStatus(task.status)"
@@ -222,7 +222,7 @@
                     @click="deleteTask(task)" 
                     class="btn btn-sm btn-danger"
                   >
-                    <i class="fas fa-trash"></i> Delete
+                    <i class="bi bi-trash"></i> Delete
                   </button>
                 </div>
               </td>

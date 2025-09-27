@@ -286,9 +286,7 @@ a:hover {
 }
 
 /* Fine-tune: search icon tends to sit high; push it down a bit for balance */
-.btn-sm i.fa-search,
-.btn-sm i.fas.fa-search,
-.btn-sm i.fa-solid.fa-search {
+.btn-sm i.bi-search {
   top: 1px;
 }
 

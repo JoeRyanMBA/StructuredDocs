@@ -1,10 +1,10 @@
 <template>
   <div class="feedback-widget">
     <button @click="showFeedbackModal = true" class="feedback-btn">
-      <i class="fas fa-comment-dots"></i> Feedback
+      <i class="bi bi-chat-dots"></i> Feedback
     </button>
     <button @click="showBugModal = true" class="bug-btn">
-      <i class="fas fa-bug"></i> Report Bug
+      <i class="bi bi-bug"></i> Report Bug
     </button>
 
     <!-- Feedback Modal -->

@@ -28,14 +28,14 @@
       <div v-if="showUserDropdown" class="user-dropdown" @click.stop>
         <div class="dropdown-items">
           <router-link to="/profile" class="dropdown-item" @click="closeDropdown">
-            <i class="fas fa-user-edit"></i> Update Profile
+            <i class="bi bi-person-gear"></i> Update Profile
           </router-link>
           <router-link v-if="isAdmin" to="/admin" class="dropdown-item" @click="closeDropdown">
-            <i class="fas fa-cog"></i> Admin Dashboard
+            <i class="bi bi-gear"></i> Admin Dashboard
           </router-link>
           <div class="dropdown-divider"></div>
           <button @click="logout" class="dropdown-item">
-            <i class="fas fa-sign-out-alt"></i> Logout
+            <i class="bi bi-box-arrow-right"></i> Logout
           </button>
         </div>
       </div>
@@ -44,7 +44,7 @@
     <!-- Login button when not logged in and not on login page -->
     <div v-else-if="!isOnLoginPage" class="login-section">
       <router-link to="/login" class="login-btn">
-        <i class="fas fa-sign-in-alt"></i> Login
+        <i class="bi bi-box-arrow-in-right"></i> Login
       </router-link>
     </div>
   </header>

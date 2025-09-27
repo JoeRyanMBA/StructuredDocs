@@ -53,7 +53,7 @@
       <p class="section-description">Tools for writing and organizing your work</p>
       <div class="quick-actions-grid">
           <button class="quick-action-card" @click="navigateTo('/topics/new')">
-            <div class="action-icon">➕</div>
+            <div class="action-icon">➕︎</div>
             <div class="action-content">
               <h3>Create New Topic</h3>
               <p>Start writing new content</p>
@@ -131,7 +131,7 @@
                   </select>
                 </div>
                 <div class="filter-group">
-                  <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Filters</button>
+                  <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Filters</button>
                 </div>
               </div>
             </div>
@@ -176,7 +176,7 @@
                         aria-label="Edit topic"
                         @click.stop
                       >
-                        <i class="fas fa-edit"></i>
+                        <i class="bi bi-pencil-square"></i>
                       </router-link>
 
                       <button
@@ -187,7 +187,7 @@
                         aria-label="Submit for review"
                         type="button"
                       >
-                        <i class="fas fa-paper-plane"></i>
+                        <i class="bi bi-send"></i>
                       </button>
 
                       <button
@@ -209,7 +209,7 @@
                         aria-label="Publish topic"
                         type="button"
                       >
-                        <i class="fas fa-share"></i>
+                        <i class="bi bi-share"></i>
                       </button>
                     </div>
                   </td>

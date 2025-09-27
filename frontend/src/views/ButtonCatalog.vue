@@ -69,7 +69,7 @@ export default {
           name: 'Primary',
           classes: 'btn btn-primary',
           text: 'Primary',
-          icon: 'fas fa-check',
+          icon: 'bi bi-check-lg',
           stylesheet: 'assets/style.css (.btn, .btn-primary)',
           usedIn: [
             'TopicsListView.vue (Search button)',
@@ -84,7 +84,7 @@ export default {
           name: 'Secondary',
           classes: 'btn btn-secondary',
           text: 'Secondary',
-          icon: 'fas fa-sliders',
+          icon: 'bi bi-sliders',
           stylesheet: 'assets/style.css (.btn-secondary)',
           usedIn: [
             'TopicsListView.vue (Clear Filters, bulk actions)',
@@ -98,7 +98,7 @@ export default {
           name: 'Danger',
           classes: 'btn btn-danger',
           text: 'Delete',
-          icon: 'fas fa-trash',
+          icon: 'bi bi-trash',
           stylesheet: 'assets/style.css (.btn-danger)',
           usedIn: [
             'TopicsListView.vue (Bulk delete)',
@@ -112,7 +112,7 @@ export default {
           name: 'Info',
           classes: 'btn btn-info',
           text: 'Info',
-          icon: 'fas fa-info-circle',
+          icon: 'bi bi-info-circle',
           stylesheet: 'assets/style.css (.btn-info)',
           usedIn: [
             'ReviewPortal.vue (Preview Changes)'
@@ -124,7 +124,7 @@ export default {
           name: 'Success',
           classes: 'btn btn-success',
           text: 'Save',
-          icon: 'fas fa-check',
+          icon: 'bi bi-check-lg',
           stylesheet: 'assets/style.css (.btn-success)',
           usedIn: [
             'ReviewPortal.vue (Submit Review)'
@@ -136,7 +136,7 @@ export default {
           name: 'Outline',
           classes: 'btn btn-outline',
           text: 'Preview',
-          icon: 'fas fa-eye',
+          icon: 'bi bi-eye',
           stylesheet: 'assets/style.css (.btn-outline)',
           usedIn: [
             'ReviewPortal.vue (Preview Changes)'
@@ -148,7 +148,7 @@ export default {
           name: 'Small Primary',
           classes: 'btn btn-primary btn-sm',
           text: 'Search',
-          icon: 'fas fa-search',
+          icon: 'bi bi-search',
           stylesheet: 'assets/style.css (.btn-sm + .btn-primary)',
           usedIn: [
             'TopicsListView.vue (Search)',
@@ -162,7 +162,7 @@ export default {
           name: 'Small Secondary',
           classes: 'btn btn-secondary btn-sm',
           text: 'Clear',
-          icon: 'fas fa-eraser',
+          icon: 'bi bi-eraser',
           stylesheet: 'assets/style.css (.btn-sm + .btn-secondary)',
           usedIn: [
             'TopicsListView.vue (Clear Filters)',
@@ -176,7 +176,7 @@ export default {
           name: 'Icon: Edit',
           classes: 'btn-icon btn-secondary',
           text: '',
-          icon: 'fas fa-edit',
+          icon: 'bi bi-pencil-square',
           stylesheet: 'assets/style.css (.btn-icon, .btn-icon.btn-secondary)',
           usedIn: [
             'TopicsListView.vue (Edit topic)',
@@ -190,7 +190,7 @@ export default {
           name: 'Icon: Submit for Review',
           classes: 'btn-icon btn-send-review',
           text: '',
-          icon: 'fas fa-paper-plane',
+          icon: 'bi bi-send',
           stylesheet: 'assets/style.css (.btn-icon.btn-send-review)',
           usedIn: [
             'TopicsListView.vue actions',
@@ -216,7 +216,7 @@ export default {
           name: 'Icon: Publish',
           classes: 'btn-icon btn-publish',
           text: '',
-          icon: 'fas fa-share',
+          icon: 'bi bi-share',
           stylesheet: 'assets/style.css (.btn-icon.btn-publish)',
           usedIn: [
             'TopicsListView.vue actions',
@@ -229,7 +229,7 @@ export default {
           name: 'Icon: Archive',
           classes: 'btn-icon btn-archive',
           text: '',
-          icon: 'fas fa-box-archive',
+          icon: 'bi bi-archive',
           stylesheet: 'assets/style.css (.btn-icon.btn-archive)',
           usedIn: [
             'AdminBugs.vue actions',
@@ -269,7 +269,7 @@ export default {
           name: 'Toggle',
           classes: 'toggle-btn',
           text: 'Toggle',
-          icon: 'fas fa-toggle-on',
+          icon: 'bi bi-toggle-on',
           stylesheet: 'assets/style.css (.toggle-btn)',
           usedIn: [
             'ReviewPortal.vue (Compare toggles)'
@@ -281,7 +281,7 @@ export default {
           name: 'Section',
           classes: 'section-btn',
           text: 'Go to Section',
-          icon: 'fas fa-arrow-right',
+          icon: 'bi bi-arrow-right',
           stylesheet: 'assets/style.css (.section-btn)',
           usedIn: [
             'AdminDashboard.vue (links)',
@@ -294,7 +294,7 @@ export default {
           name: 'Card Action',
           classes: 'card-action-btn',
           text: 'View',
-          icon: 'fas fa-eye',
+          icon: 'bi bi-eye',
           stylesheet: 'assets/style.css (.card-action-btn)',
           usedIn: [
             'ImportDashboard.vue (cards)',
@@ -319,7 +319,7 @@ export default {
           name: 'Login (full-width)',
           classes: 'login-btn',
           text: 'Sign in',
-          icon: 'fas fa-sign-in-alt',
+          icon: 'bi bi-box-arrow-in-right',
           stylesheet: 'assets/style.css (.login-btn)',
           usedIn: [
             'LoginView.vue',
@@ -346,7 +346,7 @@ export default {
           name: 'Export',
           classes: 'export-btn',
           text: 'Download PDF',
-          icon: 'fas fa-file-download',
+          icon: 'bi bi-download',
           stylesheet: 'assets/style.css (.export-btn)',
           usedIn: [
             'PublishPDFView.vue'
@@ -358,7 +358,7 @@ export default {
           name: 'Submit',
           classes: 'submit-btn',
           text: 'Submit Review',
-          icon: 'fas fa-check',
+          icon: 'bi bi-check-lg',
           stylesheet: 'assets/style.css (.submit-btn)',
           usedIn: [
             'ReviewPortal.vue (form submission)',
@@ -371,7 +371,7 @@ export default {
           name: 'Create First',
           classes: 'create-first-btn',
           text: 'Create Your First Task',
-          icon: 'fas fa-plus',
+          icon: 'bi bi-plus-lg',
           stylesheet: 'assets/style.css (.create-first-btn)',
           usedIn: [
             'TasksView.vue (empty state)',

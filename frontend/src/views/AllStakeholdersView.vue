@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="showModal = true" class="btn btn-primary">
-        <span class="icon-plus">➕</span> Create New Stakeholder
+        <span class="icon-plus">➕︎</span> Create New Stakeholder
       </button>
     </div>
 
@@ -54,9 +54,9 @@
           <div class="filter-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm">
-                <i class="fas fa-search"></i> Search
+                <i class="bi bi-search"></i> Search
               </button>
-              <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="fas fa-times"></i> Clear Filters</button>
+              <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Filters</button>
             </div>
           </div>
         </div>
@@ -94,7 +94,7 @@
               </td>
               <td class="actions-cell" @click.stop>
                 <button @click="deleteStakeholder(stakeholder)" class="btn-icon btn-danger" title="Delete Stakeholder">
-                  <i class="fas fa-times"></i>
+                  <i class="bi bi-x"></i>
                 </button>
               </td>
             </tr>

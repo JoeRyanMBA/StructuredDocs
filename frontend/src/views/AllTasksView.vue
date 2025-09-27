@@ -8,7 +8,7 @@
 
     <div class="page-actions" style="margin-top: 2rem;">
       <button @click="openCreateModal" class="btn btn-primary">
-        <span class="icon-plus">➕</span> Create New Task
+        <span class="icon-plus">➕︎</span> Create New Task
       </button>
     </div>
 
@@ -78,13 +78,13 @@
               </td>
               <td>
                 <div v-if="task.project_name" class="association">
-                  <i class="fas fa-project-diagram"></i> {{ task.project_name }}
+                  <i class="bi bi-diagram-3"></i> {{ task.project_name }}
                 </div>
                 <div v-else-if="task.collection_name" class="association">
-                  <i class="fas fa-folder"></i> {{ task.collection_name }}
+                  <i class="bi bi-folder"></i> {{ task.collection_name }}
                 </div>
                 <div v-else-if="task.topic_name" class="association">
-                  <i class="fas fa-file-alt"></i> {{ task.topic_name }}
+                  <i class="bi bi-file-text"></i> {{ task.topic_name }}
                 </div>
                 <div v-else class="association">-</div>
               </td>
@@ -110,13 +110,13 @@
                     @click.stop="editTask(task)"
                     title="Edit task"
                   >
-                    <i class="fas fa-edit"></i> Edit
+                    <i class="bi bi-pencil-square"></i> Edit
                   </button>
                 </div>
               </td>
               <td class="actions-cell" @click.stop>
                 <button @click="deleteTask(task)" class="btn-delete">
-                  <i class="fas fa-times"></i>
+                  <i class="bi bi-x"></i>
                 </button>
               </td>
             </tr>
@@ -477,9 +477,9 @@ export default {
       }
       this.newTag = ''
       this.selectedExistingTag = ''
-  this.showModal = true
-  // establish snapshot after next tick so bindings updated
-  this.$nextTick(() => { this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm) })
+      this.showModal = true
+      // establish snapshot after next tick so bindings updated
+      this.$nextTick(() => { this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm) })
     },
     
   editTask(task) {
@@ -499,7 +499,7 @@ export default {
         status: task.status,
         priority: task.priority,
         due_date: task.due_date || '',
-  assigned_to: assignedTo,
+        assigned_to: assignedTo,
         associationType: task.project_id ? 'project' : task.collection_id ? 'collection' : task.topic_id ? 'topic' : '',
         project_id: task.project_id,
         collection_id: task.collection_id,
@@ -508,8 +508,8 @@ export default {
       }
       this.newTag = ''
       this.selectedExistingTag = ''
-  this.showModal = true
-  this.$nextTick(() => { this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm) })
+      this.showModal = true
+      this.$nextTick(() => { this.lastSavedTaskSnapshot = JSON.stringify(this.taskForm) })
     },
     
   closeModal() {
@@ -529,8 +529,8 @@ export default {
         tags: []
       }
       this.newTag = ''
-  this.selectedExistingTag = ''
-  this.lastSavedTaskSnapshot = ''
+      this.selectedExistingTag = ''
+      this.lastSavedTaskSnapshot = ''
     },
 
     resetAssociation() {
