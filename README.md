@@ -94,6 +94,7 @@ RATE_LIMIT_DEFAULT=200 per day;50 per hour
 RATE_LIMIT_LOGIN=5 per minute
 RATE_LIMIT_AUTH=30 per hour
 RATE_LIMIT_WRITE=100 per hour
+RATE_LIMIT_STORAGE_URI=redis://localhost:6379/1
 ```
 
 Defaults override limiter internal defaults; per-endpoint limits applied best-effort.
