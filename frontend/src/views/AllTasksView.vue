@@ -8,7 +8,7 @@
 
     <div class="page-actions" style="margin-top: 2rem;">
       <button @click="openCreateModal" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Create New Task
+        <span class="icon-plus">➕</span> Create New Task
       </button>
     </div>
 

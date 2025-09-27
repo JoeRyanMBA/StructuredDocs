@@ -272,3 +272,52 @@
   border-radius: var(--border-radius-sm);
   width: 100%;
 }
+
+/* ------------------------------------------------------------------ */
+/* Global Primary Button Hover Fix                                     */
+/* Ensure consistent hover color (matches Search button styling)       */
+/* ------------------------------------------------------------------ */
+.btn.btn-primary,
+.btn-primary {
+  background-color: var(--primary-deep-teal);
+  color: #fff;
+  border: 1px solid var(--primary-deep-teal);
+  transition: background-color .18s ease, transform .18s ease, box-shadow .18s ease;
+}
+
+.btn.btn-primary:hover:not(:disabled),
+.btn-primary:hover:not(:disabled) {
+  background-color: var(--primary-medium-teal) !important;
+  border-color: var(--primary-medium-teal) !important;
+  color: #fff !important;
+  transform: translateY(-1px);
+}
+
+.btn.btn-primary:active:not(:disabled),
+.btn-primary:active:not(:disabled) {
+  transform: translateY(0);
+  box-shadow: 0 0 0 2px rgba(0,0,0,0.05) inset;
+}
+
+/* Uniform small button variant */
+.btn.btn-sm, .btn-sm {
+  padding: 0.35rem 0.6rem;
+  font-size: 0.75rem;
+  line-height: 1rem;
+  border-radius: var(--border-radius-sm, 4px);
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+/* Plus icon replacement utility */
+.icon-plus {
+  display: inline-block;
+  margin-right: 0.35rem;
+  font-size: 1em;
+  line-height: 1;
+  transform: translateY(-1px); /* visually align with text */
+}
+
+/* Ensure older font-awesome based spacing still looks OK */
+.btn i, .btn .icon-plus { flex-shrink: 0; }

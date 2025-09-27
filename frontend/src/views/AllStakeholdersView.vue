@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="showModal = true" class="btn btn-primary">
-        <i class="fas fa-plus"></i> Create New Stakeholder
+        <span class="icon-plus">➕</span> Create New Stakeholder
       </button>
     </div>
 
