@@ -49,19 +49,9 @@ jobs:
   
   deploy-ssh:
     needs: build-and-publish
-    if: ${{ success() && secrets.PROD_HOST }}
     runs-on: ubuntu-latest
     steps:
-      - name: Deploy via SSH (pull & restart)
-        uses: appleboy/ssh-action@v0.1.7
-        with:
-          host: ${{ secrets.PROD_HOST }}
-          username: ${{ secrets.PROD_USER }}
-          key: ${{ secrets.PROD_SSH_KEY }}
-          script: |
-            set -e
-            cd $HOME/StructuredDocs
-            git pull origin main
-            docker compose -f docker-compose.app.yml build --pull backend
-            docker compose -f docker-compose.app.yml up -d --force-recreate backend
-            docker image prune -f || true
+      - name: Deployment reminder
+        run: |
+          echo "Automated deployment is disabled."
+          echo "Verify the container image on ghcr.io and deploy via your DigitalOcean runbook if needed."
