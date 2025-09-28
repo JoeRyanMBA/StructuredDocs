@@ -1,25 +1,31 @@
 #!/usr/bin/env python3
-"""
-Migration script to transfer data from SQLite to PostgreSQL
-FIXED VERSION with data type conversions for PythonAnywhere
-"""
+"""Migration script to transfer data from SQLite to PostgreSQL."""
 import sqlite3
 import psycopg2
 import os
 import sys
 from datetime import datetime
+from urllib.parse import parse_qs, urlparse
 
-# SQLite database path - CORRECTED for PythonAnywhere
-SQLITE_DB = '/home/JoeRyanMBA/StructuredDocs/structured_docs.db'
+SQLITE_DB = os.environ.get(
+    'SQLITE_DB',
+    os.path.join(os.path.dirname(__file__), 'instance', 'structured_docs.db')
+)
 
-# PostgreSQL connection details
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@host:5432/structured_docs')
+
+_parsed = urlparse(DATABASE_URL)
+_query = parse_qs(_parsed.query)
 PG_CONFIG = {
-    'host': 'JoeRyanMBA-4757.postgres.pythonanywhere-services.com',
-    'port': 14757,
-    'database': 'structured_docs',
-    'user': 'super',
-    'password': 'Picklehead1!'
+    'host': _parsed.hostname or 'localhost',
+    'port': _parsed.port or 5432,
+    'database': (_parsed.path or '/').lstrip('/'),
+    'user': _parsed.username or '',
+    'password': _parsed.password or '',
 }
+
+if 'sslmode' in _query:
+    PG_CONFIG['sslmode'] = _query['sslmode'][-1]
 
 def get_table_names(sqlite_conn):
     """Get all table names from SQLite database"""

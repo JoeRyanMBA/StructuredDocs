@@ -30,54 +30,12 @@ echo "\n[info] Python version:" && python3 --version || true
 
 echo "\n[info] sys.path (first 5):"
 python3 - <<'PY'
-import sys
-print("\n".join(sys.path[:10]))
-PY
+#!/usr/bin/env bash
+# Legacy placeholder script.
 
-echo "\n[info] Listing key paths:"
-ls -la . | sed -n '1,50p'
-ls -la backend | sed -n '1,200p' || true
+set -euo pipefail
 
-echo "\n[info] Show recent mtimes for backend files:"
-find backend -type f -maxdepth 2 -printf '%TY-%Tm-%Td %TH:%TM:%TS %p\n' | sort -r | head -n 25 || true
-
-echo "\n[info] Check for .env and important config files:"
-for f in .env wsgi.py pythonanywhere_wsgi_content.py app_final.py app_final_with_notifications_fix.py; do
-  if [[ -f "${f}" ]]; then
-    echo "found: ${f}"
-  else
-    echo "missing: ${f}"
-  fi
-done
-
-echo "\n[info] Try to import the Flask app (non-fatal):"
-python3 - <<'PY'
-try:
-    from app_final_with_notifications_fix import create_app
-    app = create_app()
-    print("Flask app import OK from app_final_with_notifications_fix")
-except Exception as e:
-    print("Import from app_final_with_notifications_fix failed:", e)
-    try:
-        import importlib.util, os, sys
-        sys.path.insert(0, os.path.join(os.getcwd(), 'backend'))
-        from app import create_app as create_backend_app
-        app = create_backend_app()
-        print("Flask app import OK from backend/app.py")
-    except Exception as e2:
-        print("Import from backend/app.py failed:", e2)
-PY
-
-echo "\n[info] Attempt to locate WSGI file(s):"
-for w in /var/www/*wsgi.py; do
-  [[ -e "$w" ]] || continue
-  echo "--- ${w} (head) ---"
-  sed -n '1,80p' "$w" || true
-done
-
-echo "\n[info] SQLite files present (if any):"
-find . -maxdepth 2 -name '*.db' -printf '%p (%s bytes)\n' || true
-
+echo "This helper no longer performs any actions. Consult the deployment documentation instead."
 echo "\n[info] Git status (if repo exists on server):"
 if [[ -d .git ]]; then
   git --no-pager log --oneline -n 3 || true

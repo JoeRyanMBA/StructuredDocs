@@ -1,6 +1,10 @@
+import os
+
 import psycopg2
 
-conn = psycopg2.connect('postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs')
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@host:5432/structured_docs')
+
+conn = psycopg2.connect(DATABASE_URL)
 cursor = conn.cursor()
 try:
     # Change enum columns to VARCHAR

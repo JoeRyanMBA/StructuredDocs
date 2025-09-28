@@ -609,9 +609,8 @@ export default {
 
 /* Quick Actions */
 .quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(240px, 1fr));
-  gap: 1rem;
+  --quick-action-min-width: 240px;
+  --quick-action-gap: 1rem;
   margin-bottom: 2rem;
 }
 

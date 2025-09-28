@@ -766,13 +766,6 @@ export default {
 .card-action-btn { border: 1px solid var(--border-light-gray); padding: 0.35rem 0.6rem; border-radius: 6px; background: #fff; cursor: pointer; }
 .card-action-btn.primary { background: var(--extended-steel-blue); color: #fff; border-color: var(--extended-steel-blue); }
 
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-
 /* Use global .quick-actions-section h2 styles from assets/style.css */
 
 .section-description {

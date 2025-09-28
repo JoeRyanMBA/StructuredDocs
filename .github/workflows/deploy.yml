@@ -1,32 +1,11 @@
-name: Deploy to PythonAnywhere
+name: legacy-placeholder
 
 on:
-  push:
-    branches: [ main ]  # Deploy when pushing to these branches
-  
-  # Allow manual triggering
   workflow_dispatch:
 
 jobs:
-  deploy:
+  noop:
     runs-on: ubuntu-latest
-    
     steps:
-    - name: 🚀 Deploy to PythonAnywhere
-      uses: appleboy/ssh-action@v0.1.7
-      with:
-        host: ssh.pythonanywhere.com
-        username: JoeRyanMBA
-        key: ${{ secrets.PYTHONANYWHERE_SSH_KEY }}
-        script: |
-          cd /home/JoeRyanMBA/StructuredDocs
-          git pull origin main
-          pip3.12 install --user -r backend/requirements.txt
-          # Clear Python cache
-          find . -type d -name "__pycache__" -exec rm -rf {} + 2>/dev/null || true
-          
-    - name: 🔄 Reload Web App
-      run: |
-        curl -X POST \
-          -H "Authorization: Token ${{ secrets.PYTHONANYWHERE_API_TOKEN }}" \
-          https://www.pythonanywhere.com/api/v0/user/JoeRyanMBA/webapps/joeryanmba.pythonanywhere.com/reload/
+      - name: Legacy workflow disabled
+        run: echo "Deployment now happens through DigitalOcean and Vercel workflows."

@@ -449,27 +449,8 @@ export default {
 
 /* Quick Actions */
 .quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-}
-
-.action-icon {
-  font-size: 1.5rem;
-  color: var(--primary-deep-teal);
-}
-
-.action-content h3 {
-  margin: 0 0 0.25rem 0;
-  font-size: 1rem;
-  font-weight: 600;
-  color: var(--text-dark-gray);
-}
-
-.action-content p {
-  margin: 0;
-  font-size: 0.85rem;
-  color: var(--text-medium-gray);
+  --quick-action-min-width: 200px;
+  --quick-action-gap: 1rem;
 }
 
 /* Review Items */

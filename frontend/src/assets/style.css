@@ -952,9 +952,11 @@ input:focus, select:focus, textarea:focus {
 }
 
 .quick-actions-grid {
+  --quick-action-min-width: 300px;
+  --quick-action-gap: 1.5rem;
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
+  grid-template-columns: repeat(auto-fit, minmax(var(--quick-action-min-width), 1fr));
+  gap: var(--quick-action-gap);
 }
 /* Metrics Grid for Key Metrics Cards */
 .metrics-grid {
@@ -1135,18 +1137,22 @@ input:focus, select:focus, textarea:focus {
 
 /* Reusable Quick Action Card (matches Start Page look) */
 .quick-action-card {
-  display: grid;
-  grid-template-columns: min-content 1fr min-content;
-  gap: 1rem;
+  --quick-action-padding: 1.25rem 1.5rem;
+  --quick-action-border: 1px solid var(--border-light-gray);
+  --quick-action-radius: var(--border-radius-lg);
+  --quick-action-shadow: var(--box-shadow-sm);
+  --quick-action-icon-size: 60px;
+  display: flex;
   align-items: center;
-  padding: 1.25rem 1.5rem;
+  gap: 1rem;
+  padding: var(--quick-action-padding);
   background: var(--bg-white);
-  border: 1px solid var(--border-light-gray);
-  border-radius: var(--border-radius-lg);
+  border: var(--quick-action-border);
+  border-radius: var(--quick-action-radius);
   text-decoration: none;
   color: inherit;
   transition: all 0.3s ease;
-  box-shadow: var(--box-shadow-sm);
+  box-shadow: var(--quick-action-shadow);
   min-width: 0; /* allow children to shrink */
 }
 
@@ -1160,8 +1166,8 @@ input:focus, select:focus, textarea:focus {
 
 .quick-action-card .action-icon {
   font-size: 2rem;
-  width: 60px;
-  height: 60px;
+  width: var(--quick-action-icon-size);
+  height: var(--quick-action-icon-size);
   display: flex;
   align-items: center;
   justify-content: center;
@@ -1170,7 +1176,10 @@ input:focus, select:focus, textarea:focus {
   color: var(--primary-deep-teal);
 }
 
-.quick-action-card .action-content { min-width: 0; }
+.quick-action-card .action-content {
+  flex: 1 1 auto;
+  min-width: 0;
+}
 
 .quick-action-card h3 {
   margin: 0 0 0.5rem 0;
@@ -1196,6 +1205,18 @@ input:focus, select:focus, textarea:focus {
 .quick-action-card h3,
 .quick-action-card p {
   white-space: normal !important;
+}
+
+@media (max-width: 768px) {
+  .quick-actions-grid {
+    --quick-action-gap: 1rem;
+    grid-template-columns: 1fr;
+  }
+
+  .quick-action-card {
+    --quick-action-padding: 1rem;
+    --quick-action-icon-size: 48px;
+  }
 }
 
 /* Reusable Section/Card Wrappers */

@@ -1,5 +1,12 @@
-# In your local code repo. Substitute in your own username + path
-git remote add pythonanywhere JoeRyanMBA@ssh.pythonanywhere.com:/home/JoeRyanMBA/bare-repos/StructuredDocs.git
+# Legacy placeholder file retained for history.
 
-git push -u pythonanywhere main
-# output should end with "Branch master set up to track remote branch master from pythonanywhere."
+name: legacy-placeholder
+on:
+  workflow_dispatch:
+
+jobs:
+  noop:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Legacy workflow disabled
+        run: echo "This workflow is intentionally empty."

@@ -57,7 +57,7 @@ See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuratio
 
 ### Legacy
 
-PythonAnywhere scripts are deprecated. Safe to delete when no longer referenced in docs.
+- PythonAnywhere hosting is no longer supported and all related scripts have been removed from this repository.
 
 ## Operational Enhancements (Infrastructure Overview)
 

@@ -2,7 +2,7 @@
 # ============================================
 
 ## Current Issues & Solutions
-After experiencing issues with PythonAnywhere, DigitalOcean, and Docker,
+After experiencing issues with earlier infrastructure setups,
 here's a comprehensive strategy to ensure reliable deployment.
 
 ## 🏆 RECOMMENDED: Hybrid Deployment Strategy
@@ -74,21 +74,23 @@ vercel --prod
 | Vercel | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | $ | Frontend/SPA |
 | Railway | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐ | $$ | Backend/API |
 | Render | ⭐⭐⭐⭐⭐ | ⭐⭐⭐⭐⭐ | $$ | Simple apps |
-| PythonAnywhere | ⭐⭐⭐ | ⭐⭐⭐⭐⭐ | $ | Python only |
 
 ## 🔧 Troubleshooting Guide
 
-### If Assets Don't Load:
+### If Assets Don't Load
+
 1. Check build output: `ls -la frontend/dist/assets/`
 2. Verify Docker copy: `docker run structureddocs:latest ls -la frontend/dist/assets/`
 3. Check logs: `docker logs <container_id>`
 
-### If App Doesn't Start:
+### If App Doesn't Start
+
 1. Check health endpoint: `curl /api/health`
 2. Verify environment variables
 3. Check database connection
 
-### If Build Fails:
+### If Build Fails
+
 1. Clear cache: `docker system prune -a`
 2. Rebuild: `./build-deploy.sh`
 3. Check logs for specific errors

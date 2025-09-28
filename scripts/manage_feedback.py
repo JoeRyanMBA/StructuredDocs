@@ -15,9 +15,6 @@ import argparse
 # Ensure project root is importable so top-level 'models' resolves correctly
 sys.path.insert(0, os.path.abspath('.'))
 
-# If running on PythonAnywhere, set the environment variable so the app uses Postgres
-os.environ.setdefault('PYTHONANYWHERE_ENVIRONMENT', os.environ.get('PYTHONANYWHERE_ENVIRONMENT', ''))
-
 def create_and_get_app():
     # Import here so the module-level side-effects in backend.app run with the correct env
     from backend.app import create_app

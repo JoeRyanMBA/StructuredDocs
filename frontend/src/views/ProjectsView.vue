@@ -1603,13 +1603,6 @@ export default {
   border-radius: 16px;
 }
 
-/* Quick Actions - use the global sizing so cards match other dashboards */
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
 .quick-action-card[disabled] {
   opacity: 0.6;
   cursor: not-allowed;

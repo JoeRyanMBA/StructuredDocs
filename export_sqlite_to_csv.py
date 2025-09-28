@@ -74,7 +74,7 @@ def main():
     import_script = os.path.join(EXPORT_DIR, 'import_to_postgresql.sql')
     with open(import_script, 'w') as f:
         f.write("-- PostgreSQL import script\n")
-        f.write("-- Run this on PythonAnywhere's PostgreSQL console\n\n")
+        f.write("-- Run this on your managed PostgreSQL instance\n\n")
         
         for table_name in sorted(tables):
             f.write(f"\\copy {table_name} FROM '{table_name}.csv' DELIMITER ',' CSV HEADER;\n")

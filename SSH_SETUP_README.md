@@ -1,69 +1,80 @@
-# SSH Key Setup for PythonAnywhere Deployment
+# SSH Key Setup for StructuredDocs Deployments
 
 ## Overview
-This document explains how to set up and maintain SSH key authentication for passwordless deployment to PythonAnywhere.
 
-## Current SSH Keys
-Your workspace already has SSH keys configured:
-- **Private key**: `~/.ssh/pythonanywhere_key`
-- **Public key**: `~/.ssh/pythonanywhere_key.pub`
-- **SSH Config**: `~/.ssh/config` (contains host configuration)
+StructuredDocs now deploys to a DigitalOcean droplet (backend) and Vercel (frontend). When you need direct SSH access to the droplet—for example to upload `.env` files or inspect logs—use an SSH key instead of passwords. This guide walks through creating and reusing that key.
 
-## Quick Setup (Run at start of each AI session)
+## Quick Setup
+
+Run the helper script (it’s idempotent and safe to re-run):
+
 ```bash
 ./setup_ssh_keys.sh
 ```
 
-This script will:
-1. ✅ Check if SSH keys exist
-2. 🔐 Add keys to SSH agent
-3. 🧪 Test connection to PythonAnywhere
-4. 🎉 Confirm setup is working
+Environment variables influence the script:
 
-## Manual Setup Steps
-If you need to set up SSH keys from scratch:
+- `REMOTE_USER` (default `root`)
+- `REMOTE_HOST` (e.g. `203.0.113.10`)
+- `KEY_PATH` (defaults to `~/.ssh/structureddocs_deploy`)
 
-### 1. Generate SSH Key Pair
+Example:
+
 ```bash
-ssh-keygen -t ed25519 -f ~/.ssh/pythonanywhere_key -C "pythonanywhere-deployment"
+REMOTE_HOST=203.0.113.10 REMOTE_USER=root ./setup_ssh_keys.sh
 ```
 
-### 2. Copy Public Key to PythonAnywhere
+The script will:
+
+1. Generate an ed25519 key if one doesn’t exist.
+2. Offer to copy the public key to the server (via `ssh-copy-id` if available).
+3. Add the key to your local `ssh-agent`.
+4. Test an SSH connection using the configured host.
+
+## Manual Setup (if you can’t run the script)
+
+### 1. Generate a key pair
+
 ```bash
-ssh-copy-id -i ~/.ssh/pythonanywhere_key.pub JoeRyanMBA@ssh.pythonanywhere.com
+ssh-keygen -t ed25519 -f ~/.ssh/structureddocs_deploy -C "structureddocs-deployment"
 ```
 
-### 3. Configure SSH Client
-Add to `~/.ssh/config`:
+### 2. Install the public key on the server
+
+```bash
+ssh-copy-id -i ~/.ssh/structureddocs_deploy.pub root@203.0.113.10
 ```
-Host pythonanywhere
-    HostName ssh.pythonanywhere.com
-    User JoeRyanMBA
-    IdentityFile ~/home/JoeRyanMBA/.ssh/pythonanywhere_key
+
+If `ssh-copy-id` isn’t available, copy the public key contents into `/root/.ssh/authorized_keys` (or the appropriate user directory).
+
+### 3. (Optional) Add an SSH config entry
+
+```sshconfig
+Host structureddocs-do
+    HostName 203.0.113.10
+    User root
+    IdentityFile ~/.ssh/structureddocs_deploy
     IdentitiesOnly yes
 ```
 
-### 4. Test Connection
+This lets you connect with `ssh structureddocs-do`.
+
+### 4. Test the connection
+
 ```bash
-ssh pythonanywhere "echo 'SSH connection successful'"
+ssh root@203.0.113.10 "echo 'SSH connection successful'"
 ```
 
-## Deployment Scripts
-Once SSH is set up, you can run:
-```bash
-./deploy_fixes.sh     # Deploy backend files
-./upload_frontend.sh  # Deploy frontend files
-```
+## After Connecting
+
+- Keep your `KEY_PATH` secure (permissions `600`).
+- Rotate the key if your infrastructure changes (regenerate and update the server’s `authorized_keys`).
+- Remove the key from the agent with `ssh-add -d <key>` if needed.
 
 ## Troubleshooting
-- **Permission denied**: Run `./setup_ssh_keys.sh` to re-add keys to agent
-- **Connection timeout**: Check internet connection and PythonAnywhere status
-- **Keys not found**: Re-run the key generation steps above
 
-## For AI Chat Sessions
-At the start of each new AI chat session, simply run:
-```bash
-./setup_ssh_keys.sh
-```
+- **Permission denied**: ensure the public key is present on the server and the SSH config references the correct `IdentityFile`.
+- **Connection timeout**: verify the droplet’s firewall allows SSH (port 22) and the host/IP is correct.
+- **Key generation errors**: make sure `~/.ssh` exists and has permissions `700`.
 
-This will restore SSH authentication without needing to remember all the setup steps.
+Once SSH works, use Ansible, rsync, or manual commands to manage the droplet. Frontend deployments should continue through Vercel; backend updates can be shipped via Docker/Compose or the DigitalOcean console as described in `README.md`.
