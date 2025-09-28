@@ -1,25 +1,20 @@
 #!/usr/bin/env python3
-"""
-Diagnostic script to check current database and API state on PythonAnywhere
-"""
-import psycopg2
+"""Diagnostic script to check current database and API state."""
+
+import os
 import sys
 
+import psycopg2
+
 # PostgreSQL connection details
-PG_CONFIG = {
-    'host': 'JoeRyanMBA-4757.postgres.pythonanywhere-services.com',
-    'port': 14757,
-    'database': 'structured_docs',
-    'user': 'super',
-    'password': 'Picklehead1!'
-}
+DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@host:5432/structured_docs')
 
 def check_database_state():
     """Check what's actually in the database"""
     print("🔍 Checking current database state...")
     
     try:
-        conn = psycopg2.connect(**PG_CONFIG)
+        conn = psycopg2.connect(DATABASE_URL)
         cursor = conn.cursor()
         
         # Check row counts
@@ -63,11 +58,11 @@ def test_api_endpoints():
     
     try:
         # Test importing the app
-        import sys
-        import os
-        sys.path.insert(0, '/home/JoeRyanMBA/StructuredDocs')
-        
-        from app_final_with_notifications_fix import create_app
+        project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '.'))
+        if project_root not in sys.path:
+            sys.path.insert(0, project_root)
+
+        from backend.app import create_app
         
         app = create_app()
         
@@ -126,9 +121,9 @@ def main():
     
     print("\n✅ Diagnostic complete!")
     print("\nIf you're still seeing 'Failed to Load Topics':")
-    print("1. Check if the updated app file is deployed")
-    print("2. Restart your PythonAnywhere web app")
-    print("3. Check browser console for API errors")
+    print("1. Confirm the latest backend code is deployed.")
+    print("2. Restart the backend service on your server or container platform.")
+    print("3. Check browser console and server logs for API errors.")
     
     return 0
 

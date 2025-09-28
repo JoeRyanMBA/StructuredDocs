@@ -270,7 +270,7 @@ def get_basic_system_metrics():
                     print(f"⚠️ Error getting disk stats for {workspace_path}: {e}")
                     continue
         
-        # Try to get real memory usage (PythonAnywhere may limit this)
+    # Try to get real memory usage (some hosting environments may restrict access)
         memory_percent = 65.0  # Default
         try:
             # Try to read /proc/meminfo for memory stats

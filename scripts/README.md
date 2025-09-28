@@ -18,4 +18,4 @@ Usage
 Safety
 ------
 - The delete action requires --yes to run. Without it, the script will refuse to delete.
-- This script imports your app factory and runs with your app's configuration. On PythonAnywhere it will pick up the PostgreSQL config if `PYTHONANYWHERE_ENVIRONMENT` is set.
+- This script imports your app factory and runs with your app's configuration.

@@ -1,5 +1,5 @@
-# Commands to check remaining space usage on PythonAnywhere
-# Copy and paste these into your PythonAnywhere bash console
+# Commands to check remaining space usage on your StructuredDocs server.
+# Copy and paste these into a shell on your DigitalOcean droplet (or equivalent host).
 
 echo "=== Current Space Usage ==="
 du -sh * | sort -hr | head -15

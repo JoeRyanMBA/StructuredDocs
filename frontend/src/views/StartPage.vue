@@ -682,68 +682,6 @@ export default {
 }
 
 
-/* Use global .quick-actions-section h2 styles from assets/style.css */
-
-.section-description {
-  color: var(--text-medium-gray);
-  margin-bottom: 2rem;
-  font-size: 1rem;
-}
-
-.quick-actions-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
-  gap: 1.5rem;
-}
-
-.quick-action-card {
-  display: flex;
-  align-items: center;
-  padding: 1.5rem;
-  background: var(--bg-white);
-  border: 1px solid var(--border-light-gray);
-  border-radius: var(--border-radius-lg);
-  text-decoration: none;
-  color: inherit;
-  transition: all 0.3s ease;
-  box-shadow: var(--box-shadow-sm);
-}
-
-.quick-action-card:hover {
-  border-color: var(--primary-deep-teal);
-  box-shadow: var(--box-shadow-md);
-  transform: translateY(-3px);
-  text-decoration: none;
-  color: inherit;
-}
-
-.quick-action-card .action-icon {
-  font-size: 2rem;
-  margin-right: 1rem;
-  min-width: 60px;
-  text-align: center;
-  color: var(--primary-deep-teal);
-}
-
-.quick-action-card .action-content {
-  flex: 1;
-}
-
-.quick-action-card h3 {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-dark-gray);
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.quick-action-card p {
-  margin: 0;
-  color: var(--text-medium-gray);
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
-
 /* Responsive Design */
 @media (max-width: 768px) {
   .dashboard {
@@ -751,19 +689,9 @@ export default {
   }
   
   .content-grid,
-  .metrics-grid,
-  .quick-actions-grid {
+  .metrics-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
-  }
-  
-  .quick-action-card {
-    padding: 1rem;
-  }
-  
-  .quick-action-card .action-icon {
-    font-size: 1.5rem;
-    min-width: 50px;
   }
   
   .project-header {

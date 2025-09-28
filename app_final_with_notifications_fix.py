@@ -27,8 +27,9 @@ def create_app():
              vary_header=False)
         
         # Configure SQLAlchemy database URI for PostgreSQL  
-        app.config['SQLALCHEMY_DATABASE_URI'] = (
-            'postgresql://super:Picklehead1!@JoeRyanMBA-4757.postgres.pythonanywhere-services.com:14757/structured_docs'
+        app.config['SQLALCHEMY_DATABASE_URI'] = os.environ.get(
+            'DATABASE_URL',
+            'postgresql://user:password@host:5432/structured_docs'
         )
         
         # Local SQLite fallback for development (uncomment if PostgreSQL not accessible)
@@ -45,8 +46,11 @@ def create_app():
         # Configure static files for image serving
         app.config['STATIC_FOLDER'] = os.path.join(app.root_path, 'static')
         
-        # Configure frontend files path (adjust this path on PythonAnywhere)
-        app.config['FRONTEND_FOLDER'] = '/home/JoeRyanMBA/StructuredDocs/frontend/dist'
+        # Configure frontend files path (override via FRONTEND_DIST if needed)
+        app.config['FRONTEND_FOLDER'] = os.environ.get(
+            'FRONTEND_DIST',
+            os.path.join(os.path.dirname(os.path.abspath(__file__)), 'frontend', 'dist')
+        )
         
         # Initialize SQLAlchemy
         from backend.models import db
