@@ -544,6 +544,7 @@ export default {
         const url = this.isEditing ? `/api/tasks/${this.taskForm.id}` : '/api/tasks/'
         const method = this.isEditing ? 'PUT' : 'POST'
         
+        // Send tags as an array; backend now normalizes both array and JSON-string inputs.
         const taskData = {
           title: this.taskForm.title,
           description: this.taskForm.description,
@@ -551,7 +552,7 @@ export default {
           priority: this.taskForm.priority,
           due_date: this.taskForm.due_date,
           assigned_to: this.taskForm.assigned_to,
-          tags: JSON.stringify(this.taskForm.tags)
+          tags: this.taskForm.tags
         }
         
         // Set association based on type

@@ -133,7 +133,24 @@ def create_task():
             except ValueError:
                 return jsonify({"error": "Invalid due_date format. Use YYYY-MM-DD"}), 400
 
-        # Create new task
+        # Normalize tags input: accept already-dumped JSON string or array
+        raw_tags = data.get('tags', [])
+        if isinstance(raw_tags, str):
+            try:
+                parsed = json.loads(raw_tags)
+                normalized_tags = parsed if isinstance(parsed, list) else []
+            except Exception:
+                normalized_tags = []
+        elif isinstance(raw_tags, list):
+            normalized_tags = raw_tags
+        else:
+            normalized_tags = []
+
+        # Ensure tags exist in DB before persisting
+        if normalized_tags:
+            ensure_tags_exist(normalized_tags)
+
+        # Create new task (store JSON string)
         task = Task(
             title=data['title'],
             description=data.get('description'),
@@ -145,13 +162,8 @@ def create_task():
             topic_id=data.get('topic_id'),
             assigned_to=data.get('assigned_to'),
             created_by=data.get('created_by'),
-            tags=json.dumps(data.get('tags', []))
+            tags=json.dumps(normalized_tags)
         )
-
-        # Ensure tags exist in the database
-        tags_list = data.get('tags', [])
-        if tags_list:
-            ensure_tags_exist(tags_list)
 
         db.session.add(task)
         db.session.commit()
@@ -248,11 +260,20 @@ def update_task(task_id):
         task.created_by = data.get('created_by', task.created_by)
 
         if 'tags' in data:
-            task.tags = data['tags'] if isinstance(data['tags'], str) else json.dumps(data['tags'])
-            # Ensure tags exist in the database
-            tags_list = data['tags'] if isinstance(data['tags'], list) else json.loads(data['tags'] or '[]')
-            if tags_list:
-                ensure_tags_exist(tags_list)
+            raw_tags = data.get('tags')
+            if isinstance(raw_tags, str):
+                try:
+                    parsed = json.loads(raw_tags)
+                    normalized_tags = parsed if isinstance(parsed, list) else []
+                except Exception:
+                    normalized_tags = []
+            elif isinstance(raw_tags, list):
+                normalized_tags = raw_tags
+            else:
+                normalized_tags = []
+            if normalized_tags:
+                ensure_tags_exist(normalized_tags)
+            task.tags = json.dumps(normalized_tags)
 
         # Mark as completed if status changed to completed
         if data.get('status') == 'completed' and task.status != 'completed':
