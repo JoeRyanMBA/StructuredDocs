@@ -235,9 +235,27 @@ def publish_collection(collection_id):
         if existing_pub:
             var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
             if unresolved:
+                # Get detailed variable information for the frontend
+                from ..models import Variable
+                variables_info = []
+                for var_slug in unresolved:
+                    var = Variable.query.filter_by(slug=var_slug).first()
+                    if var:
+                        variables_info.append({
+                            'id': var.id,
+                            'slug': var.slug,
+                            'name': var.name,
+                            'description': var.description,
+                            'values': [{'id': v.id, 'value': v.value, 'is_default': v.is_default} for v in var.values]
+                        })
+                
                 return jsonify({
-                    'error': 'All variables must be selected before publishing.',
-                    'unresolved_variables': unresolved
+                    'error': 'Variables must be configured before publishing.',
+                    'requires_variable_selection': True,
+                    'unresolved_variables': unresolved,
+                    'variables_info': variables_info,
+                    'collection_id': collection.id,
+                    'message': f'This collection contains {len(unresolved)} variable(s) that need to be configured before publishing.'
                 }), 400
             existing_pub.description = f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
             existing_pub.created_at = datetime.now(timezone.utc)
@@ -286,9 +304,27 @@ def publish_collection(collection_id):
         # New publication path
         var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
         if unresolved:
+            # Get detailed variable information for the frontend
+            from ..models import Variable
+            variables_info = []
+            for var_slug in unresolved:
+                var = Variable.query.filter_by(slug=var_slug).first()
+                if var:
+                    variables_info.append({
+                        'id': var.id,
+                        'slug': var.slug,
+                        'name': var.name,
+                        'description': var.description,
+                        'values': [{'id': v.id, 'value': v.value, 'is_default': v.is_default} for v in var.values]
+                    })
+            
             return jsonify({
-                'error': 'All variables must be selected before publishing.',
-                'unresolved_variables': unresolved
+                'error': 'Variables must be configured before publishing.',
+                'requires_variable_selection': True,
+                'unresolved_variables': unresolved,
+                'variables_info': variables_info,
+                'collection_id': collection.id,
+                'message': f'This collection contains {len(unresolved)} variable(s) that need to be configured before publishing.'
             }), 400
         publication = Publication(
             title=f"{collection.name}",
@@ -387,4 +423,48 @@ def archive_collection(collection_id):
         return jsonify({'message': 'Collection archive state updated', 'collection': collection.to_dict()}), 200
     except Exception as e:
         db.session.rollback()
+        return jsonify({'error': str(e)}), 500
+
+
+@collections_bp.route('/<int:collection_id>/variables/check', methods=['GET'])
+def check_collection_variables(collection_id):
+    """
+    Check what variables need to be configured before publishing this collection.
+    Returns variable information to help users configure them.
+    """
+    try:
+        collection = Collection.query.get_or_404(collection_id)
+        var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
+        
+        if not unresolved:
+            return jsonify({
+                'ready_to_publish': True,
+                'message': 'All variables are configured. Ready to publish!',
+                'variables_configured': len(var_mapping)
+            }), 200
+        
+        # Get detailed variable information for unresolved variables
+        from ..models import Variable
+        variables_info = []
+        for var_slug in unresolved:
+            var = Variable.query.filter_by(slug=var_slug).first()
+            if var:
+                variables_info.append({
+                    'id': var.id,
+                    'slug': var.slug,
+                    'name': var.name,
+                    'description': var.description,
+                    'values': [{'id': v.id, 'value': v.value, 'is_default': v.is_default} for v in var.values]
+                })
+        
+        return jsonify({
+            'ready_to_publish': False,
+            'unresolved_variables': unresolved,
+            'variables_info': variables_info,
+            'collection_id': collection.id,
+            'message': f'Please configure {len(unresolved)} variable(s) before publishing.',
+            'variables_endpoint': f'/api/variables/collections/{collection.id}/selections'
+        }), 200
+        
+    except Exception as e:
         return jsonify({'error': str(e)}), 500
