@@ -389,3 +389,63 @@ def configure_collection_variables_for_publish(collection_id):
         db.session.rollback()
         current_app.logger.exception('Failed to configure variables for publish')
         return jsonify({'error': str(e)}), 500
+
+
+@variables_bp.route('/collections/batch-configure', methods=['POST'])
+def batch_configure_variables_for_collections():
+    """Apply the same variable selections to multiple collections.
+    Payload: {
+        "collection_ids": [int, ...],
+        "variable_selections": [ { variable_id, variable_value_id }, ... ]
+    }
+    Returns per-collection status summary.
+    """
+    payload = request.get_json() or {}
+    collection_ids = payload.get('collection_ids') or []
+    variable_selections = payload.get('variable_selections') or []
+    if not collection_ids:
+        return jsonify({'error': 'No collection_ids provided'}), 400
+    if not variable_selections:
+        return jsonify({'error': 'No variable_selections provided'}), 400
+    summaries = []
+    try:
+        # Preload variables/values for validation caching
+        cache_variables = {v.id: v for v in Variable.query.all()}
+        cache_values = {vv.id: vv for vv in VariableValue.query.all()}
+        for cid in collection_ids:
+            coll = Collection.query.get(cid)
+            if not coll:
+                summaries.append({'collection_id': cid, 'updated': 0, 'error': 'collection_not_found'})
+                continue
+            updated_count = 0
+            for selection in variable_selections:
+                var_id = selection.get('variable_id')
+                value_id = selection.get('variable_value_id')
+                if not var_id or not value_id:
+                    continue
+                if var_id not in cache_variables or value_id not in cache_values:
+                    continue
+                # Upsert
+                record = CollectionVariableSelection.query.filter_by(collection_id=cid, variable_id=var_id).first()
+                if not record:
+                    record = CollectionVariableSelection()
+                    record.collection_id = cid  # type: ignore[attr-defined]
+                    record.variable_id = var_id  # type: ignore[attr-defined]
+                    db.session.add(record)
+                record.variable_value_id = value_id
+                updated_count += 1
+            # After applying, compute readiness
+            var_mapping, unresolved = build_variable_mapping_for_collection(cid)
+            summaries.append({
+                'collection_id': cid,
+                'collection_name': coll.name,
+                'updated_variables': updated_count,
+                'ready_to_publish': len(unresolved) == 0,
+                'remaining_unresolved': unresolved
+            })
+        db.session.commit()
+        return jsonify({'success': True, 'collections': summaries}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Failed batch variable configure')
+        return jsonify({'error': str(e)}), 500

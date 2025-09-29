@@ -17,10 +17,18 @@
         </div>
         
         <div v-else-if="variablesInfo && variablesInfo.length > 0" class="variables-list">
-          <div v-for="variable in variablesInfo" :key="variable.id" class="variable-item">
+          <div class="variables-toolbar">
+            <button class="btn btn-tertiary btn-xs" @click="resetToDefaults" :disabled="saving || previewing">Reset Defaults</button>
+            <button class="btn btn-tertiary btn-xs" @click="toggleShowResolved">{{ showResolved ? 'Hide Resolved' : 'Show Resolved' }}</button>
+            <button class="btn btn-tertiary btn-xs" @click="toggleFullPreview" :disabled="previewing || (!previewResult)">
+              {{ fullPreview ? 'Compact Preview' : 'Full Topic Preview' }}
+            </button>
+          </div>
+          <div v-for="variable in filteredVariables" :key="variable.id" class="variable-item">
             <div class="variable-header">
               <h4>{{ variable.name }}</h4>
             <span class="variable-slug">{{ variable.slug }}</span>
+            <span class="badge" :class="variable.is_resolved ? 'badge-resolved':'badge-unresolved'">{{ variable.is_resolved ? 'Resolved':'Unresolved' }}</span>
             </div>
             
             <p v-if="variable.description" class="variable-description">
@@ -113,6 +121,13 @@
           </button>
         </div>
       </div>
+      <div class="batch-apply-bar" v-if="canPublish">
+        <label class="batch-label">Batch apply to collection IDs (comma-separated)</label>
+        <div class="batch-row">
+          <input v-model="batchApplyTargetIds" class="batch-input" placeholder="e.g., 12,15,27" />
+          <button class="btn btn-tertiary" @click="batchApply" :disabled="batchApplying">{{ batchApplying ? 'Applying...' : 'Batch Apply' }}</button>
+        </div>
+      </div>
     </div>
   </div>
 </template>
@@ -151,7 +166,11 @@ export default {
       previewError: null,
       saveMode: null,
       showPreviewPanel: true,
-      previewTopicLimit: 5
+      previewTopicLimit: 5,
+      fullPreview: false,
+      showResolved: true,
+      batchApplyTargetIds: '',
+      batchApplying: false
     }
   },
   
@@ -160,6 +179,11 @@ export default {
       // Check if all required variables have selections
       return this.variablesInfo && this.variablesInfo.length > 0 && 
              this.variablesInfo.every(variable => this.selections[variable.id])
+    },
+    filteredVariables() {
+      if (!this.variablesInfo) return []
+      if (this.showResolved) return this.variablesInfo
+      return this.variablesInfo.filter(v => !v.is_resolved)
     }
   },
   
@@ -322,6 +346,36 @@ export default {
       // Re-escape for safe HTML insertion (very naive)
       const esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       return esc.replace(/\n/g,'<br>')
+    },
+    toggleFullPreview() {
+      this.fullPreview = !this.fullPreview
+      if (this.fullPreview && this.previewResult) {
+        this.previewTopicLimit = this.previewResult.topics?.length || 0
+      } else if (!this.fullPreview) {
+        this.previewTopicLimit = 5
+      }
+    },
+    resetToDefaults() {
+      this.variablesInfo.forEach(v => {
+        const def = v.values.find(val => val.is_default)
+        if (def) this.selections[v.id] = def.id
+      })
+    },
+    toggleShowResolved() { this.showResolved = !this.showResolved },
+    async batchApply() {
+      if (!this.canPublish) return
+      const ids = this.batchApplyTargetIds.split(',').map(s=>parseInt(s.trim())).filter(n=>!isNaN(n))
+      if (!ids.length) { toast.error('Enter collection IDs first'); return }
+      this.batchApplying = true
+      try {
+        const variableSelections = Object.entries(this.selections).map(([variableId, valueId]) => ({ variable_id: parseInt(variableId), variable_value_id: parseInt(valueId) }))
+        const resp = await fetch('/api/variables/collections/batch-configure', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ collection_ids: ids, variable_selections: variableSelections }) })
+        const data = await resp.json()
+        if (!resp.ok) throw new Error(data.error || 'Batch apply failed')
+        toast.success(`Applied to ${data.collections.length} collections`)
+      } catch(e) {
+        toast.error(e.message)
+      } finally { this.batchApplying = false }
     },
     
     closeModal() {
@@ -550,4 +604,14 @@ export default {
 .preview-empty { font-size:0.75rem; color:#6b7280; }
 .fade-enter-active, .fade-leave-active { transition: opacity .2s; }
 .fade-enter-from, .fade-leave-to { opacity:0; }
+
+/* Enhancements */
+.variables-toolbar { display:flex; gap:0.4rem; flex-wrap:wrap; margin-bottom:0.75rem; }
+.badge { font-size:0.6rem; padding:0.2rem 0.4rem; border-radius:4px; text-transform:uppercase; letter-spacing:0.5px; }
+.badge-resolved { background:#d1fae5; color:#065f46; }
+.badge-unresolved { background:#fee2e2; color:#991b1b; }
+.batch-apply-bar { border-top:1px solid #e5e7eb; background:#f9fafb; padding:0.75rem 1rem 1rem; }
+.batch-label { display:block; font-size:0.65rem; font-weight:600; text-transform:uppercase; margin-bottom:0.25rem; color:#374151; }
+.batch-row { display:flex; gap:0.5rem; }
+.batch-input { flex:1; padding:0.4rem 0.5rem; border:1px solid #d1d5db; border-radius:4px; font-size:0.75rem; }
 </style>
