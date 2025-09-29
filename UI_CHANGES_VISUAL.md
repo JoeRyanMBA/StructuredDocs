@@ -1,7 +1,8 @@
-## Frontend UI Changes - Import Page
+# Frontend UI Changes - Import Page
 
-### Before (Original)
-```
+## Before (Original)
+
+```text
 Import Content
 ┌─────────────────────────────────────────────┐
 │ Import Type                                 │
@@ -18,8 +19,9 @@ File: [Choose File] No file chosen
 [📥 Start Import]
 ```
 
-### After (With Hierarchy Option)
-```
+## After (With Hierarchy Option)
+
+```text
 Import Content
 ┌─────────────────────────────────────────────┐
 │ Import Type                                 │

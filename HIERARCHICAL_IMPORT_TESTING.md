@@ -44,12 +44,14 @@ The hierarchical import feature allows users to import Word documents while pres
 ### Prerequisites
 
 1. Start the backend server:
+
    ```bash
    cd /workspaces/StructuredDocs
    python3 start.py
    ```
 
 2. Start the frontend development server:
+
    ```bash
    cd /workspaces/StructuredDocs/frontend
    npm run dev
@@ -68,6 +70,7 @@ The hierarchical import feature allows users to import Word documents while pres
 5. Click "Start Import"
 
 **Expected Result**:
+
 - Redirected to Import Review page
 - All headings promoted to H1 level
 - Creates individual topics: "Employee Handbook", "Getting Started", "Your First Day", etc.
@@ -82,10 +85,12 @@ The hierarchical import feature allows users to import Word documents while pres
 5. Click "Start Import"
 
 **Expected Result**:
+
 - Redirected to Organize page for auto-created collection
 - Collection name: "Document Import - test_employee_handbook.md"
 - Hierarchical structure preserved:
-  ```
+
+  ```text
   └─ Employee Handbook (H1)
      ├─ Getting Started (H2)
      │  ├─ Your First Day (H3)
@@ -116,6 +121,7 @@ The hierarchical import feature allows users to import Word documents while pres
 5. Click "Start Import"
 
 **Expected Result**:
+
 - Should produce the same hierarchical structure as Test Case 2
 - But with user-specified collection name and details
 
@@ -160,6 +166,7 @@ For hierarchical imports, the following should be created:
 ## Test Document Structure
 
 The `test_employee_handbook.md` document has this structure:
+
 - 2 H1 headings (Employee Handbook, IT Resources)
 - 5 H2 headings (Getting Started, Policies and Procedures, Benefits and Compensation, Equipment and Software, Security Policies)
 - 11 H3 headings (various sub-topics)
@@ -169,6 +176,7 @@ This should result in 18 total topics with proper parent-child relationships whe
 ## Success Criteria
 
 ✅ **Feature Complete** when:
+
 1. Checkbox appears and functions correctly in UI
 2. Hierarchical imports create collections with proper relationships
 3. Regular imports continue to work as before (backward compatibility)

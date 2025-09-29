@@ -46,30 +46,30 @@ Details about our health insurance offerings and enrollment process.
 
 Information about 401(k) matching and retirement planning resources.
 
-# IT Resources
+## IT Resources
 
 This section covers technology resources and IT policies.
 
-## Equipment and Software
+### Equipment and Software
 
 Information about company-provided equipment and approved software.
 
-### Laptop and Hardware
+#### Laptop and Hardware
 
 Details about your assigned laptop and hardware setup.
 
-### Software Access
+#### Software Access
 
 How to access company software and request additional tools.
 
-## Security Policies
+### Security Policies
 
 Important information about maintaining data security and compliance.
 
-### Password Requirements
+#### Password Requirements
 
 Guidelines for creating and maintaining secure passwords.
 
-### Data Protection
+#### Data Protection
 
 Best practices for protecting sensitive company and customer data.

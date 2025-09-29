@@ -22,10 +22,10 @@ This is content under sub-subtopic 2.1.
 
 This is content under sub-subtopic 2.2.
 
-# Another Main Topic
+## Another Main Topic
 
 This is the content of another main topic.
 
-## Another Subtopic
+### Another Subtopic
 
 This is content under another subtopic.
