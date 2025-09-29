@@ -34,10 +34,11 @@ ENV APP_VERSION=${APP_VERSION} \
     GIT_COMMIT=${GIT_COMMIT} \
     BUILD_TIME=${BUILD_TIME}
 
-# Install system dependencies
+# Install system dependencies including pandoc for document conversion
 RUN apt-get update && apt-get install -y \
     gcc \
     curl \
+    pandoc \
     && rm -rf /var/lib/apt/lists/*
 
 WORKDIR /app

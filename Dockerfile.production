@@ -1,8 +1,8 @@
 # Dockerfile.production - Production-optimized
 FROM python:3.11-alpine
 
-# Install system dependencies
-RUN apk add --no-cache gcc musl-dev
+# Install system dependencies including pandoc for document conversion
+RUN apk add --no-cache gcc musl-dev pandoc
 
 WORKDIR /app
 
