@@ -463,7 +463,65 @@ def check_collection_variables(collection_id):
             'variables_info': variables_info,
             'collection_id': collection.id,
             'message': f'Please configure {len(unresolved)} variable(s) before publishing.',
-            'variables_endpoint': f'/api/variables/collections/{collection.id}/selections'
+            'variables_endpoint': f'/api/variables/collections/{collection.id}/selections',
+            'publish_setup_endpoint': f'/api/variables/collections/{collection.id}/publish-setup',
+            'configure_endpoint': f'/api/variables/collections/{collection.id}/configure-for-publish'
+        }), 200
+        
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@collections_bp.route('/<int:collection_id>/prepare-publish', methods=['GET'])
+def prepare_collection_for_publish(collection_id):
+    """
+    Comprehensive endpoint to prepare a collection for publishing.
+    Returns variable configuration status and collection preview.
+    """
+    try:
+        collection = Collection.query.get_or_404(collection_id)
+        
+        # Get variable mapping status
+        var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
+        
+        # Get topics with their hierarchical structure
+        topics_tree = collection.to_tree()
+        
+        # If there are unresolved variables, get their details
+        variables_info = []
+        if unresolved:
+            from ..models import Variable
+            for var_slug in unresolved:
+                var = Variable.query.filter_by(slug=var_slug).first()
+                if var:
+                    variables_info.append({
+                        'id': var.id,
+                        'slug': var.slug,
+                        'name': var.name,
+                        'description': var.description,
+                        'values': [{'id': v.id, 'value': v.value, 'is_default': v.is_default} for v in var.values]
+                    })
+        
+        return jsonify({
+            'collection': {
+                'id': collection.id,
+                'name': collection.name,
+                'description': collection.description,
+                'topics_count': len(collection.topics)
+            },
+            'publishing_status': {
+                'ready_to_publish': len(unresolved) == 0,
+                'variables_configured': len(var_mapping),
+                'variables_needed': len(unresolved),
+                'unresolved_variables': unresolved
+            },
+            'variables_info': variables_info,
+            'topics_preview': topics_tree,
+            'actions': {
+                'configure_variables': f'/api/variables/collections/{collection.id}/configure-for-publish',
+                'publish': f'/api/collections/{collection.id}/publish',
+                'preview_with_variables': f'/api/variables/collections/{collection.id}/preview'
+            }
         }), 200
         
     except Exception as e:
