@@ -254,6 +254,7 @@ def publish_collection(collection_id):
                     'requires_variable_selection': True,
                     'unresolved_variables': unresolved,
                     'variables_info': variables_info,
+                    'publish_setup_endpoint': f'/api/variables/collections/{collection.id}/publish-setup',
                     'collection_id': collection.id,
                     'message': f'This collection contains {len(unresolved)} variable(s) that need to be configured before publishing.'
                 }), 400
@@ -323,6 +324,7 @@ def publish_collection(collection_id):
                 'requires_variable_selection': True,
                 'unresolved_variables': unresolved,
                 'variables_info': variables_info,
+                'publish_setup_endpoint': f'/api/variables/collections/{collection.id}/publish-setup',
                 'collection_id': collection.id,
                 'message': f'This collection contains {len(unresolved)} variable(s) that need to be configured before publishing.'
             }), 400

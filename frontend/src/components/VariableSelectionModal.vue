@@ -51,15 +51,23 @@
       </div>
       
       <div class="modal-footer">
-        <button class="btn btn-secondary" @click="closeModal" :disabled="saving">
-          Cancel
-        </button>
-        <button 
-          class="btn btn-primary" 
-          @click="saveAndPublish" 
-          :disabled="!canPublish || saving">
-          {{ saving ? 'Configuring...' : 'Configure & Publish' }}
-        </button>
+        <div class="left-actions">
+          <button class="btn btn-secondary" @click="closeModal" :disabled="saving">Cancel</button>
+          <button class="btn btn-tertiary" @click="saveOnly" :disabled="!canPublish || saving">
+            {{ saving && saveMode==='save' ? 'Saving...' : 'Save Only' }}
+          </button>
+          <button class="btn btn-tertiary" @click="previewVariables" :disabled="!canPublish || previewing || saving">
+            {{ previewing ? 'Previewing...' : 'Preview' }}
+          </button>
+        </div>
+        <div class="right-actions">
+          <button 
+            class="btn btn-primary" 
+            @click="saveAndPublish" 
+            :disabled="!canPublish || saving">
+            {{ saving && saveMode==='publish' ? 'Configuring...' : 'Configure & Publish' }}
+          </button>
+        </div>
       </div>
     </div>
   </div>
@@ -93,7 +101,11 @@ export default {
     return {
       loading: false,
       saving: false,
-      selections: {}
+      selections: {},
+      previewing: false,
+      previewResult: null,
+      previewError: null,
+      saveMode: null
     }
   },
   
@@ -145,6 +157,7 @@ export default {
     },
     
     async saveAndPublish() {
+      this.saveMode = 'publish'
       if (!this.canPublish) {
         toast.error('Please select values for all variables')
         return
@@ -195,6 +208,60 @@ export default {
         toast.error(`Error configuring variables: ${error.message}`)
       } finally {
         this.saving = false
+      }
+    },
+    async saveOnly() {
+      this.saveMode = 'save'
+      if (!this.canPublish) return
+      this.saving = true
+      try {
+        const variableSelections = Object.entries(this.selections).map(([variableId, valueId]) => ({
+          variable_id: parseInt(variableId),
+          variable_value_id: parseInt(valueId)
+        }))
+        const configResponse = await fetch(`/api/variables/collections/${this.collectionId}/configure-for-publish`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ variable_selections: variableSelections })
+        })
+        const data = await configResponse.json()
+        if (!configResponse.ok) throw new Error(data.error || 'Failed to save')
+        toast.success('Variables saved')
+      } catch(e) {
+        toast.error(e.message)
+      } finally {
+        this.saving = false
+        this.saveMode = null
+      }
+    },
+    async previewVariables() {
+      if (!this.canPublish) return
+      this.previewing = true
+      this.previewError = null
+      try {
+        // Build a slug:value map for preview
+        const slugMap = {}
+        this.variablesInfo.forEach(v => {
+          const sel = this.selections[v.id]
+          if (sel) {
+            const valObj = v.values.find(val => val.id === sel)
+            if (valObj) slugMap[v.slug] = valObj.value
+          }
+        })
+        const resp = await fetch(`/api/variables/collections/${this.collectionId}/preview`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ map: slugMap })
+        })
+        const data = await resp.json()
+        if (!resp.ok) throw new Error(data.error || 'Preview failed')
+        this.previewResult = data
+        // Simple toast; could open a dedicated preview panel
+        toast.success('Preview generated (open console to inspect)')
+        console.log('🔍 Variable Preview Result:', data)
+      } catch(e) {
+        this.previewError = e.message
+        toast.error(e.message)
+      } finally {
+        this.previewing = false
       }
     },
     
@@ -357,12 +424,20 @@ export default {
 
 .modal-footer {
   display: flex;
-  justify-content: flex-end;
+  justify-content: space-between;
   gap: 0.75rem;
   padding: 1.5rem;
   border-top: 1px solid #e5e7eb;
   background: #f9fafb;
 }
+
+.left-actions, .right-actions { display: flex; gap: 0.5rem; align-items: center; }
+
+.btn-tertiary {
+  background: #eef2f7;
+  color: #374151;
+}
+.btn-tertiary:hover:not(:disabled) { background: #e2e8f0; }
 
 .btn {
   padding: 0.5rem 1rem;

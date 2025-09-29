@@ -268,34 +268,34 @@ def get_collection_publish_setup(collection_id):
     try:
         # Get current variable mapping and unresolved variables
         var_mapping, unresolved = build_variable_mapping_for_collection(collection_id)
-        
+
         # Get all variables and their current selections
         selections = CollectionVariableSelection.query.filter_by(collection_id=collection_id).all()
         selection_map = {s.variable_id: s.variable_value_id for s in selections}
-        
+
         # Get all variables that appear in collection content
         all_variables = Variable.query.all()
         variables_in_content = []
-        
+
         # Check which variables are actually used in this collection's content
         for var in all_variables:
             variable_pattern = f"{{{{{var.slug}}}}}"
             found_in_content = False
-            
+
             # Check in topic titles and content
             for topic in collection.topics:
-                if (variable_pattern in (topic.title or '') or 
+                if (variable_pattern in (topic.title or '') or
                     variable_pattern in (topic.content or '')):
                     found_in_content = True
                     break
-            
+
             if found_in_content:
                 current_selection = selection_map.get(var.id)
                 current_value = None
                 if current_selection:
                     value_obj = VariableValue.query.get(current_selection)
                     current_value = value_obj.to_dict() if value_obj else None
-                
+
                 variables_in_content.append({
                     'id': var.id,
                     'slug': var.slug,
@@ -305,7 +305,7 @@ def get_collection_publish_setup(collection_id):
                     'current_selection': current_value,
                     'values': [v.to_dict() for v in var.values]
                 })
-        
+
         return jsonify({
             'collection_id': collection_id,
             'collection_name': collection.name,
@@ -315,7 +315,7 @@ def get_collection_publish_setup(collection_id):
             'resolved_count': len(var_mapping),
             'message': f'Collection uses {len(variables_in_content)} variable(s). {len(unresolved)} need configuration.' if unresolved else 'All variables are configured. Ready to publish!'
         }), 200
-        
+
     except Exception as e:
         current_app.logger.exception('Failed to get publish setup')
         return jsonify({'error': str(e)}), 500
@@ -379,6 +379,8 @@ def configure_collection_variables_for_publish(collection_id):
             'updated_variables': updated_count,
             'ready_to_publish': len(unresolved) == 0,
             'remaining_unresolved': unresolved,
+            'publish_endpoint': f'/api/collections/{collection_id}/publish',
+            'preview_endpoint': f'/api/variables/collections/{collection_id}/preview',
             'message': f'Updated {updated_count} variable(s). ' + 
                       ('Ready to publish!' if len(unresolved) == 0 else f'{len(unresolved)} still need configuration.')
         }), 200
