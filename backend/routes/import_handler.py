@@ -872,7 +872,7 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
                     collection_id=collection.id,
                     topic_id=topic.id,
                     parent_topic_id=parent_topic_id,
-                    order_index=i
+                    position=i
                 )
             )
         
