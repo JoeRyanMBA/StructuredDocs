@@ -34,6 +34,28 @@
       </div>
     </div>
 
+    <!-- Advanced Options (only shown when importing as individual topics) -->
+    <div v-if="importType === 'topics'" class="advanced-options">
+      <h3>Import Options</h3>
+      <div class="form-group">
+        <label class="checkbox-label">
+          <input 
+            type="checkbox" 
+            v-model="preserveHierarchy" 
+            :disabled="isUploading"
+          />
+          <span class="checkbox-text">
+            <strong>Preserve Document Hierarchy</strong>
+            <br>
+            <small class="form-help">
+              Automatically create a collection with topics organized by heading levels (H1, H2, H3). 
+              Perfect for structured documents where you want to maintain the original organization.
+            </small>
+          </span>
+        </label>
+      </div>
+    </div>
+
     <!-- Collection Details (only shown when importing as collection) -->
     <div v-if="importType === 'collection'" class="collection-details">
       <h3>Collection Details</h3>
@@ -171,9 +193,10 @@ export default {
     return {
       source: 'markdown',
       error: null,
-  isUploading: false,
-  preparingImport: false,
+      isUploading: false,
+      preparingImport: false,
       importType: 'topics',
+      preserveHierarchy: false,
       collectionName: '',
       collectionFormNumber: '',
       collectionDescription: '',
@@ -289,6 +312,11 @@ export default {
       form.append('source', this.source)
       form.append('import_type', this.importType)
       
+      // Add hierarchy preservation setting for individual topic imports
+      if (this.importType === 'topics') {
+        form.append('preserve_hierarchy', this.preserveHierarchy.toString())
+      }
+      
       // Add collection details if importing as collection
       if (this.importType === 'collection') {
         form.append('collection_name', this.collectionName)
@@ -321,19 +349,20 @@ export default {
 
         console.log('Upload successful, result:', result) // Debug log
 
-        // Handle different import types
-        if (this.importType === 'collection') {
-          // For collection imports, redirect to the collection organize page
-          if (result.collection_id) {
+        // Handle different import types and responses
+        if (this.importType === 'collection' || (this.importType === 'topics' && this.preserveHierarchy)) {
+          // For collection imports or hierarchical topic imports, redirect to the collection organize page
+          const collectionId = result.collection_id || result.id
+          if (collectionId) {
             this.$router.push({
               name: 'Organize',
-              params: { id: result.collection_id }
+              params: { id: collectionId }
             })
           } else {
             throw new Error('Collection creation failed - no collection ID returned')
           }
         } else {
-          // For topic imports, go to the import review page
+          // For regular flat topic imports, go to the import review page
           if (result.id) {
             this.$router.push({
               name: 'ImportReview',
@@ -448,6 +477,45 @@ export default {
   height: 1px; width: 1px;
   overflow: hidden; clip: rect(1px, 1px, 1px, 1px);
   white-space: nowrap; border: 0; padding: 0; margin: -1px;
+}
+
+.advanced-options {
+  margin-bottom: 2rem;
+  padding: 1.5rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: 8px;
+  background: white;
+}
+
+.advanced-options h3 {
+  margin: 0 0 1.5rem 0;
+  color: var(--text-primary-charcoal);
+  font-size: 1.1rem;
+}
+
+.checkbox-label {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: normal;
+  margin-bottom: 0;
+}
+
+.checkbox-label input[type="checkbox"] {
+  margin: 0;
+  width: auto;
+  flex-shrink: 0;
+  margin-top: 0.2rem;
+}
+
+.checkbox-text {
+  flex: 1;
+  line-height: 1.4;
+}
+
+.checkbox-text strong {
+  color: var(--text-primary-charcoal);
 }
 
 .collection-details {
