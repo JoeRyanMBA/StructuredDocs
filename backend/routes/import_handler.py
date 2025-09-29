@@ -797,12 +797,41 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
         hierarchical_items = _parse_hierarchical_structure(file, source)
         
         if not hierarchical_items:
-            error_msg = f"No content items could be extracted from the document. "
-            if source == 'word':
-                error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
-            else:
-                error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
-            return jsonify({'error': error_msg}), 422
+            print("HIERARCHICAL PARSING FAILED: Falling back to regular flat parsing")
+            # Fall back to regular parsing logic
+            file.stream.seek(0)
+            temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
+            db.session.add(temp_imp_doc)
+            db.session.flush()
+            
+            _parse_and_store(file, temp_imp_doc, source, preserve_hierarchy=False)
+            items_count = ImportItem.query.filter_by(document_id=temp_imp_doc.id).count()
+            
+            if items_count == 0:
+                db.session.rollback()
+                error_msg = f"No content items could be extracted from the document. "
+                if source == 'word':
+                    error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
+                else:
+                    error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
+                return jsonify({'error': error_msg}), 422
+            
+            # Convert ImportItems to hierarchical format
+            import_items = ImportItem.query.filter_by(document_id=temp_imp_doc.id).order_by(ImportItem.heading_order).all()
+            hierarchical_items = []
+            for item in import_items:
+                hierarchical_items.append({
+                    'title': item.title,
+                    'content': item.content,
+                    'level': 1,  # All items are H1 in flat parsing
+                    'parent_index': None  # No hierarchy in fallback
+                })
+            
+            # Clean up temporary import document
+            ImportItem.query.filter_by(document_id=temp_imp_doc.id).delete()
+            db.session.delete(temp_imp_doc)
+            
+            print(f"FALLBACK SUCCESS: Created {len(hierarchical_items)} flat items")
         
         # Create the collection
         collection = Collection(
@@ -908,80 +937,88 @@ def _parse_hierarchical_structure(file, source):
     """Parse document preserving hierarchical heading structure"""
     file.stream.seek(0)
     
-    if source == 'word':
-        # Read file content for conversion
-        file_content = file.read()
-        file.stream.seek(0)
+    try:
+        # Get markdown content based on source type
+        if source == 'word':
+            file_content = file.read()
+            file.stream.seek(0)
+            markdown_content = _convert_word_to_markdown(file_content, 999999)  # Use dummy ID for temp processing
+        else:
+            # For markdown files, read directly
+            markdown_content = file.read().decode('utf-8')
+            file.stream.seek(0)
         
         hierarchical_items = []
-        try:
-            # Primary conversion via pandoc
-            markdown_content = _convert_word_to_markdown(file_content, 999999)  # Use dummy ID for temp processing
+        current_stack = []  # Stack to track heading hierarchy levels
+        current_content = []
+        
+        for line in markdown_content.splitlines():
+            stripped = line.strip()
             
-            # Parse into hierarchical structure
-            current_stack = []  # Stack to track heading hierarchy
-            current_content = []
-            
-            for line in markdown_content.splitlines():
-                stripped = line.strip()
+            if stripped.startswith('#'):
+                # This is a heading - determine its level
+                hash_count = len(line) - len(line.lstrip('#'))
+                title = stripped.lstrip('#').strip()
                 
-                if stripped.startswith('#'):
-                    # This is a heading - determine its level
-                    hash_count = len(line) - len(line.lstrip('#'))
-                    title = stripped.lstrip('#').strip()
-                    
-                    # Commit previous content if any
-                    if current_stack and current_content:
-                        content_text = '\n'.join(current_content).strip()
-                        if content_text:
-                            current_stack[-1]['content'] = content_text
-                        current_content = []
-                    
-                    # Create new heading item
-                    heading_item = {
-                        'title': title,
-                        'level': hash_count,
-                        'content': '',
-                        'children': [],
-                        'parent_index': None
-                    }
-                    
-                    # Find the correct parent based on heading level
-                    # Remove items from stack that are at same or deeper level
-                    while current_stack and current_stack[-1]['level'] >= hash_count:
-                        completed_item = current_stack.pop()
-                        if completed_item.get('content') or completed_item.get('children'):
-                            hierarchical_items.append(completed_item)
-                    
-                    # Set parent relationship
-                    if current_stack:
-                        heading_item['parent_index'] = len(hierarchical_items) + len(current_stack) - 1
-                        current_stack[-1]['children'].append(len(hierarchical_items) + len(current_stack))
-                    
-                    current_stack.append(heading_item)
-                    print(f"HIERARCHICAL HEADING: Level {hash_count} - '{title}' (parent: {heading_item['parent_index']})")
-                    
-                else:
-                    # Regular content
-                    current_content.append(line)
-            
-            # Don't forget remaining items in stack
-            for item in current_stack:
-                if current_content and item == current_stack[-1]:
+                # Commit content to the current item in stack
+                if current_stack and current_content:
                     content_text = '\n'.join(current_content).strip()
                     if content_text:
-                        item['content'] = content_text
-                hierarchical_items.append(item)
-            
-            print(f"HIERARCHICAL PARSING: Created {len(hierarchical_items)} hierarchical items")
-            return hierarchical_items
-            
-        except Exception as e:
-            print(f"HIERARCHICAL PARSING ERROR: {e}")
-            # Fallback to flat structure
-            return []
-    
-    return []
+                        current_stack[-1]['content'] = content_text
+                    current_content = []
+                
+                # Pop items from stack that are at same or deeper level
+                while current_stack and current_stack[-1]['level'] >= hash_count:
+                    completed_item = current_stack.pop()
+                    hierarchical_items.append(completed_item)
+                
+                # Create new heading item
+                heading_item = {
+                    'title': title,
+                    'level': hash_count,
+                    'content': '',
+                    'parent_index': None
+                }
+                
+                # Set parent relationship - we'll fix this after all items are processed
+                # For now, just track the parent level
+                heading_item['parent_level'] = current_stack[-1]['level'] if current_stack else None
+                
+                current_stack.append(heading_item)
+                print(f"HIERARCHICAL HEADING: Level {hash_count} - '{title}' (parent: {heading_item['parent_index']})")
+                
+            else:
+                # Regular content line
+                current_content.append(line)
+        
+        # Process remaining items in stack
+        if current_stack and current_content:
+            content_text = '\n'.join(current_content).strip()
+            if content_text:
+                current_stack[-1]['content'] = content_text
+        
+        # Add all remaining stack items to hierarchical_items
+        hierarchical_items.extend(current_stack)
+        
+        # Fix parent relationships - find the correct parent for each item
+        for i, item in enumerate(hierarchical_items):
+            if item.get('parent_level') is not None:
+                # Find the most recent item with the parent level
+                for j in range(i - 1, -1, -1):
+                    if hierarchical_items[j]['level'] == item['parent_level']:
+                        item['parent_index'] = j
+                        break
+            # Remove the temporary parent_level field
+            item.pop('parent_level', None)
+        
+        print(f"HIERARCHICAL PARSING: Created {len(hierarchical_items)} hierarchical items")
+        return hierarchical_items
+        
+    except Exception as e:
+        print(f"HIERARCHICAL PARSING ERROR: {e}")
+        current_app.logger.error(f"Hierarchical parsing failed: {e}")
+        # Return empty list to trigger the error handling in calling function
+        return []
 
 
 def _import_as_collection(file, source):
