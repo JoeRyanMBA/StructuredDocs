@@ -1,0 +1,101 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Button Consistency Test</title>
+    <link rel="stylesheet" href="src/assets/style.css">
+    <style>
+        body {
+            font-family: 'Roboto', sans-serif;
+            padding: 2rem;
+            background-color: #f5f5f5;
+        }
+        .test-section {
+            background: white;
+            padding: 2rem;
+            margin-bottom: 2rem;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        .button-showcase {
+            display: flex;
+            gap: 0.5rem;
+            margin-bottom: 1rem;
+            align-items: center;
+        }
+        .card-actions-demo {
+            background: white;
+            border: 1px solid #E9ECEF;
+            border-radius: 12px;
+            padding: 1rem;
+            margin: 1rem 0;
+        }
+        .card-actions {
+            display: flex;
+            gap: 0.5rem;
+            align-items: center;
+            justify-content: flex-end;
+        }
+        .card-actions .btn.btn-sm {
+            flex: 0 0 auto;
+            min-width: 72px;
+            height: 32px;
+            text-align: center;
+            padding: 0.35rem 0.65rem;
+            font-size: 0.85rem;
+            line-height: 1.2;
+            border-radius: 4px;
+            box-sizing: border-box;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+        }
+    </style>
+</head>
+<body>
+    <h1>Button Consistency Test - Collections Dashboard</h1>
+    
+    <div class="test-section">
+        <h2>Standard Button Sizes (All should be same height)</h2>
+        <div class="button-showcase">
+            <button class="btn btn-secondary btn-sm">Edit</button>
+            <button class="btn btn-primary btn-sm">View</button>
+            <button class="btn btn-warning btn-sm">Archive</button>
+            <button class="btn btn-danger btn-sm">Delete</button>
+        </div>
+        
+        <div class="button-showcase">
+            <button class="btn btn-outline btn-sm">Unarchive</button>
+            <button class="btn btn-success btn-sm">Success</button>
+            <button class="btn btn-info btn-sm">Info</button>
+        </div>
+    </div>
+    
+    <div class="test-section">
+        <h2>Collection Card Action Buttons (Simulated)</h2>
+        <div class="card-actions-demo">
+            <h4>Sample Collection</h4>
+            <p>This collection contains 15 topics</p>
+            <div class="card-actions">
+                <button class="btn btn-secondary btn-sm">Edit</button>
+                <button class="btn btn-primary btn-sm">View</button>
+                <button class="btn btn-outline btn-sm">Archive</button>
+                <button class="btn btn-danger btn-sm">Delete</button>
+            </div>
+        </div>
+    </div>
+
+    <div class="test-section">
+        <h2>Alternative Card Action Button Style</h2>
+        <div class="card-actions-demo">
+            <h4>Sample Publication</h4>
+            <p>Using card-action-btn style</p>
+            <div class="card-actions">
+                <button class="card-action-btn primary">Download</button>
+                <button class="card-action-btn">Edit</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>

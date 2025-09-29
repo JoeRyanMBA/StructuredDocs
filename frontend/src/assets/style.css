@@ -208,10 +208,32 @@ a:hover {
 .btn-danger {
   background-color: var(--error-coral-red);
   color: white;
+  border: 1px solid var(--error-coral-red) !important;
+}
+
+.btn-danger {
+  background-color: var(--error-coral-red);
+  color: white;
+  border: 1px solid var(--error-coral-red) !important;
 }
 
 .btn-danger:hover {
   background-color: #c0392b; /* A darker shade of coral red */
+  border-color: #c0392b !important;
+  transform: translateY(-2px);
+  box-shadow: var(--shadow-sm);
+}
+
+/* Warning buttons - used for archive/unarchive actions */
+.btn-warning {
+  background-color: var(--warning-amber);
+  color: white;
+  border: 1px solid var(--warning-amber) !important;
+}
+
+.btn-warning:hover {
+  background-color: #d68910; /* Darker shade of amber */
+  border-color: #d68910 !important;
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
@@ -220,9 +242,11 @@ a:hover {
 .btn-success {
   background-color: var(--success-mint-green);
   color: var(--bg-white);
+  border: 1px solid var(--success-mint-green) !important;
 }
 .btn-success:hover:not(:disabled) {
   background-color: #14532d; /* slightly darker for hover */
+  border-color: #14532d !important;
    transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
@@ -246,9 +270,32 @@ a:hover {
   border-radius: 4px;
   line-height: 1.2;
   min-height: 32px;
+  height: 32px; /* Explicit height for perfect alignment */
   min-width: 90px; /* stabilize width for tab-like toggles */
   gap: 0.375rem;
   box-sizing: border-box; /* Ensure border is included in height calculation */
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+/* Ensure all button variants have consistent sizing */
+.btn-primary.btn-sm,
+.btn-secondary.btn-sm,
+.btn-danger.btn-sm,
+.btn-warning.btn-sm,
+.btn-success.btn-sm,
+.btn-info.btn-sm,
+.btn-outline.btn-sm {
+  height: 32px;
+  padding: 0.35rem 0.65rem;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
 }
 
 /* Ensure filter action buttons don't jitter across views */
@@ -306,6 +353,75 @@ a:hover {
 .btn-sm:hover,
 .btn-sm:active {
   transform: none; /* prevent layout shift on toggles */
+}
+
+/* === BUTTON GROUP LAYOUTS === */
+/* Consistent styling for action button groups across the app */
+.action-buttons,
+.card-actions,
+.button-group {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+/* Ensure buttons in action groups have consistent spacing and alignment */
+.action-buttons .btn,
+.card-actions .btn,
+.button-group .btn {
+  margin: 0 !important; /* Override any external margins */
+}
+
+/* For button groups that should have equal-width buttons */
+.button-group.equal-width .btn {
+  flex: 1 1 0;
+  min-width: 0;
+}
+
+/* For button groups with natural-width buttons */
+.button-group.natural-width .btn,
+.card-actions .btn {
+  flex: 0 0 auto;
+}
+
+/* === CARD ACTION BUTTONS === */
+/* Alternative button style used in some card layouts */
+.card-action-btn {
+  padding: 0.35rem 0.65rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: 4px;
+  background: var(--bg-white);
+  color: var(--text-primary-charcoal);
+  cursor: pointer;
+  font-size: 0.85rem;
+  line-height: 1.2;
+  min-height: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  box-sizing: border-box;
+  transition: all 0.2s ease;
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.card-action-btn:hover {
+  border-color: var(--primary-deep-teal);
+  background: var(--bg-light-mist-gray);
+  transform: translateY(-1px);
+  box-shadow: var(--shadow-sm);
+}
+
+.card-action-btn.primary {
+  background: var(--primary-deep-teal);
+  color: white;
+  border-color: var(--primary-deep-teal);
+}
+
+.card-action-btn.primary:hover {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
 }
 
 /* Consistent hover effects for all buttons */

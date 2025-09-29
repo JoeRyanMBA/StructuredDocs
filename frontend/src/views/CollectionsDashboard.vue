@@ -761,8 +761,27 @@ export default {
 .card-description { color: var(--text-primary-charcoal); font-size: 0.9rem; margin: 0.5rem 0; }
 .card-project { color: var(--text-secondary-cool-gray); font-size: 0.85rem; margin-bottom: 0.5rem; }
 .card-footer { display: flex; justify-content: space-between; align-items: center; color: var(--text-secondary-cool-gray); font-size: 0.85rem; }
-.card-actions { display: flex; gap: 0.5rem; }
-.card-actions .btn.btn-sm { flex: 1 1 0; min-width: 96px; text-align: center; }
+.card-actions { 
+  display: flex; 
+  gap: 0.5rem; 
+  align-items: center;
+  justify-content: flex-end;
+}
+
+.card-actions .btn.btn-sm { 
+  flex: 0 0 auto; /* Don't grow/shrink, use natural width */
+  min-width: 72px; /* Reduced for better proportions */
+  height: 32px; /* Explicit height for perfect alignment */
+  text-align: center; 
+  padding: 0.35rem 0.65rem; /* Consistent with global btn-sm */
+  font-size: 0.85rem;
+  line-height: 1.2;
+  border-radius: 4px;
+  box-sizing: border-box;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
 .card-action-btn { border: 1px solid var(--border-light-gray); padding: 0.35rem 0.6rem; border-radius: 6px; background: #fff; cursor: pointer; }
 .card-action-btn.primary { background: var(--extended-steel-blue); color: #fff; border-color: var(--extended-steel-blue); }
 
