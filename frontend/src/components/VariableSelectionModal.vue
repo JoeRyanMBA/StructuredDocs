@@ -48,6 +48,50 @@
         <div v-else class="no-variables">
           <p>No variables found to configure.</p>
         </div>
+
+        <!-- Inline Preview Panel -->
+        <div v-if="previewResult" class="preview-panel" :class="{ open: showPreviewPanel }">
+          <div class="preview-header" @click="togglePreviewPanel()">
+            <h4 class="preview-title">
+              <span v-if="!showPreviewPanel">▶</span>
+              <span v-else>▼</span>
+              Preview ({{ previewResult.topics?.length || 0 }} topic{{ (previewResult.topics?.length||0)===1?'':'s' }})
+            </h4>
+            <div class="preview-actions">
+              <button class="btn btn-tertiary btn-xs" @click.stop="clearPreview">Clear</button>
+              <button class="btn btn-tertiary btn-xs" v-if="showPreviewPanel" @click.stop="expandPreviewLimit" :disabled="previewTopicLimit >= (previewResult.topics?.length||0)">
+                Show More
+              </button>
+            </div>
+          </div>
+          <transition name="fade">
+            <div v-show="showPreviewPanel" class="preview-body">
+              <div v-if="previewError" class="preview-error">{{ previewError }}</div>
+              <div class="mapping-summary" v-if="previewResult.mapping">
+                <h5>Variable Mapping</h5>
+                <ul>
+                  <li v-for="(val, slug) in previewResult.mapping" :key="slug">
+                    <code>{{ slug }}</code>: <strong>{{ val }}</strong>
+                  </li>
+                </ul>
+              </div>
+              <div class="preview-topics" v-if="previewResult.topics && previewResult.topics.length">
+                <div
+                  v-for="t in previewResult.topics.slice(0, previewTopicLimit)"
+                  :key="t.id"
+                  class="preview-topic"
+                >
+                  <h5 class="preview-topic-title">{{ t.title }}</h5>
+                  <div class="preview-content" v-html="renderSnippet(t.content)"></div>
+                </div>
+                <div v-if="previewResult.topics.length > previewTopicLimit" class="preview-more">
+                  Showing first {{ previewTopicLimit }} topics of {{ previewResult.topics.length }}.
+                </div>
+              </div>
+              <div v-else class="preview-empty">No topics returned in preview.</div>
+            </div>
+          </transition>
+        </div>
       </div>
       
       <div class="modal-footer">
@@ -105,7 +149,9 @@ export default {
       previewing: false,
       previewResult: null,
       previewError: null,
-      saveMode: null
+      saveMode: null,
+      showPreviewPanel: true,
+      previewTopicLimit: 5
     }
   },
   
@@ -254,15 +300,28 @@ export default {
         const data = await resp.json()
         if (!resp.ok) throw new Error(data.error || 'Preview failed')
         this.previewResult = data
-        // Simple toast; could open a dedicated preview panel
-        toast.success('Preview generated (open console to inspect)')
-        console.log('🔍 Variable Preview Result:', data)
+        this.showPreviewPanel = true
+        toast.success('Preview generated')
       } catch(e) {
         this.previewError = e.message
         toast.error(e.message)
       } finally {
         this.previewing = false
       }
+    },
+    togglePreviewPanel() { this.showPreviewPanel = !this.showPreviewPanel },
+    clearPreview() { this.previewResult = null; this.previewError = null },
+    expandPreviewLimit() { this.previewTopicLimit = Math.min(this.previewTopicLimit + 5, (this.previewResult?.topics?.length||0)) },
+    renderSnippet(html) {
+      if (!html) return '<em>(empty)</em>'
+      // Basic sanitization & truncation (no external lib)
+      const div = document.createElement('div')
+      div.innerHTML = html
+      let text = div.textContent || div.innerText || ''
+      if (text.length > 400) text = text.slice(0, 400) + '…'
+      // Re-escape for safe HTML insertion (very naive)
+      const esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
+      return esc.replace(/\n/g,'<br>')
     },
     
     closeModal() {
@@ -471,4 +530,24 @@ export default {
 .btn-primary:hover:not(:disabled) {
   background: #2563eb;
 }
+
+/* Preview panel styling */
+.preview-panel { margin-top: 1.25rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fdfdfd; }
+.preview-header { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.9rem; cursor: pointer; background:#f3f4f6; border-bottom:1px solid #e5e7eb; }
+.preview-title { font-size: 0.95rem; font-weight:600; margin:0; display:flex; gap:0.5rem; align-items:center; }
+.preview-actions { display:flex; gap:0.4rem; }
+.btn-xs { padding:0.25rem 0.5rem; font-size:0.7rem; }
+.preview-body { padding: 0.85rem 0.9rem 1rem; max-height: 300px; overflow-y:auto; }
+.preview-topic { border:1px solid #e5e7eb; border-radius:4px; padding:0.5rem 0.6rem; margin-bottom:0.6rem; background:white; }
+.preview-topic-title { margin:0 0 0.25rem 0; font-size:0.85rem; font-weight:600; color:#1f2937; }
+.preview-content { font-size:0.75rem; line-height:1.3; color:#374151; white-space:normal; word-break:break-word; }
+.preview-more { font-size:0.75rem; color:#6b7280; text-align:center; }
+.mapping-summary { margin-bottom:0.75rem; }
+.mapping-summary h5 { margin:0 0 0.4rem 0; font-size:0.8rem; font-weight:600; }
+.mapping-summary ul { list-style:none; padding:0; margin:0; column-count:2; column-gap:1.25rem; }
+.mapping-summary li { font-size:0.7rem; margin-bottom:0.25rem; }
+.preview-error { color:#b91c1c; font-size:0.75rem; margin-bottom:0.75rem; }
+.preview-empty { font-size:0.75rem; color:#6b7280; }
+.fade-enter-active, .fade-leave-active { transition: opacity .2s; }
+.fade-enter-from, .fade-leave-to { opacity:0; }
 </style>
