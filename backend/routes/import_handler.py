@@ -512,7 +512,7 @@ def _clean_topic_content(content):
     return cleaned_content
 
 
-def _parse_and_store(file, imp_doc, source):
+def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
     """Extract heading‐1s and content blocks into ImportItem rows."""
     file.stream.seek(0)
 
@@ -524,19 +524,30 @@ def _parse_and_store(file, imp_doc, source):
         file.stream.seek(0)  # Reset stream for potential future reads
 
         lines = []
+        heading_levels = []  # Track original heading levels for hierarchy
         try:
             # Primary conversion via pandoc
             markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
 
-            # Treat as Markdown lines with H1 promotion
+            # Parse lines and optionally promote headers based on preserve_hierarchy setting
             for line in markdown_content.splitlines():
                 if line.strip().startswith('#'):
                     hash_count = len(line) - len(line.lstrip('#'))
-                    if hash_count > 1:
-                        content = line.lstrip('#').strip()
-                        line = f"# {content}"
-                        print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
-                lines.append(line)
+                    heading_levels.append(hash_count)  # Store original level
+                    
+                    if preserve_hierarchy:
+                        # Keep original heading level
+                        lines.append(line)
+                        print(f"HEADING PRESERVED: '{line.strip()}' (level H{hash_count})")
+                    else:
+                        # Promote all headings to H1 (original behavior)
+                        heading_text = line.lstrip('#').strip()
+                        promoted_line = f"# {heading_text}"
+                        lines.append(promoted_line)
+                        print(f"HEADING PROMOTED: '{promoted_line}' (was H{hash_count})")
+                else:
+                    heading_levels.append(None)  # Not a heading
+                    lines.append(line)
 
             md_snippet = '\n'.join(lines[:10])
             print(f"MARKDOWN SNIPPET (first 10 lines):\n{md_snippet}")
@@ -612,17 +623,19 @@ def _parse_and_store(file, imp_doc, source):
                 for issue in validation_issues:
                     print(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
         
-        # Promote headers: convert H2, H3, etc. to H1
+        # Optionally promote headers based on preserve_hierarchy setting
         lines = []
         for line in raw.splitlines():
             if line.strip().startswith('#'):
                 # Count the number of # characters
                 hash_count = len(line) - len(line.lstrip('#'))
-                if hash_count > 1:
+                if not preserve_hierarchy and hash_count > 1:
                     # Promote to H1: replace multiple # with single #
                     content = line.lstrip('#').strip()
                     line = f"# {content}"
                     print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
+                elif preserve_hierarchy:
+                    print(f"PRESERVED: '{line.strip()}' (level H{hash_count})")
             lines.append(line)
         
         paras = [('md', line) for line in lines]
@@ -654,10 +667,16 @@ def _parse_and_store(file, imp_doc, source):
             buffer = []
 
     for style, text in paras:
-        is_h1 = text.strip().startswith('#') and not text.strip().startswith('##')
-        print(f"LINE: '{text}' -> H1={is_h1}")
+        if preserve_hierarchy:
+            # With hierarchy preservation, any heading level can be a topic
+            is_heading = text.strip().startswith('#')
+        else:
+            # Original behavior: only H1 creates new topics
+            is_heading = text.strip().startswith('#') and not text.strip().startswith('##')
         
-        if is_h1:
+        print(f"LINE: '{text}' -> heading={is_heading} (preserve_hierarchy={preserve_hierarchy})")
+        
+        if is_heading:
             # Check if we have a current title but no substantive content yet
             current_buffer_content = '\n'.join(buffer).strip()
             current_buffer_has_content = bool(current_buffer_content and 
@@ -667,7 +686,13 @@ def _parse_and_store(file, imp_doc, source):
             if current_title and not current_buffer_has_content:
                 # Merge this heading into the content of the previous heading
                 heading_text = text.strip().lstrip('#').strip()
-                buffer.append(f"## {heading_text}")  # Add as H2 in content
+                if preserve_hierarchy:
+                    # Keep original heading level when merging
+                    hash_count = len(text.strip()) - len(text.strip().lstrip('#'))
+                    hashes = '#' * min(hash_count + 1, 6)  # Make it one level deeper in content
+                    buffer.append(f"{hashes} {heading_text}")
+                else:
+                    buffer.append(f"## {heading_text}")  # Add as H2 in content
                 print(f"MERGED_HEADING: '{heading_text}' added to content of '{current_title}' (no substantive content found)")
             else:
                 # Normal case: commit previous section and start new one
@@ -699,10 +724,23 @@ def _parse_and_store(file, imp_doc, source):
             print(f"FALLBACK ERROR: {e}")
 
     for order, title, content in items:
+        # If preserve_hierarchy is enabled and we have heading level info, encode it in the title
+        if preserve_hierarchy and len(items) > order:
+            # Find the original heading level for this title by checking the parsed lines
+            heading_level = 1  # Default to H1
+            for line in full_text.split('\n'):
+                if line.strip().lstrip('#').strip() == title.strip():
+                    heading_level = len(line) - len(line.lstrip('#')) if line.strip().startswith('#') else 1
+                    break
+            # Encode level in title format: "LEVEL:3:Actual Title"
+            encoded_title = f"LEVEL:{heading_level}:{title}"
+        else:
+            encoded_title = title
+            
         db.session.add(ImportItem(
             document_id=imp_doc.id,
             heading_order=order,
-            title=title,
+            title=encoded_title,
             content=content
         ))
 
@@ -711,6 +749,7 @@ def _upload_file(source):
     print(f"UPLOAD: Starting upload with source={source}")
     file = request.files.get('file')
     import_type = request.form.get('import_type', 'topics')  # Default to topics for backward compatibility
+    preserve_hierarchy = request.form.get('preserve_hierarchy', 'false').lower() == 'true'
     
     if not file or source not in SOURCES:
         print(f"UPLOAD: Missing file or invalid source. file={file}, source={source}")
@@ -721,8 +760,8 @@ def _upload_file(source):
         if import_type == 'collection':
             return _import_as_collection(file, source)
         else:
-            # Handle regular topic import (existing functionality)
-            return _import_as_topics(file, source)
+            # Handle regular topic import
+            return _import_as_topics(file, source, preserve_hierarchy)
 
     except Exception as e:
         db.session.rollback()
@@ -731,8 +770,94 @@ def _upload_file(source):
         return jsonify({'error': str(e)}), 500
 
 
-def _import_as_topics(file, source):
-    """Import document as individual topics (original functionality)"""
+def _import_as_topics(file, source, preserve_hierarchy=False):
+    """Import document as individual topics (original functionality)
+    
+    Args:
+        file: The uploaded file
+        source: The source type (e.g., 'word', 'text')
+        preserve_hierarchy: If True, preserve heading hierarchy by creating a collection; if False, promote all to H1
+    """
+    if preserve_hierarchy:
+        # When hierarchy preservation is requested, automatically create as collection
+        # Use package-relative import to avoid importing backend.models twice
+        from ..models import Collection, Topic, collection_topic_tree, Project
+        
+        # Set default collection parameters
+        import datetime
+        collection_name = f"Document Import - {secure_filename(file.filename)}"
+        collection_form_number = f"AUTO_{datetime.datetime.now().strftime('%Y%m%d_%H%M%S')}"
+        
+        # Try to get a default project (use the first available project)
+        default_project = Project.query.first()
+        if not default_project:
+            return jsonify({'error': 'No projects available. Please create a project first before importing with hierarchy.'}), 400
+        
+        # Parse document with hierarchical structure preservation
+        hierarchical_items = _parse_hierarchical_structure(file, source)
+        
+        if not hierarchical_items:
+            error_msg = f"No content items could be extracted from the document. "
+            if source == 'word':
+                error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
+            else:
+                error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
+            return jsonify({'error': error_msg}), 422
+        
+        # Create the collection
+        collection = Collection(
+            name=collection_name,
+            form_number=collection_form_number,
+            description=f"Auto-generated collection from {file.filename} with preserved hierarchy",
+            project_id=default_project.id
+        )
+        collection.archived = False
+        db.session.add(collection)
+        db.session.flush()  # get collection.id
+        
+        # Create topics with hierarchy
+        created_topics = []
+        topic_id_map = {}
+        
+        for i, item in enumerate(hierarchical_items):
+            # Clean the content
+            content = _remove_all_blank_lines(item['content']) if item['content'] else ''
+            
+            topic = Topic(
+                title=item['title'],
+                content=content
+            )
+            db.session.add(topic)
+            db.session.flush()  # get topic.id
+            created_topics.append(topic)
+            topic_id_map[i] = topic.id
+            
+            # Determine parent topic ID
+            parent_topic_id = None
+            if item['parent_index'] is not None and item['parent_index'] in topic_id_map:
+                parent_topic_id = topic_id_map[item['parent_index']]
+            
+            # Add topic to collection with hierarchical relationship
+            db.session.execute(
+                collection_topic_tree.insert().values(
+                    collection_id=collection.id,
+                    topic_id=topic.id,
+                    parent_topic_id=parent_topic_id,
+                    order_index=i
+                )
+            )
+        
+        db.session.commit()
+        print(f"HIERARCHICAL_TOPIC_IMPORT: Created collection '{collection_name}' with {len(created_topics)} topics")
+        
+        # Return collection info instead of import document
+        collection_dict = collection.to_dict()
+        collection_dict['topics_count'] = len(created_topics)
+        collection_dict['message'] = f"Document imported as collection with {len(created_topics)} topics in hierarchical structure"
+        
+        return jsonify(collection_dict), 201
+    
+    # Original flat topic import logic
     imp_doc = ImportDocument(
         filename=secure_filename(file.filename),
         source_type=source
@@ -741,7 +866,7 @@ def _import_as_topics(file, source):
     db.session.flush()  # get imp_doc.id
     print(f"UPLOAD: Created ImportDocument with ID={imp_doc.id}")
 
-    _parse_and_store(file, imp_doc, source)
+    _parse_and_store(file, imp_doc, source, preserve_hierarchy)
     
     # Check if any items were created
     items_count = ImportItem.query.filter_by(document_id=imp_doc.id).count()
@@ -779,6 +904,86 @@ def _import_as_topics(file, source):
     return jsonify(imp_doc.to_dict(include_items=True)), 201
 
 
+def _parse_hierarchical_structure(file, source):
+    """Parse document preserving hierarchical heading structure"""
+    file.stream.seek(0)
+    
+    if source == 'word':
+        # Read file content for conversion
+        file_content = file.read()
+        file.stream.seek(0)
+        
+        hierarchical_items = []
+        try:
+            # Primary conversion via pandoc
+            markdown_content = _convert_word_to_markdown(file_content, 999999)  # Use dummy ID for temp processing
+            
+            # Parse into hierarchical structure
+            current_stack = []  # Stack to track heading hierarchy
+            current_content = []
+            
+            for line in markdown_content.splitlines():
+                stripped = line.strip()
+                
+                if stripped.startswith('#'):
+                    # This is a heading - determine its level
+                    hash_count = len(line) - len(line.lstrip('#'))
+                    title = stripped.lstrip('#').strip()
+                    
+                    # Commit previous content if any
+                    if current_stack and current_content:
+                        content_text = '\n'.join(current_content).strip()
+                        if content_text:
+                            current_stack[-1]['content'] = content_text
+                        current_content = []
+                    
+                    # Create new heading item
+                    heading_item = {
+                        'title': title,
+                        'level': hash_count,
+                        'content': '',
+                        'children': [],
+                        'parent_index': None
+                    }
+                    
+                    # Find the correct parent based on heading level
+                    # Remove items from stack that are at same or deeper level
+                    while current_stack and current_stack[-1]['level'] >= hash_count:
+                        completed_item = current_stack.pop()
+                        if completed_item.get('content') or completed_item.get('children'):
+                            hierarchical_items.append(completed_item)
+                    
+                    # Set parent relationship
+                    if current_stack:
+                        heading_item['parent_index'] = len(hierarchical_items) + len(current_stack) - 1
+                        current_stack[-1]['children'].append(len(hierarchical_items) + len(current_stack))
+                    
+                    current_stack.append(heading_item)
+                    print(f"HIERARCHICAL HEADING: Level {hash_count} - '{title}' (parent: {heading_item['parent_index']})")
+                    
+                else:
+                    # Regular content
+                    current_content.append(line)
+            
+            # Don't forget remaining items in stack
+            for item in current_stack:
+                if current_content and item == current_stack[-1]:
+                    content_text = '\n'.join(current_content).strip()
+                    if content_text:
+                        item['content'] = content_text
+                hierarchical_items.append(item)
+            
+            print(f"HIERARCHICAL PARSING: Created {len(hierarchical_items)} hierarchical items")
+            return hierarchical_items
+            
+        except Exception as e:
+            print(f"HIERARCHICAL PARSING ERROR: {e}")
+            # Fallback to flat structure
+            return []
+    
+    return []
+
+
 def _import_as_collection(file, source):
     """Import document as a collection with hierarchical structure"""
     # Use package-relative import to avoid importing backend.models twice
@@ -811,30 +1016,18 @@ def _import_as_collection(file, source):
     if existing_collection:
         return jsonify({'error': f'Collection ID "{collection_form_number}" already exists'}), 400
     
-    # Create temporary import document to parse content
-    temp_imp_doc = ImportDocument(
-        filename=secure_filename(file.filename),
-        source_type=source
-    )
-    db.session.add(temp_imp_doc)
-    db.session.flush()  # get temp_imp_doc.id
-    print(f"COLLECTION_IMPORT: Created temporary ImportDocument with ID={temp_imp_doc.id}")
+    # Parse document with hierarchical structure preservation
+    hierarchical_items = _parse_hierarchical_structure(file, source)
     
-    # Parse the document into import items
-    _parse_and_store(file, temp_imp_doc, source)
-    
-    # Check if any items were created
-    import_items = ImportItem.query.filter_by(document_id=temp_imp_doc.id).all()
-    if not import_items:
-        db.session.rollback()
-        error_msg = f"No content items could be extracted from {temp_imp_doc.filename}. "
+    if not hierarchical_items:
+        error_msg = f"No content items could be extracted from the document. "
         if source == 'word':
             error_msg += "This may be due to: 1) The document has no recognizable headings, 2) Pandoc conversion failed, or 3) The document structure is not supported."
         else:
             error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
         return jsonify({'error': error_msg}), 422
     
-    print(f"COLLECTION_IMPORT: Parsed {len(import_items)} items from document")
+    print(f"COLLECTION_IMPORT: Parsed {len(hierarchical_items)} hierarchical items from document")
     
     # Create the collection
     collection = Collection(
@@ -847,35 +1040,42 @@ def _import_as_collection(file, source):
     db.session.flush()  # get collection.id
     print(f"COLLECTION_IMPORT: Created collection with ID={collection.id}")
     
-    # Convert import items to topics and add them to the collection
+    # Convert hierarchical items to topics and add them to the collection with proper hierarchy
     created_topics = []
-    for item in import_items:
+    topic_id_map = {}  # Map from item index to topic ID for parent relationships
+    
+    for i, item in enumerate(hierarchical_items):
+        # Clean the content
+        content = _remove_all_blank_lines(item['content']) if item['content'] else ''
+        
         topic = Topic(
-            title=item.title,
-            content=item.content
+            title=item['title'],
+            content=content
         )
         db.session.add(topic)
         db.session.flush()  # get topic.id
         created_topics.append(topic)
+        topic_id_map[i] = topic.id
         
-        # Add topic to collection (maintain order from import)
+        # Determine parent topic ID
+        parent_topic_id = None
+        if item['parent_index'] is not None and item['parent_index'] in topic_id_map:
+            parent_topic_id = topic_id_map[item['parent_index']]
+        
+        # Add topic to collection with hierarchical relationship
         db.session.execute(
             collection_topic_tree.insert().values(
                 collection_id=collection.id,
                 topic_id=topic.id,
-                position=item.heading_order,
-                parent_topic_id=None  # All topics at the same level initially
+                position=i,  # Use index as position
+                parent_topic_id=parent_topic_id
             )
         )
+        
+        hierarchy_info = f"parent: {parent_topic_id}" if parent_topic_id else "root level"
+        print(f"COLLECTION_IMPORT: Created topic '{item['title']}' (level {item['level']}, {hierarchy_info})")
     
-    print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics and added to collection")
-    
-    # Clean up the temporary import document and associated images
-    # First, delete any associated import images
-    ImportImage.query.filter_by(document_id=temp_imp_doc.id).delete()
-    
-    # Then delete the temporary import document
-    db.session.delete(temp_imp_doc)
+    print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics with hierarchical structure")
     
     # Commit everything
     db.session.commit()
@@ -996,9 +1196,17 @@ def commit_import(doc_id):
         
         # Create topics from import items
         for item in doc.items:
+            # Check if this item has encoded level information and decode it
+            title = item.title
+            if title.startswith("LEVEL:"):
+                # Decode level information: "LEVEL:3:Actual Title"
+                parts = title.split(":", 2)
+                if len(parts) == 3:
+                    title = parts[2]  # Extract the actual title
+            
             # Create topic from import item (Topic has no heading_order field)
             topic = Topic(
-                title=item.title,
+                title=title,
                 content=item.content
             )
             db.session.add(topic)
