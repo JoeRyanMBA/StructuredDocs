@@ -103,12 +103,12 @@ def update_collections():
             )
             
             # Add new relationships with hierarchical support
-            def add_topics_recursively(topics, parent_topic_id=None):
+            def add_topics_recursively(topics, parent_topic_id=None, collection=col):
                 for idx, t in enumerate(topics):
-                    print(f"➕ Adding topic {t['id']} to collection {col.id} at position {idx}, parent: {parent_topic_id}")
+                    print(f"➕ Adding topic {t['id']} to collection {collection.id} at position {idx}, parent: {parent_topic_id}")
                     db.session.execute(
                         collection_topic_tree.insert().values(
-                            collection_id=col.id,
+                            collection_id=collection.id,
                             topic_id=t['id'],
                             position=idx,
                             parent_topic_id=parent_topic_id
@@ -116,7 +116,7 @@ def update_collections():
                     )
                     # Recursively add child topics
                     if 'children' in t and t['children']:
-                        add_topics_recursively(t['children'], t['id'])
+                        add_topics_recursively(t['children'], t['id'], collection)
             
             add_topics_recursively(node['topics'])
         
