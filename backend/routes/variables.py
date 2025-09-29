@@ -252,3 +252,138 @@ def preview_collection_with_variables(collection_id):
         substituted = substitute_variables_in_text(t.content or '', final_map)
         topic_payload.append({'id': t.id, 'title': t.title, 'content': substituted})
     return jsonify({'topics': topic_payload, 'mapping': final_map}), 200
+
+
+@variables_bp.route('/collections/<int:collection_id>/publish-setup', methods=['GET'])
+def get_collection_publish_setup(collection_id):
+    """
+    Get comprehensive variable setup information for publishing a collection.
+    Returns all variables that need to be configured, their current selections,
+    and available options.
+    """
+    collection = Collection.query.get(collection_id)
+    if not collection:
+        return jsonify({'error': 'Collection not found'}), 404
+    
+    try:
+        # Get current variable mapping and unresolved variables
+        var_mapping, unresolved = build_variable_mapping_for_collection(collection_id)
+        
+        # Get all variables and their current selections
+        selections = CollectionVariableSelection.query.filter_by(collection_id=collection_id).all()
+        selection_map = {s.variable_id: s.variable_value_id for s in selections}
+        
+        # Get all variables that appear in collection content
+        all_variables = Variable.query.all()
+        variables_in_content = []
+        
+        # Check which variables are actually used in this collection's content
+        for var in all_variables:
+            variable_pattern = f"{{{{{var.slug}}}}}"
+            found_in_content = False
+            
+            # Check in topic titles and content
+            for topic in collection.topics:
+                if (variable_pattern in (topic.title or '') or 
+                    variable_pattern in (topic.content or '')):
+                    found_in_content = True
+                    break
+            
+            if found_in_content:
+                current_selection = selection_map.get(var.id)
+                current_value = None
+                if current_selection:
+                    value_obj = VariableValue.query.get(current_selection)
+                    current_value = value_obj.to_dict() if value_obj else None
+                
+                variables_in_content.append({
+                    'id': var.id,
+                    'slug': var.slug,
+                    'name': var.name,
+                    'description': var.description,
+                    'is_resolved': var.slug not in unresolved,
+                    'current_selection': current_value,
+                    'values': [v.to_dict() for v in var.values]
+                })
+        
+        return jsonify({
+            'collection_id': collection_id,
+            'collection_name': collection.name,
+            'ready_to_publish': len(unresolved) == 0,
+            'variables_in_content': variables_in_content,
+            'unresolved_count': len(unresolved),
+            'resolved_count': len(var_mapping),
+            'message': f'Collection uses {len(variables_in_content)} variable(s). {len(unresolved)} need configuration.' if unresolved else 'All variables are configured. Ready to publish!'
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.exception('Failed to get publish setup')
+        return jsonify({'error': str(e)}), 500
+
+
+@variables_bp.route('/collections/<int:collection_id>/configure-for-publish', methods=['POST'])
+def configure_collection_variables_for_publish(collection_id):
+    """
+    Configure variables for a collection in preparation for publishing.
+    Accepts a batch of variable selections and validates them.
+    """
+    collection = Collection.query.get(collection_id)
+    if not collection:
+        return jsonify({'error': 'Collection not found'}), 404
+    
+    payload = request.get_json() or {}
+    variable_selections = payload.get('variable_selections', [])
+    
+    if not variable_selections:
+        return jsonify({'error': 'No variable selections provided'}), 400
+    
+    try:
+        # Update all provided variable selections
+        updated_count = 0
+        for selection in variable_selections:
+            var_id = selection.get('variable_id')
+            value_id = selection.get('variable_value_id')
+            
+            if not var_id or not value_id:
+                continue
+                
+            # Verify the variable and value exist
+            variable = Variable.query.get(var_id)
+            value = VariableValue.query.get(value_id)
+            
+            if not variable or not value:
+                continue
+                
+            # Create or update selection
+            selection_record = CollectionVariableSelection.query.filter_by(
+                collection_id=collection_id, 
+                variable_id=var_id
+            ).first()
+            
+            if not selection_record:
+                selection_record = CollectionVariableSelection()
+                selection_record.collection_id = collection_id
+                selection_record.variable_id = var_id
+                db.session.add(selection_record)
+            
+            selection_record.variable_value_id = value_id
+            updated_count += 1
+        
+        db.session.commit()
+        
+        # Check if collection is now ready to publish
+        var_mapping, unresolved = build_variable_mapping_for_collection(collection_id)
+        
+        return jsonify({
+            'success': True,
+            'updated_variables': updated_count,
+            'ready_to_publish': len(unresolved) == 0,
+            'remaining_unresolved': unresolved,
+            'message': f'Updated {updated_count} variable(s). ' + 
+                      ('Ready to publish!' if len(unresolved) == 0 else f'{len(unresolved)} still need configuration.')
+        }), 200
+        
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Failed to configure variables for publish')
+        return jsonify({'error': str(e)}), 500
