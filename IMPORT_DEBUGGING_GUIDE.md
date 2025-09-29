@@ -5,7 +5,7 @@
 The error "No content items could be extracted from the document" can occur for several reasons:
 
 1. **Document has no recognizable headings**
-2. **Pandoc conversion failed** 
+2. **Pandoc conversion failed**
 3. **Document structure is not supported**
 4. **Hierarchical parsing logic has bugs**
 
@@ -50,6 +50,7 @@ Content for section 2.
 ### Step 3: Check Backend Logs
 
 Look for these log messages in the backend:
+
 - `PARSING WORD DOC: filename.docx`
 - `PANDOC: Running command: ...`
 - `HEADING DETECTED: ...` or `HEADING PRESERVED: ...`
@@ -58,6 +59,7 @@ Look for these log messages in the backend:
 ### Step 4: Verify Environment
 
 Make sure these are available:
+
 - `pandoc` command (for Word documents)
 - `python-docx` library (fallback for Word documents)
 - Temporary directory write permissions
@@ -81,6 +83,7 @@ Try importing your document again. The system will now:
 4. Show debug information in the logs
 
 If you're still getting the error, please check:
+
 - The document actually contains text content
 - The headings are properly formatted (space after #)
 - The file is not corrupted

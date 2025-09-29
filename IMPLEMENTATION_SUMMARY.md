@@ -9,12 +9,14 @@ I have successfully implemented the hierarchical Word document import functional
 **File**: `backend/routes/import_handler.py`
 
 Key changes:
+
 - Enhanced `_upload_file()` to accept `preserve_hierarchy` parameter
 - Modified `_import_as_topics()` to create collections when hierarchy is requested
 - Updated `_parse_and_store()` to conditionally preserve heading levels
 - Reused existing `_parse_hierarchical_structure()` function for consistency
 
 **Logic Flow**:
+
 1. When `preserve_hierarchy=true` is received
 2. System automatically creates a collection (instead of individual topics)
 3. Parses document preserving H1, H2, H3 levels
@@ -26,12 +28,14 @@ Key changes:
 **File**: `frontend/src/views/ImportView.vue`
 
 Key changes:
+
 - Added "Advanced Options" section for Individual Topics import
 - Checkbox: "Preserve Document Hierarchy" with helpful explanation
 - Updated form submission to include `preserve_hierarchy` parameter
 - Enhanced response handling to redirect to Organize page for hierarchical imports
 
 **User Experience**:
+
 - Checkbox only appears for "Individual Topics" import type
 - Clear explanation of what hierarchy preservation does
 - Seamless navigation to organized collection after import
@@ -39,7 +43,8 @@ Key changes:
 ### 📊 How It Works
 
 **Before (Original Behavior)**:
-```
+
+```text
 Word Document:
 # Main Topic
 ## Subtopic A
@@ -54,7 +59,8 @@ Result: 4 separate flat topics
 ```
 
 **After (With Hierarchy Preservation)**:
-```
+
+```text
 Word Document:
 # Main Topic
 ## Subtopic A
@@ -74,6 +80,7 @@ Result: Collection with hierarchical structure
 **File**: `test_employee_handbook.md`
 
 Structure:
+
 - 2 H1 headings → Top-level topics
 - 5 H2 headings → Subtopics
 - 11 H3 headings → Sub-subtopics
@@ -112,18 +119,21 @@ The feature addresses the original user request: *"When I import a Word document
 ## 🔍 Code Changes Summary
 
 ### Backend Changes
+
 - **Lines Modified**: ~50 lines across import handler
 - **New Parameters**: `preserve_hierarchy` boolean
 - **Database Impact**: Creates collections + topics + relationships
 - **Error Handling**: Graceful fallbacks and informative messages
 
-### Frontend Changes  
+### Frontend Changes
+
 - **Lines Modified**: ~30 lines in ImportView.vue
 - **New UI Elements**: Advanced Options section with checkbox
 - **Form Enhancement**: Additional parameter in form submission
 - **Navigation Update**: Smart redirection based on import type
 
 ### Files Created
+
 - `test_employee_handbook.md` - Test document with hierarchical structure
 - `HIERARCHICAL_IMPORT_TESTING.md` - Comprehensive testing guide
 - `test_hierarchical_api.py` - API testing script
