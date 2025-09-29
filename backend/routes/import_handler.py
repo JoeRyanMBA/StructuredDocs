@@ -8,6 +8,7 @@ import io
 import subprocess
 import tempfile
 import os
+import shutil
 import uuid
 
 import_bp = Blueprint('import_handler', __name__, url_prefix='/api/import')
@@ -149,6 +150,75 @@ def _convert_word_to_markdown(file_content, import_doc_id):
     except subprocess.TimeoutExpired:
         print("PANDOC ERROR: Conversion timed out")
         raise Exception("Word to Markdown conversion timed out")
+    except FileNotFoundError:
+        print("PANDOC ERROR: Pandoc not found")
+        raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
+    except subprocess.CalledProcessError as e:
+        print(f"PANDOC ERROR: Process failed with code {e.returncode}: {e.stderr}")
+        raise Exception(f"Pandoc conversion failed: {e.stderr}")
+    except Exception as e:
+        print(f"PANDOC ERROR: {str(e)}")
+        # Check if it's a pandoc not found error
+        if "pandoc" in str(e).lower() and ("not found" in str(e).lower() or "command not found" in str(e).lower()):
+            raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
+        raise Exception(f"Failed to convert Word to Markdown: {str(e)}")
+
+
+def _convert_word_to_markdown_no_images(file_content):
+    """Convert Word document to Markdown using pandoc without image processing"""
+    try:
+        # Create unique temporary directory for this conversion
+        temp_base_dir = tempfile.mkdtemp(prefix='temp_conversion_')
+        
+        # Create temporary files for input and output
+        with tempfile.NamedTemporaryFile(suffix='.docx', delete=False, dir=temp_base_dir) as temp_input:
+            temp_input.write(file_content)
+            temp_input_path = temp_input.name
+        
+        with tempfile.NamedTemporaryFile(suffix='.md', delete=False, dir=temp_base_dir) as temp_output:
+            temp_output_path = temp_output.name
+        
+        try:
+            # Use pandoc to convert Word to Markdown without image extraction
+            cmd = [
+                'pandoc',
+                '--from', 'docx',
+                '--to', 'markdown',
+                '--wrap', 'none',
+                '--markdown-headings=atx',
+                '--list-tables',
+                '--strip-comments',
+                temp_input_path,
+                '-o', temp_output_path
+            ]
+            
+            print(f"PANDOC (NO IMAGES): Running command: {' '.join(cmd)}")
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            
+            if result.returncode != 0:
+                print(f"PANDOC ERROR: {result.stderr}")
+                raise Exception(f"Pandoc conversion failed: {result.stderr}")
+            
+            # Read the converted Markdown
+            with open(temp_output_path, 'r', encoding='utf-8') as f:
+                markdown_content = f.read()
+            
+            print(f"PANDOC SUCCESS (NO IMAGES): Converted {len(file_content)} bytes to {len(markdown_content)} chars")
+            
+            return markdown_content
+            
+        finally:
+            # Clean up temporary files
+            try:
+                os.unlink(temp_input_path)
+                os.unlink(temp_output_path)
+                shutil.rmtree(temp_base_dir)
+            except Exception as cleanup_error:
+                print(f"Cleanup warning: {cleanup_error}")
+                
+    except subprocess.TimeoutExpired:
+        print("PANDOC ERROR: Conversion timed out")
+        raise Exception("Word document conversion timed out")
     except FileNotFoundError:
         print("PANDOC ERROR: Pandoc not found")
         raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
@@ -942,7 +1012,9 @@ def _parse_hierarchical_structure(file, source):
         if source == 'word':
             file_content = file.read()
             file.stream.seek(0)
-            markdown_content = _convert_word_to_markdown(file_content, 999999)  # Use dummy ID for temp processing
+            # For hierarchical parsing, skip image processing to avoid DB constraint issues
+            # Images will be processed later when the real document is created
+            markdown_content = _convert_word_to_markdown_no_images(file_content)
         else:
             # For markdown files, read directly
             markdown_content = file.read().decode('utf-8')
