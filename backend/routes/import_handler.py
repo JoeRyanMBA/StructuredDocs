@@ -124,9 +124,8 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             updated_markdown = _fix_list_indentation(updated_markdown)
             print(f"LIST INDENTATION: Fixed progressive indentation issues")
             
-            # Remove all blank lines from Word document content
-            updated_markdown = _remove_all_blank_lines(updated_markdown)
-            print(f"BLANK LINE REMOVAL: Removed all blank lines from Word document content")
+            # NOTE: Blank line removal now happens per-topic during content cleaning
+            # to preserve document structure for heading detection
             
             # Validate image references
             validation_issues = image_handler.validate_markdown_images(updated_markdown)

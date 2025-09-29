@@ -158,6 +158,20 @@ def run_migrations():
             else:
                 print("⚠️ Migrations directory not found - using db.create_all() only")
             
+            # Check and add missing columns
+            print("🔍 Checking for missing columns...")
+            
+            # Add archived column to collections if missing
+            inspector = db.inspect(db.engine)
+            collections_columns = [c['name'] for c in inspector.get_columns('collections')]
+            if 'archived' not in collections_columns:
+                print("➕ Adding 'archived' column to collections table...")
+                db.session.execute(db.text("ALTER TABLE collections ADD COLUMN archived BOOLEAN NOT NULL DEFAULT FALSE"))
+                db.session.commit()
+                print("✅ Added 'archived' column to collections")
+            else:
+                print("ℹ️ 'archived' column already exists in collections")
+            
             # Try to create admin user
             from backend.models import User
             from werkzeug.security import generate_password_hash
