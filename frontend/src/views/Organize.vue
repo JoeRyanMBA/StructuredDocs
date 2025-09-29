@@ -203,6 +203,11 @@
             <!-- Show publish buttons for the current collection -->
             <div v-if="currentCollection.topics && currentCollection.topics.length" class="publish-buttons">
               <button
+                @click="openVariableConfigurator(currentCollection.id, $event)"
+                class="publish-btn configure-vars"
+                title="Configure variables before publishing"
+              >⚙️ Configure Variables</button>
+              <button
                 @click="goPublishHtml(currentCollection.id, $event)"
                 class="publish-btn publish-html"
               >
@@ -1341,16 +1346,42 @@ export default {
         const btn = this.pendingPublishAction.button
         const type = this.pendingPublishAction.type
         btn.disabled = false
-        btn.textContent = type === 'html' ? '� Publish HTML' : '�📋 Publish PDF'
+        if (type === 'html') btn.textContent = '🔗 Publish HTML'
+        else if (type === 'pdf') btn.textContent = ' Publish PDF'
+        else if (type === 'configure-only') btn.textContent = '⚙️ Configure Variables'
       }
       this.showVariableModal = false
       this.variableModalData = null
       this.pendingPublishAction = null
     },
+    async openVariableConfigurator(collectionId, event) {
+      const btn = event?.target
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading…' }
+      try {
+        const resp = await fetch(`/api/variables/collections/${collectionId}/publish-setup`)
+        const data = await resp.json().catch(()=>({}))
+        if (!resp.ok) throw new Error(data.error || 'Failed to load variable setup')
+        const variablesInfo = (data.variables_in_content||[]).map(v => ({
+          id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection
+        }))
+        if (!variablesInfo.length) { toast.success('No variables required for this collection'); return }
+        this.pendingPublishAction = { type: 'configure-only', collectionId, button: btn }
+        this.variableModalData = { collectionId, variablesInfo, unresolvedVariables: (data.variables_in_content||[]).filter(v=>!v.is_resolved).map(v=>v.slug) }
+        this.showVariableModal = true
+      } catch(e) {
+        toast.error(e.message)
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⚙️ Configure Variables' }
+      }
+    },
     async onVariablesConfigured() {
       if (!this.pendingPublishAction) return
       const { type, collectionId } = this.pendingPublishAction
       try {
+        if (type === 'configure-only') {
+          toast.success('Variables configured. You can now publish HTML or PDF.')
+          return
+        }
         const response = await fetch(`/api/collections/${collectionId}/publish`, {
           method: 'POST', headers: { 'Content-Type': 'application/json' }
         })
@@ -1671,6 +1702,9 @@ export default {
   font-weight: 600;
   cursor: pointer;
 }
+
+.publish-btn.configure-vars { background-color:#6b7280; color:#fff; }
+.publish-btn.configure-vars:hover { background-color:#4b5563; }
 
 .publish-html {
   background-color: var(--primary-deep-teal);

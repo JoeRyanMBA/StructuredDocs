@@ -29,6 +29,13 @@
         <!-- Conditionally show Publish for this collection -->
         <div v-if="element.topics && element.topics.length" class="publish-buttons">
           <button
+            @click="openVariableConfigurator(element.id, $event)"
+            class="publish-btn configure-vars"
+            title="Configure variables before publishing"
+          >
+            ⚙️ Configure Variables
+          </button>
+          <button
             @click="goPublishHtml(element.id, $event)"
             class="publish-btn publish-html"
           >
@@ -122,6 +129,31 @@ export default {
   },
 
   methods: {
+    async openVariableConfigurator(collectionId, event) {
+      const btn = event?.target
+      if (btn) { btn.disabled = true; btn.textContent = 'Loading…' }
+      try {
+        const resp = await fetch(`/api/variables/collections/${collectionId}/publish-setup`)
+        const data = await resp.json().catch(()=>({}))
+        if (!resp.ok) throw new Error(data.error || 'Failed to load variable setup')
+        // Translate variables_in_content to modal expected shape (variablesInfo)
+        const variablesInfo = (data.variables_in_content||[]).map(v => ({
+          id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection
+        }))
+        if (!variablesInfo.length) {
+          toast.success('No variables required for this collection')
+          return
+        }
+        this.pendingPublishAction = { type: 'configure-only', collectionId, button: btn }
+        this.variableModalData = { collectionId, variablesInfo, unresolvedVariables: (data.variables_in_content||[]).filter(v=>!v.is_resolved).map(v=>v.slug) }
+        this.showVariableModal = true
+      } catch(e) {
+        console.error(e)
+        toast.error(e.message)
+      } finally {
+        if (btn) { btn.disabled = false; btn.textContent = '⚙️ Configure Variables' }
+      }
+    },
     onDrag() {
       this.$emit('update', this.localTree)
     },
@@ -293,6 +325,10 @@ export default {
       const { type, collectionId } = this.pendingPublishAction
       
       try {
+        if (type === 'configure-only') {
+          toast.success('Variables configured. You can now publish HTML or PDF.')
+          return
+        }
         // Now try to publish again
         const response = await fetch(`/api/collections/${collectionId}/publish`, {
           method: 'POST',
@@ -382,6 +418,13 @@ export default {
   background-color: #dc3545;
   color: white;
 }
+
+.publish-btn.configure-vars {
+  background-color: #6b7280;
+  color: #fff;
+}
+
+.publish-btn.configure-vars:hover { background-color:#4b5563; }
 
 .publish-btn.publish-pdf:hover {
   background-color: #c82333;
