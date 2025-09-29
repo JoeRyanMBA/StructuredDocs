@@ -343,6 +343,15 @@
         </div>
       </div>
     </div>
+
+    <VariableSelectionModal
+      :show="showVariableModal"
+      :collection-id="variableModalData?.collectionId"
+      :variables-info="variableModalData?.variablesInfo"
+      :unresolved-variables="variableModalData?.unresolvedVariables"
+      @close="closeVariableModal"
+      @variables-configured="onVariablesConfigured"
+    />
   </div>
 </template>
 
@@ -355,6 +364,7 @@ import { getProjects } from '@/api/projects.js'
 import { getTopics } from '@/api/topics.js' // You may need to implement this
 import TopicEditor from '@/components/TopicEditor.vue'
 import { toast } from '@/composables/useToast'
+import VariableSelectionModal from '@/components/VariableSelectionModal.vue'
 
 export default {
   name: 'OrganizeView',
@@ -364,7 +374,7 @@ export default {
       required: true
     }
   },
-  components: { CollectionTree, TopicItem, draggable, TopicEditor },
+  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal },
   data() {
     return {
       currentCollection: null, // The specific collection being organized
@@ -399,6 +409,9 @@ export default {
   },
   /* Snapshot of last saved state for unsaved-changes detection */
       lastSavedSnapshot: null
+      , showVariableModal: false
+      , variableModalData: null
+      , pendingPublishAction: null
     }
   },
   computed: {
@@ -1243,14 +1256,27 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         })
         
-        if (!response.ok) {
+        if (response.ok) {
+          const result = await response.json()
+          console.log('Publication created:', result)
+          this.$router.push({ name: 'PublishMobileKB' })
+        } else if (response.status === 400) {
+          let errorData = null
+          try { errorData = await response.json() } catch(_) {}
+          if (errorData?.requires_variable_selection) {
+            this.pendingPublishAction = { type: 'html', collectionId, button }
+            this.variableModalData = {
+              collectionId,
+              variablesInfo: errorData.variables_info,
+              unresolvedVariables: errorData.unresolved_variables
+            }
+            this.showVariableModal = true
+            return
+          }
+          throw new Error(errorData?.message || `Failed to publish collection: ${response.status}`)
+        } else {
           throw new Error(`Failed to publish collection: ${response.status}`)
         }
-        
-        const result = await response.json()
-        console.log('Publication created:', result)
-        
-        this.$router.push({ name: 'PublishMobileKB' })
         
       } catch (error) {
         console.error('Error publishing collection:', error)
@@ -1278,14 +1304,27 @@ export default {
           headers: { 'Content-Type': 'application/json' }
         })
         
-        if (!response.ok) {
+        if (response.ok) {
+          const result = await response.json()
+          console.log('Publication created:', result)
+          this.$router.push({ name: 'PublishPDF' })
+        } else if (response.status === 400) {
+          let errorData = null
+          try { errorData = await response.json() } catch(_) {}
+          if (errorData?.requires_variable_selection) {
+            this.pendingPublishAction = { type: 'pdf', collectionId, button }
+            this.variableModalData = {
+              collectionId,
+              variablesInfo: errorData.variables_info,
+              unresolvedVariables: errorData.unresolved_variables
+            }
+            this.showVariableModal = true
+            return
+          }
+          throw new Error(errorData?.message || `Failed to publish collection: ${response.status}`)
+        } else {
           throw new Error(`Failed to publish collection: ${response.status}`)
         }
-        
-        const result = await response.json()
-        console.log('Publication created:', result)
-        
-        this.$router.push({ name: 'PublishPDF' })
         
       } catch (error) {
         console.error('Error publishing collection:', error)
@@ -1297,6 +1336,39 @@ export default {
         }
       }
   },
+    closeVariableModal() {
+      if (this.pendingPublishAction?.button) {
+        const btn = this.pendingPublishAction.button
+        const type = this.pendingPublishAction.type
+        btn.disabled = false
+        btn.textContent = type === 'html' ? '� Publish HTML' : '�📋 Publish PDF'
+      }
+      this.showVariableModal = false
+      this.variableModalData = null
+      this.pendingPublishAction = null
+    },
+    async onVariablesConfigured() {
+      if (!this.pendingPublishAction) return
+      const { type, collectionId } = this.pendingPublishAction
+      try {
+        const response = await fetch(`/api/collections/${collectionId}/publish`, {
+          method: 'POST', headers: { 'Content-Type': 'application/json' }
+        })
+        if (!response.ok) {
+          const errData = await response.json().catch(() => null)
+          throw new Error(errData?.message || `Failed to publish collection: ${response.status}`)
+        }
+        const result = await response.json()
+        toast.success('Collection published successfully!')
+        if (type === 'html') this.$router.push({ name: 'PublishMobileKB' })
+        else this.$router.push({ name: 'PublishPDF' })
+      } catch (e) {
+        console.error(e)
+        toast.error(e.message)
+      } finally {
+        this.closeVariableModal()
+      }
+    },
     // Indent topic (make it a child of the previous sibling)
     indentTopic(topic) {
       // Find the parent and index of this topic in the tree
