@@ -263,32 +263,59 @@ export default {
         const importResponse = await fetch('/api/import/history')
         let importImages = []
         if (importResponse.ok) {
-          const imports = await importResponse.json()
-          
-          // Load images from each import
-          for (const importDoc of imports.slice(0, 10)) { // Limit for performance
+          let imports = await importResponse.json()
+          if (Array.isArray(imports)) {
+            // Sort newest first by created_at if present
+            imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+          } else {
+            imports = []
+          }
+          const sliceSize = 25 // raised from 10 to reduce chance of excluding recent import
+          let importDocsProcessed = 0
+          let importDocsFailed = 0
+          for (const importDoc of imports.slice(0, sliceSize)) {
             try {
               const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
               if (imagesResponse.ok) {
                 const imagesData = await imagesResponse.json()
-                const docImages = (imagesData.images || []).map(img => ({
-                  ...img,
-                  source: 'import',
-                  document_id: importDoc.id,
-                  public_url: img.public_url || `/api/import/staging/${importDoc.id}/images/${img.filename}`
-                }))
+                const docImagesRaw = imagesData.images || []
+                const docImages = docImagesRaw.map(img => {
+                  // Normalize size property for UI expectations
+                  const size = img.size || img.file_size || null
+                  return {
+                    ...img,
+                    size, // ensure size field exists
+                    file_size: size,
+                    source: 'import',
+                    document_id: importDoc.id,
+                    public_url: img.public_url || `/images/imports/${importDoc.id}/${img.filename}`
+                  }
+                })
                 importImages = importImages.concat(docImages)
+                importDocsProcessed++
+              } else {
+                importDocsFailed++
+                console.warn(`[AllImagesView] Images request failed for import ${importDoc.id}: status ${imagesResponse.status}`)
               }
             } catch (e) {
-              console.warn(`Failed to load images for import ${importDoc.id}:`, e)
+              importDocsFailed++
+              console.warn(`[AllImagesView] Exception loading images for import ${importDoc.id}:`, e)
             }
           }
+          console.info(`[AllImagesView] Processed ${importDocsProcessed} import docs, ${importDocsFailed} failed, collected ${importImages.length} images (slice limit ${sliceSize}).`)
+        } else {
+          console.warn('[AllImagesView] /api/import/history request failed, skipping import images.')
         }
 
         // Combine all images
         this.allImages = [
-          ...staticImages.map(img => ({ ...img, source: 'static' })),
-          ...importImages
+          ...staticImages.map(img => ({
+            ...img,
+            source: 'static',
+            size: img.size || img.file_size || null,
+            file_size: img.size || img.file_size || null
+          })),
+            ...importImages
         ]
 
         this.applyFilters()
@@ -302,6 +329,7 @@ export default {
             filename: 'sample-chart.png',
             source: 'static',
             public_url: '/images/sample-chart.png',
+            size: 45600,
             file_size: 45600,
             alt_text: 'Sample chart showing data visualization'
           },
@@ -310,6 +338,7 @@ export default {
             filename: 'workflow-diagram.svg',
             source: 'static', 
             public_url: '/images/workflow-diagram.svg',
+            size: 12300,
             file_size: 12300,
             alt_text: 'Process workflow diagram'
           },
@@ -319,6 +348,7 @@ export default {
             source: 'import',
             document_id: 1,
             public_url: '/images/logo-placeholder.jpg',
+            size: 89200,
             file_size: 89200,
             alt_text: 'Company logo placeholder'
           }
