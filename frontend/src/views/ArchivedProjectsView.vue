@@ -4,8 +4,8 @@
     <div class="toolbar">
       <button class="btn btn-sm btn-secondary" @click="load" :disabled="loading">Refresh</button>
     </div>
-    <div v-if="loading" class="loading">Loading...</div>
-    <table v-else class="table archived-table" v-if="projects.length">
+  <div v-if="loading" class="loading">Loading...</div>
+  <table v-else-if="projects.length" class="table archived-table">
       <thead>
         <tr>
           <th>Name</th>
@@ -27,7 +27,7 @@
         </tr>
       </tbody>
     </table>
-    <p v-else class="empty">No archived projects.</p>
+  <p v-else class="empty">No archived projects.</p>
   </div>
 </template>
 
