@@ -4,8 +4,8 @@
     <div class="toolbar">
       <button class="btn btn-sm btn-secondary" @click="load" :disabled="loading">Refresh</button>
     </div>
-    <div v-if="loading" class="loading">Loading...</div>
-    <table v-else v-if="items.length" class="table archived-table">
+  <div v-if="loading" class="loading">Loading...</div>
+  <table v-else-if="items.length" class="table archived-table">
       <thead>
         <tr>
           <th>Subject</th>
