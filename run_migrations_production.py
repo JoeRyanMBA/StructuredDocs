@@ -134,9 +134,15 @@ def run_migrations():
         print("🗄️ Running database migrations...")
         
         try:
-            # First create all tables (in case migrations haven't been run)
-            db.create_all()
-            print("✅ Database tables created")
+            # Only run db.create_all() if this looks like a fresh database (avoid masking drift)
+            inspector = db.inspect(db.engine)
+            existing_tables = inspector.get_table_names()
+            if not existing_tables:
+                print("📭 No tables detected – initializing with db.create_all() before migrations...")
+                db.create_all()
+                print("✅ Base tables created via create_all()")
+            else:
+                print(f"ℹ️ Detected {len(existing_tables)} existing tables – skipping create_all() to preserve migration integrity")
             
             # Set the correct migrations directory path
             import os
@@ -158,19 +164,52 @@ def run_migrations():
             else:
                 print("⚠️ Migrations directory not found - using db.create_all() only")
             
-            # Check and add missing columns
-            print("🔍 Checking for missing columns...")
-            
-            # Add archived column to collections if missing
+            # Schema drift audit & hot-fix section
+            print("🔍 Auditing schema for expected columns (hot-fix path)...")
             inspector = db.inspect(db.engine)
-            collections_columns = [c['name'] for c in inspector.get_columns('collections')]
-            if 'archived' not in collections_columns:
-                print("➕ Adding 'archived' column to collections table...")
-                db.session.execute(db.text("ALTER TABLE collections ADD COLUMN archived BOOLEAN NOT NULL DEFAULT FALSE"))
-                db.session.commit()
-                print("✅ Added 'archived' column to collections")
+
+            drift_issues = []
+
+            def ensure_boolean_column(table: str, column: str, default_sql: str = 'FALSE'):
+                cols = [c['name'] for c in inspector.get_columns(table)]
+                if column not in cols:
+                    print(f"➕ Adding missing column {table}.{column} ...")
+                    db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {column} BOOLEAN NOT NULL DEFAULT {default_sql}"))
+                    db.session.commit()
+                    print(f"✅ Added column {table}.{column}")
+                    return True
+                return False
+
+            # Expected boolean columns we defensively backfill if missing
+            added_collections_archived = ensure_boolean_column('collections', 'archived', 'FALSE')
+            added_projects_archived = ensure_boolean_column('projects', 'archived', 'FALSE')
+
+            # Summarize drift outcome
+            if not (added_collections_archived or added_projects_archived):
+                print("✅ No hot-fix column additions required")
             else:
-                print("ℹ️ 'archived' column already exists in collections")
+                print("ℹ️ One or more columns were added directly (consider verifying Alembic revisions are stamped correctly)")
+
+            # Produce a concise audit report for critical tables
+            expected = {
+                'projects': {'archived'},
+                'collections': {'archived'},
+            }
+            for table, exp_cols in expected.items():
+                existing = {c['name'] for c in inspector.get_columns(table)}
+                missing = exp_cols - existing
+                if missing:
+                    drift_issues.append((table, sorted(missing)))
+                    print(f"❌ Drift persists: {table} still missing {missing}")
+                else:
+                    print(f"✅ {table} columns OK: required {sorted(exp_cols)} present")
+
+            if drift_issues:
+                print("⚠️ Remaining drift detected (manual follow-up advised):")
+                for table, cols in drift_issues:
+                    print(f"   - {table}: missing {cols}")
+            else:
+                print("🧮 Schema audit passed – no remaining required columns missing")
             
             # Try to create admin user
             from backend.models import User
