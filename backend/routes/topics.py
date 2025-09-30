@@ -219,10 +219,28 @@ def bulk_delete_topics():
             return jsonify({'error': 'Provide body { "ids": [1,2,3] }'}), 400
 
         # Convert IDs to integers and de-dup
+        invalid_ids = []
+        valid_ids = set()
+        for x in ids:
+            try:
+                ix = int(x)
+                if ix > 0:
+                    valid_ids.add(ix)
+                else:
+                    invalid_ids.append(x)
+            except Exception:
+                invalid_ids.append(x)
+
+        if invalid_ids:
+            current_app.logger.warning(f"Bulk delete received invalid topic IDs: {invalid_ids}")
+
         try:
-            id_list = sorted({int(x) for x in ids})
+            id_list = sorted(valid_ids)
         except Exception:
             return jsonify({'error': 'All ids must be integers'}), 400
+
+        if not id_list and invalid_ids:
+            return jsonify({'error': 'No valid topic IDs provided', 'invalid_ids': invalid_ids}), 400
 
         if not id_list:
             return jsonify({'deleted': 0, 'not_found': []}), 200
@@ -271,6 +289,18 @@ def bulk_delete_topics():
         # Delete in a transaction
         deleted_count = 0
         try:
+            if existing:
+                # Pre-delete pivot rows to avoid StaleDataError when SQLAlchemy expects a specific count
+                from backend.models import collection_topic_tree
+                deleted_assoc = db.session.execute(
+                    collection_topic_tree.delete().where(collection_topic_tree.c.topic_id.in_(existing_ids))
+                )
+                current_app.logger.info(
+                    f"Bulk delete: removed {deleted_assoc.rowcount} collection_topic_tree rows for topics {sorted(list(existing_ids))}"
+                )
+                # Flush to ensure consistent state before topic deletes
+                db.session.flush()
+
             for t in existing:
                 db.session.delete(t)
             db.session.commit()
@@ -280,11 +310,24 @@ def bulk_delete_topics():
             current_app.logger.exception('Bulk delete failed')
             return jsonify({'error': str(e)}), 500
 
+        # Diagnostics before returning
+        try:
+            from backend.models import collection_topic_tree
+            leftover = db.session.execute(
+                collection_topic_tree.select().where(collection_topic_tree.c.topic_id.in_(id_list))
+            ).fetchall()
+            if leftover:
+                current_app.logger.warning(
+                    f"Bulk delete diagnostics: leftover collection_topic_tree rows for topic IDs { [r.topic_id for r in leftover] }"
+                )
+        except Exception:
+            pass
+
         return jsonify({
             'deleted': deleted_count,
-            'not_found': missing
+            'not_found': missing,
+            'invalid_ids': invalid_ids
         }), 200
-
     except Exception as e:
         current_app.logger.exception('Bulk delete endpoint error')
         return jsonify({'error': str(e)}), 500
