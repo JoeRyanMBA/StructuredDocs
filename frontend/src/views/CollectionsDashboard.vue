@@ -141,9 +141,12 @@
                 <div class="card-actions">
                   <button @click.stop="editCollection(collection)" class="btn btn-secondary btn-sm">Edit</button>
                   <button @click.stop="viewCollection(collection)" class="btn btn-primary btn-sm">View</button>
-                  <button v-if="isAdmin" @click.stop="toggleArchive(collection)" class="btn btn-sm" :class="collection.archived ? 'btn-warning' : 'btn-outline'">
-                    {{ collection.archived ? 'Unarchive' : 'Archive' }}
-                  </button>
+                  <ArchiveToggleButton
+                    v-if="isAdmin"
+                    :archived="collection.archived"
+                    entity-label="collection"
+                    @toggle="state => toggleArchiveState(collection, state)"
+                  />
                   <button v-if="isAdmin" @click.stop="promptDelete(collection)" class="btn btn-danger btn-sm">Delete</button>
                 </div>
               </div>
@@ -264,12 +267,13 @@
 
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
+import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'CollectionsDashboard',
-  components: { CompactToolbar },
+  components: { CompactToolbar, ArchiveToggleButton },
   props: {
     notifications: {
       type: Array,
@@ -374,18 +378,18 @@ export default {
   toast.error('Failed to delete collection: ' + error.message)
       }
     },
-    async toggleArchive(collection) {
+    async toggleArchiveState(collection, newState) {
       try {
         const response = await fetch(`/api/collections/${collection.id}/archive`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ archived: !collection.archived })
+          body: JSON.stringify({ archived: newState })
         })
         if (!response.ok) {
           throw new Error(await response.text())
         }
         const data = await response.json()
-        toast.success(collection.archived ? 'Collection unarchived' : 'Collection archived')
+        toast.success(newState ? 'Collection archived' : 'Collection unarchived')
         // Update local state
         const idx = this.collections.findIndex(c => c.id === collection.id)
         if (idx !== -1) this.$set(this.collections, idx, { ...collection, archived: data.collection.archived })

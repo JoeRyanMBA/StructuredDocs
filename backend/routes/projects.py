@@ -5,11 +5,58 @@ Handles projects, stakeholders, milestones, and project-based reviews
 
 from datetime import datetime, date
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
-from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, Topic
+from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, Topic, User
 
 projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
+
+@projects_bp.route('/<int:project_id>/archive', methods=['POST'])
+@jwt_required()
+def archive_project(project_id):
+    """Toggle a project's archived state (admin only). Body: {"archived": true|false}"""
+    try:
+        data = request.get_json(silent=True) or {}
+        if 'archived' not in data:
+            return jsonify({'error': 'Missing archived field'}), 400
+        desired = bool(data.get('archived'))
+
+        user_id = get_jwt_identity()
+        try:
+            user_pk = int(user_id)
+        except Exception:
+            user_pk = None
+        user = User.query.get(user_pk) if user_pk else None
+        if not user:
+            return jsonify({'error': 'User not found or session expired'}), 401
+        is_admin = False
+        try:
+            if getattr(user, 'is_admin', False):
+                is_admin = True
+            elif getattr(user, 'role', '').lower() in ('admin', 'superadmin'):
+                is_admin = True
+        except Exception:
+            pass
+        if not is_admin:
+            return jsonify({'error': 'Admin role required'}), 403
+
+        project = Project.query.get(project_id)
+        if not project:
+            return jsonify({'error': 'Project not found'}), 404
+
+        prev = bool(getattr(project, 'archived', False))
+        project.archived = desired
+        db.session.commit()
+        # Structured log (using print to stay consistent with existing logging approach)
+        try:
+            print(f"[PROJECT_ARCHIVE] user_id={user_pk} project_id={project.id} previous_archived={prev} new_archived={project.archived} timestamp={datetime.utcnow().isoformat()}Z")
+        except Exception:
+            pass
+        return jsonify({'project': project.to_dict(), 'previous_archived': prev}), 200
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500
 
 @projects_bp.route('/<int:project_id>', methods=['PUT'])
 def update_project(project_id):

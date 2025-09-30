@@ -195,7 +195,15 @@
           </div>
           <div class="project-card-footer">
             <div class="project-meta">Project {{ project.id }} was created on {{ formatDate(project.created_at) }}</div>
-            <button @click="editProject(project)" class="edit-btn">✏️ Edit</button>
+            <div class="project-footer-actions">
+              <button @click="editProject(project)" class="edit-btn">✏️ Edit</button>
+              <ArchiveToggleButton
+                v-if="isAdmin"
+                :archived="!!project.archived"
+                entity-label="project"
+                @toggle="state => toggleArchiveProject(project, state)"
+              />
+            </div>
           </div>
         </div>
       </div>
@@ -561,6 +569,7 @@
 <script>
 import CalendarWidget from '../components/CalendarWidget.vue'
 import CompactToolbar from '../components/CompactToolbar.vue'
+import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
 import { createStakeholder, addStakeholderToProject } from '../api/stakeholders';
 import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
@@ -569,7 +578,7 @@ import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { toast } from '@/composables/useToast'
 
 export default {
-  components: { CalendarWidget, CompactToolbar },
+  components: { CalendarWidget, CompactToolbar, ArchiveToggleButton },
   mixins: [unsavedChangesGuard],
   props: {
     notifications: {
@@ -591,6 +600,7 @@ export default {
       projects: [],
       loading: false,
       error: null,
+  isAdmin: false,
       showEditModal: false,
       statusFilter: '',
       searchQuery: '',
@@ -728,6 +738,20 @@ export default {
     }
   },
   methods: {
+    async toggleArchiveProject(project, newState) {
+      try {
+        const res = await fetch(`/api/projects/${project.id}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ archived: newState })
+        });
+        if (!res.ok) throw new Error('Archive toggle failed');
+        const data = await res.json();
+        project.archived = data.project?.archived ?? newState;
+      } catch (e) {
+        console.error('Failed to toggle archive', e);
+      }
+    },
     proceedToStakeholders() {
       this.showStakeholderModal = true;
     },
@@ -1522,6 +1546,10 @@ export default {
   },
   mounted() {
     // Fetch projects and stakeholders from API
+    try {
+      const user = JSON.parse(localStorage.getItem('user') || '{}')
+      this.isAdmin = user && user.role === 'admin'
+    } catch (e) { this.isAdmin = false }
     this.fetchProjects()
     this.fetchStakeholders()
   }

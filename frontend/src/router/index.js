@@ -107,6 +107,47 @@ const routes = [
       }
     }
   },
+  // 📦 Archived Resources
+  {
+    path: '/admin/archived/projects',
+    name: 'ArchivedProjects',
+    component: () => import('@/views/ArchivedProjectsView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
+  {
+    path: '/admin/archived/collections',
+    name: 'ArchivedCollections',
+    component: () => import('@/views/ArchivedCollectionsView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
+  {
+    path: '/admin/archived/feedback',
+    name: 'ArchivedFeedback',
+    component: () => import('@/views/ArchivedFeedbackView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
+  {
+    path: '/admin/archived/bugs',
+    name: 'ArchivedBugs',
+    component: () => import('@/views/ArchivedBugsView.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
   {
     path: '/notifications/new',
     name: 'CreateNotification',
