@@ -49,14 +49,11 @@
                 >
                     <i class="bi bi-pencil-square"></i>
                 </button>
-                <button
-                  @click="archive(r)"
-                  class="btn-icon btn-archive"
-                  title="Archive bug"
-                  aria-label="Archive bug"
-                >
-                    <i class="bi bi-archive"></i>
-                </button>
+                <ArchiveToggleButton
+                  :archived="r.status === 'archived'"
+                  entity-label="bug report"
+                  @toggle="state => toggleArchive(r, state)"
+                />
               </div>
             </td>
           </tr>
@@ -89,8 +86,10 @@
 </template>
 
 <script>
+import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
 export default {
   name: 'AdminBugs',
+  components: { ArchiveToggleButton },
   data() {
   return { loading: false, error: '', reports: [], filters: { q: '', status: '' }, editing: false, editItem: null };
   },
@@ -136,16 +135,31 @@ export default {
         this.closeEdit();
       } catch (e) { this.error = e.message || 'Error saving bug'; }
     },
-    async archive(item) {
-      if (!confirm('Archive this bug report?')) return;
+    async toggleArchive(item, newState) {
       try {
-        let res = await fetch('/api/feedback/' + item.id, { method: 'DELETE' });
+        const originalStatus = item.status;
+        item.status = newState ? 'archived' : 'new';
+        let res = await fetch(`/api/feedback/${item.id}/archive`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ archived: newState })
+        });
         if (res.status === 405) {
-          res = await fetch('/api/feedback/' + item.id + '/archive', { method: 'POST' });
+          res = await fetch('/api/feedback/' + item.id + (newState ? '' : '/restore'), {
+            method: newState ? 'DELETE' : 'POST'
+          });
         }
-        if (!res.ok) throw new Error('Failed to archive');
-        this.reports = this.reports.filter(r => r.id !== item.id);
-      } catch (e) { this.error = e.message || 'Error archiving'; }
+        if (!res.ok) throw new Error('Failed to toggle archive');
+        if (newState && this.filters.status !== 'archived') {
+          this.reports = this.reports.filter(r => r.id !== item.id);
+        }
+        if (!newState && this.filters.status === 'archived') {
+          this.reports = this.reports.filter(r => r.id !== item.id);
+        }
+      } catch (e) {
+        item.status = originalStatus; // revert
+        this.error = e.message || 'Error updating archive state';
+      }
     },
     formatDate(iso) {
       if (!iso) return '';

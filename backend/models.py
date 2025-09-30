@@ -592,6 +592,7 @@ class Project(db.Model):
         onupdate=func.now(),
         nullable=False
     )
+    archived = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
 
     # Relationships
     stakeholders = relationship('ProjectStakeholder', back_populates='project', cascade='all, delete-orphan')
@@ -604,6 +605,7 @@ class Project(db.Model):
             "name": self.name,
             "description": self.description,
             "status": self.status,
+            "archived": self.archived,
             "start_date": self.start_date.isoformat() if self.start_date else None,
             "target_completion": self.target_completion.isoformat() if self.target_completion else None,
             "created_at": self.created_at.isoformat() if self.created_at else None,
