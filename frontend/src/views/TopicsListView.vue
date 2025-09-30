@@ -408,6 +408,26 @@ export default {
       this.deleting = true
       try {
         const token = localStorage.getItem('access_token')
+        // Sanitize & normalize selected IDs (remove null/undefined/NaN, coerce to integers)
+        const cleanedIds = Array.from(new Set(
+          (this.selectedTopicIds || [])
+            .filter(id => id !== null && id !== undefined && id !== '')
+            .map(id => Number(id))
+            .filter(id => Number.isInteger(id) && id > 0)
+        ))
+
+        if (!cleanedIds.length) {
+          toast.error('No valid topic IDs to delete.')
+          this.deleting = false
+          return
+        }
+
+        if (cleanedIds.length !== this.selectedTopicIds.length) {
+          console.warn('Some invalid topic IDs were removed from the bulk delete payload.', {
+            original: this.selectedTopicIds,
+            cleaned: cleanedIds
+          })
+        }
         // Prefer POST alias first (most proxies are fine with POST)
         let res = await fetch('/api/topics/bulk/delete', {
           method: 'POST',
@@ -415,7 +435,7 @@ export default {
             'Content-Type': 'application/json',
             ...(token ? { 'Authorization': `Bearer ${token}` } : {})
           },
-          body: JSON.stringify({ ids: this.selectedTopicIds })
+          body: JSON.stringify({ ids: cleanedIds })
         })
 
         // Fallback to DELETE in case POST alias is unavailable in older deployments
@@ -426,7 +446,7 @@ export default {
               'Content-Type': 'application/json',
               ...(token ? { 'Authorization': `Bearer ${token}` } : {})
             },
-            body: JSON.stringify({ ids: this.selectedTopicIds })
+            body: JSON.stringify({ ids: cleanedIds })
           })
         }
 
@@ -446,12 +466,12 @@ export default {
           throw new Error(message)
         }
 
-        const result = await res.json()
+  const result = await res.json()
         const deleted = result.deleted || 0
         const notFound = (result.not_found || []).length
 
         // Refresh topics and clear selection
-        await this.fetchTopics()
+  await this.fetchTopics()
         this.selectedTopicIds = []
 
   const extra = notFound ? ` (${notFound} not found)` : ''
