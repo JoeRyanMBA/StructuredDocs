@@ -229,14 +229,20 @@ def bulk_delete_topics():
 
         # Enforce admin authorization
         user_id = get_jwt_identity()
+        current_app.logger.info(f"Bulk delete attempt by user_id: {user_id}")
+        
         # Token identity may be a string; cast to int for DB lookup when possible
         try:
             user_pk = int(user_id) if user_id is not None else None
         except (TypeError, ValueError):
+            current_app.logger.warning(f"Could not convert user_id to int: {user_id}")
             user_pk = None
+        
         current_user = User.query.get(user_pk) if user_pk is not None else None
         if not current_user:
-            return jsonify({'error': 'Unauthorized'}), 401
+            current_app.logger.warning(f"User not found for ID: {user_pk}")
+            return jsonify({'error': 'User not found or session expired'}), 401
+        
         # Accept roles: admin or superadmin (fallback to role string) or boolean is_admin
         is_admin = False
         try:
@@ -244,10 +250,18 @@ def bulk_delete_topics():
                 is_admin = True
             elif hasattr(current_user, 'role') and str(current_user.role).lower() in ('admin', 'superadmin'):
                 is_admin = True
-        except Exception:
+        except Exception as e:
+            current_app.logger.error(f"Error checking admin status: {e}")
             is_admin = False
+        
+        current_app.logger.info(f"User {current_user.email} (role: {current_user.role}) admin check: {is_admin}")
+        
         if not is_admin:
-            return jsonify({'error': 'Admin role required for bulk deletion'}), 403
+            return jsonify({
+                'error': 'Admin role required for bulk deletion', 
+                'user_role': current_user.role,
+                'required_role': 'admin'
+            }), 403
 
         # Fetch existing topics
         existing = Topic.query.filter(Topic.id.in_(id_list)).all()
