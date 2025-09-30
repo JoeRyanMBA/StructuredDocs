@@ -1,43 +1,8 @@
-# StructuredDocs - Reliable Deployment Strategy
-# ============================================
-
-## Current Issues & Solutions
-After experiencing issues with earlier infrastructure setups,
-here's a comprehensive strategy to ensure reliable deployment.
-
-## 🏆 RECOMMENDED: Hybrid Deployment Strategy
-
-### Option 1: DigitalOcean App Platform (Current - Enhanced)
-**Pros:** Full control, database included, auto-scaling
-**Cons:** Docker complexity, build reliability issues
-
-#### Improvements Made:
-- ✅ Multi-stage Docker build for reliable asset copying
-- ✅ Automated build verification
-- ✅ Health checks and monitoring
-- ✅ Non-root user for security
-
-### Option 2: Vercel + Railway (Recommended Alternative)
-**Pros:** Extremely reliable, fast deployments, great DX
-**Cons:** More complex setup, separate services
-
-#### Frontend (Vercel):
-```bash
-# Deploy frontend only
-cd frontend
-npm run build
-npx vercel --prod
-```
-
-#### Backend (Railway):
-```bash
-# Deploy backend as separate service
-railway login
 # StructuredDocs Deployment Strategy
 
 ## Current issues and solutions
 
-After experiencing issues with earlier infrastructure setups, this guide outlines a reliable deployment approach and several fallback options.
+After experiencing issues with earlier infrastructure setups, this guide outlines a reliable deployment approach together with several fallback options.
 
 ## Recommended hybrid strategy
 
@@ -47,7 +12,7 @@ After experiencing issues with earlier infrastructure setups, this guide outline
 
 **Cons:** Docker complexity, build reliability issues
 
-#### Improvements made
+### Improvements made
 
 - ✅ Multi-stage Docker build for reliable asset copying
 - ✅ Automated build verification
