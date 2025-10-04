@@ -350,7 +350,53 @@ export default {
       return this.content.replace(/\n/g, '<br>')
     },
     renderedMarkdown() {
-      return marked(this.content || '')
+      const content = this.content || ''
+      
+      // Configure marked with better image handling
+      marked.setOptions({
+        breaks: true,
+        gfm: true,
+        sanitize: false,
+        smartypants: true,
+        renderer: new marked.Renderer()
+      })
+      
+      // Custom renderer to handle broken images
+      const renderer = new marked.Renderer()
+      
+      // Override image rendering to add error handling
+      renderer.image = function(href, title, text) {
+        let out = '<img src="' + href + '" alt="' + text + '"'
+        if (title) {
+          out += ' title="' + title + '"'
+        }
+        
+        // Add error handling for broken images
+        out += ' onerror="this.style.border=\'2px dashed #ff6b6b\'; this.style.padding=\'10px\'; this.alt=\'❌ Image not found: ' + (text || href) + '\'; this.title=\'Click the 🖼️ button to upload this image\'"'
+        out += ' onload="this.style.border=\'none\'; this.style.padding=\'0\'"'
+        out += '>'
+        
+        return out
+      }
+      
+      marked.setOptions({ renderer })
+      
+      let rendered = marked(content)
+      
+      // Post-process to add helpful messages for problematic image patterns
+      if (content.includes('media/')) {
+        rendered += '<div class="image-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>⚠️ Image Display Issue:</strong> This topic contains images with "media/" paths that won\'t display in the editor. Use the 🖼️ button to upload images properly.</div>'
+      }
+      
+      if (content.includes('.emf')) {
+        rendered += '<div class="image-warning" style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>🚫 Unsupported Format:</strong> This topic contains .emf images which are not web-compatible. Please convert to .png and re-upload using the 🖼️ button.</div>'
+      }
+      
+      if (content.match(/\{width=|{height=/)) {
+        rendered += '<div class="image-warning" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>📝 Formatting Note:</strong> This topic contains Pandoc-style attributes that aren\'t displayed in the editor. For size control, use HTML: &lt;img src="/images/file.png" width="500"&gt;</div>'
+      }
+      
+      return rendered
     },
     pageTitle() {
       return this.topicId ? 'Edit Topic' : 'Create a New Topic'
