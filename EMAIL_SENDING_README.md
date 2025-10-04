@@ -19,9 +19,9 @@ SendGrid configuration
 
 1. In SendGrid, complete either:
 
-  - Single Sender Verification for the address in `SENDGRID_VERIFIED_SENDER`, or
+- Single Sender Verification for the address in `SENDGRID_VERIFIED_SENDER`, or
 
-  - Domain Authentication for `structureddocs.online` (adds SPF + DKIM DNS records).
+- Domain Authentication for `structureddocs.online` (adds SPF + DKIM DNS records).
 
 2. If using Single Sender, set `SENDGRID_VERIFIED_SENDER` to that address. The app will use it as the From and set Reply-To to your branding address if different.
 
