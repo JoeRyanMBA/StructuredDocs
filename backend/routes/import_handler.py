@@ -1011,8 +1011,13 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
         if not default_project:
             return jsonify({'error': 'No projects available. Please create a project first before importing with hierarchy.'}), 400
         
-        # Parse document with hierarchical structure preservation
-        hierarchical_items = _parse_hierarchical_structure(file, source)
+        # Create a temporary ImportDocument for proper image processing
+        temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
+        db.session.add(temp_imp_doc)
+        db.session.flush()  # get temp_imp_doc.id for image processing
+        
+        # Parse document with hierarchical structure preservation AND image processing
+        hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
         
         if not hierarchical_items:
             print("HIERARCHICAL PARSING FAILED: Falling back to regular flat parsing")
@@ -1151,8 +1156,103 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
     return jsonify(imp_doc.to_dict(include_items=True)), 201
 
 
+def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
+    """Parse document preserving hierarchical heading structure WITH image processing"""
+    file.stream.seek(0)
+    
+    try:
+        # Get markdown content based on source type WITH proper image processing
+        if source == 'word':
+            file_content = file.read()
+            file.stream.seek(0)
+            # Use full image processing for hierarchical parsing
+            markdown_content = _convert_word_to_markdown(file_content, import_doc_id)
+        else:
+            # For markdown files, read directly
+            markdown_content = file.read().decode('utf-8')
+            file.stream.seek(0)
+            
+            # For markdown files, validate existing image references
+            if import_doc_id:
+                image_handler = ImageHandler(import_doc_id)
+                validation_issues = image_handler.validate_markdown_images(markdown_content)
+                if validation_issues:
+                    for issue in validation_issues:
+                        print(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
+
+        return _parse_hierarchical_content(markdown_content)
+        
+    except Exception as e:
+        print(f"HIERARCHICAL PARSING ERROR: {e}")
+        return []
+
+
+def _parse_hierarchical_content(markdown_content):
+    """Parse markdown content into hierarchical structure"""
+    hierarchical_items = []
+    current_stack = []  # Stack to track heading hierarchy levels
+    current_content = []
+    
+    for line in markdown_content.splitlines():
+        stripped = line.strip()
+        
+        if stripped.startswith('#'):
+            # This is a heading - determine its level
+            hash_count = len(line) - len(line.lstrip('#'))
+            title = stripped.lstrip('#').strip()
+            
+            # Commit content to the current item in stack
+            if current_stack and current_content:
+                content_text = '\n'.join(current_content).strip()
+                if content_text:
+                    current_stack[-1]['content'] = content_text
+                current_content = []
+            
+            # Pop items from stack that are at same or deeper level
+            while current_stack and current_stack[-1]['level'] >= hash_count:
+                completed_item = current_stack.pop()
+                hierarchical_items.append(completed_item)
+            
+            # Create new heading item
+            heading_item = {
+                'title': title,
+                'level': hash_count,
+                'content': '',
+                'parent_index': None
+            }
+            
+            # Set parent reference if there's a parent in the stack
+            if current_stack:
+                # Find the index of the parent in hierarchical_items
+                parent_item = current_stack[-1]
+                for idx, item in enumerate(hierarchical_items):
+                    if (item['title'] == parent_item['title'] and 
+                        item['level'] == parent_item['level']):
+                        heading_item['parent_index'] = idx
+                        break
+            
+            current_stack.append(heading_item)
+        else:
+            # This is content - add to current content buffer
+            current_content.append(line)
+    
+    # Don't forget content for the last heading(s)
+    if current_stack and current_content:
+        content_text = '\n'.join(current_content).strip()
+        if content_text:
+            current_stack[-1]['content'] = content_text
+    
+    # Pop all remaining items from stack
+    while current_stack:
+        completed_item = current_stack.pop()
+        hierarchical_items.append(completed_item)
+    
+    print(f"HIERARCHICAL PARSING: Found {len(hierarchical_items)} hierarchical items")
+    return hierarchical_items
+
+
 def _parse_hierarchical_structure(file, source):
-    """Parse document preserving hierarchical heading structure"""
+    """Parse document preserving hierarchical heading structure (legacy version without images)"""
     file.stream.seek(0)
     
     try:
@@ -1167,6 +1267,8 @@ def _parse_hierarchical_structure(file, source):
             # For markdown files, read directly
             markdown_content = file.read().decode('utf-8')
             file.stream.seek(0)
+        
+        return _parse_hierarchical_content(markdown_content)
         
         hierarchical_items = []
         current_stack = []  # Stack to track heading hierarchy levels
