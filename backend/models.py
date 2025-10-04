@@ -512,6 +512,53 @@ class ImportImage(db.Model):
         def __init__(self, id: int | None = None, document_id: int = ..., filename: str = ..., original_name: str = ..., public_url: str = ..., backend_path: str = ..., frontend_path: str = ..., width: int | None = None, height: int | None = None, format: str | None = None, file_size: int | None = None, mime_type: str | None = None, created_at: datetime | None = None): ...
 
 
+class ImportLink(db.Model):
+    """Track links extracted from imported documents"""
+    __tablename__ = 'import_links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    document_id = db.Column(
+        db.Integer,
+        ForeignKey('import_documents.id', ondelete='CASCADE'),
+        nullable=False
+    )
+    title = db.Column(db.String(200), nullable=False)
+    url = db.Column(db.String(512), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    link_type = db.Column(
+        Enum('form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other', name='link_type_enum'),
+        nullable=False,
+        default='website'
+    )
+    is_internal = db.Column(db.Boolean, nullable=False, default=False)
+    context = db.Column(db.Text, nullable=True)  # Surrounding text where the link was found
+    position_in_document = db.Column(db.Integer, nullable=True)  # Order of appearance in document
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, nullable=False)
+
+    # Relationship
+    document = relationship('ImportDocument', backref='links')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'document_id': self.document_id,
+            'title': self.title,
+            'url': self.url,
+            'description': self.description,
+            'link_type': self.link_type,
+            'is_internal': self.is_internal,
+            'context': self.context,
+            'position_in_document': self.position_in_document,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'source': 'import',
+            'reference_code': f"IMP-{self.document_id}-{self.id}",  # Auto-generated reference
+            'is_active': True,  # Imported links are considered active by default
+        }
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, document_id: int = ..., title: str = ..., url: str = ..., description: str | None = None, link_type: str = ..., is_internal: bool = ..., context: str | None = None, position_in_document: int | None = None, created_at: datetime | None = None): ...
+
+
 class Stakeholder(db.Model):
     """Reusable stakeholder model that can be associated with multiple projects"""
     __tablename__ = 'stakeholders'
