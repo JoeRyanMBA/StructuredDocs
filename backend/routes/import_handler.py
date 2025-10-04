@@ -1067,10 +1067,11 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
         db.session.add(collection)
         db.session.flush()  # get collection.id
         
-        # Create topics with hierarchy
+        # Create topics with hierarchy - do this in two passes
         created_topics = []
         topic_id_map = {}
         
+        # Pass 1: Create all topics first
         for i, item in enumerate(hierarchical_items):
             # Clean the content
             content = _remove_all_blank_lines(item['content']) if item['content'] else ''
@@ -1083,7 +1084,9 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             db.session.flush()  # get topic.id
             created_topics.append(topic)
             topic_id_map[i] = topic.id
-            
+        
+        # Pass 2: Create hierarchical relationships
+        for i, item in enumerate(hierarchical_items):
             # Determine parent topic ID
             parent_topic_id = None
             if item['parent_index'] is not None and item['parent_index'] in topic_id_map:
@@ -1093,7 +1096,7 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             db.session.execute(
                 collection_topic_tree.insert().values(
                     collection_id=collection.id,
-                    topic_id=topic.id,
+                    topic_id=topic_id_map[i],
                     parent_topic_id=parent_topic_id,
                     position=i
                 )
@@ -1245,13 +1248,16 @@ def _parse_hierarchical_content(markdown_content):
         hierarchical_items.append(completed_item)
     
     # Now resolve parent indices correctly
+    # Since items are added to the list when they're popped from the stack,
+    # parents appear AFTER children in the list. We need to reverse the lookup.
     for i, item in enumerate(hierarchical_items):
         if 'parent_item' in item:
             parent_item = item['parent_item']
-            # Find the parent in the hierarchical_items list
-            for j, potential_parent in enumerate(hierarchical_items):
+            # Find the parent in the hierarchical_items list (it should appear after this item)
+            for j in range(i + 1, len(hierarchical_items)):
+                potential_parent = hierarchical_items[j]
                 if (potential_parent['title'] == parent_item['title'] and 
-                    potential_parent['level'] == parent_item['level'] and j < i):
+                    potential_parent['level'] == parent_item['level']):
                     item['parent_index'] = j
                     break
             # Remove the temporary parent_item reference
