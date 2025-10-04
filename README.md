@@ -5,8 +5,11 @@
 ### Frontend (Vercel)
 
 - Repo root contains `frontend/` linked to your Vercel project.
+
 - On push to `main`, Vercel builds the frontend with Vite (`npm run build`).
+
 - Set `VITE_API_BASE_URL` (and optionally `VITE_APP_ENV=production`) in Vercel Project Settings → Environment Variables to your DigitalOcean backend URL, e.g. `https://api.yourdomain.com`.
+
 - If using a monorepo, keep `vercel.json` at root to point build to `frontend/`.
 
 ### Backend (DigitalOcean)
@@ -14,17 +17,23 @@
 Three supported deployment styles (choose one):
 
 1. Droplet + Docker (recommended for current setup)
+
    - Build & run locally first: `docker compose -f docker-compose.app.yml up --build`.
+
    - Use `scripts/deploy_digitalocean.sh` (updates image via SSH & restarts container).
    - Provide a `backend.env` file on the server (never commit) with real secrets.
 
 2. Droplet + systemd (no containers)
+
    - Install Python 3.12, create venv, install `backend/requirements.txt`.
+
    - Use Gunicorn unit: `/etc/systemd/system/structureddocs.service` pointing to `backend.app:create_app()`.
    - Run Alembic migrations with `scripts/run_migrations.sh` (ensure env loaded).
 
 3. DigitalOcean App Platform
+
    - Point to repo, set build command (multi-stage Dockerfile already present) or supply this Gunicorn start: `gunicorn backend.app:create_app() -b 0.0.0.0:$PORT`.
+
    - Add environment variables in App Platform UI.
 
 ### Environment Variables
@@ -32,14 +41,19 @@ Three supported deployment styles (choose one):
 Frontend (Vercel):
 
 - `VITE_API_BASE_URL=https://your-backend-domain`
+
 - `VITE_APP_ENV=production` (optional feature gating)
 
 Backend (DigitalOcean):
 
 - `DATABASE_URL=postgresql://user:pass@host:5432/dbname` (Managed DB connection string)
+
 - `SECRET_KEY`, `JWT_SECRET_KEY`
+
 - `FRONTEND_URL=https://your-frontend.vercel.app`
+
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_DEFAULT_SENDER`
+
 - (Optional) `SENTRY_DSN`, `REDIS_URL`, `ENABLE_BLUEPRINTS`
 
 See `backend/.env.example` for a full template.
@@ -66,12 +80,14 @@ See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuratio
 `/api/version` returns JSON:
 
 ```json
+
 {
   "service": "StructuredDocs",
   "version": "0.2.0",
   "commit": "abc1234",
   "build_time": "2025-09-27T12:34:56Z"
 }
+
 ```
 
 Values come from build args (`APP_VERSION`, `GIT_COMMIT`, `BUILD_TIME`) set in CI or fall back to git at runtime.
@@ -79,10 +95,12 @@ Values come from build args (`APP_VERSION`, `GIT_COMMIT`, `BUILD_TIME`) set in C
 ### Database Connection Pooling
 
 ```env
+
 DB_POOL_SIZE=5
 DB_MAX_OVERFLOW=10
 DB_POOL_RECYCLE=1800
 DB_POOL_TIMEOUT=30
+
 ```
 
 Applied via `SQLALCHEMY_ENGINE_OPTIONS` (ignored for SQLite).
@@ -90,11 +108,13 @@ Applied via `SQLALCHEMY_ENGINE_OPTIONS` (ignored for SQLite).
 ### Rate Limiting (Flask-Limiter)
 
 ```env
+
 RATE_LIMIT_DEFAULT=200 per day;50 per hour
 RATE_LIMIT_LOGIN=5 per minute
 RATE_LIMIT_AUTH=30 per hour
 RATE_LIMIT_WRITE=100 per hour
 RATE_LIMIT_STORAGE_URI=redis://localhost:6379/1
+
 ```
 
 Defaults override limiter internal defaults; per-endpoint limits applied best-effort.
@@ -102,9 +122,11 @@ Defaults override limiter internal defaults; per-endpoint limits applied best-ef
 ### Security Headers
 
 ```env
+
 ENABLE_SECURITY_HEADERS=1
 CSP_HEADER="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src *; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'"
 PERMISSIONS_POLICY="geolocation=(), microphone=(), camera=()"
+
 ```
 
 Disable by setting `ENABLE_SECURITY_HEADERS=0`.
@@ -114,21 +136,27 @@ Disable by setting `ENABLE_SECURITY_HEADERS=0`.
 Provide `REDIS_URL`. Worker entrypoint:
 
 ```bash
+
 python -m backend.worker
+
 ```
 
 Enqueue programmatically:
 
 ```python
+
 from backend.utils.tasks import enqueue_task
 enqueue_task('backend.tasks.examples.example_long_task', duration=10)
+
 ```
 
 HTTP example:
 
 ```bash
+
 curl -X POST -H 'Content-Type: application/json' \
    -d '{"duration":3}' http://localhost:8080/api/tasks/enqueue-example
+
 ```
 
 ### Build Metadata Injection
@@ -158,21 +186,27 @@ Set `LOG_FORMAT=json` to emit structured JSON logs with `event`, `ts`, and a sho
 ### Local Run Cheat Sheet
 
 ```bash
+
 # Backend (with Docker compose)
+
 docker compose -f docker-compose.app.yml up --build
 
 # Run worker (requires REDIS_URL)
+
 python -m backend.worker
 
 # Enqueue example task
+
 python -c "from backend.utils.tasks import enqueue_task; print(enqueue_task('backend.tasks.examples.example_long_task', duration=3))"
+
 ```
 
 ### Future Hardening Ideas
 
 - Structured JSON logging w/ request IDs
+
 - Metrics exporter (Prometheus or OTLP)
+
 - Nonce / hashed CSP
+
 - Scheduled tasks (cron + RQ)
-
-

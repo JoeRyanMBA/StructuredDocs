@@ -3,6 +3,7 @@
 ## Before (Original)
 
 ```text
+
 Import Content
 ┌─────────────────────────────────────────────┐
 │ Import Type                                 │
@@ -17,11 +18,13 @@ Import Content
 Format: [Word (.docx) ▼]
 File: [Choose File] No file chosen
 [📥 Start Import]
+
 ```
 
 ## After (With Hierarchy Option)
 
 ```text
+
 Import Content
 ┌─────────────────────────────────────────────┐
 │ Import Type                                 │
@@ -47,6 +50,7 @@ Import Content
 Format: [Word (.docx) ▼]
 File: [Choose File] employee_handbook.docx
 [📥 Start Import]
+
 ```
 
 ### Result Flow
@@ -60,7 +64,11 @@ Import → Organize Page → Collection with Hierarchical Topics
 ### Key UI Elements Added
 
 1. **Advanced Options Section**: Only appears for "Individual Topics"
+
 2. **Checkbox**: "Preserve Document Hierarchy" with clear explanation
+
 3. **Conditional Display**: Checkbox hidden for collection imports (redundant)
+
 4. **Visual Feedback**: Check/uncheck state clearly visible
+
 5. **Help Text**: Explains exactly what the feature does
