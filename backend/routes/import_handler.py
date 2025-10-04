@@ -1223,13 +1223,10 @@ def _parse_hierarchical_content(markdown_content):
             
             # Set parent reference if there's a parent in the stack
             if current_stack:
-                # Find the index of the parent in hierarchical_items
+                # The parent is the most recent item at a shallower level (stack top)
                 parent_item = current_stack[-1]
-                for idx, item in enumerate(hierarchical_items):
-                    if (item['title'] == parent_item['title'] and 
-                        item['level'] == parent_item['level']):
-                        heading_item['parent_index'] = idx
-                        break
+                # We'll set the parent_index after we know where the parent will be in the final list
+                heading_item['parent_item'] = parent_item
             
             current_stack.append(heading_item)
         else:
@@ -1246,6 +1243,21 @@ def _parse_hierarchical_content(markdown_content):
     while current_stack:
         completed_item = current_stack.pop()
         hierarchical_items.append(completed_item)
+    
+    # Now resolve parent indices correctly
+    for i, item in enumerate(hierarchical_items):
+        if 'parent_item' in item:
+            parent_item = item['parent_item']
+            # Find the parent in the hierarchical_items list
+            for j, potential_parent in enumerate(hierarchical_items):
+                if (potential_parent['title'] == parent_item['title'] and 
+                    potential_parent['level'] == parent_item['level'] and j < i):
+                    item['parent_index'] = j
+                    break
+            # Remove the temporary parent_item reference
+            del item['parent_item']
+        else:
+            item['parent_index'] = None
     
     print(f"HIERARCHICAL PARSING: Found {len(hierarchical_items)} hierarchical items")
     return hierarchical_items
