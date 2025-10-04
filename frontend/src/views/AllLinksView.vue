@@ -72,6 +72,14 @@
           <span class="stat-number">{{ activeLinksCount }}</span>
           <span class="stat-label">Active</span>
         </div>
+        <div class="stat-item" v-if="importedLinksCount > 0">
+          <span class="stat-number">{{ importedLinksCount }}</span>
+          <span class="stat-label">Imported</span>
+        </div>
+        <div class="stat-item" v-if="importedLinksCount > 0">
+          <span class="stat-number">{{ regularLinksCount }}</span>
+          <span class="stat-label">Regular</span>
+        </div>
         <div class="stat-item" v-if="hasFilters">
           <span class="stat-number">{{ allLinks.length }}</span>
           <span class="stat-label">Total Available</span>
@@ -110,8 +118,12 @@
             </div>
           </div>
           <div class="col-reference">
-            <span v-if="link.reference_code" class="reference-code">{{ link.reference_code }}</span>
-            <span v-else class="no-reference">No reference</span>
+            <div class="reference-info">
+              <span v-if="link.reference_code" class="reference-code">{{ link.reference_code }}</span>
+              <span v-else class="no-reference">No reference</span>
+              <span v-if="link.source === 'import'" class="source-badge import-source" title="From imported document">📥 Imported</span>
+              <span v-else class="source-badge regular-source" title="Regular link">🔗 Regular</span>
+            </div>
           </div>
           <div class="col-type">
             <span class="link-type" :class="'type-' + link.link_type">
@@ -349,6 +361,14 @@ export default {
     
     activeLinksCount() {
       return this.filteredLinks.filter(link => link.is_active).length
+    },
+    
+    importedLinksCount() {
+      return this.filteredLinks.filter(link => link.source === 'import').length
+    },
+    
+    regularLinksCount() {
+      return this.filteredLinks.filter(link => link.source !== 'import').length
     },
     
     linkTypesInUse() {
@@ -783,6 +803,32 @@ export default {
   color: #999;
   font-style: italic;
   font-size: 0.875rem;
+}
+
+.reference-info {
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.source-badge {
+  padding: 0.125rem 0.375rem;
+  border-radius: 3px;
+  font-size: 0.75rem;
+  font-weight: 500;
+  align-self: flex-start;
+}
+
+.import-source {
+  background: #e3f2fd;
+  color: #1565c0;
+  border: 1px solid #bbdefb;
+}
+
+.regular-source {
+  background: #f3e5f5;
+  color: #7b1fa2;
+  border: 1px solid #ce93d8;
 }
 
 .link-type {

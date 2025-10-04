@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Link, Topic, TopicLink
+from ..models import db, Link, Topic, TopicLink, ImportLink, ImportDocument
 from sqlalchemy import or_, and_, func
 import re
 
@@ -46,9 +46,44 @@ def get_links():
         # Convert to dict
         links_data = [link.to_dict(include_usage=include_usage) for link in links]
         
+        # Also get imported links (from import documents)
+        include_imported = request.args.get('include_imported', 'true').lower() == 'true'
+        imported_links_data = []
+        
+        if include_imported:
+            try:
+                # Query imported links with filtering
+                import_query = ImportLink.query
+                
+                if link_type:
+                    import_query = import_query.filter(ImportLink.link_type == link_type)
+                
+                if search:
+                    search_pattern = f"%{search}%"
+                    import_query = import_query.filter(
+                        or_(
+                            ImportLink.title.ilike(search_pattern),
+                            ImportLink.description.ilike(search_pattern),
+                            ImportLink.url.ilike(search_pattern)
+                        )
+                    )
+                
+                # Order by creation date (most recent first)
+                imported_links = import_query.order_by(ImportLink.created_at.desc()).all()
+                imported_links_data = [link.to_dict() for link in imported_links]
+                
+            except Exception as e:
+                current_app.logger.warning(f"Error fetching imported links: {str(e)}")
+                imported_links_data = []
+        
+        # Combine regular and imported links
+        all_links = links_data + imported_links_data
+        
         return jsonify({
-            'links': links_data,
-            'total_count': len(links_data)
+            'links': all_links,
+            'regular_links_count': len(links_data),
+            'imported_links_count': len(imported_links_data),
+            'total_count': len(all_links)
         }), 200
         
     except Exception as e:

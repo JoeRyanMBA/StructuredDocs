@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from ..models import db, ImportDocument, ImportItem, ImportImage, Topic
+from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic
 from ..utils.image_handler import ImageHandler
 import re
 from docx import Document
@@ -10,6 +10,7 @@ import tempfile
 import os
 import shutil
 import uuid
+from urllib.parse import urlparse
 
 import_bp = Blueprint('import_handler', __name__, url_prefix='/api/import')
 SOURCES = ('word', 'markdown')
@@ -375,6 +376,137 @@ def _clean_markdown_content(content):
     cleaned_content = re.sub(r'<p>\s*</p>', '', cleaned_content)
     
     return cleaned_content
+
+
+def _extract_and_store_links(document_id, content, position=0):
+    """Extract links from content and store in database
+    
+    Args:
+        document_id: The ImportDocument ID
+        content: The text content to extract links from
+        position: Starting position in document for link ordering
+        
+    Returns:
+        int: Number of links extracted
+    """
+    if not content:
+        return 0
+    
+    links_extracted = 0
+    
+    # Pattern to match markdown links: [text](url) or [text](url "title")
+    markdown_link_pattern = r'\[([^\]]+)\]\(([^)]+?)(?:\s+"([^"]*)")?\)'
+    
+    # Pattern to match plain URLs (http/https)
+    url_pattern = r'https?://[^\s<>"{}|\\^`\[\]]+[^\s<>"{}|\\^`\[\].,;:!?)]'
+    
+    # Extract markdown-style links
+    for match in re.finditer(markdown_link_pattern, content):
+        title = match.group(1).strip()
+        url = match.group(2).strip()
+        description = match.group(3).strip() if match.group(3) else None
+        
+        # Get surrounding context (50 chars before and after)
+        start = max(0, match.start() - 50)
+        end = min(len(content), match.end() + 50)
+        context = content[start:end].replace('\n', ' ').strip()
+        
+        # Determine link type and if it's internal
+        link_type, is_internal = _classify_link(url)
+        
+        # Store the link
+        import_link = ImportLink(
+            document_id=document_id,
+            title=title,
+            url=url,
+            description=description,
+            link_type=link_type,
+            is_internal=is_internal,
+            context=context,
+            position_in_document=position + match.start()
+        )
+        
+        db.session.add(import_link)
+        links_extracted += 1
+        print(f"LINK EXTRACTED: [{title}]({url}) - type: {link_type}, internal: {is_internal}")
+    
+    # Extract plain URLs (not already captured as markdown links)
+    existing_urls = set()
+    for match in re.finditer(markdown_link_pattern, content):
+        existing_urls.add(match.group(2).strip())
+    
+    for match in re.finditer(url_pattern, content):
+        url = match.group(0)
+        if url in existing_urls:
+            continue  # Skip URLs already captured as markdown links
+        
+        # Create title from URL
+        parsed = urlparse(url)
+        title = parsed.netloc or url
+        
+        # Get surrounding context
+        start = max(0, match.start() - 50)
+        end = min(len(content), match.end() + 50)
+        context = content[start:end].replace('\n', ' ').strip()
+        
+        # Determine link type and if it's internal
+        link_type, is_internal = _classify_link(url)
+        
+        # Store the link
+        import_link = ImportLink(
+            document_id=document_id,
+            title=title,
+            url=url,
+            description=None,
+            link_type=link_type,
+            is_internal=is_internal,
+            context=context,
+            position_in_document=position + match.start()
+        )
+        
+        db.session.add(import_link)
+        links_extracted += 1
+        print(f"URL EXTRACTED: {url} - type: {link_type}, internal: {is_internal}")
+    
+    return links_extracted
+
+
+def _classify_link(url):
+    """Classify a link by type and determine if it's internal
+    
+    Returns:
+        tuple: (link_type, is_internal)
+    """
+    if not url:
+        return 'other', False
+    
+    url_lower = url.lower()
+    parsed = urlparse(url)
+    
+    # Determine if internal (same domain or relative URL)
+    is_internal = False
+    if not parsed.netloc:  # Relative URL
+        is_internal = True
+    elif parsed.netloc:
+        # You could add logic here to check if it's your internal domain
+        # For now, assume external unless it's a relative path
+        is_internal = False
+    
+    # Classify link type based on URL patterns and file extensions
+    if any(word in url_lower for word in ['form', 'submit', 'application']):
+        return 'form', is_internal
+    elif any(ext in url_lower for ext in ['.pdf', '.doc', '.docx', '.txt', '.rtf']):
+        return 'document', is_internal
+    elif any(word in url_lower for word in ['policy', 'policies']):
+        return 'policy', is_internal
+    elif any(word in url_lower for word in ['procedure', 'process', 'sop']):
+        return 'procedure', is_internal
+    elif any(word in url_lower for word in ['regulation', 'rule', 'law', 'legal']):
+        return 'regulation', is_internal
+    elif parsed.netloc:  # Has domain, likely external website
+        return 'website', is_internal
+    else:
+        return 'other', is_internal
 
 
 def _fix_list_indentation(content):
@@ -793,6 +925,16 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
         except Exception as e:
             print(f"FALLBACK ERROR: {e}")
 
+    # Extract links from the full document content
+    total_links_extracted = 0
+    try:
+        links_count = _extract_and_store_links(imp_doc.id, full_text)
+        total_links_extracted += links_count
+        print(f"LINK EXTRACTION: Extracted {links_count} links from document")
+    except Exception as e:
+        print(f"LINK EXTRACTION ERROR: {e}")
+        current_app.logger.error(f"Link extraction failed for {imp_doc.filename}: {e}")
+
     for order, title, content in items:
         # If preserve_hierarchy is enabled and we have heading level info, encode it in the title
         if preserve_hierarchy and len(items) > order:
@@ -813,6 +955,12 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             title=encoded_title,
             content=content
         ))
+    
+    # Store the link extraction summary in logs
+    if total_links_extracted > 0:
+        current_app.logger.info(f"Successfully extracted {total_links_extracted} links from {imp_doc.filename}")
+    
+    return total_links_extracted
 
 
 def _upload_file(source):
@@ -1264,6 +1412,28 @@ def get_import_images(doc_id):
     except Exception as e:
         current_app.logger.error(f"Error fetching images for import {doc_id}: {str(e)}")
         return jsonify({'error': f'Failed to fetch images: {str(e)}'}), 500
+
+
+@import_bp.route('/staging/<int:doc_id>/links', methods=['GET'])
+def get_import_links(doc_id):
+    """Get all links extracted from an import document"""
+    try:
+        doc = ImportDocument.query.get_or_404(doc_id)
+        
+        # Get links from database
+        db_links = ImportLink.query.filter_by(document_id=doc_id).order_by(ImportLink.position_in_document).all()
+        links_data = [link.to_dict() for link in db_links]
+        
+        return jsonify({
+            'document_id': doc_id,
+            'document_filename': doc.filename,
+            'links': links_data,
+            'total_count': len(links_data)
+        }), 200
+        
+    except Exception as e:
+        current_app.logger.error(f"Error fetching links for import {doc_id}: {str(e)}")
+        return jsonify({'error': f'Failed to fetch links: {str(e)}'}), 500
 
 
 @import_bp.route('/staging/<int:doc_id>', methods=['GET'])
