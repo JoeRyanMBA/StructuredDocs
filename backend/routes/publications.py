@@ -703,11 +703,18 @@ def save_nodes(pub_id):
 
     def walk(nodes, parent_id=None):
         for idx, n in enumerate(nodes):
+            # Get the topic to capture snapshot data
+            topic = Topic.query.get(n['topic_id'])
+            if not topic:
+                continue  # Skip if topic doesn't exist
+                
             node = PublicationNode(
                 publication_id=pub_id,
                 topic_id=n['topic_id'],
                 parent_id=parent_id,
-                position=idx
+                position=idx,
+                title_snapshot=topic.title,
+                content_snapshot=topic.content
             )
             db.session.add(node)
             db.session.flush()  # assign node.id
