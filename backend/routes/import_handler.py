@@ -1364,7 +1364,8 @@ def _parse_hierarchical_structure(file, source):
 def _import_as_collection(file, source):
     """Import document as a collection with hierarchical structure"""
     # Use package-relative import to avoid importing backend.models twice
-    from ..models import Collection, Topic, collection_topic_tree, Project
+    from ..models import Collection, Topic, collection_topic_tree, Project, ImportDocument
+    from werkzeug.utils import secure_filename
     
     # Get collection details from form
     collection_name = request.form.get('collection_name', '').strip()
@@ -1393,8 +1394,13 @@ def _import_as_collection(file, source):
     if existing_collection:
         return jsonify({'error': f'Collection ID "{collection_form_number}" already exists'}), 400
     
-    # Parse document with hierarchical structure preservation
-    hierarchical_items = _parse_hierarchical_structure(file, source)
+        # Create a temporary ImportDocument for proper image processing
+        temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
+        db.session.add(temp_imp_doc)
+        db.session.flush()  # get temp_imp_doc.id for image processing
+    
+        # Parse document with hierarchical structure preservation AND image processing
+        hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
     
     if not hierarchical_items:
         error_msg = f"No content items could be extracted from the document. "
