@@ -227,12 +227,15 @@ def publish_collection(collection_id):
     Convert a collection to a publication for publishing.
     This creates a Publication and PublicationNode structure from the Collection.
     """
+    print(f"🎯 PUBLISH: Starting publish for collection {collection_id}")
     try:
         collection = Collection.query.get_or_404(collection_id)
+        print(f"🎯 PUBLISH: Found collection '{collection.name}' with {len(collection.topics)} topics")
         title_pattern = collection.name
         existing_pub = Publication.query.filter_by(title=title_pattern).first()
 
         # Determine which variable slugs are actually used in this collection's content
+        print(f"🎯 PUBLISH: Scanning for variable tokens in collection content")
         import re
         token_re = re.compile(r'\{\{([A-Za-z0-9_\-]+)\}\}')
         used_slugs = set()
@@ -246,12 +249,17 @@ def publish_collection(collection_id):
             for child in getattr(coll, 'children', []) or []:
                 gather_used_slugs(child)
         gather_used_slugs(collection)
+        print(f"🎯 PUBLISH: Found variable tokens: {used_slugs}")
 
         if existing_pub:
+            print(f"🎯 PUBLISH: Found existing publication '{existing_pub.title}' (id={existing_pub.id})")
             var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
+            print(f"🎯 PUBLISH: Variable mapping: {var_mapping}, unresolved: {unresolved}")
             # Only consider unresolved variables that are actually used in this collection
             unresolved_in_use = [s for s in unresolved if s in used_slugs]
+            print(f"🎯 PUBLISH: Unresolved variables in use: {unresolved_in_use}")
             if unresolved_in_use:
+                print(f"🎯 PUBLISH: Blocking publish - unresolved variables detected")
                 # Get detailed variable information for the frontend
                 from ..models import Variable
                 variables_info = []
@@ -275,17 +283,26 @@ def publish_collection(collection_id):
                     'collection_id': collection.id,
                     'message': f'This collection contains {len(unresolved_in_use)} variable(s) that need to be configured before publishing.'
                 }), 400
+            print(f"🎯 PUBLISH: Updating existing publication")
             existing_pub.description = f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
-            existing_pub.created_at = datetime.now(timezone.utc)
+            # Use naive UTC to match DB column
+            existing_pub.created_at = datetime.utcnow()
+            print(f"🎯 PUBLISH: Deleting existing publication nodes")
             PublicationNode.query.filter_by(publication_id=existing_pub.id).delete()
 
             def rebuild_nodes(coll, parent_pub_node_id=None):
+                print(f"🎯 PUBLISH: Rebuilding nodes for collection '{coll.name}'")
                 nodes_created = []
                 hierarchical_topics = coll.to_tree()
+                print(f"🎯 PUBLISH: Collection tree has {len(hierarchical_topics)} top-level topics")
 
                 def recurse(topics, parent_node_id):
                     for idx, topic_data in enumerate(topics):
+                        print(f"🎯 PUBLISH: Processing topic {topic_data['id']} at position {idx}")
                         topic_obj = Topic.query.get(topic_data['id'])
+                        if not topic_obj:
+                            print(f"🎯 PUBLISH: WARNING - Topic {topic_data['id']} not found in database")
+                            continue
                         title_sub = substitute_variables_in_text(getattr(topic_obj, 'title', '') or '', var_mapping) if topic_obj else ''
                         content_sub = substitute_variables_in_text(getattr(topic_obj, 'content', '') or '', var_mapping) if topic_obj else ''
                         node = PublicationNode(
@@ -299,17 +316,22 @@ def publish_collection(collection_id):
                         db.session.add(node)
                         db.session.flush()
                         nodes_created.append(node)
+                        print(f"🎯 PUBLISH: Created node {node.id} for topic {topic_data['id']}")
                         if topic_data.get('children'):
                             recurse(topic_data['children'], node.id)
 
                 recurse(hierarchical_topics, parent_pub_node_id)
+                print(f"🎯 PUBLISH: Processing {len(coll.children)} child collections")
                 for child_coll in sorted(coll.children, key=lambda x: x.position):
                     child_nodes = rebuild_nodes(child_coll, parent_pub_node_id)
                     nodes_created.extend(child_nodes)
                 return nodes_created
 
+            print(f"🎯 PUBLISH: Starting node rebuild for existing publication")
             nodes = rebuild_nodes(collection)
+            print(f"🎯 PUBLISH: Committing {len(nodes)} nodes to database")
             db.session.commit()
+            print(f"🎯 PUBLISH: Successfully updated existing publication {existing_pub.id}")
             return jsonify({
                 'message': 'Publication updated with current collection content',
                 'publication_id': existing_pub.id,
@@ -320,10 +342,14 @@ def publish_collection(collection_id):
             }), 200
 
         # New publication path
+        print(f"🎯 PUBLISH: Creating new publication")
         var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
+        print(f"🎯 PUBLISH: Variable mapping: {var_mapping}, unresolved: {unresolved}")
         # Only consider unresolved variables that are actually used in this collection
         unresolved_in_use = [s for s in unresolved if s in used_slugs]
+        print(f"🎯 PUBLISH: Unresolved variables in use: {unresolved_in_use}")
         if unresolved_in_use:
+            print(f"🎯 PUBLISH: Blocking new publication - unresolved variables detected")
             # Get detailed variable information for the frontend
             from ..models import Variable
             variables_info = []
@@ -347,20 +373,28 @@ def publish_collection(collection_id):
                 'collection_id': collection.id,
                 'message': f'This collection contains {len(unresolved_in_use)} variable(s) that need to be configured before publishing.'
             }), 400
+        print(f"🎯 PUBLISH: Creating new publication object")
         publication = Publication(
             title=f"{collection.name}",
             description=f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
         )
         db.session.add(publication)
         db.session.flush()
+        print(f"🎯 PUBLISH: Created publication {publication.id} titled '{publication.title}'")
 
         def build_nodes(coll, parent_pub_node_id=None):
+            print(f"🎯 PUBLISH: Building nodes for collection '{coll.name}'")
             nodes_created = []
             hierarchical_topics = coll.to_tree()
+            print(f"🎯 PUBLISH: Collection tree has {len(hierarchical_topics)} top-level topics")
 
             def recurse(topics, parent_node_id):
                 for idx, topic_data in enumerate(topics):
+                    print(f"🎯 PUBLISH: Processing topic {topic_data['id']} at position {idx}")
                     topic_obj = Topic.query.get(topic_data['id'])
+                    if not topic_obj:
+                        print(f"🎯 PUBLISH: WARNING - Topic {topic_data['id']} not found in database")
+                        continue
                     title_sub = substitute_variables_in_text(getattr(topic_obj, 'title', '') or '', var_mapping) if topic_obj else ''
                     content_sub = substitute_variables_in_text(getattr(topic_obj, 'content', '') or '', var_mapping) if topic_obj else ''
                     node = PublicationNode(
@@ -374,17 +408,22 @@ def publish_collection(collection_id):
                     db.session.add(node)
                     db.session.flush()
                     nodes_created.append(node)
+                    print(f"🎯 PUBLISH: Created node {node.id} for topic {topic_data['id']}")
                     if topic_data.get('children'):
                         recurse(topic_data['children'], node.id)
 
             recurse(hierarchical_topics, parent_pub_node_id)
+            print(f"🎯 PUBLISH: Processing {len(coll.children)} child collections")
             for child_coll in sorted(coll.children, key=lambda x: x.position):
                 child_nodes = build_nodes(child_coll, parent_pub_node_id)
                 nodes_created.extend(child_nodes)
             return nodes_created
 
+        print(f"🎯 PUBLISH: Starting node build for new publication")
         nodes = build_nodes(collection)
+        print(f"🎯 PUBLISH: Committing {len(nodes)} nodes to database")
         db.session.commit()
+        print(f"🎯 PUBLISH: Successfully created new publication {publication.id}")
         return jsonify({
             'message': 'Collection published successfully',
             'publication_id': publication.id,
@@ -394,6 +433,10 @@ def publish_collection(collection_id):
             'unresolved_variables': []
         }), 201
     except Exception as e:
+        print(f"🎯 PUBLISH: ERROR - Exception during publish: {str(e)}")
+        print(f"🎯 PUBLISH: ERROR - Exception type: {type(e).__name__}")
+        import traceback
+        print(f"🎯 PUBLISH: ERROR - Traceback: {traceback.format_exc()}")
         db.session.rollback()
         return jsonify({'error': str(e)}), 500
 
