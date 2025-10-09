@@ -1,5 +1,7 @@
 /* src/style.css */
-@import url('https://fonts.googleapis.com/css2?family=Roboto&display=swap');
+/* NOTE: Removed external Google Fonts import to satisfy strict CSP.
+  If you want Roboto, self-host it under /public/fonts and add a local
+  @font-face instead of pulling from https://fonts.googleapis.com. */
 
 /* 🎨 Structured Docs Color Palette */
 
@@ -91,7 +93,7 @@
 
 /* General Body and Typography */
 body {
-  font-family: 'Roboto', -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   background-color: var(--bg-white);
   color: var(--text-primary-charcoal);
   line-height: 1.6;

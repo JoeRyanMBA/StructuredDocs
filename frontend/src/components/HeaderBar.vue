@@ -193,7 +193,7 @@ export default {
 .title {
   margin: 0;
   font-size: 1.5rem;
-  font-family: 'Roboto', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   transition: color 0.2s;
   text-align: center;
   white-space: nowrap;
