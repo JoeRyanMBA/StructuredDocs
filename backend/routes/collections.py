@@ -232,13 +232,30 @@ def publish_collection(collection_id):
         title_pattern = collection.name
         existing_pub = Publication.query.filter_by(title=title_pattern).first()
 
+        # Determine which variable slugs are actually used in this collection's content
+        import re
+        token_re = re.compile(r'\{\{([A-Za-z0-9_\-]+)\}\}')
+        used_slugs = set()
+        def gather_used_slugs(coll):
+            # Scan topics directly in this collection
+            for t in coll.topics:
+                for field in ((t.title or ''), (t.content or '')):
+                    for slug in token_re.findall(field):
+                        used_slugs.add(slug)
+            # Recurse into child collections
+            for child in getattr(coll, 'children', []) or []:
+                gather_used_slugs(child)
+        gather_used_slugs(collection)
+
         if existing_pub:
             var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
-            if unresolved:
+            # Only consider unresolved variables that are actually used in this collection
+            unresolved_in_use = [s for s in unresolved if s in used_slugs]
+            if unresolved_in_use:
                 # Get detailed variable information for the frontend
                 from ..models import Variable
                 variables_info = []
-                for var_slug in unresolved:
+                for var_slug in unresolved_in_use:
                     var = Variable.query.filter_by(slug=var_slug).first()
                     if var:
                         variables_info.append({
@@ -252,11 +269,11 @@ def publish_collection(collection_id):
                 return jsonify({
                     'error': 'Variables must be configured before publishing.',
                     'requires_variable_selection': True,
-                    'unresolved_variables': unresolved,
+                    'unresolved_variables': unresolved_in_use,
                     'variables_info': variables_info,
                     'publish_setup_endpoint': f'/api/variables/collections/{collection.id}/publish-setup',
                     'collection_id': collection.id,
-                    'message': f'This collection contains {len(unresolved)} variable(s) that need to be configured before publishing.'
+                    'message': f'This collection contains {len(unresolved_in_use)} variable(s) that need to be configured before publishing.'
                 }), 400
             existing_pub.description = f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
             existing_pub.created_at = datetime.now(timezone.utc)
@@ -304,11 +321,13 @@ def publish_collection(collection_id):
 
         # New publication path
         var_mapping, unresolved = build_variable_mapping_for_collection(collection.id)
-        if unresolved:
+        # Only consider unresolved variables that are actually used in this collection
+        unresolved_in_use = [s for s in unresolved if s in used_slugs]
+        if unresolved_in_use:
             # Get detailed variable information for the frontend
             from ..models import Variable
             variables_info = []
-            for var_slug in unresolved:
+            for var_slug in unresolved_in_use:
                 var = Variable.query.filter_by(slug=var_slug).first()
                 if var:
                     variables_info.append({
@@ -322,11 +341,11 @@ def publish_collection(collection_id):
             return jsonify({
                 'error': 'Variables must be configured before publishing.',
                 'requires_variable_selection': True,
-                'unresolved_variables': unresolved,
+                'unresolved_variables': unresolved_in_use,
                 'variables_info': variables_info,
                 'publish_setup_endpoint': f'/api/variables/collections/{collection.id}/publish-setup',
                 'collection_id': collection.id,
-                'message': f'This collection contains {len(unresolved)} variable(s) that need to be configured before publishing.'
+                'message': f'This collection contains {len(unresolved_in_use)} variable(s) that need to be configured before publishing.'
             }), 400
         publication = Publication(
             title=f"{collection.name}",

@@ -1364,7 +1364,8 @@ export default {
         const variablesInfo = (data.variables_in_content||[]).map(v => ({
           id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection
         }))
-        if (!variablesInfo.length) { toast.success('No variables required for this collection'); return }
+        // Always open the modal for consistency with Publish flow; show toast when none
+        if (!variablesInfo.length) { toast.success('No variables required for this collection') }
         this.pendingPublishAction = { type: 'configure-only', collectionId, button: btn }
         this.variableModalData = { collectionId, variablesInfo, unresolvedVariables: (data.variables_in_content||[]).filter(v=>!v.is_resolved).map(v=>v.slug) }
         this.showVariableModal = true
