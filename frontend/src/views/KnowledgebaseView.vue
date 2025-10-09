@@ -19,7 +19,7 @@ export default { /* fetch same as builder */ }
 <style scoped>
 .kb {
   padding: 2rem;
-  font-family: 'Roboto', sans-serif;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
 }
 
 .kb h1 {
