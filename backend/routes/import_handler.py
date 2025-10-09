@@ -1424,41 +1424,44 @@ def _import_as_collection(file, source):
     print(f"COLLECTION_IMPORT: Created collection with ID={collection.id}")
     
     # Convert hierarchical items to topics and add them to the collection with proper hierarchy
+    # IMPORTANT: Parents appear AFTER children in hierarchical_items due to stack-pop order during parsing.
+    # Therefore we must do this in TWO PASSES: (1) create topics, (2) create relationships using parent_index.
     created_topics = []
     topic_id_map = {}  # Map from item index to topic ID for parent relationships
-    
+
+    # Pass 1: Create all topics first so every index is available
     for i, item in enumerate(hierarchical_items):
-        # Clean the content
         content = _remove_all_blank_lines(item['content']) if item['content'] else ''
-        
-        topic = Topic(
-            title=item['title'],
-            content=content
-        )
+        topic = Topic(title=item['title'], content=content)
         db.session.add(topic)
         db.session.flush()  # get topic.id
         created_topics.append(topic)
         topic_id_map[i] = topic.id
-        
-        # Determine parent topic ID
+        print(f"COLLECTION_IMPORT: Created topic '{item['title']}' (level {item['level']}) -> topic_id={topic.id}")
+
+    # Pass 2: Insert hierarchical relationships using parent_index mapping
+    linked = 0
+    for i, item in enumerate(hierarchical_items):
         parent_topic_id = None
-        if item['parent_index'] is not None and item['parent_index'] in topic_id_map:
-            parent_topic_id = topic_id_map[item['parent_index']]
-        
-        # Add topic to collection with hierarchical relationship
+        if item['parent_index'] is not None:
+            parent_idx = item['parent_index']
+            parent_topic_id = topic_id_map.get(parent_idx)
+
         db.session.execute(
             collection_topic_tree.insert().values(
                 collection_id=collection.id,
-                topic_id=topic.id,
-                position=i,  # Use index as position
-                parent_topic_id=parent_topic_id
+                topic_id=topic_id_map[i],
+                parent_topic_id=parent_topic_id,
+                position=i
             )
         )
-        
+
         hierarchy_info = f"parent: {parent_topic_id}" if parent_topic_id else "root level"
-        print(f"COLLECTION_IMPORT: Created topic '{item['title']}' (level {item['level']}, {hierarchy_info})")
-    
-    print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics with hierarchical structure")
+        print(f"COLLECTION_IMPORT: Linked topic_idx={i} -> {hierarchy_info}")
+        if parent_topic_id:
+            linked += 1
+
+    print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics; linked {linked} with parents")
     
     # Commit everything
     db.session.commit()
