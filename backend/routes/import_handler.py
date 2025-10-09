@@ -1394,14 +1394,14 @@ def _import_as_collection(file, source):
     if existing_collection:
         return jsonify({'error': f'Collection ID "{collection_form_number}" already exists'}), 400
     
-        # Create a temporary ImportDocument for proper image processing
-        temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
-        db.session.add(temp_imp_doc)
-        db.session.flush()  # get temp_imp_doc.id for image processing
-    
-        # Parse document with hierarchical structure preservation AND image processing
-        hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
-    
+    # Create a temporary ImportDocument for proper image processing
+    temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
+    db.session.add(temp_imp_doc)
+    db.session.flush()  # get temp_imp_doc.id for image processing
+
+    # Parse document with hierarchical structure preservation AND image processing
+    hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
+
     if not hierarchical_items:
         error_msg = f"No content items could be extracted from the document. "
         if source == 'word':
