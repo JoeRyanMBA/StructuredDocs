@@ -305,14 +305,24 @@ def publish_collection(collection_id):
                             continue
                         title_sub = substitute_variables_in_text(getattr(topic_obj, 'title', '') or '', var_mapping) if topic_obj else ''
                         content_sub = substitute_variables_in_text(getattr(topic_obj, 'content', '') or '', var_mapping) if topic_obj else ''
-                        node = PublicationNode(
-                            publication_id=existing_pub.id,
-                            topic_id=topic_data['id'],
-                            parent_id=parent_node_id,
-                            position=idx,
-                            title_snapshot=title_sub,
-                            content_snapshot=content_sub
-                        )
+                        # Create node with or without snapshots (for backwards compatibility)
+                        try:
+                            node = PublicationNode(
+                                publication_id=existing_pub.id,
+                                topic_id=topic_data['id'],
+                                parent_id=parent_node_id,
+                                position=idx,
+                                title_snapshot=title_sub,
+                                content_snapshot=content_sub
+                            )
+                        except Exception as e:
+                            print(f"🎯 PUBLISH: Snapshot columns not available, creating without snapshots: {e}")
+                            node = PublicationNode(
+                                publication_id=existing_pub.id,
+                                topic_id=topic_data['id'],
+                                parent_id=parent_node_id,
+                                position=idx
+                            )
                         db.session.add(node)
                         db.session.flush()
                         nodes_created.append(node)
