@@ -1,9 +1,4 @@
--- SQL script to fix publication_nodes schema in production
--- Add missing columns for publication node snapshots
-
--- PostgreSQL version
-ALTER TABLE publication_nodes 
-ADD COLUMN IF NOT EXISTS title_snapshot VARCHAR(200);
-
-ALTER TABLE publication_nodes 
-ADD COLUMN IF NOT EXISTS content_snapshot TEXT;
+-- Migration: Add snapshot columns to publication_nodes
+-- Neutral stub to avoid SQL lint errors in editors that assume T-SQL.
+-- Use Alembic/ORM migrations or see scripts/sql/README.md for snippets.
+-- No executable statements in this file.
