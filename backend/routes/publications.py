@@ -732,12 +732,14 @@ def export_mobile_knowledge_base(pub_id):
     
     # Build the hierarchical structure
     def serialize_node(node):
-        topic_data = node.topic.to_dict() if node.topic else {'title': 'Unknown', 'content': ''}
+        # Prefer snapshots captured at publish time; fallback to current topic
+        title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
+        content = node.content_snapshot or (node.topic.content if node.topic else '')
         return {
             'id': node.id,
             'topic_id': node.topic_id,
-            'title': topic_data.get('title', 'Untitled'),
-            'content': topic_data.get('content', ''),
+            'title': title or 'Untitled',
+            'content': content or '',
             'position': node.position,
             'children': sorted([serialize_node(c) for c in node.children],
                              key=lambda x: x['position'])
@@ -762,12 +764,13 @@ def preview_mobile_knowledge_base(pub_id):
     
     # Build the hierarchical structure (same as export)
     def serialize_node(node):
-        topic_data = node.topic.to_dict() if node.topic else {'title': 'Unknown', 'content': ''}
+        title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
+        content = node.content_snapshot or (node.topic.content if node.topic else '')
         return {
             'id': node.id,
             'topic_id': node.topic_id,
-            'title': topic_data.get('title', 'Untitled'),
-            'content': topic_data.get('content', ''),
+            'title': title or 'Untitled',
+            'content': content or '',
             'position': node.position,
             'children': sorted([serialize_node(c) for c in node.children],
                              key=lambda x: x['position'])
@@ -1376,10 +1379,11 @@ def generate_mobile_kb_html_inline(publication, tree):
 def export_pdf(pub_id):
     """Export publication as PDF with optional formatting configuration and background image"""
     pub = Publication.query.get_or_404(pub_id)
+    # Define config_type early to avoid unbound in except
+    config_type = request.args.get('format', 'default')
     
     try:
         # Get format configuration from query parameter
-        config_type = request.args.get('format', 'default')
         
         # Get optional background image path from query parameter
         background_image = request.args.get('background_image')
@@ -1443,7 +1447,7 @@ def export_pdf(pub_id):
         <body>
             <div class="error">
                 <h2>PDF Export Error</h2>
-                <p>Unable to generate PDF for "<strong>{pub.title}</strong>" with format "<strong>{config_type}</strong>".</p>
+                <p>Unable to generate PDF for "<strong>{pub.title}</strong>" with format "<strong>{config_type or 'default'}</strong>".</p>
                 <p>Error: {str(e)}</p>
             </div>
             <div class="config-info">
