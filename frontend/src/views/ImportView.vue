@@ -46,10 +46,16 @@
           />
           <span class="checkbox-text">
             <strong>Preserve Document Hierarchy</strong>
+            <span v-if="source === 'word'" class="recommended-badge">Recommended for Word docs</span>
             <br>
             <small class="form-help">
               Automatically create a collection with topics organized by heading levels (H1, H2, H3). 
-              Perfect for structured documents where you want to maintain the original organization.
+              <span v-if="source === 'word'">
+                <strong>Word documents:</strong> Maintains your original document structure with proper nesting.
+              </span>
+              <span v-else>
+                Perfect for structured documents where you want to maintain the original organization.
+              </span>
             </small>
           </span>
         </label>
@@ -196,7 +202,7 @@ export default {
       isUploading: false,
       preparingImport: false,
       importType: 'topics',
-      preserveHierarchy: false,
+      preserveHierarchy: false,  // Will be updated based on source type
       collectionName: '',
       collectionFormNumber: '',
       collectionDescription: '',
@@ -226,8 +232,20 @@ export default {
     }
   },
 
+  watch: {
+    // Automatically enable hierarchy preservation for Word documents
+    source() {
+      this.updateHierarchyDefault()
+    },
+    importType() {
+      this.updateHierarchyDefault()
+    }
+  },
+
   mounted() {
     this.fetchProjects()
+    // Set hierarchy preservation based on initial source
+    this.updateHierarchyDefault()
   },
 
   methods: {
@@ -245,6 +263,13 @@ export default {
         console.error('Error fetching projects:', error)
       } finally {
         this.loadingProjects = false
+      }
+    },
+
+    updateHierarchyDefault() {
+      // Enable hierarchy preservation by default for Word documents when importing as topics
+      if (this.source === 'word' && this.importType === 'topics') {
+        this.preserveHierarchy = true
       }
     },
 
@@ -516,6 +541,18 @@ export default {
 
 .checkbox-text strong {
   color: var(--text-primary-charcoal);
+}
+
+.recommended-badge {
+  display: inline-block;
+  background: #e7f3ff;
+  color: #0066cc;
+  font-size: 0.75rem;
+  font-weight: 500;
+  padding: 0.25rem 0.5rem;
+  border-radius: 12px;
+  margin-left: 0.5rem;
+  border: 1px solid #b3d9ff;
 }
 
 .collection-details {
