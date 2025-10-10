@@ -26,6 +26,11 @@ def _pdf_sanitize_text(s: str) -> str:
         return ''
     # Normalize line endings and non-breaking spaces
     s = s.replace('\r\n', '\n').replace('\r', '\n').replace('\u00A0', ' ')
+    # Remove soft hyphen characters which can break tag parsing
+    try:
+        s = s.replace('\u00AD', '')
+    except Exception:
+        pass
     # Remove script/style tags entirely
     s = re.sub(r'<\s*(script|style)[^>]*>.*?<\s*/\s*\1\s*>', '', s, flags=re.IGNORECASE|re.DOTALL)
     # Replace unsupported tags with their inner text
@@ -34,6 +39,13 @@ def _pdf_sanitize_text(s: str) -> str:
     s = re.sub(r'href\s*=\s*"javascript:[^"]*"', '', s, flags=re.IGNORECASE)
     # Escape stray ampersands
     s = re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9A-Fa-f]+;)', '&amp;', s)
+    # Fix common mis-nested bold/italic tags (e.g., <b><i>..</b></i> -> <b><i>..</i></b>)
+    # Apply a few passes to catch nested occurrences
+    for _ in range(2):
+        s = re.sub(r'<b>\s*<i>(.*?)</b>\s*</i>', r'<b><i>\1</i></b>', s, flags=re.DOTALL | re.IGNORECASE)
+        s = re.sub(r'<i>\s*<b>(.*?)</i>\s*</b>', r'<i><b>\1</b></i>', s, flags=re.DOTALL | re.IGNORECASE)
+    # Remove Pandoc-style attribute blocks like {width=".." height=".."}
+    s = re.sub(r'\{\s*(?:width|height|style|class)\s*=\s*"[^"]*"[^}]*\}', '', s)
     return s.strip()
 
 
@@ -982,8 +994,37 @@ def generate_mobile_kb_html_inline(publication, tree):
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
-            z-index: 100;
+            z-index: 300;
+            display: flex;
+            align-items: center;
+            justify-content: center;
         }
+        .kb-header-inner {
+            position: relative;
+            width: 100%;
+            max-width: 900px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+        }
+        .hamburger-btn {
+            position: absolute;
+            left: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 1.25rem;
+            cursor: pointer;
+        }
+        .hamburger-btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
         
         .kb-title {
             font-size: 1.25rem;
@@ -997,11 +1038,33 @@ def generate_mobile_kb_html_inline(publication, tree):
             margin-top: 0.25rem;
         }
         
-        .navigation {
+        /* Drawer navigation (initially collapsed) */
+        .navigation.nav-drawer {
+            position: fixed;
+            top: 60px; /* approximate header height */
+            left: 0;
+            bottom: 0;
+            width: 280px;
             background: #e9ecef;
-            border-bottom: 1px solid #dee2e6;
+            border-right: 1px solid #dee2e6;
             padding: 1rem;
+            box-shadow: 2px 0 8px rgba(0,0,0,0.08);
+            transform: translateX(-100%);
+            transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
+            z-index: 250;
+            overflow-y: auto;
+            -webkit-overflow-scrolling: touch;
         }
+        body.nav-open .navigation.nav-drawer { transform: translateX(0); }
+        .drawer-backdrop {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.35);
+            z-index: 200;
+            display: none;
+        }
+        body.nav-open .drawer-backdrop { display: block; }
+        body.nav-open { overflow: hidden; }
         
         .nav-section {
             margin-bottom: 1rem;
@@ -1241,9 +1304,9 @@ def generate_mobile_kb_html_inline(publication, tree):
                 background: #2d2d2d;
             }
             
-            .navigation {
+            .navigation.nav-drawer {
                 background: #3a3a3a;
-                border-bottom-color: #555;
+                border-right-color: #555;
             }
             
             .nav-link {
@@ -1283,7 +1346,8 @@ def generate_mobile_kb_html_inline(publication, tree):
     """
     
     # JavaScript for navigation
-    mobile_js = """
+    first_section = f"section-{tree[0]['id']}" if tree else ''
+    mobile_js = f"""
     <script>
         function showSection(sectionId) {
             // Hide all sections
@@ -1292,15 +1356,8 @@ def generate_mobile_kb_html_inline(publication, tree):
                 section.classList.remove('active');
             });
             
-            // Show navigation if going back to nav
-            const nav = document.querySelector('.navigation');
-            if (sectionId === 'nav') {
-                nav.style.display = 'block';
-                return;
-            }
-            
-            // Hide navigation and show selected section
-            nav.style.display = 'none';
+            // Close drawer and show selected section
+            closeNav();
             const targetSection = document.getElementById(sectionId);
             if (targetSection) {
                 targetSection.classList.add('active');
@@ -1308,14 +1365,25 @@ def generate_mobile_kb_html_inline(publication, tree):
             }
         }
         
-        function goBackToNav() {
-            showSection('nav');
+        function openNav() { document.body.classList.add('nav-open'); updateHamburger(true); }
+        function closeNav() { document.body.classList.remove('nav-open'); updateHamburger(false); }
+        function toggleNav() { if (document.body.classList.contains('nav-open')) closeNav(); else openNav(); }
+        function updateHamburger(open) {
+            const btn = document.getElementById('hamburger-btn');
+            if (btn) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); btn.textContent = open ? '✕' : '☰'; }
         }
         
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
-            // Show navigation by default
-            showSection('nav');
+            // Default: show first section if available, keep drawer closed
+            const FIRST_SECTION = '{first_section}';
+            if (FIRST_SECTION) { showSection(FIRST_SECTION); }
+            closeNav();
+            const hb = document.getElementById('hamburger-btn');
+            if (hb) hb.addEventListener('click', toggleNav);
+            const bd = document.getElementById('drawer-backdrop');
+            if (bd) bd.addEventListener('click', closeNav);
+            document.addEventListener('keyup', (e) => { if (e.key === 'Escape') closeNav(); });
         });
     </script>
     """
@@ -1338,7 +1406,7 @@ def generate_mobile_kb_html_inline(publication, tree):
             content_html = convert_markdown_to_html(node["content"])
             html += f'''
             <div id="section-{node["id"]}" class="content-section">
-                <button class="back-to-nav" onclick="goBackToNav()">← Back to Navigation</button>
+                <button class="back-to-nav" onclick="openNav()">☰ Open Menu</button>
                 <h1>{node["title"]}</h1>
                 {content_html}
             </div>
@@ -1367,11 +1435,17 @@ def generate_mobile_kb_html_inline(publication, tree):
 <body>
     <div class="kb-container">
         <header class="kb-header">
-            <h1 class="kb-title">{publication.title}</h1>
-            <p class="kb-subtitle">Mobile Knowledge Base</p>
+            <div class="kb-header-inner">
+                <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">☰</button>
+                <div>
+                    <h1 class="kb-title">{publication.title}</h1>
+                    <p class="kb-subtitle">Mobile Knowledge Base</p>
+                </div>
+            </div>
         </header>
         
-        <nav class="navigation">
+        <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+        <nav class="navigation nav-drawer" id="kb-nav" role="navigation" aria-label="Topics menu">
             <div class="nav-section">
                 <div class="nav-title">Topics</div>
                 {nav_html}
@@ -1521,9 +1595,9 @@ def export_pdf(pub_id):
         </html>
         """
         
-        response = make_response(error_html)
-        response.headers['Content-Type'] = 'text/html; charset=utf-8'
-        return response
+    response = make_response(error_html, 500)
+    response.headers['Content-Type'] = 'text/html; charset=utf-8'
+    return response
 
 def generate_pdf(publication, tree, config_type='default', background_image_path=None):
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
@@ -1968,6 +2042,8 @@ def convert_markdown_to_pdf_paragraphs(text):
             
             # Escape stray ampersands and clean up extra whitespace
             formatted_line = escape_unescaped_ampersands(formatted_line)
+            # Final PDF sanitization pass to fix misnested tags and remove attribute blocks
+            formatted_line = _pdf_sanitize_text(formatted_line)
             # Clean up extra whitespace and empty content
             formatted_line = formatted_line.strip()
             if formatted_line:  # Only add non-empty lines
