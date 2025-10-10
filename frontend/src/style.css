@@ -16,19 +16,28 @@
 .sidebar-layout .ticker-bar {
   position: fixed;
   top: var(--header-height);
-  left: 250px; /* Account for fixed sidebar width */
+  left: 0; /* default collapsed */
   right: 0;
   z-index: 998;
   background: var(--bg-white);
   border-bottom: 1px solid var(--border-light-gray);
 }
 
+.sidebar-open .ticker-bar {
+  left: 250px; /* shift when sidebar is open */
+}
+
 .sidebar-layout main.content {
-  margin-left: 250px; /* Account for fixed sidebar */
+  margin-left: 0; /* default collapsed */
   margin-top: calc(var(--header-height) + var(--ticker-height)); /* Account for header and ticker */
   padding: 2rem;
   min-height: calc(100vh - var(--header-height) - var(--ticker-height));
   background: var(--bg-white);
+}
+
+.sidebar-open .sidebar-layout main.content,
+.sidebar-open .content {
+  margin-left: 250px;
 }
 
 /* Fix for metric card cursor and text selection */
