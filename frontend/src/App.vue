@@ -1,7 +1,10 @@
 <template>
-  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage }]">
-    <HeaderBar v-if="!isLoginPage" />
-    <SideBar v-if="!isLoginPage" />
+  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage, 'sidebar-open': sidebarOpen && !isLoginPage }]">
+  <HeaderBar v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" :sidebarOpen="sidebarOpen" />
+    <SideBar v-if="!isLoginPage" :open="sidebarOpen" @close="closeSidebar" />
+    <transition name="fade">
+      <div v-if="!isLoginPage && sidebarOpen" class="sidebar-backdrop" @click="closeSidebar" aria-hidden="true"></div>
+    </transition>
     <div class="ticker-bar" v-if="!isLoginPage">
       <NotificationTicker
         :notifications="notifications"
@@ -38,7 +41,8 @@ export default {
   data() {
     return {
       notifications: [],
-      notificationsLoading: false
+      notificationsLoading: false,
+      sidebarOpen: false
     }
   },
   computed: {
@@ -65,6 +69,14 @@ export default {
     this.fetchNotifications()
   },
   methods: {
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen
+      document.documentElement.style.overflow = this.sidebarOpen ? 'hidden' : ''
+    },
+    closeSidebar() {
+      this.sidebarOpen = false
+      document.documentElement.style.overflow = ''
+    },
     async fetchNotifications() {
       this.notificationsLoading = true
       try {
@@ -122,13 +134,29 @@ export default {
   align-items: center;
 }
 
-  .content {
+.content {
   padding: 2rem;
-  margin-left: var(--sidebar-width);
-  margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem); /* reduced spacing */
-  width: calc(100% - var(--sidebar-width));
+  margin-left: 0; /* default collapsed */
+  margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem);
+  width: 100%;
   cursor: default;
 }
+
+.sidebar-open .content {
+  margin-left: var(--sidebar-width);
+  width: calc(100% - var(--sidebar-width));
+}
+
+.sidebar-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.3);
+  z-index: 900; /* below header (1100) and sidebar (1000) but above content */
+}
+
+/* Backdrop fade transition */
+.fade-enter-active, .fade-leave-active { transition: opacity 180ms ease; }
+.fade-enter-from, .fade-leave-to { opacity: 0; }
 
 .login-bg {
   min-height: 100vh;
@@ -153,7 +181,7 @@ export default {
     margin-left: 0;
     padding: 1rem;
     width: 100%;
-    margin-top: calc(var(--header-height) + var(--ticker-height) + 0.25rem); /* reduced spacing */
+    margin-top: calc(var(--header-height) + var(--ticker-height) + 0.25rem);
   }
   .login-content {
     margin-top: 0 !important;

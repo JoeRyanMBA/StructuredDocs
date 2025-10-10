@@ -1,5 +1,5 @@
 <template>
-  <aside class="sidebar">
+  <aside class="sidebar" :class="{ 'collapsed': !open }">
     <nav class="sidebar-nav">
       <ul>
         <li v-for="item in visibleTabs" :key="item.key" :class="{ 'has-submenu': item.children }">
@@ -32,6 +32,9 @@ import { store } from '../store';
 
 export default {
   name: 'SideBar',
+  props: {
+    open: { type: Boolean, default: false }
+  },
   data() {
     return {
       openSubmenu: null,
@@ -116,6 +119,7 @@ export default {
         this.toggleSubmenu(item.key);
       }
       this.$router.push({ name: item.route }).then(() => {
+        this.$emit('close');
         // Special scroll behavior: if navigating to Projects, scroll to list section if present
         if (item.route === 'Projects') {
           this.$nextTick(() => {
@@ -157,8 +161,12 @@ export default {
   color: #f8f9fa;
   padding-top: 1rem;
   z-index: 1000;
-  transition: width 0.3s ease;
+  transform: translateX(-100%);
+  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
+
+.sidebar.collapsed { transform: translateX(-100%); }
+.sidebar:not(.collapsed) { transform: translateX(0); }
 
 .sidebar-nav ul {
   list-style: none;
@@ -226,6 +234,13 @@ export default {
   padding: 0.6rem 1.5rem 0.6rem 2.5rem;
   font-size: 0.9rem;
   cursor: pointer; /* keep hand cursor on submenu links */
+}
+
+/* subtle fade-in for submenu */
+.submenu { animation: fadeIn 160ms ease-in; }
+@keyframes fadeIn {
+  from { opacity: 0; transform: translateY(-2px); }
+  to { opacity: 1; transform: translateY(0); }
 }
 
 /* Ensure top-level items show the arrow (default) cursor, not text I-beam */
