@@ -750,7 +750,36 @@ def export_mobile_knowledge_base(pub_id):
                   key=lambda x: x['position'])
     
     # Generate mobile-optimized HTML
-    html_content = generate_mobile_kb_html(pub, tree)
+        html_content = generate_mobile_kb_html(pub, tree)
+
+        # Generate PDF with specified configuration and optional background image
+        pdf_buffer = generate_pdf(pub, tree, config_type, background_image_path)
+
+        # Defensive checks: ensure buffer contains PDF bytes
+        try:
+            pdf_bytes = pdf_buffer.getvalue()
+        except Exception as _e:
+            import traceback
+            print(f"ERROR: Failed to read PDF buffer: {_e}")
+            print(traceback.format_exc())
+            pdf_buffer.close()
+            return jsonify({'error': 'Failed to generate PDF (buffer read error)'}), 500
+
+        # Basic sanity check: PDF files should start with %PDF
+        if not pdf_bytes or not pdf_bytes.startswith(b'%PDF'):
+            # Log a short hexdump for debugging (first 256 bytes)
+            prefix = pdf_bytes[:256] if pdf_bytes else b''
+            print(f"ERROR: Generated PDF is invalid or empty. length={len(pdf_bytes) if pdf_bytes else 0}, prefix={prefix!r}")
+            pdf_buffer.close()
+            return jsonify({'error': 'Generated PDF is invalid or empty', 'size': len(pdf_bytes) if pdf_bytes else 0, 'prefix': prefix.decode('latin1', errors='ignore')}), 500
+
+        response = make_response(pdf_bytes)
+        response.headers['Content-Type'] = 'application/pdf'
+        response.headers['Content-Disposition'] = f'attachment; filename="{pub.title}_mobile_kb.pdf"'
+        response.headers['Content-Length'] = str(len(pdf_bytes))
+
+        pdf_buffer.close()
+        return response
     
     response = make_response(html_content)
     response.headers['Content-Type'] = 'text/html; charset=utf-8'
