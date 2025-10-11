@@ -126,15 +126,10 @@ export default {
 
 .content {
   padding: 2rem;
-  margin-left: 0; /* default collapsed */
+  margin-left: var(--sidebar-width); /* always account for sidebar */
   margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem);
-  width: 100%;
-  cursor: default;
-}
-
-.sidebar-open .content {
-  margin-left: var(--sidebar-width);
   width: calc(100% - var(--sidebar-width));
+  cursor: default;
 }
 
 .sidebar-backdrop {

@@ -161,12 +161,9 @@ export default {
   color: #f8f9fa;
   padding-top: 1rem;
   z-index: 1000;
-  transform: translateX(-100%);
+  transform: translateX(0); /* always visible */
   transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
-
-.sidebar.collapsed { transform: translateX(-100%); }
-.sidebar:not(.collapsed) { transform: translateX(0); }
 
 .sidebar-nav ul {
   list-style: none;
