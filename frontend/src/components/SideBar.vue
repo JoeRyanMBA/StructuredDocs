@@ -161,8 +161,23 @@ export default {
   color: #f8f9fa;
   padding-top: 1rem;
   z-index: 1000;
-  transform: translateX(0); /* always visible */
+  transform: translateX(0);
   transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Mobile: sidebar is hidden by default, overlays when shown */
+@media (max-width: 768px) {
+  .sidebar {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar.collapsed {
+    transform: translateX(-100%);
+  }
+  
+  .sidebar:not(.collapsed) {
+    transform: translateX(0);
+  }
 }
 
 .sidebar-nav ul {

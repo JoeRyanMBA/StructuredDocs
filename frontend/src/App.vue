@@ -1,8 +1,10 @@
 <template>
-  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage }]">
-  <HeaderBar v-if="!isLoginPage" />
-    <SideBar v-if="!isLoginPage" :open="true" />
-    
+  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage, 'sidebar-open': sidebarOpen && !isLoginPage }]">
+    <HeaderBar v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" :sidebarOpen="sidebarOpen" />
+    <SideBar v-if="!isLoginPage" :open="sidebarOpen" @close="closeSidebar" />
+    <transition name="fade">
+      <div v-if="!isLoginPage && sidebarOpen" class="sidebar-backdrop mobile-only" @click="closeSidebar" aria-hidden="true"></div>
+    </transition>
     <div class="ticker-bar" v-if="!isLoginPage">
       <NotificationTicker
         :notifications="notifications"
@@ -39,7 +41,8 @@ export default {
   data() {
     return {
       notifications: [],
-      notificationsLoading: false
+      notificationsLoading: false,
+      sidebarOpen: false
     }
   },
   computed: {
@@ -65,8 +68,32 @@ export default {
   created() {
     this.fetchNotifications()
   },
+  mounted() {
+    // Close sidebar when switching from mobile to desktop
+    window.addEventListener('resize', this.handleResize)
+  },
+  beforeUnmount() {
+    window.removeEventListener('resize', this.handleResize)
+  },
   methods: {
 
+    toggleSidebar() {
+      this.sidebarOpen = !this.sidebarOpen
+      // Only prevent scrolling on mobile when sidebar is open
+      if (window.innerWidth <= 768) {
+        document.documentElement.style.overflow = this.sidebarOpen ? 'hidden' : ''
+      }
+    },
+    closeSidebar() {
+      this.sidebarOpen = false
+      document.documentElement.style.overflow = ''
+    },
+    handleResize() {
+      // Close mobile sidebar when switching to desktop view
+      if (window.innerWidth > 768 && this.sidebarOpen) {
+        this.closeSidebar()
+      }
+    },
     async fetchNotifications() {
       this.notificationsLoading = true
       try {
@@ -126,10 +153,19 @@ export default {
 
 .content {
   padding: 2rem;
-  margin-left: var(--sidebar-width); /* always account for sidebar */
+  margin-left: 0;
   margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem);
-  width: calc(100% - var(--sidebar-width));
+  width: 100%;
   cursor: default;
+  transition: margin-left 240ms cubic-bezier(0.2, 0.8, 0.2, 1), width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Desktop: sidebar pushes content over */
+@media (min-width: 769px) {
+  .sidebar-layout .content {
+    margin-left: var(--sidebar-width);
+    width: calc(100% - var(--sidebar-width));
+  }
 }
 
 .sidebar-backdrop {
@@ -137,6 +173,14 @@ export default {
   inset: 0;
   background: rgba(0,0,0,0.3);
   z-index: 900; /* below header (1100) and sidebar (1000) but above content */
+  display: none; /* Hidden by default */
+}
+
+/* Show backdrop only on mobile when sidebar is open */
+@media (max-width: 768px) {
+  .sidebar-backdrop.mobile-only {
+    display: block;
+  }
 }
 
 /* Backdrop fade transition */
