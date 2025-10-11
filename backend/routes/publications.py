@@ -1347,7 +1347,8 @@ def generate_mobile_kb_html_inline(publication, tree):
     
     # JavaScript for navigation
     first_section = f"section-{tree[0]['id']}" if tree else ''
-    mobile_js = f"""
+    # Use a plain string (not an f-string) to avoid Python interpreting JS braces
+    mobile_js = """
     <script>
         function showSection(sectionId) {
             // Hide all sections
@@ -1376,7 +1377,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Default: show first section if available, keep drawer closed
-            const FIRST_SECTION = '{first_section}';
+            const FIRST_SECTION = '{FIRST_SECTION}';
             if (FIRST_SECTION) { showSection(FIRST_SECTION); }
             closeNav();
             const hb = document.getElementById('hamburger-btn');
@@ -1386,7 +1387,7 @@ def generate_mobile_kb_html_inline(publication, tree):
             document.addEventListener('keyup', (e) => { if (e.key === 'Escape') closeNav(); });
         });
     </script>
-    """
+    """.replace('{FIRST_SECTION}', first_section)
     
     # Build navigation HTML
     def build_nav_html(nodes, level=0):
