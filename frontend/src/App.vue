@@ -1,10 +1,8 @@
 <template>
-  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage, 'sidebar-open': sidebarOpen && !isLoginPage }]">
-  <HeaderBar v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" :sidebarOpen="sidebarOpen" />
-    <SideBar v-if="!isLoginPage" :open="sidebarOpen" @close="closeSidebar" />
-    <transition name="fade">
-      <div v-if="!isLoginPage && sidebarOpen" class="sidebar-backdrop" @click="closeSidebar" aria-hidden="true"></div>
-    </transition>
+  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage }]">
+  <HeaderBar v-if="!isLoginPage" />
+    <SideBar v-if="!isLoginPage" :open="true" />
+    
     <div class="ticker-bar" v-if="!isLoginPage">
       <NotificationTicker
         :notifications="notifications"
@@ -41,8 +39,7 @@ export default {
   data() {
     return {
       notifications: [],
-      notificationsLoading: false,
-      sidebarOpen: false
+      notificationsLoading: false
     }
   },
   computed: {
@@ -69,14 +66,7 @@ export default {
     this.fetchNotifications()
   },
   methods: {
-    toggleSidebar() {
-      this.sidebarOpen = !this.sidebarOpen
-      document.documentElement.style.overflow = this.sidebarOpen ? 'hidden' : ''
-    },
-    closeSidebar() {
-      this.sidebarOpen = false
-      document.documentElement.style.overflow = ''
-    },
+
     async fetchNotifications() {
       this.notificationsLoading = true
       try {

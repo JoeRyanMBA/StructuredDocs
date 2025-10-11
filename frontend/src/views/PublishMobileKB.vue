@@ -6,26 +6,30 @@
       These are lightweight, offline-ready HTML files that work without internet connectivity.
     </p>
 
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">📱</div>
-        <h3>Mobile-First Design</h3>
-        <p>Optimized for touch interfaces and small screens</p>
+    <div class="features-list">
+      <div class="feature-item">
+        <span class="feature-icon">📱</span>
+        <div class="feature-content">
+          <strong>Mobile-First Design</strong> - Optimized for touch interfaces and small screens
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">⚡</div>
-        <h3>Lightweight</h3>
-        <p>Fast loading with minimal data usage</p>
+      <div class="feature-item">
+        <span class="feature-icon">⚡</span>
+        <div class="feature-content">
+          <strong>Lightweight</strong> - Fast loading with minimal data usage
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">🔌</div>
-        <h3>Offline Ready</h3>
-        <p>Works without internet connection</p>
+      <div class="feature-item">
+        <span class="feature-icon">🔌</span>
+        <div class="feature-content">
+          <strong>Offline Ready</strong> - Works without internet connection
+        </div>
       </div>
-      <div class="feature-card">
-        <div class="feature-icon">🌙</div>
-        <h3>Dark Mode</h3>
-        <p>Automatic dark mode support</p>
+      <div class="feature-item">
+        <span class="feature-icon">🌙</span>
+        <div class="feature-content">
+          <strong>Dark Mode</strong> - Automatic dark mode support
+        </div>
       </div>
     </div>
 
@@ -194,37 +198,39 @@ export default {
   line-height: 1.6;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
+.features-list {
+  background: var(--bg-primary-white);
+  border-radius: 8px;
+  border: 1px solid var(--border-color-gray);
   margin-bottom: 3rem;
+  overflow: hidden;
 }
 
-.feature-card {
-  background: var(--bg-primary-white);
-  padding: 1.5rem;
-  border-radius: 8px;
-  box-shadow: var(--shadow-md);
-  text-align: center;
-  border: 1px solid var(--border-color-gray);
+.feature-item {
+  display: flex;
+  align-items: center;
+  padding: 1rem 1.5rem;
+  border-bottom: 1px solid var(--border-color-gray);
+  gap: 1rem;
+}
+
+.feature-item:last-child {
+  border-bottom: none;
 }
 
 .feature-icon {
-  font-size: 2rem;
-  margin-bottom: 1rem;
+  font-size: 1.5rem;
+  flex-shrink: 0;
 }
 
-.feature-card h3 {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-primary-charcoal);
-  font-size: 1.1rem;
-}
-
-.feature-card p {
-  margin: 0;
+.feature-content {
+  flex: 1;
   color: var(--text-secondary-cool-gray);
-  font-size: 0.9rem;
+  line-height: 1.4;
+}
+
+.feature-content strong {
+  color: var(--text-primary-charcoal);
 }
 
 .publications-section {
@@ -392,9 +398,8 @@ export default {
     padding: 1rem;
   }
   
-  .features-grid {
-    grid-template-columns: 1fr;
-    gap: 1rem;
+  .feature-item {
+    padding: 0.75rem 1rem;
   }
   
   .publications-grid {

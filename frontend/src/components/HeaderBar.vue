@@ -1,16 +1,5 @@
 <template>
   <header class="header-bar">
-    <button
-      v-if="!isOnLoginPage"
-      class="hamburger-btn"
-      :aria-expanded="String(sidebarOpen)"
-      aria-label="Toggle menu"
-      @click="$emit('toggle-sidebar')"
-      :title="sidebarOpen ? 'Close menu' : 'Open menu'"
-    >
-      <span v-if="!sidebarOpen">☰</span>
-      <span v-else>✕</span>
-    </button>
     <router-link to="/projects" class="logo-link">
       <span class="logo-wrapper">
         <span v-show="!logoLoaded" class="logo-skeleton" aria-hidden="true"></span>
@@ -66,10 +55,6 @@ import { store } from '../store';
 
 export default {
   name: 'HeaderBar',
-  emits: ['toggle-sidebar'],
-  props: {
-    sidebarOpen: { type: Boolean, default: false }
-  },
   data() {
     return {
   showUserDropdown: false,

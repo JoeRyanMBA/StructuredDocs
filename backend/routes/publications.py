@@ -1111,6 +1111,42 @@ def generate_mobile_kb_html_inline(publication, tree):
             border-left: 3px solid #005a9c;
         }
         
+        .nav-parent {
+            position: relative;
+        }
+        
+        .nav-parent-toggle {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            background: none;
+            border: none;
+            cursor: pointer;
+            font-size: 0.8rem;
+            color: #6c757d;
+            width: 20px;
+            height: 20px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            transition: transform 0.2s ease;
+        }
+        
+        .nav-parent-toggle.expanded {
+            transform: translateY(-50%) rotate(90deg);
+        }
+        
+        .nav-children {
+            max-height: 0;
+            overflow: hidden;
+            transition: max-height 0.3s ease;
+        }
+        
+        .nav-children.expanded {
+            max-height: 500px;
+        }
+        
         .content-section {
             display: none;
             padding: 1.5rem;
@@ -1366,6 +1402,24 @@ def generate_mobile_kb_html_inline(publication, tree):
             }
         }
         
+        function toggleParent(parentId) {
+            const children = document.querySelector(`[data-parent="${parentId}"]`);
+            const toggle = document.querySelector(`[data-toggle="${parentId}"]`);
+            
+            if (children && toggle) {
+                const isExpanded = children.classList.contains('expanded');
+                if (isExpanded) {
+                    children.classList.remove('expanded');
+                    toggle.classList.remove('expanded');
+                    toggle.textContent = '▶';
+                } else {
+                    children.classList.add('expanded');
+                    toggle.classList.add('expanded');
+                    toggle.textContent = '▼';
+                }
+            }
+        }
+        
         function openNav() { document.body.classList.add('nav-open'); updateHamburger(true); }
         function closeNav() { document.body.classList.remove('nav-open'); updateHamburger(false); }
         function toggleNav() { if (document.body.classList.contains('nav-open')) closeNav(); else openNav(); }
@@ -1395,10 +1449,21 @@ def generate_mobile_kb_html_inline(publication, tree):
     def build_nav_html(nodes, level=0):
         html = ""
         for node in nodes:
-            css_class = "nav-link sub-item" if level > 0 else "nav-link"
-            html += f'<a href="#" class="{css_class}" onclick="showSection(\'section-{node["id"]}\')">{node["title"]}</a>\n'
-            if node["children"]:
-                html += build_nav_html(node["children"], level + 1)
+            if node["children"] and level == 0:  # Parent topic with children
+                html += f'''
+                <div class="nav-parent">
+                    <a href="#" class="nav-link" onclick="showSection('section-{node["id"]}')">{node["title"]}</a>
+                    <button class="nav-parent-toggle" data-toggle="{node["id"]}" onclick="toggleParent('{node["id"]}')" title="Toggle subtopics">▶</button>
+                </div>
+                <div class="nav-children" data-parent="{node["id"]}">
+                    {build_nav_html(node["children"], level + 1)}
+                </div>
+                '''
+            else:  # Regular topic or child topic
+                css_class = "nav-link sub-item" if level > 0 else "nav-link"
+                html += f'<a href="#" class="{css_class}" onclick="showSection(\'section-{node["id"]}\')">{node["title"]}</a>\n'
+                if node["children"]:
+                    html += build_nav_html(node["children"], level + 1)
         return html
     
     # Build content HTML
@@ -1409,7 +1474,6 @@ def generate_mobile_kb_html_inline(publication, tree):
             content_html = convert_markdown_to_html(node["content"])
             html += f'''
             <div id="section-{node["id"]}" class="content-section">
-                <button class="back-to-nav" onclick="openNav()">☰ Open Menu</button>
                 <h1>{node["title"]}</h1>
                 {content_html}
             </div>
