@@ -1387,7 +1387,9 @@ def generate_mobile_kb_html_inline(publication, tree):
             document.addEventListener('keyup', (e) => { if (e.key === 'Escape') closeNav(); });
         });
     </script>
-    """.replace('{FIRST_SECTION}', first_section)
+    """
+    
+    mobile_js = mobile_js.replace('{FIRST_SECTION}', first_section)
     
     # Build navigation HTML
     def build_nav_html(nodes, level=0):
