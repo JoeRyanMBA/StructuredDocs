@@ -1044,10 +1044,10 @@ def generate_mobile_kb_html_inline(publication, tree):
             top: 60px; /* approximate header height */
             left: 0;
             bottom: 0;
-            width: 280px;
+            width: 260px; /* Reduced from 280px */
             background: #e9ecef;
             border-right: 1px solid #dee2e6;
-            padding: 1rem;
+            padding: 0.75rem; /* Reduced from 1rem */
             box-shadow: 2px 0 8px rgba(0,0,0,0.08);
             transform: translateX(-100%);
             transition: transform 220ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -1067,7 +1067,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         body.nav-open { overflow: hidden; }
         
         .nav-section {
-            margin-bottom: 1rem;
+            margin-bottom: 0.75rem; /* Reduced from 1rem */
         }
         
         .nav-section:last-child {
@@ -1077,22 +1077,24 @@ def generate_mobile_kb_html_inline(publication, tree):
         .nav-title {
             font-weight: 600;
             color: #495057;
-            margin-bottom: 0.5rem;
-            font-size: 0.9rem;
+            margin-bottom: 0.375rem; /* Reduced from 0.5rem */
+            font-size: 0.85rem; /* Reduced from 0.9rem */
             text-transform: uppercase;
-            letter-spacing: 0.5px;
+            letter-spacing: 0.3px; /* Reduced from 0.5px */
         }
         
         .nav-link {
             display: block;
-            padding: 0.75rem;
+            padding: 0.5rem 0.625rem; /* Reduced from 0.75rem */
             color: #005a9c;
             text-decoration: none;
             background: white;
-            border-radius: 6px;
-            margin-bottom: 0.5rem;
+            border-radius: 4px; /* Reduced from 6px */
+            margin-bottom: 0.375rem; /* Reduced from 0.5rem */
             box-shadow: 0 1px 3px rgba(0,0,0,0.1);
             transition: all 0.2s ease;
+            font-size: 0.9rem; /* Added for better mobile readability */
+            line-height: 1.3; /* Tighter line height */
         }
         
         .nav-link:hover {
@@ -1106,9 +1108,11 @@ def generate_mobile_kb_html_inline(publication, tree):
         }
         
         .nav-link.sub-item {
-            margin-left: 1rem;
+            margin-left: 0.75rem; /* Reduced from 1rem */
             background: #f8f9fa;
-            border-left: 3px solid #005a9c;
+            border-left: 2px solid #005a9c; /* Reduced from 3px */
+            padding: 0.4rem 0.5rem; /* Smaller padding for sub-items */
+            font-size: 0.85rem; /* Smaller font for sub-items */
         }
         
         .nav-parent {
@@ -1117,16 +1121,16 @@ def generate_mobile_kb_html_inline(publication, tree):
         
         .nav-parent-toggle {
             position: absolute;
-            right: 0.5rem;
+            right: 0.375rem; /* Reduced from 0.5rem */
             top: 50%;
             transform: translateY(-50%);
             background: none;
             border: none;
             cursor: pointer;
-            font-size: 0.8rem;
+            font-size: 0.75rem; /* Reduced from 0.8rem */
             color: #6c757d;
-            width: 20px;
-            height: 20px;
+            width: 18px; /* Reduced from 20px */
+            height: 18px; /* Reduced from 20px */
             display: flex;
             align-items: center;
             justify-content: center;
@@ -1318,6 +1322,35 @@ def generate_mobile_kb_html_inline(publication, tree):
             }
         }
         
+        /* Mobile-specific optimizations for smaller screens */
+        @media (max-width: 480px) {
+            .navigation.nav-drawer {
+                width: 240px; /* Even smaller on very small screens */
+                padding: 0.5rem; /* Further reduced padding */
+            }
+            
+            .nav-link {
+                padding: 0.4rem 0.5rem; /* More compact on small screens */
+                font-size: 0.85rem;
+                margin-bottom: 0.25rem; /* Tighter spacing */
+            }
+            
+            .nav-link.sub-item {
+                margin-left: 0.5rem; /* Less indentation on small screens */
+                padding: 0.3rem 0.4rem;
+                font-size: 0.8rem;
+            }
+            
+            .nav-title {
+                font-size: 0.8rem;
+                margin-bottom: 0.25rem;
+            }
+            
+            .nav-section {
+                margin-bottom: 0.5rem;
+            }
+        }
+
         /* High contrast mode support */
         @media (prefers-contrast: high) {
             .nav-link {
