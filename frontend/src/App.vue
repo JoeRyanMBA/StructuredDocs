@@ -163,8 +163,10 @@ export default {
 /* Desktop: sidebar pushes content over */
 @media (min-width: 769px) {
   .sidebar-layout .content {
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
+    /* Ensure content never sits under the fixed sidebar */
+    padding-left: var(--sidebar-width);
+    margin-left: 0;
+    width: 100%;
     margin-top: calc(var(--header-height) + var(--ticker-height));
   }
 }
