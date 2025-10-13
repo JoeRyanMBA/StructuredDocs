@@ -164,9 +164,10 @@ export default {
 @media (min-width: 769px) {
   .sidebar-layout .content {
     /* Push content to the right of the fixed sidebar */
-    margin-left: var(--sidebar-width);
-    width: calc(100% - var(--sidebar-width));
-    margin-top: calc(var(--header-height) + var(--ticker-height));
+    margin-left: var(--sidebar-width) !important;
+    width: calc(100% - var(--sidebar-width)) !important;
+    margin-top: calc(var(--header-height) + var(--ticker-height)) !important;
+    padding: 2rem !important; /* Ensure padding is maintained */
   }
 }
 

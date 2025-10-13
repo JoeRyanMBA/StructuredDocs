@@ -161,8 +161,14 @@ export default {
   color: #f8f9fa;
   padding-top: 1rem;
   z-index: 1000;
-  transform: translateX(0);
   transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+}
+
+/* Desktop: sidebar always visible */
+@media (min-width: 769px) {
+  .sidebar {
+    transform: translateX(0) !important; /* Always visible on desktop, override any collapsed state */
+  }
 }
 
 /* Mobile: sidebar is hidden by default, overlays when shown */
