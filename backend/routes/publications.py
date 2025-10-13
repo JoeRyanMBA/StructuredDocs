@@ -1152,7 +1152,8 @@ def generate_mobile_kb_html_inline(publication, tree):
         }
         
         .nav-children.expanded {
-            max-height: 500px;
+          max-height: 500px;
+          margin-bottom: 1rem; /* Ensure last subtopic is separated from next parent */
         }
         
         .content-section {
