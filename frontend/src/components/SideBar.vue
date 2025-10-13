@@ -154,7 +154,7 @@ export default {
 .sidebar {
   width: 250px;
   position: fixed;
-  top: var(--header-height);
+  top: calc(var(--header-height) + var(--ticker-height));
   left: 0;
   bottom: 0;
   background: #343a40;
@@ -169,6 +169,7 @@ export default {
 @media (max-width: 768px) {
   .sidebar {
     transform: translateX(-100%);
+    z-index: 1100; /* overlay ticker and content when open on mobile */
   }
   
   .sidebar.collapsed {

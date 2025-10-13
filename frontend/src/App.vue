@@ -139,7 +139,7 @@ export default {
 
 .ticker-bar {
   position: fixed;
-/*  top: calc(var(--header-height) + 0.5rem); */
+  top: var(--header-height);
   left: 0;
   right: 0;
   height: var(--ticker-height);
@@ -154,7 +154,7 @@ export default {
 .content {
   padding: 2rem;
   margin-left: 0;
-  margin-top: calc(var(--header-height) + var(--ticker-height) + 0.5rem);
+  margin-top: calc(var(--header-height) + var(--ticker-height));
   width: 100%;
   cursor: default;
   transition: margin-left 240ms cubic-bezier(0.2, 0.8, 0.2, 1), width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
@@ -165,6 +165,7 @@ export default {
   .sidebar-layout .content {
     margin-left: var(--sidebar-width);
     width: calc(100% - var(--sidebar-width));
+    margin-top: calc(var(--header-height) + var(--ticker-height));
   }
 }
 
