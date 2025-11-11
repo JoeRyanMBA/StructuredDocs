@@ -1148,12 +1148,12 @@ def generate_mobile_kb_html_inline(publication, tree):
             max-height: 0;
             overflow: hidden;
             transition: max-height 0.3s ease;
-                margin-bottom: 0.5rem; /* Add bottom spacing to separate from next parent */
+            margin-bottom: 0.25rem; /* Reduce gap below collapsed subtopics */
         }
         
         .nav-children.expanded {
-          max-height: 500px;
-          margin-bottom: 1rem; /* Ensure last subtopic is separated from next parent */
+                        max-height: 1200px; /* Increase to prevent cutoff for longer lists */
+                        margin-bottom: 0.5rem; /* Moderate gap below expanded subtopics */
         }
         
         .content-section {
