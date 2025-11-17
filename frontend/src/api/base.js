@@ -1,7 +1,33 @@
 // src/api/base.js
 // Base API configuration for HTTP Basic Auth
 
-const API_BASE = import.meta.env.VITE_API_BASE_URL || '';
+// Normalize and secure the API base URL to avoid mixed content in HTTPS
+function computeApiBase() {
+  let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
+  if (!raw) return '';
+
+  // Remove trailing slashes
+  raw = raw.replace(/\/+$/, '');
+
+  try {
+    // If missing scheme, inherit current page protocol
+    if (!/^https?:\/\//i.test(raw)) {
+      const proto = typeof window !== 'undefined' ? window.location.protocol : 'https:';
+      const hostPref = proto === 'https:' ? 'https://' : 'http://';
+      raw = hostPref + raw.replace(/^\/*/, '');
+    }
+    // If current page is https, force https for API base to prevent mixed content
+    if (typeof window !== 'undefined' && window.location.protocol === 'https:' && raw.startsWith('http://')) {
+      raw = raw.replace(/^http:\/\//i, 'https://');
+    }
+  } catch (_) {
+    // Fallback: empty base uses same-origin relative requests
+    return '';
+  }
+  return raw;
+}
+
+const API_BASE = computeApiBase();
 
 export async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
