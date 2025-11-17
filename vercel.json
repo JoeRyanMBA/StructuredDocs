@@ -15,6 +15,10 @@
       "dest": "https://structureddocs-srhab.ondigitalocean.app/api/$1"
     },
     {
+      "src": "/images/(.*)",
+      "dest": "https://structureddocs-srhab.ondigitalocean.app/images/$1"
+    },
+    {
       "src": "/(.*)",
       "dest": "/$1"
     }
