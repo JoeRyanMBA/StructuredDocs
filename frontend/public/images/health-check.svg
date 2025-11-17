@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="120" height="80" viewBox="0 0 120 80" role="img" aria-label="Health Check OK">
+  <rect width="120" height="80" fill="#f0f9ff"/>
+  <circle cx="40" cy="40" r="24" fill="#0ea5e9"/>
+  <path d="M30 40 l8 8 l16 -16" fill="none" stroke="#ffffff" stroke-width="6" stroke-linecap="round" stroke-linejoin="round"/>
+  <text x="70" y="46" font-family="Arial, Helvetica, sans-serif" font-size="12" fill="#0f172a">OK</text>
+</svg>
