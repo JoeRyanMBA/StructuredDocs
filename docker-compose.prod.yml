@@ -24,4 +24,6 @@ services:
     # Persist SQLite DB on host (optional). Comment out if using Postgres.
     volumes:
       - ./instance:/app/instance
+      # Persist imported images across restarts (served via /images)
+      - ./data/images:/app/backend/static/images
     command: ["./start.sh"]
