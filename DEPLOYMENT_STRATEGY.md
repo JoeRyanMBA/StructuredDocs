@@ -94,6 +94,37 @@ vercel --prod
 
 ```
 
+## Images Routing & Persistence
+
+This app now serves images predictably in production and during local dev. Keep these notes handy when deploying or troubleshooting thumbnails/previews.
+
+- Static images route: `GET /images/<path>`
+	- Search order: `frontend/dist/images` → `frontend/public/images` → `backend/static/images`
+	- This means images imported during runtime (backend) are available without rebuilding the frontend.
+
+- Aggregated images API: `GET /api/images`
+	- Returns a combined list from the same three locations, recursively (e.g., `imports/{doc_id}/...`).
+	- Useful for thumbnails in Document Builder and the All Images view.
+
+- Vercel rewrites (frontend): ensure these are present so the SPA can reach the backend using same-origin paths
+	- In `vercel.json`:
+		- `/api/(.*)` → `https://<your-backend-domain>/api/$1`
+		- `/images/(.*)` → `https://<your-backend-domain>/images/$1`
+
+- DigitalOcean persistence (backend): persist imported images across restarts
+	- In `docker-compose.prod.yml` add a host volume:
+		- `./data/images:/app/backend/static/images`
+	- Create the host folder once: `mkdir -p ./data/images`
+
+- Environment flags
+	- `ENABLE_BLUEPRINTS_FILE=.enable_blueprints` should include `images` to expose `/api/images`.
+	- `ENABLE_PLACEHOLDER_ASSETS=1` (optional, local only): when set, creates temporary placeholder JS/CSS in `dist/assets` if bundles are missing. Disabled by default; on production start, known placeholders are cleaned up automatically.
+	- `FRONTEND_URL` guides CORS; set to your frontend origin in production.
+
+- Quick verify (production):
+	- API: `curl -sS https://<your-backend-domain>/api/images | head`
+	- Static: `curl -sS -o /dev/null -w "%{http_code}\n" https://<your-frontend-domain>/images/<some-file>`
+
 ## Platform comparison
 
 | Platform     | Reliability | Ease of use | Cost | Best for         |
