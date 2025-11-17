@@ -398,8 +398,23 @@ export default {
     padding: 1rem;
   }
   
+  /* Compact the features list on small screens */
+  .features-list {
+    margin-bottom: 1rem;
+  }
+
   .feature-item {
-    padding: 0.75rem 1rem;
+    padding: 0.5rem 0.75rem;
+    gap: 0.5rem;
+  }
+
+  .feature-icon {
+    font-size: 1.2rem;
+  }
+
+  .feature-content {
+    font-size: 0.95rem;
+    line-height: 1.3;
   }
   
   .publications-grid {
