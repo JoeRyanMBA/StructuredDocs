@@ -798,7 +798,26 @@ p { color: #666; }
         @app.route('/images/<path:filename>')
         def serve_image(filename):
             try:
-                return send_from_directory(os.path.join(app.config['STATIC_FOLDER'], 'images'), filename)
+                # Primary: built frontend dist images
+                dist_images_dir = os.path.join(app.config['STATIC_FOLDER'], 'images')
+                full_path = os.path.join(dist_images_dir, filename)
+                if os.path.exists(full_path):
+                    return send_from_directory(dist_images_dir, filename)
+
+                # Fallback 1: unbuilt public images (useful when images added post-build)
+                public_images_dir = os.path.join(os.path.dirname(app.root_path), 'frontend', 'public', 'images')
+                full_public_path = os.path.join(public_images_dir, filename)
+                if os.path.exists(full_public_path):
+                    return send_from_directory(public_images_dir, filename)
+
+                # Fallback 2: backend static images (ingestion backend path)
+                backend_images_dir = os.path.join(app.root_path, 'static', 'images')
+                full_backend_path = os.path.join(backend_images_dir, filename)
+                if os.path.exists(full_backend_path):
+                    return send_from_directory(backend_images_dir, filename)
+
+                print(f"❌ Image not found in any location: {filename}")
+                return "Image not found", 404
             except Exception as e:
                 print(f"Error serving image {filename}: {e}")
                 return "Image not found", 404

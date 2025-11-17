@@ -19,36 +19,78 @@ def allowed_file(filename):
 
 @images_bp.route('', methods=['GET'])
 def get_images():
-    """Get all available images from the static/images directory"""
+    """Get all available images, scanning dist/public/backend images recursively.
+
+    - Primary: frontend/dist/images (production build output)
+    - Fallback: frontend/public/images (useful for post-build writes)
+    - Fallback: backend/static/images (ingestion backend path)
+    """
     try:
         images_data = []
-        
-        # Check if static images directory exists
-        static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-        
-        if not os.path.exists(static_images_dir):
-            return jsonify(images_data), 200
-        
-        # Scan directory for image files
-        for filename in os.listdir(static_images_dir):
-            if allowed_file(filename):
-                file_path = os.path.join(static_images_dir, filename)
-                if os.path.isfile(file_path):
-                    file_size = os.path.getsize(file_path)
-                    created_time = os.path.getctime(file_path)
-                    
-                    images_data.append({
-                        'id': hash(filename) % 1000000,  # Simple ID from filename hash
-                        'filename': filename,
-                        'file_path': f"/images/{filename}",
-                        'public_url': f"/images/{filename}",
-                        'alt_text': filename,
-                        'size': file_size,
-                        'created_at': datetime.fromtimestamp(created_time).isoformat()
-                    })
-        
+
+        # Collect all candidate roots with their URL prefixes
+        roots = []
+        try:
+            dist_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
+            roots.append((dist_images_dir, '/images'))
+        except Exception:
+            pass
+
+        public_images_dir = os.path.join(current_app.root_path, '..', 'frontend', 'public', 'images')
+        roots.append((os.path.abspath(public_images_dir), '/images'))
+
+        backend_images_dir = os.path.join(current_app.root_path, 'static', 'images')
+        roots.append((backend_images_dir, '/images'))
+
+        seen = set()
+
+        def _add_image(root_dir: str, rel_path: str, url_prefix: str):
+            file_path = os.path.join(root_dir, rel_path)
+            filename = os.path.basename(rel_path)
+            if not allowed_file(filename):
+                return
+            if not os.path.isfile(file_path):
+                return
+            # Normalize rel path to URL form
+            rel_url = rel_path.replace('\\', '/')
+            public_url = f"{url_prefix}/{rel_url}"
+            # Deduplicate by normalized URL
+            if public_url in seen:
+                return
+            seen.add(public_url)
+            try:
+                stat = os.stat(file_path)
+                images_data.append({
+                    'id': hash(public_url) % 100000000,  # stable-ish
+                    'filename': filename,
+                    'file_path': public_url,
+                    'public_url': public_url,
+                    'alt_text': filename,
+                    'size': stat.st_size,
+                    'created_at': datetime.fromtimestamp(getattr(stat, 'st_mtime', stat.st_ctime)).isoformat()
+                })
+            except Exception:
+                # best-effort; skip unreadable files
+                pass
+
+        for root_dir, url_prefix in roots:
+            if not root_dir or not os.path.exists(root_dir):
+                continue
+            for base, _dirs, files in os.walk(root_dir):
+                for f in files:
+                    # Build path relative to root_dir so public_url = /images/<rel>
+                    abs_path = os.path.join(base, f)
+                    try:
+                        rel_path = os.path.relpath(abs_path, root_dir)
+                    except Exception:
+                        # Fallback to filename-only
+                        rel_path = f
+                    _add_image(root_dir, rel_path, url_prefix)
+
+        # Sort by filename for stability
+        images_data.sort(key=lambda x: x.get('filename', ''))
         return jsonify(images_data), 200
-        
+
     except Exception as e:
         current_app.logger.error(f"Error fetching images: {str(e)}")
         return jsonify({'error': 'Failed to fetch images'}), 500
