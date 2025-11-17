@@ -15,6 +15,11 @@ jobs:
       - uses: actions/checkout@v4
         with:
           fetch-depth: 0
+      - name: Compute lowercase owner
+        id: repo
+        shell: bash
+        run: |
+          echo "owner_lc=${GITHUB_REPOSITORY_OWNER,,}" >> "$GITHUB_OUTPUT"
       - name: Set up QEMU
         uses: docker/setup-qemu-action@v3
       - name: Set up Docker Buildx
@@ -40,8 +45,8 @@ jobs:
           file: Dockerfile
           push: true
           tags: |
-            ghcr.io/${{ github.repository_owner }}/structured-docs-backend:latest
-            ghcr.io/${{ github.repository_owner }}/structured-docs-backend:${{ steps.meta.outputs.commit }}
+            ghcr.io/${{ steps.repo.outputs.owner_lc }}/structured-docs-backend:latest
+            ghcr.io/${{ steps.repo.outputs.owner_lc }}/structured-docs-backend:${{ steps.meta.outputs.commit }}
           build-args: |
             APP_VERSION=${{ steps.meta.outputs.app_version }}
             GIT_COMMIT=${{ steps.meta.outputs.commit }}
