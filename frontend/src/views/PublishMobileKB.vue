@@ -6,29 +6,42 @@
       These are lightweight, offline-ready HTML files that work without internet connectivity.
     </p>
 
-    <div class="features-list">
-      <div class="feature-item">
-        <span class="feature-icon">📱</span>
-        <div class="feature-content">
-          <strong>Mobile-First Design</strong> - Optimized for touch interfaces and small screens
+    <div class="features-list" :class="{ collapsed: featuresCollapsed }">
+      <button
+        class="features-header"
+        type="button"
+        @click="toggleFeatures"
+        :aria-expanded="(!featuresCollapsed).toString()"
+        aria-controls="features-content"
+      >
+        <span class="features-title">Key features</span>
+        <span class="chevron" aria-hidden="true">▾</span>
+      </button>
+
+      <div id="features-content" class="features-content" v-show="!featuresCollapsed">
+        <div class="feature-item">
+          <span class="feature-icon">📱</span>
+          <div class="feature-content">
+            <strong>Mobile-First Design</strong> - Optimized for touch interfaces and small screens
+          </div>
         </div>
-      </div>
-      <div class="feature-item">
-        <span class="feature-icon">⚡</span>
-        <div class="feature-content">
-          <strong>Lightweight</strong> - Fast loading with minimal data usage
+        <div class="feature-item">
+          <span class="feature-icon">⚡</span>
+          <div class="feature-content">
+            <strong>Lightweight</strong> - Fast loading with minimal data usage
+          </div>
         </div>
-      </div>
-      <div class="feature-item">
-        <span class="feature-icon">🔌</span>
-        <div class="feature-content">
-          <strong>Offline Ready</strong> - Works without internet connection
+        <div class="feature-item">
+          <span class="feature-icon">🔌</span>
+          <div class="feature-content">
+            <strong>Offline Ready</strong> - Works without internet connection
+          </div>
         </div>
-      </div>
-      <div class="feature-item">
-        <span class="feature-icon">🌙</span>
-        <div class="feature-content">
-          <strong>Dark Mode</strong> - Automatic dark mode support
+        <div class="feature-item">
+          <span class="feature-icon">🌙</span>
+          <div class="feature-content">
+            <strong>Dark Mode</strong> - Automatic dark mode support
+          </div>
         </div>
       </div>
     </div>
@@ -101,11 +114,15 @@ export default {
     return {
       publications: [],
       loading: true,
-      error: null
+      error: null,
+      featuresCollapsed: false
     }
   },
   async created() {
     await this.fetchPublications()
+    if (typeof window !== 'undefined') {
+      this.featuresCollapsed = window.innerWidth <= 768
+    }
   },
   methods: {
     async fetchPublications() {
@@ -179,6 +196,9 @@ export default {
         })
         return `${formattedDate} ${timeString}`
       }
+    },
+    toggleFeatures() {
+      this.featuresCollapsed = !this.featuresCollapsed
     }
   }
 }
@@ -202,14 +222,45 @@ export default {
   background: var(--bg-primary-white);
   border-radius: 8px;
   border: 1px solid var(--border-color-gray);
-  margin-bottom: 3rem;
+  margin-bottom: 2rem;
   overflow: hidden;
+}
+
+.features-header {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.5rem 1rem;
+  background: transparent;
+  border: 0;
+  cursor: pointer;
+  color: var(--text-primary-charcoal);
+  font-weight: 600;
+}
+
+.features-title {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+}
+
+.chevron {
+  transition: transform 0.2s ease;
+}
+
+.features-list.collapsed .chevron {
+  transform: rotate(-90deg);
+}
+
+.features-content {
+  border-top: 1px solid var(--border-color-gray);
 }
 
 .feature-item {
   display: flex;
   align-items: center;
-  padding: 1rem 1.5rem;
+  padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-color-gray);
   gap: 1rem;
 }
@@ -219,7 +270,7 @@ export default {
 }
 
 .feature-icon {
-  font-size: 1.5rem;
+  font-size: 1.4rem;
   flex-shrink: 0;
 }
 
