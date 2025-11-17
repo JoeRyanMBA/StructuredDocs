@@ -669,7 +669,19 @@ export default {
               const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
               if (imagesResponse.ok) {
                 const imagesData = await imagesResponse.json()
-                allImages = allImages.concat(imagesData.images || [])
+                const docImagesRaw = imagesData.images || []
+                const docImages = docImagesRaw.map(img => {
+                  const size = img.size || img.file_size || null
+                  return {
+                    ...img,
+                    size,
+                    file_size: size,
+                    source: 'import',
+                    document_id: importDoc.id,
+                    public_url: img.public_url || `/images/imports/${importDoc.id}/${img.filename}`
+                  }
+                })
+                allImages = allImages.concat(docImages)
               }
             } catch (e) {
               console.warn(`Failed to load images for import ${importDoc.id}:`, e)
@@ -831,7 +843,19 @@ export default {
               const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
               if (imagesResponse.ok) {
                 const imagesData = await imagesResponse.json()
-                allImages = allImages.concat(imagesData.images || [])
+                const docImagesRaw = imagesData.images || []
+                const docImages = docImagesRaw.map(img => {
+                  const size = img.size || img.file_size || null
+                  return {
+                    ...img,
+                    size,
+                    file_size: size,
+                    source: 'import',
+                    document_id: importDoc.id,
+                    public_url: img.public_url || `/images/imports/${importDoc.id}/${img.filename}`
+                  }
+                })
+                allImages = allImages.concat(docImages)
               }
             } catch (e) {
               console.warn(`Failed to load images for import ${importDoc.id}:`, e)
