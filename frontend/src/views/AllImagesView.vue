@@ -90,7 +90,7 @@
         >
           <div class="image-container">
             <img 
-              :src="image.public_url" 
+              :src="getImageUrl(image)" 
               :alt="image.filename"
               class="image-preview"
               @error="handleImageError($event, image)"
@@ -133,7 +133,7 @@
         >
           <div class="col-filename">
             <img 
-              :src="image.public_url" 
+              :src="getImageUrl(image)" 
               :alt="image.filename"
               class="list-thumbnail"
               @error="handleImageError($event, image)"
@@ -166,7 +166,7 @@
           <div class="image-details">
             <div class="detail-image">
               <img 
-                :src="selectedImage.public_url" 
+                :src="getImageUrl(selectedImage)" 
                 :alt="selectedImage.filename"
                 class="detail-preview"
                 @error="handleImageError($event, selectedImage)"
@@ -240,6 +240,11 @@ export default {
       return this.filteredImages.reduce((total, image) => {
         return total + (image.size || 0)
       }, 0)
+    },
+    apiBase() {
+      let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
+      if (!raw) return '';
+      return raw.replace(/\/+$/, '');
     }
   },
   async created() {
@@ -398,6 +403,15 @@ export default {
 
     closeDetailsModal() {
       this.showDetailsModal = false
+    },
+
+    getImageUrl(image) {
+      const path = image.public_url || image.file_path || `/images/${image.filename}`;
+      // If path is relative and starts with /, prepend API base
+      if (path.startsWith('/') && this.apiBase) {
+        return `${this.apiBase}${path}`;
+      }
+      return path;
     },
 
     copyImagePath(image) {

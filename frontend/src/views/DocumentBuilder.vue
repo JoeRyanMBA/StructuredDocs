@@ -178,7 +178,7 @@
               :title="image.filename"
             >
               <img 
-                :src="image.public_url" 
+                :src="getImageUrl(image)" 
                 :alt="image.filename"
                 class="image-thumbnail"
                 @error="handleImageError"
@@ -361,7 +361,7 @@
                 @click="copyImagePath(image)"
               >
                 <img 
-                  :src="image.public_url" 
+                  :src="getImageUrl(image)" 
                   :alt="image.filename"
                   class="image-preview"
                   @error="handleImageError"
@@ -517,6 +517,12 @@ export default {
   },
   
   computed: {
+    apiBase() {
+      let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
+      if (!raw) return '';
+      return raw.replace(/\/+$/, '');
+    },
+    
     allNotifications() {
       const all = [
         ...(this.globalNotifications || []),
@@ -1056,6 +1062,15 @@ status: "draft"
       }).catch(() => {
         toast.error('Failed to copy to clipboard')
       })
+    },
+    
+    getImageUrl(image) {
+      const path = image.public_url || `/images/imports/${image.document_id}/${image.filename}`;
+      // If path is relative and starts with /, prepend API base
+      if (path.startsWith('/') && this.apiBase) {
+        return `${this.apiBase}${path}`;
+      }
+      return path;
     },
     
     copyImagePath(image) {
