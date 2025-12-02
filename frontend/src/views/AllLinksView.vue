@@ -33,7 +33,7 @@
           <i class="bi bi-search"></i> Search
         </button>
         <button @click="createNewLink" class="btn btn-primary">
-          ➕︎ Create Link
+          <span class="action-icon"><IconPlus size="28" /></span> Create Link
         </button>
   <button @click="refreshLinks" class="btn btn-secondary btn-sm">
           🔄 Refresh
@@ -588,7 +588,6 @@ export default {
   }
 }
 </script>
-
 <style>
 .all-links {
   padding: 2rem;

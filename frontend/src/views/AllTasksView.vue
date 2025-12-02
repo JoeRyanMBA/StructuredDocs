@@ -8,7 +8,7 @@
 
     <div class="page-actions" style="margin-top: 2rem;">
       <button @click="openCreateModal" class="btn btn-primary">
-        <span class="icon-plus">➕︎</span> Create New Task
+        <span class="action-icon"><IconPlus size="28" /></span> Create New Task
       </button>
     </div>
 
@@ -715,7 +715,6 @@ export default {
   }
 }
 </script>
-
 <style>
 .all-tasks {
   padding: 2rem;
