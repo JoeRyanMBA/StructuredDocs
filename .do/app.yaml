@@ -26,6 +26,12 @@ services:
     type: SECRET
     value: ${secret_key}
 
+# Persistent storage for uploaded images
+volumes:
+- name: images-storage
+  mount_path: /workspace/backend/static/images
+  size: 5GB
+
 databases:
 - name: structured-docs-db
   engine: PG
