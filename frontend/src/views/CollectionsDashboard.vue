@@ -53,11 +53,8 @@
       <p class="section-description">Manage your collections and topics</p>
       <div class="quick-actions-grid">
         <button class="quick-action-card" @click="showCreateModal = true">
-          <!-- Switched to inline SVG so we can control color for contrast on different backgrounds -->
           <div class="action-icon create-icon" aria-hidden="true">
-            <svg class="plus-svg" width="28" height="28" viewBox="0 0 24 24" role="img" focusable="false">
-              <path d="M11 4c-.552 0-1 .448-1 1v6H4c-.552 0-1 .448-1 1s.448 1 1 1h6v6c0 .552.448 1 1 1s1-.448 1-1v-6h6c.552 0 1-.448 1-1s-.448-1-1-1h-6V5c0-.552-.448-1-1-1z" fill="currentColor"/>
-            </svg>
+            <IconPlus className="plus-svg" size="28" />
           </div>
           <div class="action-content" title="Start organizing topics into collections">
             <h3>Create New Collection</h3>
@@ -268,12 +265,13 @@
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
 import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'CollectionsDashboard',
-  components: { CompactToolbar, ArchiveToggleButton },
+  components: { CompactToolbar, ArchiveToggleButton, IconPlus },
   props: {
     notifications: {
       type: Array,
@@ -816,40 +814,17 @@ export default {
 
 /* Enhanced theming for create button icon */
 .create-icon {
-  width: 48px;
-  height: 48px;
-  border-radius: 12px;
+  /* Align with global quick-action-card icon styling */
+  width: var(--quick-action-icon-size);
+  height: var(--quick-action-icon-size);
   display: flex;
   align-items: center;
   justify-content: center;
-  background: linear-gradient(135deg, var(--extended-cool-mint, #d1f5ed) 0%, #ffffff 95%);
-  color: var(--primary-deep-teal, #006d77);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.08);
-  transition: transform .15s ease, box-shadow .2s ease, background .3s ease;
+  border-radius: 8px;
+  background: var(--bg-light-mist-gray);
+  color: var(--primary-deep-teal);
 }
-.create-icon .plus-svg { display: block; }
-.quick-action-card:hover .create-icon {
-  transform: translateY(-2px);
-  box-shadow: 0 4px 10px rgba(0,0,0,0.15);
-}
-
-/* Dark container / dark mode support (if a parent adds .dark or body has .dark-theme) */
-.dark .create-icon, .dark-theme .create-icon, .quick-action-card.dark-bg .create-icon {
-  background: var(--primary-deep-teal, #006d77);
-  color: #ffffff;
-}
-
-/* Fallback high-contrast mode detection */
-@media (prefers-contrast: more) {
-  .create-icon { box-shadow: 0 0 0 2px var(--primary-deep-teal, #006d77); }
-  .dark .create-icon, .dark-theme .create-icon { box-shadow: 0 0 0 2px #ffffff; }
-}
-
-/* Optional: reduce motion */
-@media (prefers-reduced-motion: reduce) {
-  .create-icon { transition: none; }
-  .quick-action-card:hover .create-icon { transform: none; }
-}
+.create-icon .plus-svg { width: 2rem; height: 2rem; }
 
 .action-content h3 {
   font-size: 1.125rem;

@@ -53,7 +53,7 @@
       <p class="section-description">Tools for writing and organizing your work</p>
       <div class="quick-actions-grid">
           <button class="quick-action-card" @click="navigateTo('/topics/new')">
-            <div class="action-icon">➕︎</div>
+            <div class="action-icon"><IconPlus size="28" /></div>
             <div class="action-content">
               <h3>Create New Topic</h3>
               <p>Start writing new content</p>
@@ -239,12 +239,14 @@
 
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
 
 export default {
   name: 'AuthorDashboard',
   
   components: {
-    CompactToolbar
+    CompactToolbar,
+    IconPlus
   },
   
   props: {

@@ -8,7 +8,7 @@
 
     <div class="page-actions">
       <button @click="showModal = true" class="btn btn-primary">
-        <span class="icon-plus">➕︎</span> Create New Stakeholder
+        <span class="action-icon"><IconPlus size="28" /></span> Create New Stakeholder
       </button>
     </div>
 
@@ -512,7 +512,6 @@ export default {
   }
 }
 </script>
-
 <style scoped>
 .all-stakeholders {
   padding: 2rem;

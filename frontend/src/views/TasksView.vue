@@ -60,7 +60,7 @@
       </div>
       <div class="header-actions">
         <button @click="showCreateModal = true" class="primary-btn">
-          <span class="icon-plus">➕︎</span> Create Task
+          <span class="action-icon"><IconPlus size="28" /></span> Create Task
         </button>
       </div>
     </div>
@@ -137,7 +137,7 @@
           <h3>{{ tasks.length === 0 ? 'No Tasks Yet' : 'No Tasks Match Filter' }}</h3>
           <p>{{ tasks.length === 0 ? 'Get started by creating your first task.' : 'Try adjusting your filters or create a new task.' }}</p>
           <button @click="showCreateModal = true" class="create-first-btn">
-            <span class="icon-plus">➕︎</span> {{ tasks.length === 0 ? 'Create Your First Task' : 'Create New Task' }}
+            <span class="action-icon"><IconPlus size="28" /></span> {{ tasks.length === 0 ? 'Create Your First Task' : 'Create New Task' }}
           </button>
         </div>
       </div>

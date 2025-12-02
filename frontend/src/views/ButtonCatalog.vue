@@ -25,12 +25,23 @@
             <tr v-for="row in filteredRows" :key="row.name">
               <td>
                 <component :is="row.exampleTag" v-bind="row.exampleBind" :class="row.classes">
-                  <template v-if="row.icon" #default>
-                    <i :class="row.icon" />
-                    <span v-if="row.text">{{ row.text }}</span>
-                  </template>
-                  <template v-else #default>
-                    {{ row.text }}
+                  <template #default>
+                    <template v-if="row.exampleRender === 'IconPlus'">
+                      <div class="action-icon" style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--bg-light-mist-gray);color:var(--primary-deep-teal);margin-right:1rem;">
+                        <IconPlus size="28" />
+                      </div>
+                      <div class="action-content">
+                        <h3 style="margin:0;color:var(--text-dark-gray);font-weight:600;">{{ row.text }}</h3>
+                        <p style="margin:0;color:var(--text-medium-gray);font-size:.9rem;">Standardized create quick action with IconPlus</p>
+                      </div>
+                    </template>
+                    <template v-else-if="row.icon">
+                      <i :class="row.icon" />
+                      <span v-if="row.text">{{ row.text }}</span>
+                    </template>
+                    <template v-else>
+                      {{ row.text }}
+                    </template>
                   </template>
                 </component>
               </td>
@@ -59,8 +70,10 @@
 </template>
 
 <script>
+import IconPlus from '@/components/icons/IconPlus.vue'
 export default {
   name: 'ButtonCatalog',
+  components: { IconPlus },
   data() {
     return {
       filter: '',
@@ -366,6 +379,21 @@ export default {
           ],
           exampleTag: 'button',
           exampleBind: { type: 'submit' }
+        },
+        {
+          name: 'Quick Action: Create',
+          classes: 'quick-action-card',
+          text: 'Create Item',
+          icon: '',
+          stylesheet: 'assets/style.css (.quick-action-card .action-icon)',
+          usedIn: [
+            'CollectionsDashboard.vue (Create New Collection)',
+            'AuthorDashboard.vue (Create New Topic)',
+            'AllTasksView.vue / TasksView.vue / AllLinksView.vue (Create actions)'
+          ],
+          exampleTag: 'div',
+          exampleBind: { },
+          exampleRender: 'IconPlus'
         },
         {
           name: 'Create First',
