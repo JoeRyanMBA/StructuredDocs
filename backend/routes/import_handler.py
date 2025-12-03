@@ -1170,6 +1170,12 @@ def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
             file.stream.seek(0)
             # Use full image processing for hierarchical parsing
             markdown_content = _convert_word_to_markdown(file_content, import_doc_id)
+            # Extract links from converted markdown and store under ImportDocument
+            try:
+                links_count = _extract_and_store_links(import_doc_id, markdown_content)
+                current_app.logger.info(f"HIERARCHICAL IMPORT: Extracted {links_count} links for import document {import_doc_id}")
+            except Exception as e:
+                current_app.logger.error(f"HIERARCHICAL IMPORT: Link extraction failed for import document {import_doc_id}: {e}")
         else:
             # For markdown files, read directly
             markdown_content = file.read().decode('utf-8')
@@ -1182,6 +1188,12 @@ def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
                 if validation_issues:
                     for issue in validation_issues:
                         print(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
+            # Extract links from markdown input and store
+            try:
+                links_count = _extract_and_store_links(import_doc_id, markdown_content)
+                current_app.logger.info(f"HIERARCHICAL IMPORT (markdown): Extracted {links_count} links for import document {import_doc_id}")
+            except Exception as e:
+                current_app.logger.error(f"HIERARCHICAL IMPORT (markdown): Link extraction failed for import document {import_doc_id}: {e}")
 
         return _parse_hierarchical_content(markdown_content)
         
