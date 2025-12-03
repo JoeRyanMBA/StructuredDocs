@@ -445,6 +445,7 @@
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { getTopics, createTopic } from '@/api/topics.js'
 import { toast } from '@/composables/useToast'
+import { apiRequest } from '../api/base.js'
 
 export default {
   name: 'DocumentBuilder',
@@ -518,9 +519,15 @@ export default {
   
   computed: {
     apiBase() {
-      let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
-      if (!raw) return '';
-      return raw.replace(/\/+$/, '');
+      // Use normalized, HTTPS-safe API base
+      try {
+        const { API_BASE } = require('../api/base.js');
+        return API_BASE || '';
+      } catch (e) {
+        // Fallback to env var trimmed
+        let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
+        return raw ? raw.replace(/\/+$/, '') : '';
+      }
     },
     
     allNotifications() {

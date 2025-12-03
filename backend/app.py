@@ -628,6 +628,7 @@ p { color: #666; }
                 tags,
                 tasks,
                 topics,
+                public_images,
                 users,
             )
 
@@ -651,6 +652,7 @@ p { color: #666; }
             app.register_blueprint(tags.tags_bp)
             app.register_blueprint(tasks.tasks_bp)
             app.register_blueprint(topics.topics_bp)
+            app.register_blueprint(public_images.public_images_bp)
             app.register_blueprint(users.users_bp)
             print("✅ All blueprints registered")
             # Alias legacy login path

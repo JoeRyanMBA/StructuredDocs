@@ -242,9 +242,13 @@ export default {
       }, 0)
     },
     apiBase() {
-      let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
-      if (!raw) return '';
-      return raw.replace(/\/+$/, '');
+      try {
+        const { API_BASE } = require('../api/base.js')
+        return API_BASE || ''
+      } catch (e) {
+        let raw = (import.meta.env.VITE_API_BASE_URL || '').trim()
+        return raw ? raw.replace(/\/+$/, '') : ''
+      }
     }
   },
   async created() {
