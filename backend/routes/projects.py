@@ -154,40 +154,64 @@ def get_project_stakeholders(project_id):
 
 @projects_bp.route('/<int:project_id>/stakeholders', methods=['POST'])
 def add_project_stakeholder(project_id):
-    """Add a stakeholder to a project"""
+    """Add a stakeholder to a project with validation to avoid 500s."""
+    from sqlalchemy.exc import IntegrityError
+
     try:
-        data = request.get_json()
-        
+        data = request.get_json() or {}
+
         # Verify project exists
         project = Project.query.get_or_404(project_id)
-        
+
+        # Allowed roles
+        allowed_stakeholder_roles = {
+            'author', 'reviewer', 'subject_matter_expert', 'stakeholder', 'admin'
+        }
+        allowed_project_roles = {
+            'project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'
+        }
+
+        def validate_email(email: str) -> bool:
+            try:
+                return isinstance(email, str) and '@' in email and '.' in email.split('@')[-1]
+            except Exception:
+                return False
+
         # Support adding by stakeholder_id (existing) or by name/email/role (new)
         if data.get('stakeholder_id'):
-            # Add existing stakeholder to project
             stakeholder_id = data['stakeholder_id']
             stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
-            
+
+            # Validate project role
+            proj_role = data.get('role', 'stakeholder')
+            if proj_role not in allowed_project_roles:
+                return jsonify({
+                    "error": f"Invalid project role: {proj_role}",
+                    "allowed": sorted(list(allowed_project_roles))
+                }), 400
+
             # Check if stakeholder is already associated with this project
             existing_association = ProjectStakeholder.query.filter_by(
-                project_id=project_id, 
+                project_id=project_id,
                 stakeholder_id=stakeholder_id
             ).first()
-            
             if existing_association:
                 return jsonify({"error": "Stakeholder is already associated with this project"}), 400
-            
-            # Create new project-stakeholder association
-            project_stakeholder = ProjectStakeholder(
-                project_id=project_id,
-                stakeholder_id=stakeholder_id,
-                role=data.get('role', 'stakeholder'),
-                can_review=data.get('can_review', True),
-                notes=data.get('notes')
-            )
-            
-            db.session.add(project_stakeholder)
-            db.session.commit()
-            
+
+            try:
+                project_stakeholder = ProjectStakeholder(
+                    project_id=project_id,
+                    stakeholder_id=stakeholder_id,
+                    role=proj_role,
+                    can_review=bool(data.get('can_review', True)),
+                    notes=data.get('notes')
+                )
+                db.session.add(project_stakeholder)
+                db.session.commit()
+            except IntegrityError as ie:
+                db.session.rollback()
+                return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
+
             return jsonify({
                 "id": project_stakeholder.id,
                 "project_id": project_id,
@@ -206,36 +230,54 @@ def add_project_stakeholder(project_id):
             for field in required_fields:
                 if not data.get(field):
                     return jsonify({"error": f"{field} is required"}), 400
-            
-            # Check if stakeholder with this email already exists
-            existing_stakeholder = Stakeholder.query.filter_by(email=data['email']).first()
-            if existing_stakeholder:
-                # Use existing stakeholder
-                stakeholder = existing_stakeholder
-            else:
-                # Create new stakeholder
+
+            # Validate email and stakeholder role
+            if not validate_email(data['email']):
+                return jsonify({"error": "Invalid email format"}), 400
+
+            stakeholder_role = data.get('role', 'stakeholder')
+            if stakeholder_role not in allowed_stakeholder_roles:
+                return jsonify({
+                    "error": f"Invalid stakeholder role: {stakeholder_role}",
+                    "allowed": sorted(list(allowed_stakeholder_roles))
+                }), 400
+
+            # Reuse existing stakeholder by email if present
+            stakeholder = Stakeholder.query.filter_by(email=data['email']).first()
+            if not stakeholder:
                 stakeholder = Stakeholder(
                     name=data['name'],
                     email=data['email'],
                     title=data.get('title'),
                     organization=data.get('organization'),
-                    role=data.get('role', 'stakeholder')
+                    role=stakeholder_role,
+                    can_review=bool(data.get('can_review', True))
                 )
                 db.session.add(stakeholder)
-                db.session.flush()  # Get the ID
-            
-            # Create project-stakeholder association
-            project_stakeholder = ProjectStakeholder(
-                project_id=project_id,
-                stakeholder_id=stakeholder.id,
-                role=data.get('role', 'stakeholder'),
-                can_review=data.get('can_review', True),
-                notes=data.get('notes')
-            )
-            
-            db.session.add(project_stakeholder)
-            db.session.commit()
-            
+                db.session.flush()  # Assign ID
+
+            # Validate project role (can differ from stakeholder role set)
+            proj_role = data.get('role', 'stakeholder')
+            if proj_role not in allowed_project_roles:
+                return jsonify({
+                    "error": f"Invalid project role for association: {proj_role}",
+                    "allowed": sorted(list(allowed_project_roles))
+                }), 400
+
+            try:
+                project_stakeholder = ProjectStakeholder(
+                    project_id=project_id,
+                    stakeholder_id=stakeholder.id,
+                    role=proj_role,
+                    can_review=bool(data.get('can_review', True)),
+                    notes=data.get('notes')
+                )
+                db.session.add(project_stakeholder)
+                db.session.commit()
+            except IntegrityError as ie:
+                db.session.rollback()
+                return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
+
             return jsonify({
                 "id": project_stakeholder.id,
                 "project_id": project_id,
@@ -249,6 +291,7 @@ def add_project_stakeholder(project_id):
                 "existing": False
             }), 201
     except Exception as e:
+        db.session.rollback()
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>/reviews', methods=['GET'])

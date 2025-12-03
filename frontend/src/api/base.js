@@ -27,7 +27,7 @@ function computeApiBase() {
   return raw;
 }
 
-const API_BASE = computeApiBase();
+export const API_BASE = computeApiBase();
 
 export async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;

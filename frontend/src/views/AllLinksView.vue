@@ -323,6 +323,7 @@
 <script>
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
+import { apiRequest } from '../api/base.js'
 
 export default {
   name: 'AllLinksView',
@@ -385,10 +386,8 @@ export default {
       this.error = null
       
       try {
-        const response = await fetch('/api/links?include_usage=true')
-        if (response.ok) {
-          const data = await response.json()
-          this.allLinks = data.links || []
+        const data = await apiRequest('/api/links?include_usage=true')
+        this.allLinks = data.links || []
         } else {
           // Treat non-OK as empty state instead of fatal error to match Images UX
           this.allLinks = []
