@@ -388,13 +388,7 @@ export default {
       try {
         const data = await apiRequest('/api/links?include_usage=true')
         this.allLinks = data.links || []
-        } else {
-          // Treat non-OK as empty state instead of fatal error to match Images UX
-          this.allLinks = []
-        }
-
         this.applyFilters()
-
       } catch (error) {
         console.error('Failed to load links:', error)
         // Fall back to empty state UX rather than a blocking error
