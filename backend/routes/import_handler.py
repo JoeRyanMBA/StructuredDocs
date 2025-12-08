@@ -406,6 +406,10 @@ def _extract_and_store_links(document_id, content, position=0):
         url = match.group(2).strip()
         description = match.group(3).strip() if match.group(3) else None
         
+        # Truncate title to 200 characters (database column limit)
+        if len(title) > 200:
+            title = title[:197] + '...'
+        
         # Get surrounding context (50 chars before and after)
         start = max(0, match.start() - 50)
         end = min(len(content), match.end() + 50)
@@ -443,6 +447,10 @@ def _extract_and_store_links(document_id, content, position=0):
         # Create title from URL
         parsed = urlparse(url)
         title = parsed.netloc or url
+        
+        # Truncate title to 200 characters (database column limit)
+        if len(title) > 200:
+            title = title[:197] + '...'
         
         # Get surrounding context
         start = max(0, match.start() - 50)
