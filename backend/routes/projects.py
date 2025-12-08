@@ -170,6 +170,8 @@ def add_project_stakeholder(project_id):
         allowed_project_roles = {
             'project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'
         }
+        # When creating a new stakeholder, accept project roles as well
+        allowed_creation_roles = allowed_stakeholder_roles | allowed_project_roles
 
         def validate_email(email: str) -> bool:
             try:
@@ -236,10 +238,10 @@ def add_project_stakeholder(project_id):
                 return jsonify({"error": "Invalid email format"}), 400
 
             stakeholder_role = data.get('role', 'stakeholder')
-            if stakeholder_role not in allowed_stakeholder_roles:
+            if stakeholder_role not in allowed_creation_roles:
                 return jsonify({
-                    "error": f"Invalid stakeholder role: {stakeholder_role}",
-                    "allowed": sorted(list(allowed_stakeholder_roles))
+                    "error": f"Invalid role: {stakeholder_role}",
+                    "allowed": sorted(list(allowed_creation_roles))
                 }), 400
 
             # Reuse existing stakeholder by email if present
