@@ -12,6 +12,29 @@ from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, T
 
 projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 
+@projects_bp.route('/roles', methods=['GET'])
+def get_allowed_project_roles():
+    """Return allowed roles for Stakeholder and ProjectStakeholder enums.
+    Useful for frontend to populate role dropdowns accurately.
+    """
+    try:
+        stakeholder_roles = []
+        project_roles = []
+        try:
+            stakeholder_roles = list(Stakeholder.__table__.c.role.type.enums)
+        except Exception:
+            stakeholder_roles = ['author', 'reviewer', 'subject_matter_expert', 'stakeholder', 'admin']
+        try:
+            project_roles = list(ProjectStakeholder.__table__.c.role.type.enums)
+        except Exception:
+            project_roles = ['project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor']
+        return jsonify({
+            'stakeholder_roles': stakeholder_roles,
+            'project_roles': project_roles
+        }), 200
+    except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
 @projects_bp.route('/<int:project_id>/archive', methods=['POST'])
 @jwt_required()
 def archive_project(project_id):
@@ -184,6 +207,14 @@ def add_project_stakeholder(project_id):
             except Exception:
                 return False
 
+        # Helper to normalize incoming role labels (e.g., "Project Manager" -> "project_manager")
+        def normalize_role(val: str | None) -> str:
+            if not isinstance(val, str):
+                return 'stakeholder'
+            s = val.strip().lower()
+            s = s.replace('-', '_').replace(' ', '_')
+            return s or 'stakeholder'
+
         # Support adding by stakeholder_id (existing) or by name/email/role (new)
         if data.get('stakeholder_id'):
             stakeholder_id = data['stakeholder_id']
@@ -191,7 +222,7 @@ def add_project_stakeholder(project_id):
             stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
 
             # Validate project role
-            proj_role = data.get('role', 'stakeholder')
+            proj_role = normalize_role(data.get('role', 'stakeholder'))
             current_app.logger.info(f"Requested role: {proj_role}, allowed: {sorted(list(project_role_enums))}")
             if proj_role not in project_role_enums:
                 current_app.logger.warning(f"Invalid project role: {proj_role}; coercing to 'stakeholder'")
@@ -275,7 +306,7 @@ def add_project_stakeholder(project_id):
             if not validate_email(data['email']):
                 return jsonify({"error": "Invalid email format"}), 400
 
-            stakeholder_role = data.get('role', 'stakeholder')
+            stakeholder_role = normalize_role(data.get('role', 'stakeholder'))
             if stakeholder_role not in allowed_creation_roles:
                 return jsonify({
                     "error": f"Invalid role: {stakeholder_role}",
@@ -319,7 +350,7 @@ def add_project_stakeholder(project_id):
                     raise
 
             # Validate project role (can differ from stakeholder role set)
-            proj_role = data.get('role', 'stakeholder')
+            proj_role = normalize_role(data.get('role', 'stakeholder'))
             if proj_role not in project_role_enums:
                 current_app.logger.warning(f"Invalid project role for association: {proj_role}; coercing to 'stakeholder'")
                 proj_role = 'stakeholder'
