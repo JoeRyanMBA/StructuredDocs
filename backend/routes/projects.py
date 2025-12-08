@@ -194,11 +194,9 @@ def add_project_stakeholder(project_id):
             proj_role = data.get('role', 'stakeholder')
             current_app.logger.info(f"Requested role: {proj_role}, allowed: {sorted(list(project_role_enums))}")
             if proj_role not in project_role_enums:
-                current_app.logger.warning(f"Invalid project role: {proj_role}")
-                return jsonify({
-                    "error": f"Invalid project role: {proj_role}",
-                    "allowed": sorted(list(project_role_enums))
-                }), 400
+                current_app.logger.warning(f"Invalid project role: {proj_role}; coercing to 'stakeholder'")
+                # Coerce to safe default instead of failing hard
+                proj_role = 'stakeholder'
 
             # Check if stakeholder is already associated with this project
             existing_association = ProjectStakeholder.query.filter_by(
@@ -212,8 +210,8 @@ def add_project_stakeholder(project_id):
                 current_app.logger.info(f"Creating ProjectStakeholder: project={project_id}, stakeholder={stakeholder_id}, role={proj_role}")
                 # Extra validation - ensure role is valid for ProjectStakeholder model
                 if proj_role not in project_role_enums:
-                    current_app.logger.error(f"Invalid role value for ProjectStakeholder: {proj_role}, allowed: {project_role_enums}")
-                    return jsonify({"error": f"Invalid role: {proj_role}", "allowed": sorted(list(project_role_enums))}), 400
+                    current_app.logger.warning(f"Invalid role value for ProjectStakeholder after coercion: {proj_role}; forcing 'stakeholder'")
+                    proj_role = 'stakeholder'
                 
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
@@ -323,19 +321,15 @@ def add_project_stakeholder(project_id):
             # Validate project role (can differ from stakeholder role set)
             proj_role = data.get('role', 'stakeholder')
             if proj_role not in project_role_enums:
-                db.session.rollback()
-                return jsonify({
-                    "error": f"Invalid project role for association: {proj_role}",
-                    "allowed": sorted(list(project_role_enums))
-                }), 400
+                current_app.logger.warning(f"Invalid project role for association: {proj_role}; coercing to 'stakeholder'")
+                proj_role = 'stakeholder'
 
             try:
                 current_app.logger.info(f"Creating ProjectStakeholder for new stakeholder: project={project_id}, stakeholder={stakeholder.id}, role={proj_role}")
                 # Extra validation - ensure role is valid for ProjectStakeholder model
                 if proj_role not in project_role_enums:
-                    current_app.logger.error(f"Invalid role value for ProjectStakeholder: {proj_role}, allowed: {project_role_enums}")
-                    db.session.rollback()
-                    return jsonify({"error": f"Invalid role: {proj_role}", "allowed": sorted(list(project_role_enums))}), 400
+                    current_app.logger.warning(f"Invalid role value for ProjectStakeholder after coercion: {proj_role}; forcing 'stakeholder'")
+                    proj_role = 'stakeholder'
                 
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
