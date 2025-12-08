@@ -1039,6 +1039,12 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             items_count = ImportItem.query.filter_by(document_id=temp_imp_doc.id).count()
             
             if items_count == 0:
+                # Commit any extracted links before rolling back
+                links_count = ImportLink.query.filter_by(document_id=temp_imp_doc.id).count()
+                print(f"COLLECTION IMPORT: Preserving {links_count} extracted links before rollback")
+                if links_count > 0:
+                    db.session.commit()
+                
                 db.session.rollback()
                 error_msg = f"No content items could be extracted from the document. "
                 if source == 'word':
@@ -1136,7 +1142,15 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
     print(f"UPLOAD: Created {items_count} import items")
     
     if items_count == 0:
-        db.session.rollback()
+        # Commit any extracted links so they aren't lost when we delete the import document
+        links_count = ImportLink.query.filter_by(document_id=imp_doc.id).count()
+        print(f"UPLOAD: Preserving {links_count} extracted links before deleting import")
+        if links_count > 0:
+            db.session.commit()
+        
+        # Delete the ImportDocument since it has no items, but keep the links
+        db.session.delete(imp_doc)
+        db.session.commit()
         # Try to log more details for debugging
         file_content = b""  # ensure defined even if read fails below
         try:
