@@ -207,6 +207,11 @@ def add_project_stakeholder(project_id):
 
             try:
                 current_app.logger.info(f"Creating ProjectStakeholder: project={project_id}, stakeholder={stakeholder_id}, role={proj_role}")
+                # Extra validation - ensure role is valid for ProjectStakeholder model
+                if proj_role not in allowed_project_roles:
+                    current_app.logger.error(f"Invalid role value for ProjectStakeholder: {proj_role}, allowed: {allowed_project_roles}")
+                    return jsonify({"error": f"Invalid role: {proj_role}", "allowed": sorted(list(allowed_project_roles))}), 400
+                
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
                     stakeholder_id=stakeholder_id,
@@ -322,6 +327,13 @@ def add_project_stakeholder(project_id):
                 }), 400
 
             try:
+                current_app.logger.info(f"Creating ProjectStakeholder for new stakeholder: project={project_id}, stakeholder={stakeholder.id}, role={proj_role}")
+                # Extra validation - ensure role is valid for ProjectStakeholder model
+                if proj_role not in allowed_project_roles:
+                    current_app.logger.error(f"Invalid role value for ProjectStakeholder: {proj_role}, allowed: {allowed_project_roles}")
+                    db.session.rollback()
+                    return jsonify({"error": f"Invalid role: {proj_role}", "allowed": sorted(list(allowed_project_roles))}), 400
+                
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
                     stakeholder_id=stakeholder.id,
@@ -331,8 +343,10 @@ def add_project_stakeholder(project_id):
                 )
                 db.session.add(project_stakeholder)
                 db.session.commit()
+                current_app.logger.info(f"ProjectStakeholder created successfully: id={project_stakeholder.id}")
             except IntegrityError as ie:
                 db.session.rollback()
+                current_app.logger.error(f"IntegrityError: {ie}", exc_info=True)
                 return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
             except Exception as project_err:
                 db.session.rollback()
