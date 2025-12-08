@@ -214,18 +214,32 @@ def add_project_stakeholder(project_id):
                 db.session.rollback()
                 return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
 
-            return jsonify({
-                "id": project_stakeholder.id,
-                "project_id": project_id,
-                "stakeholder_id": stakeholder_id,
-                "name": stakeholder.name,
-                "email": stakeholder.email,
-                "role": project_stakeholder.role,
-                "can_review": project_stakeholder.can_review,
-                "notes": project_stakeholder.notes,
-                "created_at": project_stakeholder.created_at.isoformat(),
-                "existing": True
-            }), 201
+            # Build response safely
+            try:
+                response_data = {
+                    "id": project_stakeholder.id,
+                    "project_id": project_id,
+                    "stakeholder_id": stakeholder_id,
+                    "name": stakeholder.name,
+                    "email": stakeholder.email,
+                    "role": project_stakeholder.role,
+                    "can_review": project_stakeholder.can_review,
+                    "notes": project_stakeholder.notes,
+                    "existing": True
+                }
+                # Only add created_at if it exists
+                if hasattr(project_stakeholder, 'created_at') and project_stakeholder.created_at:
+                    response_data["created_at"] = project_stakeholder.created_at.isoformat()
+                return jsonify(response_data), 201
+            except Exception as resp_err:
+                current_app.logger.error(f"Error building response: {resp_err}", exc_info=True)
+                return jsonify({
+                    "id": project_stakeholder.id,
+                    "project_id": project_id,
+                    "stakeholder_id": stakeholder_id,
+                    "role": proj_role,
+                    "existing": True
+                }), 201
         else:
             # Create new stakeholder and add to project
             required_fields = ['name', 'email', 'role']
@@ -273,7 +287,12 @@ def add_project_stakeholder(project_id):
                     )
                 
                 db.session.add(stakeholder)
-                db.session.flush()  # Assign ID
+                try:
+                    db.session.flush()  # Assign ID
+                except Exception as flush_err:
+                    db.session.rollback()
+                    current_app.logger.error(f"Error flushing stakeholder: {flush_err}", exc_info=True)
+                    raise
 
             # Validate project role (can differ from stakeholder role set)
             proj_role = data.get('role', 'stakeholder')
@@ -297,18 +316,32 @@ def add_project_stakeholder(project_id):
                 db.session.rollback()
                 return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
 
-            return jsonify({
-                "id": project_stakeholder.id,
-                "project_id": project_id,
-                "stakeholder_id": stakeholder.id,
-                "name": stakeholder.name,
-                "email": stakeholder.email,
-                "role": project_stakeholder.role,
-                "can_review": project_stakeholder.can_review,
-                "notes": project_stakeholder.notes,
-                "created_at": project_stakeholder.created_at.isoformat(),
-                "existing": False
-            }), 201
+            # Build response safely
+            try:
+                response_data = {
+                    "id": project_stakeholder.id,
+                    "project_id": project_id,
+                    "stakeholder_id": stakeholder.id,
+                    "name": stakeholder.name,
+                    "email": stakeholder.email,
+                    "role": project_stakeholder.role,
+                    "can_review": project_stakeholder.can_review,
+                    "notes": project_stakeholder.notes,
+                    "existing": False
+                }
+                # Only add created_at if it exists
+                if hasattr(project_stakeholder, 'created_at') and project_stakeholder.created_at:
+                    response_data["created_at"] = project_stakeholder.created_at.isoformat()
+                return jsonify(response_data), 201
+            except Exception as resp_err:
+                current_app.logger.error(f"Error building response: {resp_err}", exc_info=True)
+                return jsonify({
+                    "id": project_stakeholder.id,
+                    "project_id": project_id,
+                    "stakeholder_id": stakeholder.id,
+                    "role": proj_role,
+                    "existing": False
+                }), 201
     except Exception as e:
         db.session.rollback()
         error_type = type(e).__name__
