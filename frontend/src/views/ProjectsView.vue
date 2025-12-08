@@ -1431,14 +1431,18 @@ export default {
     },
 
     skipMilestones() {
-      // Always finish project creation, regardless of milestones
+      // Close all modals and finish project creation
       this.showMilestoneModal = false;
+      this.showStakeholderModal = false;
+      this.showCreateModal = false;
+      // Reset state for next project creation
       this.createProjectStep = 1;
       this.createdProjectId = null;
       this.createdProjectName = '';
       this.projectStakeholders = [];
       this.newMilestones = [{ name: '', date: '', status: 'planned' }];
-  toast.success('Project created. You can add milestones later.');
+      toast.success('Project created successfully.');
+      this.$nextTick(()=>{ this.milestoneModalSnapshot = '' })
     },
 
     async addSelectedStakeholderToProject() {
@@ -1465,16 +1469,19 @@ export default {
         return;
       }
       try {
+        const payload = {
+          name: this.newStakeholder.name,
+          email: this.newStakeholder.email,
+          role: this.newStakeholder.role
+        }
+        // Only include optional fields if they have values
+        if (this.newStakeholder.title) payload.title = this.newStakeholder.title
+        if (this.newStakeholder.organization) payload.organization = this.newStakeholder.organization
+        
         const res = await fetch(`/api/projects/${this.createdProjectId}/stakeholders`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            name: this.newStakeholder.name,
-            email: this.newStakeholder.email,
-            title: this.newStakeholder.title || undefined,
-            organization: this.newStakeholder.organization || undefined,
-            role: this.newStakeholder.role
-          })
+          body: JSON.stringify(payload)
         })
         if (!res.ok) {
           const text = await res.text()
