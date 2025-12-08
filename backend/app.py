@@ -474,6 +474,15 @@ p { color: #666; }
                 db.create_all()
             else:
                 print("✅ Critical tables present")
+
+            # Safety net: ensure import_links table exists so Word imports don't 500 if migration not applied
+            if 'import_links' not in existing_tables:
+                try:
+                    from backend.models import ImportLink
+                    print("🛠  Creating missing table: import_links (fallback until migration applied)")
+                    ImportLink.__table__.create(bind=db.engine, checkfirst=True)
+                except Exception as _imp_e:
+                    print(f"⚠️ Could not create import_links fallback table: {_imp_e}")
         except Exception as _crit_e:
             print(f"⚠️ Could not ensure critical tables: {_crit_e}")
         
