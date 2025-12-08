@@ -4,7 +4,7 @@ Handles projects, stakeholders, milestones, and project-based reviews
 """
 
 from datetime import datetime, date
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
@@ -159,9 +159,11 @@ def add_project_stakeholder(project_id):
 
     try:
         data = request.get_json() or {}
+        current_app.logger.info(f"POST /api/projects/{project_id}/stakeholders - Data: {data}")
 
         # Verify project exists
         project = Project.query.get_or_404(project_id)
+        current_app.logger.info(f"Project {project_id} found: {project.name}")
 
         # Allowed roles
         allowed_stakeholder_roles = {
@@ -182,11 +184,14 @@ def add_project_stakeholder(project_id):
         # Support adding by stakeholder_id (existing) or by name/email/role (new)
         if data.get('stakeholder_id'):
             stakeholder_id = data['stakeholder_id']
+            current_app.logger.info(f"Adding existing stakeholder {stakeholder_id} to project {project_id}")
             stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
 
             # Validate project role
             proj_role = data.get('role', 'stakeholder')
+            current_app.logger.info(f"Requested role: {proj_role}, allowed: {allowed_project_roles}")
             if proj_role not in allowed_project_roles:
+                current_app.logger.warning(f"Invalid project role: {proj_role}")
                 return jsonify({
                     "error": f"Invalid project role: {proj_role}",
                     "allowed": sorted(list(allowed_project_roles))
@@ -201,6 +206,7 @@ def add_project_stakeholder(project_id):
                 return jsonify({"error": "Stakeholder is already associated with this project"}), 400
 
             try:
+                current_app.logger.info(f"Creating ProjectStakeholder: project={project_id}, stakeholder={stakeholder_id}, role={proj_role}")
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
                     stakeholder_id=stakeholder_id,
@@ -209,9 +215,12 @@ def add_project_stakeholder(project_id):
                     notes=data.get('notes')
                 )
                 db.session.add(project_stakeholder)
+                current_app.logger.info(f"Committing ProjectStakeholder to database...")
                 db.session.commit()
+                current_app.logger.info(f"ProjectStakeholder created successfully: id={project_stakeholder.id}")
             except IntegrityError as ie:
                 db.session.rollback()
+                current_app.logger.error(f"IntegrityError: {ie}", exc_info=True)
                 return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
             except Exception as project_err:
                 db.session.rollback()
