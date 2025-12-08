@@ -252,14 +252,26 @@ def add_project_stakeholder(project_id):
                 # The actual project-specific role is stored in ProjectStakeholder.role
                 sh_role = stakeholder_role if stakeholder_role in allowed_stakeholder_roles else 'stakeholder'
                 
-                stakeholder = Stakeholder(
-                    name=data['name'],
-                    email=data['email'],
-                    title=data.get('title'),
-                    organization=data.get('organization'),
-                    role=sh_role,
-                    can_review=bool(data.get('can_review', True))
-                )
+                try:
+                    stakeholder = Stakeholder(
+                        name=data['name'],
+                        email=data['email'],
+                        title=data.get('title'),
+                        organization=data.get('organization'),
+                        role=sh_role,
+                        can_review=bool(data.get('can_review', True)),
+                        active=True  # Explicitly set active status
+                    )
+                except TypeError as te:
+                    # Handle case where columns might not exist on older database
+                    current_app.logger.warning(f"TypeError creating Stakeholder with all fields: {te}")
+                    stakeholder = Stakeholder(
+                        name=data['name'],
+                        email=data['email'],
+                        title=data.get('title'),
+                        organization=data.get('organization')
+                    )
+                
                 db.session.add(stakeholder)
                 db.session.flush()  # Assign ID
 
@@ -299,7 +311,17 @@ def add_project_stakeholder(project_id):
             }), 201
     except Exception as e:
         db.session.rollback()
-        return jsonify({"error": str(e)}), 500
+        error_type = type(e).__name__
+        error_msg = str(e)
+        current_app.logger.error(
+            f"Error adding stakeholder to project {project_id}: {error_type}: {error_msg}", 
+            exc_info=True
+        )
+        return jsonify({
+            "error": error_msg, 
+            "type": error_type,
+            "details": "Check server logs for more information"
+        }), 500
 
 @projects_bp.route('/<int:project_id>/reviews', methods=['GET'])
 def get_project_reviews(project_id):
