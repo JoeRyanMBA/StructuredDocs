@@ -213,6 +213,10 @@ def add_project_stakeholder(project_id):
             except IntegrityError as ie:
                 db.session.rollback()
                 return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
+            except Exception as project_err:
+                db.session.rollback()
+                current_app.logger.error(f"Error creating project stakeholder: {project_err}", exc_info=True)
+                raise
 
             # Build response safely
             try:
@@ -233,13 +237,18 @@ def add_project_stakeholder(project_id):
                 return jsonify(response_data), 201
             except Exception as resp_err:
                 current_app.logger.error(f"Error building response: {resp_err}", exc_info=True)
-                return jsonify({
-                    "id": project_stakeholder.id,
-                    "project_id": project_id,
-                    "stakeholder_id": stakeholder_id,
-                    "role": proj_role,
-                    "existing": True
-                }), 201
+                # Return minimal response if we can't build the full one
+                try:
+                    return jsonify({
+                        "id": project_stakeholder.id,
+                        "project_id": project_id,
+                        "stakeholder_id": stakeholder_id,
+                        "role": proj_role,
+                        "existing": True
+                    }), 201
+                except Exception as minimal_err:
+                    current_app.logger.error(f"Error building minimal response: {minimal_err}", exc_info=True)
+                    raise
         else:
             # Create new stakeholder and add to project
             required_fields = ['name', 'email', 'role']
@@ -297,6 +306,7 @@ def add_project_stakeholder(project_id):
             # Validate project role (can differ from stakeholder role set)
             proj_role = data.get('role', 'stakeholder')
             if proj_role not in allowed_project_roles:
+                db.session.rollback()
                 return jsonify({
                     "error": f"Invalid project role for association: {proj_role}",
                     "allowed": sorted(list(allowed_project_roles))
@@ -315,6 +325,10 @@ def add_project_stakeholder(project_id):
             except IntegrityError as ie:
                 db.session.rollback()
                 return jsonify({"error": "Duplicate association or constraint violation", "details": str(ie)}), 400
+            except Exception as project_err:
+                db.session.rollback()
+                current_app.logger.error(f"Error creating project stakeholder: {project_err}", exc_info=True)
+                raise
 
             # Build response safely
             try:
@@ -335,13 +349,18 @@ def add_project_stakeholder(project_id):
                 return jsonify(response_data), 201
             except Exception as resp_err:
                 current_app.logger.error(f"Error building response: {resp_err}", exc_info=True)
-                return jsonify({
-                    "id": project_stakeholder.id,
-                    "project_id": project_id,
-                    "stakeholder_id": stakeholder.id,
-                    "role": proj_role,
-                    "existing": False
-                }), 201
+                # Return minimal response if we can't build the full one
+                try:
+                    return jsonify({
+                        "id": project_stakeholder.id,
+                        "project_id": project_id,
+                        "stakeholder_id": stakeholder.id,
+                        "role": proj_role,
+                        "existing": False
+                    }), 201
+                except Exception as minimal_err:
+                    current_app.logger.error(f"Error building minimal response: {minimal_err}", exc_info=True)
+                    raise
     except Exception as e:
         db.session.rollback()
         error_type = type(e).__name__
