@@ -386,7 +386,7 @@ export default {
       this.error = null
       
       try {
-        const data = await apiRequest('/api/links?include_usage=true')
+        const data = await apiRequest('/api/links/?include_usage=true')
         this.allLinks = data.links || []
         this.applyFilters()
       } catch (error) {
@@ -489,7 +489,7 @@ export default {
   async saveLink() {
       try {
         const method = this.editingLink ? 'PUT' : 'POST'
-        const url = this.editingLink ? `/api/links/${this.editingLink.id}` : '/api/links'
+        const url = this.editingLink ? `/api/links/${this.editingLink.id}` : '/api/links/'
         
         // Build payload; exclude reference_code on create so server can auto-generate
         const payload = { ...this.linkForm }
