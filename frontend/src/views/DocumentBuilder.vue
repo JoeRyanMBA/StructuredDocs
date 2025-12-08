@@ -655,7 +655,7 @@ export default {
     
     async loadLinks() {
       try {
-        const response = await fetch('/api/links?include_usage=true')
+        const response = await fetch('/api/links/?include_usage=true')
         if (response.ok) {
           const data = await response.json()
           this.allLinks = data.links || []
@@ -829,7 +829,7 @@ export default {
     
     async loadLinks() {
       try {
-        const response = await fetch('/api/links?include_usage=true')
+        const response = await fetch('/api/links/?include_usage=true')
         if (response.ok) {
           const data = await response.json()
           this.allLinks = data.links || []

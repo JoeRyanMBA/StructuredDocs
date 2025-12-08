@@ -217,9 +217,6 @@
           <button @click="showCreateModal = false" class="close-btn">×</button>
         </div>
     <form @submit.prevent="handleCreateProject" class="modal-body">
-          <p v-if="createdProjectId" class="subtitle" style="margin-top:0;margin-bottom:0.75rem;">
-            Project created — click Next to add stakeholders.
-          </p>
           <!-- Basic Information -->
           <div class="form-section">
             <h3>Basic Information</h3>
@@ -253,6 +250,10 @@
                 rows="3"
               ></textarea>
             </div>
+          </div>
+
+          <div v-if="createdProjectId" class="success-message-banner">
+            ✓ Project created — click Next to add stakeholders.
           </div>
 
           <div class="modal-actions">
@@ -1484,8 +1485,15 @@ export default {
           body: JSON.stringify(payload)
         })
         if (!res.ok) {
-          const text = await res.text()
-          throw new Error(text || 'Failed to add stakeholder')
+          let errorMsg = 'Failed to add stakeholder';
+          try {
+            const errorData = await res.json()
+            errorMsg = errorData.error || errorMsg
+          } catch (e) {
+            const text = await res.text()
+            errorMsg = text || errorMsg
+          }
+          throw new Error(errorMsg)
         }
         const added = await res.json()
         this.projectStakeholders.push({
@@ -1908,6 +1916,19 @@ export default {
   gap: 1rem;
   background-color: var(--bg-white);
   border-radius: 0 0 12px 12px;
+}
+
+.success-message-banner {
+  margin-bottom: 1.5rem;
+  padding: 1rem 1.5rem;
+  border-radius: 8px;
+  background-color: #d4edda;
+  color: #155724;
+  border: 1px solid #c3e6cb;
+  font-weight: 500;
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
 }
 
 /* Modal Forms */

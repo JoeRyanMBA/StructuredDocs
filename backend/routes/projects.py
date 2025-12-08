@@ -247,12 +247,17 @@ def add_project_stakeholder(project_id):
             # Reuse existing stakeholder by email if present
             stakeholder = Stakeholder.query.filter_by(email=data['email']).first()
             if not stakeholder:
+                # Map project role to stakeholder role if needed
+                # Default to 'stakeholder' for the Stakeholder.role field
+                # The actual project-specific role is stored in ProjectStakeholder.role
+                sh_role = stakeholder_role if stakeholder_role in allowed_stakeholder_roles else 'stakeholder'
+                
                 stakeholder = Stakeholder(
                     name=data['name'],
                     email=data['email'],
                     title=data.get('title'),
                     organization=data.get('organization'),
-                    role=stakeholder_role,
+                    role=sh_role,
                     can_review=bool(data.get('can_review', True))
                 )
                 db.session.add(stakeholder)
