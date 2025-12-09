@@ -48,7 +48,10 @@ def create_app():
         )
         
         # Initialize SQLAlchemy
-        from models import db
+        try:
+            from backend.extensions import db
+        except Exception:
+            from models import db
         db.init_app(app)
         print("📊 Database initialized")
 
