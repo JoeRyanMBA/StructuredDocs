@@ -670,40 +670,76 @@ export default {
     
     async loadImages() {
       try {
-        // Load images from various import documents
-        const response = await fetch('/api/import/history')
-        if (response.ok) {
-          const imports = await response.json()
-          let allImages = []
-          
-          // Load images from each import
-          for (const importDoc of imports.slice(0, 5)) { // Limit for performance
-            try {
-              const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
-              if (imagesResponse.ok) {
+        const [staticResponse, importResponse] = await Promise.all([
+          fetch('/api/images'),
+          fetch('/api/import/history')
+        ])
+
+        let staticImages = []
+        if (staticResponse.ok) {
+          const data = await staticResponse.json()
+          staticImages = Array.isArray(data) ? data : []
+        }
+
+        let importImages = []
+        if (importResponse.ok) {
+          let imports = await importResponse.json()
+          if (Array.isArray(imports)) {
+            imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+            const sliceSize = 10
+            for (const importDoc of imports.slice(0, sliceSize)) {
+              try {
+                const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
+                if (!imagesResponse.ok) continue
                 const imagesData = await imagesResponse.json()
                 const docImagesRaw = imagesData.images || []
                 const docImages = docImagesRaw.map(img => {
                   const size = img.size || img.file_size || null
+                  const publicUrl = img.public_url || img.file_path || `/images/imports/${importDoc.id}/${img.filename}`
                   return {
                     ...img,
                     size,
                     file_size: size,
                     source: 'import',
                     document_id: importDoc.id,
-                    public_url: img.public_url || `/images/imports/${importDoc.id}/${img.filename}`
+                    public_url: publicUrl,
+                    file_path: img.file_path || publicUrl
                   }
                 })
-                allImages = allImages.concat(docImages)
+                importImages = importImages.concat(docImages)
+              } catch (e) {
+                console.warn(`[DocumentBuilder] Failed to load images for import ${importDoc.id}:`, e)
               }
-            } catch (e) {
-              console.warn(`Failed to load images for import ${importDoc.id}:`, e)
             }
           }
-          
-          this.allImages = allImages
-          this.recentImages = allImages.slice(0, 6) // Show 6 most recent
         }
+
+        const normalizedStatic = staticImages.map(img => {
+          const size = img.size || img.file_size || null
+          const publicUrl = img.public_url || img.file_path || `/images/${img.filename}`
+          return {
+            ...img,
+            size,
+            file_size: size,
+            source: img.source || 'static',
+            public_url: publicUrl,
+            file_path: img.file_path || publicUrl
+          }
+        })
+
+        const combined = [...normalizedStatic, ...importImages]
+        const seen = new Set()
+        const deduped = []
+        for (const img of combined) {
+          const key = img.public_url || img.file_path || `${img.document_id || 'static'}:${img.filename}`
+          if (seen.has(key)) continue
+          seen.add(key)
+          deduped.push(img)
+        }
+
+        deduped.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        this.allImages = deduped
+        this.recentImages = deduped.slice(0, 6)
       } catch (error) {
         console.error('Failed to load images:', error)
         this.allImages = []
@@ -794,94 +830,6 @@ export default {
         toast.error('Failed to load data')
       } finally {
         this.loading = false
-      }
-    },
-    
-    async loadCollections() {
-      try {
-        this.collections = await getCollections()
-      } catch (error) {
-        console.error('Failed to load collections:', error)
-        this.collections = []
-      }
-    },
-    
-    async loadProjects() {
-      try {
-        const response = await fetch('/api/projects/')
-        if (response.ok) {
-          this.allProjects = await response.json()
-        }
-      } catch (error) {
-        console.error('Failed to load projects:', error)
-        this.allProjects = []
-      }
-    },
-    
-    async loadTopics() {
-      try {
-        this.allTopics = await getTopics()
-      } catch (error) {
-        console.error('Failed to load topics:', error)
-        this.allTopics = []
-      }
-    },
-    
-    async loadLinks() {
-      try {
-        const response = await fetch('/api/links/?include_usage=true')
-        if (response.ok) {
-          const data = await response.json()
-          this.allLinks = data.links || []
-          this.recentLinks = this.allLinks.slice(0, 5) // Show 5 most recent
-        }
-      } catch (error) {
-        console.error('Failed to load links:', error)
-        this.allLinks = []
-        this.recentLinks = []
-      }
-    },
-    
-    async loadImages() {
-      try {
-        // Load images from various import documents
-        const response = await fetch('/api/import/history')
-        if (response.ok) {
-          const imports = await response.json()
-          let allImages = []
-          
-          // Load images from each import
-          for (const importDoc of imports.slice(0, 5)) { // Limit for performance
-            try {
-              const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
-              if (imagesResponse.ok) {
-                const imagesData = await imagesResponse.json()
-                const docImagesRaw = imagesData.images || []
-                const docImages = docImagesRaw.map(img => {
-                  const size = img.size || img.file_size || null
-                  return {
-                    ...img,
-                    size,
-                    file_size: size,
-                    source: 'import',
-                    document_id: importDoc.id,
-                    public_url: img.public_url || `/images/imports/${importDoc.id}/${img.filename}`
-                  }
-                })
-                allImages = allImages.concat(docImages)
-              }
-            } catch (e) {
-              console.warn(`Failed to load images for import ${importDoc.id}:`, e)
-            }
-          }
-          
-          this.allImages = allImages
-          this.recentImages = allImages.slice(0, 6) // Show 6 most recent
-        }
-      } catch (error) {
-        console.error('Failed to load images:', error)
-        this.allImages = []
-        this.recentImages = []
       }
     },
     
@@ -1072,16 +1020,19 @@ status: "draft"
     },
     
     getImageUrl(image) {
-      const path = image.public_url || `/images/imports/${image.document_id}/${image.filename}`;
-      // If path is relative and starts with /, prepend API base
-      if (path.startsWith('/') && this.apiBase) {
-        return `${this.apiBase}${path}`;
+      const rawPath = image.public_url 
+        || image.file_path 
+        || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
+      if (rawPath.startsWith('/') && this.apiBase) {
+        return `${this.apiBase}${rawPath}`
       }
-      return path;
+      return rawPath
     },
     
     copyImagePath(image) {
-      const path = image.public_url || `/images/imports/${image.document_id}/${image.filename}`
+      const path = image.public_url 
+        || image.file_path 
+        || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
       navigator.clipboard.writeText(path).then(() => {
         toast.success('Copied image path to clipboard')
       }).catch(() => {
