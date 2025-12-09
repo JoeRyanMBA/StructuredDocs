@@ -22,11 +22,13 @@ ALTER TABLE project_stakeholders
 -- Step 3: Convert the column to the new enum type
 ALTER TABLE project_stakeholders 
   ALTER COLUMN role TYPE project_stakeholder_role 
-  USING CASE role
+  USING CASE role::text
     WHEN 'author' THEN 'project_manager'::project_stakeholder_role
     WHEN 'admin' THEN 'sponsor'::project_stakeholder_role
     WHEN 'subject_matter_expert' THEN 'subject_matter_expert'::project_stakeholder_role
     WHEN 'reviewer' THEN 'reviewer'::project_stakeholder_role
+    WHEN 'project_manager' THEN 'project_manager'::project_stakeholder_role
+    WHEN 'sponsor' THEN 'sponsor'::project_stakeholder_role
     ELSE 'stakeholder'::project_stakeholder_role
   END;
 
