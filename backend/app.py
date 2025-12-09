@@ -5,6 +5,7 @@ import os
 import mimetypes
 from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
+from werkzeug.exceptions import HTTPException
 from .extensions import db, migrate, jwt, limiter, init_sentry, redis_conn, task_queue
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode, quote
 import socket
@@ -993,6 +994,8 @@ p { color: #666; }
     @app.errorhandler(Exception)
     def handle_exception(e):
         print(f"Unhandled exception: {e}")
+        if isinstance(e, HTTPException):
+            return e
         return "Internal Server Error", 500
 
     # Add debug endpoint
