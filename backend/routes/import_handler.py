@@ -77,10 +77,12 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             ]
             
             print(f"PANDOC: Running command: {' '.join(cmd)}")
+            current_app.logger.info(f"🔄 PANDOC: Converting Word document to Markdown (import {import_doc_id})")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             
             if result.returncode != 0:
                 print(f"PANDOC ERROR: {result.stderr}")
+                current_app.logger.error(f"❌ PANDOC ERROR: {result.stderr}")
                 raise Exception(f"Pandoc conversion failed: {result.stderr}")
             
             # Read the converted Markdown
@@ -88,14 +90,18 @@ def _convert_word_to_markdown(file_content, import_doc_id):
                 markdown_content = f.read()
             
             print(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
+            current_app.logger.info(f"✅ PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             
             # Initialize image handler
             image_handler = ImageHandler(import_doc_id)
             
             # Extract and store images permanently
+            current_app.logger.info(f"🎯 Starting image extraction for import {import_doc_id}")
             updated_markdown, stored_images = image_handler.extract_and_store_images(
                 temp_media_dir, markdown_content
             )
+            
+            current_app.logger.info(f"📦 Image extraction complete: {len(stored_images)} images stored")
             
             # Store image metadata in database
             for image_info in stored_images:
@@ -115,6 +121,7 @@ def _convert_word_to_markdown(file_content, import_doc_id):
                 db.session.add(import_image)
             
             print(f"IMAGE PROCESSING: Stored {len(stored_images)} images")
+            current_app.logger.info(f"✅ IMAGE PROCESSING: Stored {len(stored_images)} images in database")
             
             # Post-process the markdown to fix issues
             updated_markdown = _post_process_markdown(updated_markdown)
