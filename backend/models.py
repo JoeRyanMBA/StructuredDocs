@@ -686,7 +686,7 @@ class ProjectStakeholder(db.Model):
         nullable=False
     )
     role = db.Column(
-        Enum('project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor', name='stakeholder_role'),
+        Enum('project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor', name='project_stakeholder_role'),
         nullable=False,
         default='stakeholder',
         server_default='stakeholder'
