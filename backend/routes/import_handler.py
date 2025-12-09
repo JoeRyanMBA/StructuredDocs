@@ -1557,13 +1557,37 @@ def get_import_images(doc_id):
         
         # Get images from database
         db_images = ImportImage.query.filter_by(document_id=doc_id).all()
-        images_data = [img.to_dict() for img in db_images]
+        
+        # Validate that files actually exist on disk
+        # Only return images whose files exist to prevent 404s on the frontend
+        from pathlib import Path
+        validated_images = []
+        for img in db_images:
+            backend_path = Path(img.backend_path)
+            frontend_path = Path(img.frontend_path)
+            # Check if file exists in either backend or frontend location
+            if backend_path.exists() or frontend_path.exists():
+                validated_images.append(img.to_dict())
+            else:
+                current_app.logger.warning(
+                    f"Image file missing for {doc_id}/{img.filename}: "
+                    f"backend={backend_path.exists()}, frontend={frontend_path.exists()}"
+                )
         
         # Also get images from filesystem (in case of sync issues)
         image_handler = ImageHandler(doc_id)
         fs_images = image_handler.get_import_images()
         
-        # Merge the data (database is authoritative, filesystem for verification)
+        # If database is out of sync with filesystem, use filesystem as source of truth
+        if len(validated_images) == 0 and len(fs_images) > 0:
+            current_app.logger.info(
+                f"No valid database images for import {doc_id} but found {len(fs_images)} on filesystem; "
+                f"using filesystem as source of truth"
+            )
+            images_data = fs_images
+        else:
+            images_data = validated_images
+        
         return jsonify({
             'document_id': doc_id,
             'document_filename': doc.filename,
