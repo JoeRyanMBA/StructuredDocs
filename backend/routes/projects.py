@@ -230,29 +230,27 @@ def add_project_stakeholder(project_id):
             return jsonify({"error": f"Error finding project: {str(proj_err)}"}), 500
         current_app.logger.info(f"Project {project_id} found: {project.name}")
 
-        # Allowed roles — derive directly from SQLAlchemy Enum definitions to avoid DB mismatches
-        # NOTE: Due to enum name collision in production DB, project_stakeholders.role actually uses
-        # the stakeholder_role enum which has: author, reviewer, subject_matter_expert, stakeholder, admin
-        # We map project roles to valid stakeholder enum values
+        # Allowed roles — derive directly from SQLAlchemy Enum definitions
         try:
             stakeholder_role_enums = set(Stakeholder.__table__.c.role.type.enums)
         except Exception:
             stakeholder_role_enums = {'author', 'reviewer', 'subject_matter_expert', 'stakeholder', 'admin'}
-        
-        # ProjectStakeholder roles (what we want to support)
+
+        # ProjectStakeholder roles (what we want to support / now in project_stakeholder_role enum)
         desired_project_roles = {'project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'}
-        
-        # Mapping from desired project roles to actual database-allowed values (stakeholder_role enum)
+
+        # Mapping: keep valid project roles; coerce legacy author/admin into supported roles
         project_role_to_db_role = {
-            'project_manager': 'author',  # Map project_manager to author
-            'sponsor': 'admin',            # Map sponsor to admin  
+            'author': 'project_manager',   # legacy value → project_manager
+            'admin': 'sponsor',            # legacy value → sponsor
+            'project_manager': 'project_manager',
+            'sponsor': 'sponsor',
             'subject_matter_expert': 'subject_matter_expert',
             'reviewer': 'reviewer',
             'stakeholder': 'stakeholder'
         }
-        
+
         try:
-            # Try to get actual enum from ProjectStakeholder (may fail due to collision)
             project_role_enums = set(ProjectStakeholder.__table__.c.role.type.enums)
         except Exception:
             project_role_enums = desired_project_roles
