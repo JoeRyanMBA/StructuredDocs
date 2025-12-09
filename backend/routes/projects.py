@@ -202,22 +202,60 @@ def add_project_stakeholder(project_id):
     from sqlalchemy.exc import IntegrityError
 
     try:
-        data = request.get_json() or {}
+        # Parse JSON payload with extra error handling
+        try:
+            data = request.get_json(force=True, silent=False)
+        except Exception as json_err:
+            current_app.logger.error(f"JSON parse error: {json_err}", exc_info=True)
+            # Try to get raw body
+            try:
+                raw_body = request.get_data(as_text=True)
+                current_app.logger.error(f"Raw request body: {raw_body[:500]}")
+            except Exception:
+                pass
+            return jsonify({"error": f"Invalid JSON payload: {str(json_err)}"}), 400
+        
+        if data is None:
+            data = {}
         current_app.logger.info(f"POST /api/projects/{project_id}/stakeholders - Data: {data}")
 
         # Verify project exists
-        project = Project.query.get_or_404(project_id)
+        try:
+            project = Project.query.get(project_id)
+            if not project:
+                current_app.logger.warning(f"Project {project_id} not found")
+                return jsonify({"error": f"Project {project_id} not found"}), 404
+        except Exception as proj_err:
+            current_app.logger.error(f"Error querying project {project_id}: {proj_err}", exc_info=True)
+            return jsonify({"error": f"Error finding project: {str(proj_err)}"}), 500
         current_app.logger.info(f"Project {project_id} found: {project.name}")
 
         # Allowed roles — derive directly from SQLAlchemy Enum definitions to avoid DB mismatches
+        # NOTE: Due to enum name collision in production DB, project_stakeholders.role actually uses
+        # the stakeholder_role enum which has: author, reviewer, subject_matter_expert, stakeholder, admin
+        # We map project roles to valid stakeholder enum values
         try:
             stakeholder_role_enums = set(Stakeholder.__table__.c.role.type.enums)
         except Exception:
             stakeholder_role_enums = {'author', 'reviewer', 'subject_matter_expert', 'stakeholder', 'admin'}
+        
+        # ProjectStakeholder roles (what we want to support)
+        desired_project_roles = {'project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'}
+        
+        # Mapping from desired project roles to actual database-allowed values (stakeholder_role enum)
+        project_role_to_db_role = {
+            'project_manager': 'author',  # Map project_manager to author
+            'sponsor': 'admin',            # Map sponsor to admin  
+            'subject_matter_expert': 'subject_matter_expert',
+            'reviewer': 'reviewer',
+            'stakeholder': 'stakeholder'
+        }
+        
         try:
+            # Try to get actual enum from ProjectStakeholder (may fail due to collision)
             project_role_enums = set(ProjectStakeholder.__table__.c.role.type.enums)
         except Exception:
-            project_role_enums = {'project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'}
+            project_role_enums = desired_project_roles
 
         # When creating a new stakeholder, accept project roles as well (for Stakeholder.role mapping)
         allowed_creation_roles = stakeholder_role_enums | project_role_enums
@@ -262,6 +300,11 @@ def add_project_stakeholder(project_id):
             # Last resort: use the normalized form even if not in enums (may cause DB error but logged)
             current_app.logger.warning(f"Role '{original}' normalized to '{s}' but not in allowed enums: {allowed_enums}")
             return s or 'stakeholder'
+        
+        # Helper to map project roles to database-safe values (handles enum collision)
+        def map_role_to_db_value(proj_role: str) -> str:
+            """Map desired project role to actual database-allowed value"""
+            return project_role_to_db_role.get(proj_role, proj_role)
 
         # Support adding by stakeholder_id (existing) or by name/email/role (new)
         if data.get('stakeholder_id'):
@@ -292,10 +335,14 @@ def add_project_stakeholder(project_id):
                     current_app.logger.warning(f"Invalid role value for ProjectStakeholder after coercion: {proj_role}; forcing 'stakeholder'")
                     proj_role = 'stakeholder'
                 
+                # Map project role to database-safe value (due to enum collision in production)
+                db_role = project_role_to_db_role.get(proj_role, proj_role)
+                current_app.logger.info(f"Mapped role {proj_role} -> {db_role} for database")
+                
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
                     stakeholder_id=stakeholder_id,
-                    role=proj_role,
+                    role=db_role,
                     can_review=bool(data.get('can_review', True)),
                     notes=data.get('notes')
                 )
@@ -362,13 +409,19 @@ def add_project_stakeholder(project_id):
                 }), 400
 
             # Reuse existing stakeholder by email if present
-            stakeholder = Stakeholder.query.filter_by(email=data['email']).first()
+            try:
+                stakeholder = Stakeholder.query.filter_by(email=data['email']).first()
+            except Exception as query_err:
+                current_app.logger.error(f"Error querying stakeholder by email: {query_err}", exc_info=True)
+                return jsonify({"error": f"Failed to query stakeholder: {str(query_err)}"}), 500
+            
             if not stakeholder:
                 # Map project role to stakeholder role if needed
                 # Default to 'stakeholder' for the Stakeholder.role field
                 # The actual project-specific role is stored in ProjectStakeholder.role
                 sh_role = stakeholder_role if stakeholder_role in stakeholder_role_enums else 'stakeholder'
                 
+                current_app.logger.info(f"Creating new Stakeholder: name={data['name']}, email={data['email']}, sh_role={sh_role}")
                 try:
                     stakeholder = Stakeholder(
                         name=data['name'],
@@ -382,20 +435,29 @@ def add_project_stakeholder(project_id):
                 except TypeError as te:
                     # Handle case where columns might not exist on older database
                     current_app.logger.warning(f"TypeError creating Stakeholder with all fields: {te}")
-                    stakeholder = Stakeholder(
-                        name=data['name'],
-                        email=data['email'],
-                        title=data.get('title'),
-                        organization=data.get('organization')
-                    )
+                    try:
+                        stakeholder = Stakeholder(
+                            name=data['name'],
+                            email=data['email'],
+                            title=data.get('title'),
+                            organization=data.get('organization')
+                        )
+                    except Exception as alt_err:
+                        current_app.logger.error(f"Error creating Stakeholder with minimal fields: {alt_err}", exc_info=True)
+                        return jsonify({"error": f"Failed to create stakeholder: {str(alt_err)}"}), 400
                 
+                current_app.logger.info(f"Adding Stakeholder to session...")
                 db.session.add(stakeholder)
                 try:
-                    db.session.flush()  # Assign ID
+                    current_app.logger.info(f"Flushing stakeholder to get ID...")
+                    db.session.flush()  # Assign ID without committing
+                    current_app.logger.info(f"Stakeholder assigned id={stakeholder.id}")
                 except Exception as flush_err:
                     db.session.rollback()
                     current_app.logger.error(f"Error flushing stakeholder: {flush_err}", exc_info=True)
-                    raise
+                    return jsonify({"error": f"Failed to save stakeholder: {str(flush_err)}"}), 400
+            else:
+                current_app.logger.info(f"Found existing Stakeholder with email {data['email']}: id={stakeholder.id}")
 
             # Validate project role (can differ from stakeholder role set)
             proj_role = normalize_role(data.get('role', 'stakeholder'), project_role_enums)
@@ -410,10 +472,14 @@ def add_project_stakeholder(project_id):
                     current_app.logger.warning(f"Invalid role value for ProjectStakeholder after coercion: {proj_role}; forcing 'stakeholder'")
                     proj_role = 'stakeholder'
                 
+                # Map project role to database-safe value (due to enum collision in production)
+                db_role = project_role_to_db_role.get(proj_role, proj_role)
+                current_app.logger.info(f"Mapped role {proj_role} -> {db_role} for database")
+                
                 project_stakeholder = ProjectStakeholder(
                     project_id=project_id,
                     stakeholder_id=stakeholder.id,
-                    role=proj_role,
+                    role=db_role,
                     can_review=bool(data.get('can_review', True)),
                     notes=data.get('notes')
                 )
