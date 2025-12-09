@@ -29,7 +29,7 @@ services:
 # Persistent storage for uploaded images
 volumes:
 - name: images-storage
-  mount_path: /workspace/backend/static/images
+  mount_path: /app/backend/static/images
   size: 5GB
 
 databases:
