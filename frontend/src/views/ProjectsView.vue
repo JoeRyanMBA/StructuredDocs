@@ -701,34 +701,7 @@ export default {
       
       if (this.statusFilter) {
         filtered = filtered.filter(project => project.status === this.statusFilter)
-        this.fetchProjectRoles()
       }
-      
-        async fetchProjectRoles() {
-          try {
-            const res = await fetch('/api/projects/roles')
-            if (res.ok) {
-              const data = await res.json()
-              if (Array.isArray(data.project_roles) && data.project_roles.length) {
-                this.projectRoles = data.project_roles
-              }
-            }
-          } catch (e) {
-            // Leave defaults; show a toast for visibility
-            toast.error('Failed to load project roles; using defaults')
-          }
-        },
-        formatRoleLabel(role) {
-          if (!role) return 'Unknown'
-          const map = {
-            project_manager: 'Project Manager',
-            subject_matter_expert: 'Subject Matter Expert',
-            reviewer: 'Reviewer',
-            stakeholder: 'Stakeholder',
-            sponsor: 'Sponsor'
-          }
-          return map[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
-        },
       return filtered
     },
   calendarEvents() {
@@ -762,6 +735,31 @@ export default {
     }
   },
   methods: {
+    async fetchProjectRoles() {
+      try {
+        const res = await fetch('/api/projects/roles')
+        if (res.ok) {
+          const data = await res.json()
+          if (Array.isArray(data.project_roles) && data.project_roles.length) {
+            this.projectRoles = data.project_roles
+          }
+        }
+      } catch (e) {
+        // Leave defaults; show a toast for visibility
+        toast.error('Failed to load project roles; using defaults')
+      }
+    },
+    formatRoleLabel(role) {
+      if (!role) return 'Unknown'
+      const map = {
+        project_manager: 'Project Manager',
+        subject_matter_expert: 'Subject Matter Expert',
+        reviewer: 'Reviewer',
+        stakeholder: 'Stakeholder',
+        sponsor: 'Sponsor'
+      }
+      return map[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+    },
     async toggleArchiveProject(project, newState) {
       try {
         const res = await fetch(`/api/projects/${project.id}/archive`, {
