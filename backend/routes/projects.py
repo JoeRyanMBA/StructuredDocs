@@ -153,26 +153,47 @@ def get_project_stakeholders(project_id):
     """Get all stakeholders for a project"""
     from sqlalchemy.orm import joinedload
     try:
+        current_app.logger.info(f"GET /api/projects/{project_id}/stakeholders - Fetching project stakeholders")
+        
+        # Verify project exists
+        project = Project.query.get(project_id)
+        if not project:
+            current_app.logger.warning(f"Project {project_id} not found")
+            return jsonify({"error": "Project not found"}), 404
+        
         # Get all project stakeholders with their stakeholder details
         project_stakeholders = ProjectStakeholder.query.filter_by(project_id=project_id).options(joinedload(ProjectStakeholder.stakeholder)).all()
+        current_app.logger.info(f"Found {len(project_stakeholders)} stakeholders for project {project_id}")
         
         result = []
         for ps in project_stakeholders:
-            result.append({
-                "id": ps.stakeholder.id,
-                "name": ps.stakeholder.name,
-                "email": ps.stakeholder.email,
-                "title": ps.stakeholder.title,
-                "organization": ps.stakeholder.organization,
-                "role": ps.role,
-                "can_review": ps.can_review,
-                "notes": ps.notes,
-                "project_stakeholder_id": ps.id,
-                "created_at": ps.created_at.isoformat() if ps.created_at else None
-            })
+            try:
+                # Handle case where stakeholder relationship is null
+                if not ps.stakeholder:
+                    current_app.logger.warning(f"ProjectStakeholder {ps.id} has null stakeholder relationship")
+                    continue
+                
+                result.append({
+                    "id": ps.stakeholder.id,
+                    "name": ps.stakeholder.name,
+                    "email": ps.stakeholder.email,
+                    "title": ps.stakeholder.title,
+                    "organization": ps.stakeholder.organization,
+                    "role": ps.role,
+                    "can_review": ps.can_review,
+                    "notes": ps.notes,
+                    "project_stakeholder_id": ps.id,
+                    "created_at": ps.created_at.isoformat() if ps.created_at else None
+                })
+            except Exception as item_err:
+                current_app.logger.error(f"Error serializing project stakeholder {ps.id}: {item_err}", exc_info=True)
+                # Skip this item but continue with others
+                continue
         
+        current_app.logger.info(f"Returning {len(result)} serialized stakeholders")
         return jsonify(result)
     except Exception as e:
+        current_app.logger.error(f"Error fetching project stakeholders: {e}", exc_info=True)
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>/stakeholders', methods=['POST'])
@@ -208,11 +229,38 @@ def add_project_stakeholder(project_id):
                 return False
 
         # Helper to normalize incoming role labels (e.g., "Project Manager" -> "project_manager")
-        def normalize_role(val: str | None) -> str:
+        def normalize_role(val: str | None, allowed_enums: set[str] | None = None) -> str:
             if not isinstance(val, str):
                 return 'stakeholder'
+            
+            original = val
             s = val.strip().lower()
-            s = s.replace('-', '_').replace(' ', '_')
+            # Replace common separators with underscores
+            s = s.replace('-', '_').replace(' ', '_').replace('__', '_')
+            
+            # If the normalized value is in allowed enums, use it
+            if allowed_enums and s in allowed_enums:
+                current_app.logger.info(f"Role '{original}' normalized to '{s}' (allowed)")
+                return s
+            
+            # Try explicit mappings for common UI labels
+            role_aliases = {
+                'project_manager': ['pm', 'project manager', 'project-manager', 'projectmanager'],
+                'subject_matter_expert': ['sme', 'subject matter expert', 'subject-matter-expert', 'subjectmatterexpert'],
+                'sponsor': ['project sponsor', 'project-sponsor', 'projectsponsor'],
+                'reviewer': ['code reviewer', 'code-reviewer', 'peer reviewer'],
+                'stakeholder': ['stake holder', 'stake-holder']
+            }
+            
+            for canonical, aliases in role_aliases.items():
+                normalized_aliases = [a.lower().replace('-', '_').replace(' ', '_') for a in aliases]
+                if s in normalized_aliases:
+                    if not allowed_enums or canonical in allowed_enums:
+                        current_app.logger.info(f"Role '{original}' mapped to canonical '{canonical}'")
+                        return canonical
+            
+            # Last resort: use the normalized form even if not in enums (may cause DB error but logged)
+            current_app.logger.warning(f"Role '{original}' normalized to '{s}' but not in allowed enums: {allowed_enums}")
             return s or 'stakeholder'
 
         # Support adding by stakeholder_id (existing) or by name/email/role (new)
@@ -222,7 +270,7 @@ def add_project_stakeholder(project_id):
             stakeholder = Stakeholder.query.get_or_404(stakeholder_id)
 
             # Validate project role
-            proj_role = normalize_role(data.get('role', 'stakeholder'))
+            proj_role = normalize_role(data.get('role', 'stakeholder'), project_role_enums)
             current_app.logger.info(f"Requested role: {proj_role}, allowed: {sorted(list(project_role_enums))}")
             if proj_role not in project_role_enums:
                 current_app.logger.warning(f"Invalid project role: {proj_role}; coercing to 'stakeholder'")
@@ -306,7 +354,7 @@ def add_project_stakeholder(project_id):
             if not validate_email(data['email']):
                 return jsonify({"error": "Invalid email format"}), 400
 
-            stakeholder_role = normalize_role(data.get('role', 'stakeholder'))
+            stakeholder_role = normalize_role(data.get('role', 'stakeholder'), allowed_creation_roles)
             if stakeholder_role not in allowed_creation_roles:
                 return jsonify({
                     "error": f"Invalid role: {stakeholder_role}",
@@ -350,7 +398,7 @@ def add_project_stakeholder(project_id):
                     raise
 
             # Validate project role (can differ from stakeholder role set)
-            proj_role = normalize_role(data.get('role', 'stakeholder'))
+            proj_role = normalize_role(data.get('role', 'stakeholder'), project_role_enums)
             if proj_role not in project_role_enums:
                 current_app.logger.warning(f"Invalid project role for association: {proj_role}; coercing to 'stakeholder'")
                 proj_role = 'stakeholder'
