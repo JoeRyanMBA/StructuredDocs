@@ -203,7 +203,10 @@ def create_app():
     @app.route('/api/stakeholders', methods=['GET'])
     def api_list_stakeholders():
         try:
-            from models import Stakeholder
+            try:
+                from models import Stakeholder
+            except Exception:
+                from backend.models import Stakeholder
             stakeholders = Stakeholder.query.limit(50).all()
             return jsonify([{
                 'id': s.id,
@@ -215,6 +218,77 @@ def create_app():
             } for s in stakeholders])
         except Exception as e:
             return jsonify({'error': str(e), 'message': 'Error fetching stakeholders'}), 500
+
+    @app.route('/api/projects/<int:project_id>/stakeholders', methods=['GET'])
+    def api_get_project_stakeholders(project_id: int):
+        try:
+            try:
+                from models import ProjectStakeholder
+            except Exception:
+                from backend.models import ProjectStakeholder
+
+            items = (ProjectStakeholder.query
+                     .filter(ProjectStakeholder.project_id == project_id)
+                     .all())
+            return jsonify([i.to_dict() for i in items]), 200
+        except Exception as e:
+            return jsonify({'error': str(e), 'message': 'Error fetching project stakeholders'}), 500
+
+    @app.route('/api/projects/<int:project_id>/stakeholders', methods=['POST'])
+    def api_add_project_stakeholder(project_id: int):
+        from flask import request
+        try:
+            try:
+                from models import db, Stakeholder, ProjectStakeholder
+            except Exception:
+                from backend.models import db, Stakeholder, ProjectStakeholder
+
+            data = request.get_json(force=True) or {}
+            name = data.get('name')
+            email = data.get('email')
+            role = data.get('role') or 'stakeholder'
+            can_review = bool(data.get('can_review', True))
+            notes = data.get('notes')
+
+            if not name or not email:
+                return jsonify({'error': 'name and email are required'}), 400
+
+            stakeholder = Stakeholder.query.filter(Stakeholder.email == email).first()
+            if not stakeholder:
+                stakeholder = Stakeholder(name=name, email=email, can_review=can_review)
+                db.session.add(stakeholder)
+                db.session.flush()  # ensure id
+
+            # Check for existing association
+            existing = (ProjectStakeholder.query
+                        .filter(ProjectStakeholder.project_id == project_id,
+                                ProjectStakeholder.stakeholder_id == stakeholder.id)
+                        .first())
+            if existing:
+                # Update fields if provided
+                existing.role = role or existing.role
+                existing.can_review = can_review
+                existing.notes = notes or existing.notes
+                db.session.commit()
+                return jsonify(existing.to_dict()), 200
+
+            assoc = ProjectStakeholder(
+                project_id=project_id,
+                stakeholder_id=stakeholder.id,
+                role=role,
+                can_review=can_review,
+                notes=notes
+            )
+            db.session.add(assoc)
+            db.session.commit()
+            return jsonify(assoc.to_dict()), 201
+        except Exception as e:
+            try:
+                from backend.models import db as _db
+                _db.session.rollback()
+            except Exception:
+                pass
+            return jsonify({'error': str(e), 'message': 'Error adding project stakeholder'}), 500
 
     # Additional API endpoints your frontend needs
     @app.route('/api/notifications', methods=['GET'])
