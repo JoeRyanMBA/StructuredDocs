@@ -246,7 +246,19 @@ def create_app():
             data = request.get_json(force=True) or {}
             name = data.get('name')
             email = data.get('email')
-            role = data.get('role') or 'stakeholder'
+            role_input = (data.get('role') or 'stakeholder')
+            # Normalize role to backend enum values
+            role_map = {
+                'project manager': 'project_manager',
+                'pm': 'project_manager',
+                'sponsor': 'sponsor',
+                'subject matter expert': 'subject_matter_expert',
+                'sme': 'subject_matter_expert',
+                'reviewer': 'reviewer',
+                'stakeholder': 'stakeholder'
+            }
+            normalized = role_input.strip().lower().replace('-', ' ').replace('_', ' ')
+            role = role_map.get(normalized, normalized.replace(' ', '_'))
             can_review = bool(data.get('can_review', True))
             notes = data.get('notes')
 
