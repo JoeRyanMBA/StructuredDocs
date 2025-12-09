@@ -262,7 +262,7 @@ def add_project_stakeholder(project_id):
             except Exception as project_err:
                 db.session.rollback()
                 current_app.logger.error(f"Error creating project stakeholder: {project_err}", exc_info=True)
-                raise
+                return jsonify({"error": "Failed to create project stakeholder", "details": str(project_err)}), 500
 
             # Build response safely
             try:
@@ -294,7 +294,7 @@ def add_project_stakeholder(project_id):
                     }), 201
                 except Exception as minimal_err:
                     current_app.logger.error(f"Error building minimal response: {minimal_err}", exc_info=True)
-                    raise
+                    return jsonify({"error": "Failed to build response"}), 500
         else:
             # Create new stakeholder and add to project
             required_fields = ['name', 'email', 'role']
@@ -379,7 +379,7 @@ def add_project_stakeholder(project_id):
             except Exception as project_err:
                 db.session.rollback()
                 current_app.logger.error(f"Error creating project stakeholder: {project_err}", exc_info=True)
-                raise
+                return jsonify({"error": "Failed to create project stakeholder", "details": str(project_err)}), 500
 
             # Build response safely
             try:
@@ -411,7 +411,7 @@ def add_project_stakeholder(project_id):
                     }), 201
                 except Exception as minimal_err:
                     current_app.logger.error(f"Error building minimal response: {minimal_err}", exc_info=True)
-                    raise
+                    return jsonify({"error": "Failed to build response"}), 500
     except Exception as e:
         db.session.rollback()
         error_type = type(e).__name__

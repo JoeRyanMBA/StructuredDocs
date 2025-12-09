@@ -285,11 +285,9 @@
               </select>
               <select v-model="selectedStakeholderRole" class="role-select">
                 <option value="">Select role...</option>
-                <option value="project_manager">Project Manager</option>
-                <option value="subject_matter_expert">Subject Matter Expert</option>
-                <option value="reviewer">Reviewer</option>
-                <option value="stakeholder">Stakeholder</option>
-                <option value="sponsor">Sponsor</option>
+                <option v-for="role in projectRoles" :key="role" :value="role">
+                  {{ formatRoleLabel(role) }}
+                </option>
               </select>
               <button type="button" @click="addSelectedStakeholderToProject" :disabled="!selectedStakeholderId || !selectedStakeholderRole" class="btn btn-primary btn-sm add-btn">
                 + Add Selected
@@ -305,11 +303,9 @@
               <input v-model="newStakeholder.organization" type="text" placeholder="Organization" class="stakeholder-input" />
               <select v-model="newStakeholder.role" class="role-select stakeholder-input" required>
                 <option value="">Select role...</option>
-                <option value="project_manager">Project Manager</option>
-                <option value="subject_matter_expert">Subject Matter Expert</option>
-                <option value="reviewer">Reviewer</option>
-                <option value="stakeholder">Stakeholder</option>
-                <option value="sponsor">Sponsor</option>
+                <option v-for="role in projectRoles" :key="role" :value="role">
+                  {{ formatRoleLabel(role) }}
+                </option>
               </select>
               <button type="button" @click="addNewStakeholderToProject" :disabled="!newStakeholder.name || !newStakeholder.email || !newStakeholder.role" class="btn btn-primary btn-sm add-btn">
                 + Add Stakeholder
@@ -616,6 +612,7 @@ export default {
       // Stakeholder selection
       selectedStakeholderId: '',
       selectedStakeholderRole: '',
+      projectRoles: ['project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'],
       
       // New stakeholder form
       newStakeholder: { name: '', email: '', title: '', organization: '', role: '' },
@@ -704,8 +701,34 @@ export default {
       
       if (this.statusFilter) {
         filtered = filtered.filter(project => project.status === this.statusFilter)
+        this.fetchProjectRoles()
       }
       
+        async fetchProjectRoles() {
+          try {
+            const res = await fetch('/api/projects/roles')
+            if (res.ok) {
+              const data = await res.json()
+              if (Array.isArray(data.project_roles) && data.project_roles.length) {
+                this.projectRoles = data.project_roles
+              }
+            }
+          } catch (e) {
+            // Leave defaults; show a toast for visibility
+            toast.error('Failed to load project roles; using defaults')
+          }
+        },
+        formatRoleLabel(role) {
+          if (!role) return 'Unknown'
+          const map = {
+            project_manager: 'Project Manager',
+            subject_matter_expert: 'Subject Matter Expert',
+            reviewer: 'Reviewer',
+            stakeholder: 'Stakeholder',
+            sponsor: 'Sponsor'
+          }
+          return map[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
+        },
       return filtered
     },
   calendarEvents() {
