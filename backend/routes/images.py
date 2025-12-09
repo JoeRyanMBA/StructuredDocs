@@ -87,6 +87,40 @@ def get_images():
                         rel_path = f
                     _add_image(root_dir, rel_path, url_prefix)
 
+        # Also include imported images from the database (that exist on disk)
+        try:
+            from ..models import ImportImage
+            from pathlib import Path
+            import_images = ImportImage.query.all()
+            for img in import_images:
+                backend_path = Path(img.backend_path)
+                frontend_path = Path(img.frontend_path)
+                # Only include if file actually exists
+                if backend_path.exists() or frontend_path.exists():
+                    public_url = img.public_url
+                    # Deduplicate
+                    if public_url not in seen:
+                        seen.add(public_url)
+                        try:
+                            # Use the file that exists
+                            stat_path = backend_path if backend_path.exists() else frontend_path
+                            stat = stat_path.stat()
+                            images_data.append({
+                                'id': hash(public_url) % 100000000,
+                                'filename': img.filename,
+                                'file_path': public_url,
+                                'public_url': public_url,
+                                'alt_text': img.original_name,
+                                'size': stat.st_size,
+                                'created_at': img.created_at.isoformat() if img.created_at else None,
+                                'document_id': img.document_id,
+                                'source': 'import'
+                            })
+                        except Exception:
+                            pass
+        except Exception as e:
+            current_app.logger.warning(f"Could not fetch imported images from database: {e}")
+
         # Sort by filename for stability
         images_data.sort(key=lambda x: x.get('filename', ''))
         return jsonify(images_data), 200
