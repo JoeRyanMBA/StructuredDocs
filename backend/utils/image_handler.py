@@ -24,6 +24,16 @@ class ImageHandler:
         try:
             self.backend_images_dir.mkdir(parents=True, exist_ok=True)
             current_app.logger.info(f"📁 Created/verified backend images directory: {self.backend_images_dir}")
+            
+            # Test write permission
+            test_file = self.backend_images_dir / '.write_test'
+            test_file.write_text('test')
+            test_file.unlink()
+            current_app.logger.info(f"✅ Backend directory is writable")
+        except PermissionError as e:
+            current_app.logger.error(f"❌ PERMISSION DENIED: Cannot write to backend images directory: {e}")
+            current_app.logger.error(f"   Path: {self.backend_images_dir}")
+            current_app.logger.error(f"   This will cause images to fail to save!")
         except Exception as e:
             current_app.logger.error(f"❌ Failed to create backend images directory: {e}")
             
@@ -201,6 +211,7 @@ class ImageHandler:
             dest_path (Path): Destination path for optimized image
         """
         try:
+            current_app.logger.info(f"   🖼️  Opening image: {source_path}")
             with Image.open(source_path) as img:
                 # Convert RGBA to RGB for JPEG if needed
                 if img.mode == 'RGBA' and dest_path.suffix.lower() in ['.jpg', '.jpeg']:
@@ -211,7 +222,7 @@ class ImageHandler:
                 # Resize if too large
                 if img.size[0] > self.MAX_IMAGE_SIZE[0] or img.size[1] > self.MAX_IMAGE_SIZE[1]:
                     img.thumbnail(self.MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
-                    current_app.logger.info(f"Resized image to {img.size}")
+                    current_app.logger.info(f"   📐 Resized image to {img.size}")
                 
                 # Save with optimization
                 save_kwargs = {'optimize': True}
@@ -220,12 +231,27 @@ class ImageHandler:
                 elif dest_path.suffix.lower() == '.png':
                     save_kwargs['compress_level'] = 6
                 
+                current_app.logger.info(f"   💾 Saving optimized image to: {dest_path}")
                 img.save(dest_path, **save_kwargs)
+                current_app.logger.info(f"   ✅ Successfully saved optimized image")
                 
+        except PermissionError as e:
+            current_app.logger.error(f"   ❌ PERMISSION DENIED writing to {dest_path}: {e}")
+            # Try fallback copy
+            try:
+                shutil.copy2(source_path, dest_path)
+                current_app.logger.warning(f"   ⚠️  Fallback: Copied image without optimization")
+            except Exception as copy_err:
+                current_app.logger.error(f"   ❌ Fallback copy also failed: {copy_err}")
         except Exception as e:
             # Fallback: just copy the file if optimization fails
-            current_app.logger.warning(f"Image optimization failed for {source_path}, copying as-is: {str(e)}")
-            shutil.copy2(source_path, dest_path)
+            current_app.logger.warning(f"   ⚠️  Image optimization failed for {source_path}: {str(e)}")
+            try:
+                shutil.copy2(source_path, dest_path)
+                current_app.logger.info(f"   ✅ Fallback: Successfully copied image without optimization")
+            except Exception as copy_err:
+                current_app.logger.error(f"   ❌ Fallback copy failed: {copy_err}")
+                raise
     
     def validate_markdown_images(self, markdown_content):
         """
