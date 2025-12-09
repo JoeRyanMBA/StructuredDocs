@@ -21,8 +21,17 @@ class ImageHandler:
         self.frontend_images_dir = Path(current_app.root_path).parent / 'frontend' / 'public' / 'images' / 'imports' / str(import_doc_id)
         
         # Ensure directories exist
-        self.backend_images_dir.mkdir(parents=True, exist_ok=True)
-        self.frontend_images_dir.mkdir(parents=True, exist_ok=True)
+        try:
+            self.backend_images_dir.mkdir(parents=True, exist_ok=True)
+            current_app.logger.info(f"📁 Created/verified backend images directory: {self.backend_images_dir}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Failed to create backend images directory: {e}")
+            
+        try:
+            self.frontend_images_dir.mkdir(parents=True, exist_ok=True)
+            current_app.logger.info(f"📁 Created/verified frontend images directory: {self.frontend_images_dir}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Failed to create frontend images directory: {e}")
     
     def extract_and_store_images(self, temp_media_dir, markdown_content):
         """
@@ -40,19 +49,32 @@ class ImageHandler:
         updated_content = markdown_content
         
         if not os.path.exists(temp_media_dir):
-            current_app.logger.info(f"No temp media directory found at {temp_media_dir}")
+            current_app.logger.warning(f"❌ No temp media directory found at {temp_media_dir} - Pandoc may not have extracted any images")
             return updated_content, stored_images
+        
+        current_app.logger.info(f"📁 Checking temp media directory: {temp_media_dir}")
         
         # Find all image files in temp directory, including .emf
         image_files = []
         emf_files = []
+        all_files_found = []
+        
         for root, dirs, files in os.walk(temp_media_dir):
+            current_app.logger.info(f"📂 Scanning directory: {root} (found {len(files)} files)")
             for file in files:
+                all_files_found.append(file)
                 file_path = Path(root) / file
                 if file_path.suffix.lower() in self.SUPPORTED_FORMATS:
                     image_files.append(file_path)
+                    current_app.logger.info(f"✅ Found supported image: {file}")
                 elif file_path.suffix.lower() == '.emf':
                     emf_files.append(file_path)
+                    current_app.logger.info(f"🔄 Found EMF file (will convert): {file}")
+                else:
+                    current_app.logger.info(f"⚠️  Found unsupported file: {file} (type: {file_path.suffix})")
+        
+        if not image_files and not emf_files:
+            current_app.logger.warning(f"⚠️  No images found in temp directory. All files found: {all_files_found}")
 
         # Convert .emf files to .png using libreoffice (headless)
         for emf_path in emf_files:
@@ -121,15 +143,22 @@ class ImageHandler:
             unique_id = str(uuid.uuid4())[:8]
             new_filename = f"{original_name}_{unique_id}{extension}"
             
+            current_app.logger.info(f"💾 Storing image: {temp_image_path.name} -> {new_filename}")
+            
             # Paths for storing
             backend_path = self.backend_images_dir / new_filename
             frontend_path = self.frontend_images_dir / new_filename
             
+            current_app.logger.info(f"   Backend path: {backend_path}")
+            current_app.logger.info(f"   Frontend path: {frontend_path}")
+            
             # Optimize and copy image
             self._optimize_image(temp_image_path, backend_path)
+            current_app.logger.info(f"   ✅ Optimized and saved to backend")
             
             # Copy to frontend public directory for serving
             shutil.copy2(backend_path, frontend_path)
+            current_app.logger.info(f"   ✅ Copied to frontend")
             
             # Get image metadata
             with Image.open(backend_path) as img:
@@ -151,7 +180,12 @@ class ImageHandler:
                 'mime_type': mimetypes.guess_type(new_filename)[0]
             }
             
-            current_app.logger.info(f"Stored image: {new_filename} ({width}x{height}, {file_size} bytes)")
+            # Verify files exist
+            backend_exists = backend_path.exists()
+            frontend_exists = frontend_path.exists()
+            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {file_size} bytes)")
+            current_app.logger.info(f"   Backend exists: {backend_exists}, Frontend exists: {frontend_exists}")
+            
             return image_info
             
         except Exception as e:
