@@ -719,29 +719,30 @@ export default {
             let imports = await importResponse.json()
             if (Array.isArray(imports)) {
               imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-            const sliceSize = 10
-            for (const importDoc of imports.slice(0, sliceSize)) {
-              try {
-                const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
-                if (!imagesResponse.ok) continue
-                const imagesData = await imagesResponse.json()
-                const docImagesRaw = imagesData.images || []
-                const docImages = docImagesRaw.map(img => {
-                  const size = img.size || img.file_size || null
-                  const publicUrl = img.public_url || img.file_path || `/images/imports/${importDoc.id}/${img.filename}`
-                  return {
-                    ...img,
-                    size,
-                    file_size: size,
-                    source: 'import',
-                    document_id: importDoc.id,
-                    public_url: publicUrl,
-                    file_path: img.file_path || publicUrl
-                  }
-                })
-                importImages = importImages.concat(docImages)
-              } catch (e) {
-                console.warn(`[DocumentBuilder] Failed to load images for import ${importDoc.id}:`, e)
+              const sliceSize = 10
+              for (const importDoc of imports.slice(0, sliceSize)) {
+                try {
+                  const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
+                  if (!imagesResponse.ok) continue
+                  const imagesData = await imagesResponse.json()
+                  const docImagesRaw = imagesData.images || []
+                  const docImages = docImagesRaw.map(img => {
+                    const size = img.size || img.file_size || null
+                    const publicUrl = img.public_url || img.file_path || `/images/imports/${importDoc.id}/${img.filename}`
+                    return {
+                      ...img,
+                      size,
+                      file_size: size,
+                      source: 'import',
+                      document_id: importDoc.id,
+                      public_url: publicUrl,
+                      file_path: img.file_path || publicUrl
+                    }
+                  })
+                  importImages = importImages.concat(docImages)
+                } catch (e) {
+                  console.warn(`[DocumentBuilder] Failed to load images for import ${importDoc.id}:`, e)
+                }
               }
             }
           }
