@@ -692,22 +692,33 @@ export default {
     
     async loadImages() {
       try {
-        const [staticResponse, importResponse] = await Promise.all([
+        // Add timeout to prevent hanging indefinitely
+        const timeoutMs = 10000 // 10 second timeout
+        
+        const staticResponse = await Promise.race([
           fetch('/api/images'),
-          fetch('/api/import/history')
+          new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
         ])
 
         let staticImages = []
         if (staticResponse.ok) {
           const data = await staticResponse.json()
           staticImages = Array.isArray(data) ? data : []
+        } else {
+          console.warn(`Static images endpoint failed: ${staticResponse.status}`)
         }
 
         let importImages = []
-        if (importResponse.ok) {
-          let imports = await importResponse.json()
-          if (Array.isArray(imports)) {
-            imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
+        try {
+          const importResponse = await Promise.race([
+            fetch('/api/import/history'),
+            new Promise((_, reject) => setTimeout(() => reject(new Error('Timeout')), timeoutMs))
+          ])
+          
+          if (importResponse.ok) {
+            let imports = await importResponse.json()
+            if (Array.isArray(imports)) {
+              imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
             const sliceSize = 10
             for (const importDoc of imports.slice(0, sliceSize)) {
               try {
@@ -734,6 +745,9 @@ export default {
               }
             }
           }
+        } catch (e) {
+          console.warn('Failed to load import history:', e)
+          // Continue with static images only
         }
 
         const normalizedStatic = staticImages.map(img => {
@@ -764,8 +778,15 @@ export default {
         this.recentImages = deduped.slice(0, 6)
       } catch (error) {
         console.error('Failed to load images:', error)
-        this.allImages = []
-        this.recentImages = []
+        // Don't clear images if they already exist - preserve them on error
+        if (this.allImages.length === 0) {
+          console.warn('No images to show - clearing to empty array')
+          this.allImages = []
+          this.recentImages = []
+        } else {
+          console.warn('Image load failed but keeping existing images')
+          // Keep existing images
+        }
       }
     },
     
