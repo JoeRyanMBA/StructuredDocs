@@ -529,6 +529,28 @@ export default {
         return raw ? raw.replace(/\/+$/, '') : '';
       }
     },
+
+    apiBaseHost() {
+      // Derive host (and optional prefix minus /api) for static assets
+      try {
+        if (!this.apiBase) return '';
+
+        // If full URL, strip trailing /api and return origin+path
+        if (this.apiBase.startsWith('http')) {
+          const url = new URL(this.apiBase);
+          // Remove trailing /api from pathname if present
+          if (url.pathname.endsWith('/api')) {
+            url.pathname = url.pathname.slice(0, -4) || '/';
+          }
+          return `${url.origin}${url.pathname.replace(/\/+$|^$/g, '') ? url.pathname.replace(/\/+$|^$/g, '') : ''}`;
+        }
+
+        // Relative base (e.g., '/api') -> strip trailing /api
+        return this.apiBase.replace(/\/api\/?$/, '') || '';
+      } catch (_e) {
+        return '';
+      }
+    },
     
     allNotifications() {
       const all = [
@@ -1023,6 +1045,17 @@ status: "draft"
       const rawPath = image.public_url 
         || image.file_path 
         || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
+      if (!rawPath) return ''
+
+      // If already absolute URL, return as-is
+      if (rawPath.startsWith('http')) return rawPath
+
+      // Serve static assets from host root (/images/...) not the API prefix
+      if (rawPath.startsWith('/images/')) {
+        return this.apiBaseHost ? `${this.apiBaseHost}${rawPath}` : rawPath
+      }
+
+      // Fallback: prefix API base for API-relative paths
       if (rawPath.startsWith('/') && this.apiBase) {
         return `${this.apiBase}${rawPath}`
       }
@@ -1033,7 +1066,9 @@ status: "draft"
       const path = image.public_url 
         || image.file_path 
         || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
-      navigator.clipboard.writeText(path).then(() => {
+      // Copy the public path without forcing the /api prefix
+      const copyPath = (path && path.startsWith('/images/')) ? path : path
+      navigator.clipboard.writeText(copyPath).then(() => {
         toast.success('Copied image path to clipboard')
       }).catch(() => {
         toast.error('Failed to copy to clipboard')
