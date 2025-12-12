@@ -1558,48 +1558,36 @@ def get_import_history():
 
 @import_bp.route('/staging/<int:doc_id>/images', methods=['GET'])
 def get_import_images(doc_id):
-    """Get all images associated with an import document"""
+    """Get all images associated with an import document
+    
+    Returns all database records regardless of whether files exist on disk.
+    Similar to how links work - we return the database truth, not just what's on filesystem.
+    The frontend should handle missing files gracefully with placeholders.
+    """
     try:
         doc = ImportDocument.query.get_or_404(doc_id)
         
-        # Get images from database
-        db_images = ImportImage.query.filter_by(document_id=doc_id).all()
+        # Get images from database - return ALL records, not just ones with files on disk
+        db_images = ImportImage.query.filter_by(document_id=doc_id).order_by(ImportImage.created_at.desc()).all()
         
-        # Validate that files actually exist on disk
-        # Only return images whose files exist to prevent 404s on the frontend
+        # Log which images exist vs missing on disk
         from pathlib import Path
-        validated_images = []
         for img in db_images:
             backend_path = Path(img.backend_path)
             frontend_path = Path(img.frontend_path)
-            # Check if file exists in either backend or frontend location
-            if backend_path.exists() or frontend_path.exists():
-                validated_images.append(img.to_dict())
-            else:
+            file_exists = backend_path.exists() or frontend_path.exists()
+            if not file_exists:
                 current_app.logger.warning(
-                    f"Image file missing for {doc_id}/{img.filename}: "
-                    f"backend={backend_path.exists()}, frontend={frontend_path.exists()}"
+                    f"Image file missing for import {doc_id}/{img.filename}: "
+                    f"backend={backend_path}, frontend={frontend_path}"
                 )
         
-        # Also get images from filesystem (in case of sync issues)
-        image_handler = ImageHandler(doc_id)
-        fs_images = image_handler.get_import_images()
-        
-        # If database is out of sync with filesystem, use filesystem as source of truth
-        if len(validated_images) == 0 and len(fs_images) > 0:
-            current_app.logger.info(
-                f"No valid database images for import {doc_id} but found {len(fs_images)} on filesystem; "
-                f"using filesystem as source of truth"
-            )
-            images_data = fs_images
-        else:
-            images_data = validated_images
+        images_data = [img.to_dict() for img in db_images]
         
         return jsonify({
             'document_id': doc_id,
             'document_filename': doc.filename,
             'images': images_data,
-            'filesystem_images': fs_images,
             'total_count': len(images_data)
         }), 200
         
