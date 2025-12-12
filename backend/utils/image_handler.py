@@ -64,6 +64,24 @@ class ImageHandler:
         
         current_app.logger.info(f"📁 Checking temp media directory: {temp_media_dir}")
         
+        # Pre-flight checks
+        try:
+            # Check disk space
+            import shutil as shutil_util
+            stat = shutil_util.disk_usage(self.backend_images_dir)
+            free_gb = stat.free / (1024**3)
+            current_app.logger.info(f"💾 Disk space available: {free_gb:.2f} GB")
+            if free_gb < 0.1:
+                current_app.logger.error(f"❌ CRITICAL: Low disk space ({free_gb:.2f} GB), image storage may fail")
+            
+            # Check write permissions
+            test_file = self.backend_images_dir / '.write_test'
+            test_file.touch()
+            test_file.unlink()
+            current_app.logger.info(f"✅ Write permissions verified for {self.backend_images_dir}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Pre-flight check failed: {str(e)}")
+        
         # Find all image files in temp directory, including .emf
         image_files = []
         emf_files = []
@@ -94,7 +112,7 @@ class ImageHandler:
                 import subprocess
                 result = subprocess.run([
                     'libreoffice', '--headless', '--convert-to', 'png', str(emf_path), '--outdir', str(emf_path.parent)
-                ], capture_output=True)
+                ], capture_output=True, timeout=30)
                 if result.returncode == 0 and png_path.exists():
                     image_files.append(png_path)
                     current_app.logger.info(f"Converted {emf_path} to {png_path}")
@@ -104,10 +122,14 @@ class ImageHandler:
                     updated_content = updated_content.replace(old_ref, new_ref)
                 else:
                     current_app.logger.error(f"Failed to convert {emf_path} to PNG: {result.stderr.decode()}")
+            except subprocess.TimeoutExpired:
+                current_app.logger.error(f"EMF conversion timeout for {emf_path}")
             except Exception as e:
                 current_app.logger.error(f"Exception during EMF to PNG conversion for {emf_path}: {str(e)}")
 
-        current_app.logger.info(f"Found {len(image_files)} images to process (after EMF conversion)")
+        current_app.logger.info(f"🔍 Found {len(image_files)} images to process (after EMF conversion)")
+        success_count = 0
+        failed_count = 0
 
         # Process each image
         for temp_image_path in image_files:
@@ -115,6 +137,7 @@ class ImageHandler:
                 stored_image_info = self._store_single_image(temp_image_path)
                 if stored_image_info:
                     stored_images.append(stored_image_info)
+                    success_count += 1
                     # Update markdown content with new image path
                     old_ref = f"media/{temp_image_path.name}"
                     new_ref = f"/images/imports/{self.import_doc_id}/{stored_image_info['filename']}"
@@ -130,10 +153,16 @@ class ImageHandler:
                             alt_text = re.search(r'!\[(.*?)\]', match.group()).group(1)
                             new_markdown = f"![{alt_text}]({new_ref})"
                             updated_content = updated_content.replace(match.group(), new_markdown)
+                else:
+                    failed_count += 1
+                    current_app.logger.warning(f"⚠️  Image storage returned None: {temp_image_path.name}")
             except Exception as e:
-                current_app.logger.error(f"Failed to process image {temp_image_path}: {str(e)}")
+                failed_count += 1
+                current_app.logger.error(f"Failed to process image {temp_image_path}: {str(e)}", exc_info=True)
                 continue
 
+        current_app.logger.info(f"📊 Image extraction summary: {success_count} succeeded, {failed_count} failed out of {len(image_files)} total")
+        
         return updated_content, stored_images
     
     def _store_single_image(self, temp_image_path):
@@ -144,7 +173,7 @@ class ImageHandler:
             temp_image_path (Path): Path to temporary image file
             
         Returns:
-            dict: Image metadata including new filename and paths
+            dict: Image metadata including new filename and paths, or None if storage failed
         """
         try:
             # Generate unique filename
@@ -162,18 +191,41 @@ class ImageHandler:
             current_app.logger.info(f"   Backend path: {backend_path}")
             current_app.logger.info(f"   Frontend path: {frontend_path}")
             
-            # Optimize and copy image
-            self._optimize_image(temp_image_path, backend_path)
+            # Ensure directories exist
+            backend_path.parent.mkdir(parents=True, exist_ok=True)
+            frontend_path.parent.mkdir(parents=True, exist_ok=True)
+            current_app.logger.info(f"   ✅ Ensured backend and frontend directories exist")
+            
+            # Optimize and copy image to backend
+            optimization_success = self._optimize_image(temp_image_path, backend_path)
+            if not optimization_success:
+                current_app.logger.error(f"   ❌ Failed to optimize/store image to backend: {backend_path}")
+                return None
+            
             current_app.logger.info(f"   ✅ Optimized and saved to backend")
             
-            # Copy to frontend public directory for serving
-            shutil.copy2(backend_path, frontend_path)
-            current_app.logger.info(f"   ✅ Copied to frontend")
+            # Verify backend file exists
+            if not backend_path.exists():
+                current_app.logger.error(f"   ❌ Backend file does not exist after write: {backend_path}")
+                return None
             
-            # Get image metadata
-            with Image.open(backend_path) as img:
-                width, height = img.size
-                format_type = img.format
+            # Copy to frontend public directory for serving
+            try:
+                shutil.copy2(backend_path, frontend_path)
+                current_app.logger.info(f"   ✅ Copied to frontend")
+            except Exception as copy_err:
+                current_app.logger.error(f"   ❌ Failed to copy to frontend ({frontend_path}): {copy_err}")
+                # If frontend copy fails, still continue but log it
+                # Frontend is optional for serving since backend can serve it
+            
+            # Get image metadata from backend file
+            try:
+                with Image.open(backend_path) as img:
+                    width, height = img.size
+                    format_type = img.format
+            except Exception as img_err:
+                current_app.logger.error(f"   ❌ Failed to read image metadata: {img_err}")
+                return None
             
             file_size = backend_path.stat().st_size
             
@@ -190,25 +242,31 @@ class ImageHandler:
                 'mime_type': mimetypes.guess_type(new_filename)[0]
             }
             
-            # Verify files exist
+            # Verify backend file exists (critical)
             backend_exists = backend_path.exists()
-            frontend_exists = frontend_path.exists()
-            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {file_size} bytes)")
-            current_app.logger.info(f"   Backend exists: {backend_exists}, Frontend exists: {frontend_exists}")
+            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {file_size} bytes, backend_exists={backend_exists})")
+            
+            if not backend_exists:
+                current_app.logger.error(f"   ❌ CRITICAL: Backend file missing after storage!")
+                return None
             
             return image_info
             
         except Exception as e:
-            current_app.logger.error(f"Failed to store image {temp_image_path}: {str(e)}")
+            current_app.logger.error(f"❌ CRITICAL: Failed to store image {temp_image_path}: {str(e)}", exc_info=True)
             return None
     
     def _optimize_image(self, source_path, dest_path):
         """
         Optimize image size and quality while preserving reasonable quality.
+        Returns True if successful, False if failed.
         
         Args:
             source_path (Path): Source image path
             dest_path (Path): Destination path for optimized image
+            
+        Returns:
+            bool: True if successful, False if failed
         """
         try:
             current_app.logger.info(f"   🖼️  Opening image: {source_path}")
@@ -235,19 +293,41 @@ class ImageHandler:
                 img.save(dest_path, **save_kwargs)
                 current_app.logger.info(f"   ✅ Successfully saved optimized image")
                 
+                # Verify file was written
+                if not dest_path.exists():
+                    current_app.logger.error(f"   ❌ File was not created after save: {dest_path}")
+                    return False
+                
+                return True
+                
         except PermissionError as e:
             current_app.logger.error(f"   ❌ PERMISSION DENIED writing to {dest_path}: {e}")
             # Try fallback copy
             try:
                 shutil.copy2(source_path, dest_path)
                 current_app.logger.warning(f"   ⚠️  Fallback: Copied image without optimization")
+                if dest_path.exists():
+                    return True
+                else:
+                    current_app.logger.error(f"   ❌ Fallback copy created no file at {dest_path}")
+                    return False
             except Exception as copy_err:
                 current_app.logger.error(f"   ❌ Fallback copy also failed: {copy_err}")
+                return False
         except Exception as e:
             # Fallback: just copy the file if optimization fails
             current_app.logger.warning(f"   ⚠️  Image optimization failed for {source_path}: {str(e)}")
             try:
                 shutil.copy2(source_path, dest_path)
+                current_app.logger.warning(f"   ⚠️  Fallback: Copied image without optimization")
+                if dest_path.exists():
+                    return True
+                else:
+                    current_app.logger.error(f"   ❌ Fallback copy created no file at {dest_path}")
+                    return False
+            except Exception as copy_err:
+                current_app.logger.error(f"   ❌ Fallback copy also failed: {copy_err}")
+                return False
                 current_app.logger.info(f"   ✅ Fallback: Successfully copied image without optimization")
             except Exception as copy_err:
                 current_app.logger.error(f"   ❌ Fallback copy failed: {copy_err}")
