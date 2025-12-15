@@ -741,10 +741,14 @@ export default {
           this.imageUrl = newImage.public_url || newImage.file_path || uploadData.public_url
           this.imageAlt = newImage.alt_text || newImage.filename
           this.selectedExistingImage = newImage
-          this.imageUploadMessage = '✅ Upload successful. Ready to insert.'
+          this.imageUploadMessage = '✅ Upload successful. Inserting...'
           console.log('🎯 Set image URL to:', this.imageUrl)
-          // Switch to Browse tab
-          this.imageInsertMode = 'existing'
+          
+          // Auto-insert immediately after successful upload and selection
+          this.$nextTick(() => {
+            console.log('🔨 Auto-inserting image...')
+            this.insertImage()
+          })
         } else {
           // Fallback: use the upload response directly
           this.imageUrl = uploadData.public_url || uploadData.file_path
@@ -785,10 +789,15 @@ export default {
         if (!this.linkText) {
           this.linkText = data.alt_text || data.filename || 'Image'
         }
-        this.linkUploadMessage = 'Upload successful. Link URL populated.'
+        this.linkUploadMessage = '✅ Upload successful. Inserting link...'
+        
+        // Auto-insert the link immediately after upload
+        this.$nextTick(() => {
+          this.insertLink()
+        })
       } catch (e) {
         console.error('Upload failed', e)
-        this.linkUploadMessage = 'Upload failed. Please try again.'
+        this.linkUploadMessage = `❌ Upload failed: ${e.message}`
       } finally {
         this.linkUploadUploading = false
       }
