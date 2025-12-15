@@ -207,7 +207,13 @@
                 <input v-model="linkSearch" type="text" class="form-input" placeholder="Search by title, description, reference, or URL" @input="debouncedFetchLinks">
               </div>
               <div class="resource-list" v-if="availableLinks && availableLinks.length">
-                <div v-for="link in availableLinks" :key="link.id" class="resource-item" @click="selectExistingLink(link)">
+                <div 
+                  v-for="link in availableLinks" 
+                  :key="link.id" 
+                  class="resource-item"
+                  :class="{ selected: selectedExistingLink && selectedExistingLink.id === link.id }"
+                  @click="selectExistingLink(link)"
+                >
                   <div class="resource-title">{{ link.title }} <span v-if="link.reference_code" class="muted">({{ link.reference_code }})</span></div>
                   <div class="resource-sub">{{ link.url }}</div>
                 </div>
@@ -296,12 +302,18 @@
                 <label>Search Images</label>
                 <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
               </div>
-              <div class="image-grid" v-if="availableImages && availableImages.length">
-                <div v-for="img in filteredImages" :key="img.id" class="image-item" @click="selectExistingImage(img)">
-                  <img :src="img.public_url" :alt="img.alt_text || img.filename">
-                  <div class="image-caption">{{ img.filename }}</div>
+                <div class="image-grid" v-if="availableImages && availableImages.length">
+                  <div 
+                    v-for="img in filteredImages" 
+                    :key="img.id" 
+                    class="image-item" 
+                    :class="{ selected: selectedExistingImage && selectedExistingImage.id === img.id }"
+                    @click="selectExistingImage(img)"
+                  >
+                    <img :src="imageDisplayUrl(img)" :alt="img.alt_text || img.filename" @error="handleImageError">
+                    <div class="image-caption">{{ img.filename }}</div>
+                  </div>
                 </div>
-              </div>
               <div class="empty-state" v-else>No images found.</div>
             </div>
             <div v-else>
@@ -444,12 +456,14 @@ export default {
       }
       
       marked.setOptions({ renderer })
+          selectedExistingImage: null,
       
       let rendered = marked(content)
       
       // Post-process to add helpful messages for problematic image patterns
       if (content.includes('media/')) {
         rendered += '<div class="image-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>⚠️ Image Display Issue:</strong> This topic contains images with "media/" paths that won\'t display in the editor. Use the 🖼️ button to upload images properly.</div>'
+          selectedExistingLink: null,
       }
       
       if (content.includes('.emf')) {
@@ -642,6 +656,7 @@ export default {
       this.debounce(this.fetchLinks, 300)()
     },
     selectExistingLink(link) {
+      this.selectedExistingLink = link
       this.linkText = link.title || link.reference_code || 'Link'
       this.linkUrl = link.url
     },
@@ -663,8 +678,15 @@ export default {
       const q = (this.imageSearch || '').toLowerCase()
       this.filteredImages = (this.availableImages || []).filter(img => !q || (img.filename || '').toLowerCase().includes(q))
     },
+    imageDisplayUrl(img) {
+      return img.public_url || img.file_path || (img.filename ? `/images/${img.filename}` : '')
+    },
+    handleImageError(event){
+      event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGNUY2RjgiIHN0cm9rZT0iI0Q1RDZENSIvPgo8cGF0aCBkPSJNMzIgMTVMMjggMjFIMzZMMzIgMTVaTTI4IDI4SDM2TDI4IDM2SDM2TTI4IDQzSDM2TDI4IDUxSDM2IiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMiIgY3k9IjM0IiByPSI5IiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K'
+    },
     selectExistingImage(img) {
-      this.imageUrl = img.public_url || img.file_path
+      this.selectedExistingImage = img
+      this.imageUrl = this.imageDisplayUrl(img)
       this.imageAlt = img.alt_text || img.filename
     },
 
@@ -872,6 +894,7 @@ export default {
       // Reset modal
       this.linkText = ''
       this.linkUrl = ''
+      this.selectedExistingLink = null
       this.showLinkModal = false
     },
 
@@ -891,6 +914,7 @@ export default {
       // Reset modal
       this.imageUrl = ''
       this.imageAlt = ''
+      this.selectedExistingImage = null
       this.imageInsertMode = 'url'
       this.showImageModal = false
     },
@@ -1099,11 +1123,21 @@ export default {
 .resource-list { max-height: 260px; overflow:auto; border:1px solid #eee; border-radius:6px; }
 .resource-item { padding:.5rem .75rem; border-bottom:1px solid #f1f3f5; cursor:pointer; }
 .resource-item:hover { background:#f8f9fa; }
+.resource-item.selected {
+  border-color: var(--primary-deep-teal);
+  background: var(--extended-sky-blue);
+  box-shadow: 0 2px 6px rgba(28, 107, 128, 0.15);
+}
 .resource-title { font-weight:600; color:#333; }
 .resource-sub { font-size:.85rem; color:#666; }
 .muted { color:#667085; font-weight:400; font-size:.9em; }
 .image-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:.75rem; max-height:320px; overflow:auto; }
 .image-item { border:1px solid #eee; border-radius:6px; padding:.5rem; cursor:pointer; text-align:center; }
+.image-item.selected {
+  border-color: var(--primary-deep-teal);
+  background: var(--extended-sky-blue);
+  box-shadow: 0 2px 8px rgba(28, 107, 128, 0.15);
+}
 .image-item img { max-width:100%; height:80px; object-fit:cover; display:block; margin:0 auto .5rem; }
 .image-caption { font-size:.8rem; color:#555; word-break: break-all; }
 
