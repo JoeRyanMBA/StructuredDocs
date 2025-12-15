@@ -667,22 +667,35 @@ export default {
     },
     async fetchImages() {
       try {
+        console.log('📥 Fetching images from /api/images')
         const res = await fetch('/api/images')
         if (res.ok) {
           this.availableImages = await res.json()
           this.filteredImages = this.availableImages
+          console.log(`✅ Fetched ${this.availableImages.length} images`)
+        } else {
+          console.error('❌ Failed to fetch images:', res.status)
         }
-      } catch (e) { console.error('Failed to fetch images', e) }
+      } catch (e) { 
+        console.error('❌ Failed to fetch images', e) 
+      }
     },
     filterImages() {
       const q = (this.imageSearch || '').toLowerCase()
       this.filteredImages = (this.availableImages || []).filter(img => !q || (img.filename || '').toLowerCase().includes(q))
     },
     imageDisplayUrl(img) {
-      return img.public_url || img.file_path || (img.filename ? `/images/${img.filename}` : '')
+      // Try public_url first (preferred), then file_path, then construct from filename
+      const url = img.public_url || img.file_path || (img.filename ? `/images/${img.filename}` : '')
+      console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, url })
+      return url
     },
     handleImageError(event){
-      event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGNUY2RjgiIHN0cm9rZT0iI0Q1RDZENSIvPgo8cGF0aCBkPSJNMzIgMTVMMjggMjFIMzZMMzIgMTVaTTI4IDI4SDM2TDI4IDM2SDM2TTI4IDQzSDM2TDI4IDUxSDM2IiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8Y2lyY2xlIGN4PSIzMiIgY3k9IjM0IiByPSI5IiBzdHJva2U9IiM5Q0EzQUYiIHN0cm9rZS13aWR0aD0iMiIvPgo8L3N2Zz4K'
+      // Fallback placeholder SVG for broken images
+      const placeholderSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGNUY2RjgiIHN0cm9rZT0iI0Q1RDZENSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo='
+      event.target.src = placeholderSvg
+      event.target.style.opacity = '0.5'
+      event.target.title = '❌ Image not found'
     },
     selectExistingImage(img) {
       this.selectedExistingImage = img
@@ -703,37 +716,46 @@ export default {
       try {
         const formData = new FormData()
         formData.append('image', this.imageUploadFile)
+        console.log('📤 Uploading image:', this.imageUploadFile.name)
         const res = await fetch('/api/images/upload', {
           method: 'POST',
           body: formData
         })
         if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-        const data = await res.json()
-        this.imageUrl = data.public_url || data.file_path
-        this.imageAlt = data.alt_text || data.filename
-        this.imageUploadMessage = 'Upload successful. Ready to insert.'
-        // Refresh existing list so it appears in Browse and push into arrays
+        const uploadData = await res.json()
+        console.log('✅ Upload response:', uploadData)
+        
+        // Refresh the image list to get the new image with proper metadata
+        // This ensures we get the complete record from the backend API
+        console.log('🔄 Fetching updated image list...')
         await this.fetchImages()
         this.filterImages()
-        if (data) {
-          const newImg = {
-            id: data.id || Date.now(),
-            filename: data.filename,
-            public_url: data.public_url,
-            file_path: data.file_path,
-            alt_text: data.alt_text,
-            created_at: data.created_at,
-          }
-          if (!this.availableImages.find(img => img.public_url === newImg.public_url)) {
-            this.availableImages.unshift(newImg)
-            this.filteredImages = this.availableImages
-          }
+        
+        // Find the newly uploaded image by filename (most reliable)
+        const uploadedFilename = uploadData.filename
+        const newImage = this.availableImages.find(img => img.filename === uploadedFilename)
+        console.log('🔍 Found new image:', newImage)
+        
+        if (newImage) {
+          // Use the image from the fetched list (has proper public_url)
+          this.imageUrl = newImage.public_url || newImage.file_path || uploadData.public_url
+          this.imageAlt = newImage.alt_text || newImage.filename
+          this.selectedExistingImage = newImage
+          this.imageUploadMessage = '✅ Upload successful. Ready to insert.'
+          console.log('🎯 Set image URL to:', this.imageUrl)
+          // Switch to Browse tab
+          this.imageInsertMode = 'existing'
+        } else {
+          // Fallback: use the upload response directly
+          this.imageUrl = uploadData.public_url || uploadData.file_path
+          this.imageAlt = uploadData.alt_text || uploadData.filename
+          this.imageUploadMessage = '✅ Upload successful. Ready to insert.'
+          console.log('⚠️ Image not in fetched list, using upload response:', this.imageUrl)
+          this.imageInsertMode = 'existing'
         }
-        // Switch to Browse tab so user can see it if they reopen
-        this.imageInsertMode = 'existing'
       } catch (e) {
-        console.error('Upload failed', e)
-        this.imageUploadMessage = 'Upload failed. Please try again.'
+        console.error('❌ Upload failed', e)
+        this.imageUploadMessage = `❌ Upload failed: ${e.message}`
       } finally {
         this.imageUploadUploading = false
       }
