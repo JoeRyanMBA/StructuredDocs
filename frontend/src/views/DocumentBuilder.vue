@@ -71,13 +71,13 @@
                 </button>
               </div>
               
-              <div v-if="collectionTopics.length === 0" class="topics-empty-state">
+              <div v-if="collectionTopics.length === 0" class="topics-empty-state" @dragover.prevent="isDraggingOver = true" @dragleave="isDraggingOver = false" @drop.prevent="handleDropTopic" :class="{ 'dragging-over': isDraggingOver }">
                 <div class="empty-icon">📝</div>
                 <p>No topics in this collection yet.</p>
-                <p class="empty-hint">Create a new topic or add existing ones from the Available Topics section below.</p>
+                <p class="empty-hint">Create a new topic or drag one from the Topics panel on the right, or add from Available Topics below.</p>
               </div>
               
-              <div v-else class="topics-list">
+              <div v-else class="topics-list" @dragover.prevent="isDraggingOver = true" @dragleave="isDraggingOver = false" @drop.prevent="handleDropTopic">
                 <div 
                   v-for="topic in collectionTopics" 
                   :key="topic.id" 
@@ -216,6 +216,48 @@
               <h3>Browse Images</h3>
             </div>
           </button>
+        </div>
+
+        <!-- Available Topics Repository -->
+        <div class="resource-section" v-if="selectedCollection">
+          <div class="section-header">
+            <h3>📚 Topics</h3>
+            <button class="btn-icon" @click="topicsSearchOpen = !topicsSearchOpen" title="Search Topics">
+              🔍
+            </button>
+          </div>
+          
+          <div v-if="topicsSearchOpen" class="topics-search-bar">
+            <input 
+              v-model="topicsSearch" 
+              placeholder="Search available topics..." 
+              class="filter-input"
+            />
+          </div>
+          
+          <div class="topics-list-sidebar">
+            <div 
+              v-if="availableTopicsForDrag.length === 0"
+              class="no-items-message"
+            >
+              <p>No topics available</p>
+            </div>
+            
+            <div 
+              v-for="topic in availableTopicsForDrag" 
+              :key="topic.id"
+              class="topic-item-draggable"
+              draggable="true"
+              @dragstart="startDragTopic($event, topic)"
+              :title="topic.title"
+            >
+              <div class="topic-item-content">
+                <div class="topic-item-title">{{ topic.title }}</div>
+                <div class="topic-item-status">{{ formatStatus(topic.status) }}</div>
+              </div>
+              <div class="drag-hint">⋮⋮</div>
+            </div>
+          </div>
         </div>
       </div>
     </div>
@@ -512,7 +554,10 @@ export default {
       // Topics
       allTopics: [],
       topicsFilter: '',
+      topicsSearch: '',
+      topicsSearchOpen: false,
       activeTopicId: null,
+      isDraggingOver: false,
       
       // Links
       allLinks: [],
@@ -617,6 +662,22 @@ export default {
         topic.title.toLowerCase().includes(filter) ||
         (topic.summary && topic.summary.toLowerCase().includes(filter))
       ).slice(0, 10)
+    },
+
+    availableTopicsForDrag() {
+      let topics = this.availableTopics
+      
+      // Filter by search if active
+      if (this.topicsSearch) {
+        const search = this.topicsSearch.toLowerCase()
+        topics = topics.filter(topic => 
+          topic.title.toLowerCase().includes(search) ||
+          (topic.summary && topic.summary.toLowerCase().includes(search))
+        )
+      }
+      
+      // Return first 8 for sidebar
+      return topics.slice(0, 8)
     },
     
     filteredLinks() {
@@ -1102,6 +1163,27 @@ status: "draft"
       event.dataTransfer.setData('text/plain', path)
       event.dataTransfer.setData('application/image', JSON.stringify(image))
     },
+
+    startDragTopic(event, topic) {
+      event.dataTransfer.effectAllowed = 'copy'
+      event.dataTransfer.setData('application/topic', JSON.stringify(topic))
+      event.dataTransfer.effectAllowed = 'move'
+    },
+
+    handleDropTopic(event) {
+      this.isDraggingOver = false
+      event.preventDefault()
+      
+      try {
+        const topicData = event.dataTransfer.getData('application/topic')
+        if (topicData) {
+          const topic = JSON.parse(topicData)
+          this.addTopicToCollection(topic)
+        }
+      } catch (error) {
+        console.error('Failed to drop topic:', error)
+      }
+    },
     
     getImageUrl(image) {
       const rawPath = image.public_url 
@@ -1334,6 +1416,14 @@ status: "draft"
   border: 2px dashed var(--extended-lavender-gray);
   border-radius: 8px;
   color: var(--text-secondary-cool-gray);
+  transition: all 0.2s ease;
+  background: var(--bg-white);
+}
+
+.topics-empty-state.dragging-over {
+  border-color: var(--primary-deep-teal);
+  background: var(--extended-sky-blue);
+  box-shadow: 0 4px 12px rgba(28, 107, 128, 0.2);
 }
 
 .topics-empty-state .empty-icon {
@@ -1356,6 +1446,14 @@ status: "draft"
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  transition: all 0.2s ease;
+  padding: 0.5rem;
+  border-radius: 8px;
+}
+
+.topics-list.dragging-over {
+  background: var(--extended-sky-blue);
+  border: 2px dashed var(--primary-deep-teal);
 }
 
 .topic-card {
@@ -1710,6 +1808,67 @@ status: "draft"
 
 .w-100 {
   width: 100%;
+}
+
+/* Topics Sidebar */
+.topics-search-bar {
+  margin-bottom: 1rem;
+}
+
+.topics-list-sidebar {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  max-height: 300px;
+  overflow-y: auto;
+}
+
+.no-items-message {
+  text-align: center;
+  padding: 1rem;
+  color: var(--text-secondary-cool-gray);
+  font-size: 0.9rem;
+}
+
+.topic-item-draggable {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+  cursor: move;
+  transition: all 0.2s ease;
+  background: var(--bg-white);
+}
+
+.topic-item-draggable:hover {
+  border-color: var(--primary-deep-teal);
+  background: var(--extended-sky-blue);
+  box-shadow: 0 2px 6px rgba(28, 107, 128, 0.15);
+}
+
+.topic-item-draggable:active {
+  opacity: 0.7;
+}
+
+.topic-item-content {
+  flex: 1;
+  min-width: 0;
+}
+
+.topic-item-title {
+  font-weight: 600;
+  font-size: 0.85rem;
+  color: var(--primary-deep-teal);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topic-item-status {
+  font-size: 0.7rem;
+  color: var(--text-secondary-cool-gray);
 }
 
 /* Empty state */
