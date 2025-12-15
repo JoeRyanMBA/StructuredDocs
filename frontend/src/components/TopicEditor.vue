@@ -413,7 +413,9 @@ export default {
   filteredVariables: [],
   recentVariables: [],
   variableSearch: '',
-  selectedVariableSlug: ''
+  selectedVariableSlug: '',
+  selectedExistingImage: null,
+  selectedExistingLink: null
     }
   },
   computed: {
@@ -456,14 +458,12 @@ export default {
       }
       
       marked.setOptions({ renderer })
-          selectedExistingImage: null,
       
-      let rendered = marked(content)
+      const rendered = marked(content)
       
       // Post-process to add helpful messages for problematic image patterns
       if (content.includes('media/')) {
         rendered += '<div class="image-warning" style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>⚠️ Image Display Issue:</strong> This topic contains images with "media/" paths that won\'t display in the editor. Use the 🖼️ button to upload images properly.</div>'
-          selectedExistingLink: null,
       }
       
       if (content.includes('.emf')) {
