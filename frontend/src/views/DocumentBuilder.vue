@@ -62,66 +62,84 @@
               </button>
             </div>
           </div>
-            <!-- Collection Topics -->
+            <!-- Collection Topics - Main Document Assembly Area -->
             <div class="topics-section">
-              <h3>📄 Collection Topics</h3>
-              <div v-if="collectionTopics.length === 0" class="topics-empty">
-                No topics in this collection yet. Add some from Available Topics.
+              <div class="topics-section-header">
+                <h3>📄 Collection Topics</h3>
+                <button class="btn btn-primary btn-sm" @click="addNewTopic" title="Create a new topic">
+                  ➕︎ New Topic
+                </button>
               </div>
-              <div v-else class="topics-grid">
+              
+              <div v-if="collectionTopics.length === 0" class="topics-empty-state">
+                <div class="empty-icon">📝</div>
+                <p>No topics in this collection yet.</p>
+                <p class="empty-hint">Create a new topic or add existing ones from the Available Topics section below.</p>
+              </div>
+              
+              <div v-else class="topics-list">
                 <div 
                   v-for="topic in collectionTopics" 
                   :key="topic.id" 
                   class="topic-card"
-                  @click="editTopic(topic)"
+                  :class="{ 'active': activeTopicId === topic.id }"
+                  @click="activeTopicId = topic.id"
                 >
                   <div class="topic-header">
-                    <h4>{{ topic.title }}</h4>
-                    <span :class="['topic-status', `status-${topic.status || 'draft'}`]">
-                      {{ formatStatus(topic.status) }}
-                    </span>
+                    <div class="topic-title-section">
+                      <h4>{{ topic.title }}</h4>
+                      <span :class="['topic-status', `status-${topic.status || 'draft'}`]">
+                        {{ formatStatus(topic.status) }}
+                      </span>
+                    </div>
                   </div>
                   <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
-                  <div class="topic-meta">
+                  <div class="topic-footer">
                     <span class="topic-updated">{{ formatRelativeTime(topic.updated_at) }}</span>
                     <div class="topic-actions">
-                      <button class="btn-icon" @click.stop="editTopic(topic)" title="Edit Topic">✏️</button>
-                      <button class="btn-icon" @click.stop="removeTopic(topic)" title="Remove from Collection">🗑️</button>
+                      <button class="btn-action" @click.stop="editTopic(topic)" title="Edit Topic">✏️ Edit</button>
+                      <button class="btn-action btn-danger" @click.stop="removeTopic(topic)" title="Remove from Collection">🗑️ Remove</button>
                     </div>
                   </div>
                 </div>
               </div>
             </div>
 
-          <!-- Available Topics -->
-          <div class="available-topics-section">
-            <h3>📚 Available Topics</h3>
-            <div class="topics-filter">
-              <input 
-                v-model="topicsFilter" 
-                placeholder="Search topics..." 
-                class="filter-input"
-              />
-            </div>
-            
-            <div class="available-topics-grid">
-              <div 
-                v-for="topic in filteredAvailableTopics" 
-                :key="topic.id"
-                class="available-topic-card"
-                @click="addTopicToCollection(topic)"
-              >
-                <div class="topic-header">
-                  <h4>{{ topic.title }}</h4>
-                  <span :class="['topic-status', `status-${topic.status}`]">
-                    {{ formatStatus(topic.status) }}
-                  </span>
+            <!-- Available Topics for Adding -->
+            <div class="available-topics-section">
+              <div class="section-divider">
+                <h3>📚 Available Topics</h3>
+              </div>
+              <div class="topics-filter">
+                <input 
+                  v-model="topicsFilter" 
+                  placeholder="Search topics..." 
+                  class="filter-input"
+                />
+              </div>
+              
+              <div v-if="filteredAvailableTopics.length === 0" class="no-topics-message">
+                <p>No available topics found. <a href="#" @click.prevent="addNewTopic">Create one</a> to get started.</p>
+              </div>
+              
+              <div v-else class="available-topics-grid">
+                <div 
+                  v-for="topic in filteredAvailableTopics" 
+                  :key="topic.id"
+                  class="available-topic-card"
+                  @click="addTopicToCollection(topic)"
+                >
+                  <div class="topic-header">
+                    <h4>{{ topic.title }}</h4>
+                    <span :class="['topic-status', `status-${topic.status}`]">
+                      {{ formatStatus(topic.status) }}
+                    </span>
+                  </div>
+                  <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
+                  <button class="btn-add" @click.stop="addTopicToCollection(topic)">➕︎ Add to Collection</button>
                 </div>
-                <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
-                <button class="btn-add" @click.stop="addTopicToCollection(topic)">➕︎ Add</button>
               </div>
             </div>
-          </div>
         </div>
       </div>
 
@@ -141,6 +159,8 @@
               v-for="link in recentLinks" 
               :key="link.id"
               class="link-item"
+              draggable="true"
+              @dragstart="startDragLink($event, link)"
               @click="copyLinkReference(link)"
               :title="link.url"
             >
@@ -149,6 +169,7 @@
                 <div class="link-title">{{ link.title }}</div>
                 <div class="link-code">{{ link.reference_code }}</div>
               </div>
+              <div class="drag-hint">⋮⋮</div>
             </div>
           </div>
           
@@ -174,6 +195,8 @@
               v-for="image in recentImages" 
               :key="image.id"
               class="image-item"
+              draggable="true"
+              @dragstart="startDragImage($event, image)"
               @click="copyImagePath(image)"
               :title="image.filename"
             >
@@ -489,6 +512,7 @@ export default {
       // Topics
       allTopics: [],
       topicsFilter: '',
+      activeTopicId: null,
       
       // Links
       allLinks: [],
@@ -1062,6 +1086,22 @@ status: "draft"
         toast.error('Failed to copy to clipboard')
       })
     },
+
+    startDragLink(event, link) {
+      event.dataTransfer.effectAllowed = 'copy'
+      const reference = link.reference_code || link.title
+      event.dataTransfer.setData('text/plain', reference)
+      event.dataTransfer.setData('application/link', JSON.stringify(link))
+    },
+
+    startDragImage(event, image) {
+      event.dataTransfer.effectAllowed = 'copy'
+      const path = image.public_url 
+        || image.file_path 
+        || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
+      event.dataTransfer.setData('text/plain', path)
+      event.dataTransfer.setData('application/image', JSON.stringify(image))
+    },
     
     getImageUrl(image) {
       const rawPath = image.public_url 
@@ -1273,62 +1313,104 @@ status: "draft"
   margin-bottom: 3rem;
 }
 
-.topics-section h3 {
-  color: var(--primary-deep-teal);
-  margin-bottom: 1rem;
+.topics-section-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 1.5rem;
+  gap: 1rem;
 }
 
-.topics-empty {
+.topics-section-header h3 {
+  color: var(--primary-deep-teal);
+  margin: 0;
+  font-size: 1.3rem;
+  font-weight: 600;
+}
+
+.topics-empty-state {
   text-align: center;
-  padding: 2rem;
+  padding: 3rem 2rem;
   border: 2px dashed var(--extended-lavender-gray);
   border-radius: 8px;
   color: var(--text-secondary-cool-gray);
 }
 
-.topics-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1rem;
+.topics-empty-state .empty-icon {
+  font-size: 3rem;
+  margin-bottom: 1rem;
+}
+
+.topics-empty-state p {
+  margin: 0.5rem 0;
+  line-height: 1.5;
+}
+
+.topics-empty-state .empty-hint {
+  font-size: 0.9rem;
+  color: var(--extended-lavender-gray);
+}
+
+/* Topics List View (Streamlined) */
+.topics-list {
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
 .topic-card {
   border: 1px solid var(--extended-lavender-gray);
   border-radius: 8px;
-  padding: 1rem;
+  padding: 1rem 1.25rem;
   cursor: pointer;
   transition: all 0.2s ease;
+  background: var(--bg-white);
+  display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
 }
 
-.topic-card:hover {
+.topic-card:hover,
+.topic-card.active {
   border-color: var(--primary-deep-teal);
-  box-shadow: 0 2px 8px rgba(0,0,0,0.1);
+  background: var(--extended-sky-blue);
+  box-shadow: 0 2px 8px rgba(28, 107, 128, 0.15);
 }
 
 .topic-header {
   display: flex;
   justify-content: space-between;
   align-items: flex-start;
-  margin-bottom: 0.5rem;
+  gap: 1rem;
+}
+
+.topic-title-section {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  flex: 1;
 }
 
 .topic-header h4 {
   margin: 0;
   color: var(--primary-deep-teal);
   font-size: 1rem;
+  font-weight: 600;
 }
 
 .topic-status {
-  padding: 0.25rem 0.5rem;
+  padding: 0.25rem 0.75rem;
   border-radius: 12px;
-  font-size: 0.7rem;
+  font-size: 0.75rem;
   font-weight: 600;
   text-transform: uppercase;
+  white-space: nowrap;
+  flex-shrink: 0;
 }
 
 .status-draft {
   background: var(--extended-goldenrod);
-  color: #92400e; /* Consider adding a dark yellow/brown variable */
+  color: #92400e;
 }
 
 .status-published {
@@ -1339,34 +1421,76 @@ status: "draft"
 .topic-summary {
   color: var(--text-secondary-cool-gray);
   font-size: 0.9rem;
-  margin-bottom: 0.75rem;
   line-height: 1.4;
+  margin: 0.25rem 0;
 }
 
-.topic-meta {
+.topic-footer {
   display: flex;
   justify-content: space-between;
   align-items: center;
+  font-size: 0.85rem;
 }
 
 .topic-updated {
-  font-size: 0.8rem;
   color: var(--extended-lavender-gray);
+  font-size: 0.85rem;
 }
 
 .topic-actions {
   display: flex;
+  gap: 0.5rem;
+}
+
+.btn-action {
+  background: transparent;
+  border: 1px solid var(--extended-lavender-gray);
+  padding: 0.4rem 0.75rem;
+  border-radius: 4px;
+  font-size: 0.8rem;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  display: inline-flex;
+  align-items: center;
   gap: 0.25rem;
+  color: var(--primary-deep-teal);
+}
+
+.btn-action:hover {
+  background: var(--primary-deep-teal);
+  color: white;
+  border-color: var(--primary-deep-teal);
+}
+
+.btn-action.btn-danger:hover {
+  background: #c41e3a;
+  border-color: #c41e3a;
+}
+
+.section-divider {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  margin: 2rem 0 1rem 0;
+}
+
+.section-divider h3 {
+  color: var(--primary-deep-teal);
+  margin: 0;
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.section-divider::before {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--extended-lavender-gray);
 }
 
 .available-topics-section {
   border-top: 1px solid var(--extended-lavender-gray);
   padding-top: 2rem;
-}
-
-.available-topics-section h3 {
-  color: var(--primary-deep-teal);
-  margin-bottom: 1rem;
 }
 
 .topics-filter {
@@ -1381,6 +1505,25 @@ status: "draft"
   font-size: 0.9rem;
 }
 
+.no-topics-message {
+  text-align: center;
+  padding: 1.5rem;
+  color: var(--text-secondary-cool-gray);
+  background: var(--bg-white);
+  border: 1px dashed var(--extended-lavender-gray);
+  border-radius: 6px;
+}
+
+.no-topics-message a {
+  color: var(--primary-deep-teal);
+  text-decoration: none;
+  font-weight: 600;
+}
+
+.no-topics-message a:hover {
+  text-decoration: underline;
+}
+
 .available-topics-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
@@ -1393,25 +1536,35 @@ status: "draft"
   padding: 1rem;
   position: relative;
   transition: all 0.2s ease;
+  cursor: pointer;
 }
 
 .available-topic-card:hover {
   border-color: var(--primary-deep-teal);
-  background: var(--bg-white);
+  background: var(--extended-sky-blue);
+  box-shadow: 0 2px 8px rgba(28, 107, 128, 0.15);
 }
 
 .btn-add {
   position: absolute;
-  top: 0.5rem;
-  right: 0.5rem;
+  top: 0.75rem;
+  right: 0.75rem;
   background: var(--primary-deep-teal);
   color: white;
   border: none;
   border-radius: 4px;
-  padding: 0.25rem 0.5rem;
-  font-size: 0.8rem;
+  padding: 0.5rem 0.75rem;
+  font-size: 0.85rem;
   cursor: pointer;
+  font-weight: 500;
+  transition: all 0.2s ease;
 }
+
+.btn-add:hover {
+  background: var(--primary-deep-teal);
+  transform: scale(1.05);
+}
+
 
 /* Right Sidebar - Resources */
 .builder-resources {
@@ -1439,13 +1592,18 @@ status: "draft"
   border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-md);
   margin-bottom: 0.5rem;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
 }
 
 .link-item:hover {
   background: var(--bg-white);
   border-color: var(--primary-deep-teal);
+  box-shadow: 0 2px 6px rgba(28, 107, 128, 0.1);
+}
+
+.link-item:active {
+  opacity: 0.7;
 }
 
 .link-icon {
@@ -1468,6 +1626,13 @@ status: "draft"
   color: var(--text-secondary-cool-gray);
 }
 
+.drag-hint {
+  color: var(--extended-lavender-gray);
+  font-size: 0.7rem;
+  letter-spacing: -0.5px;
+  margin-left: 0.25rem;
+}
+
 .images-grid {
   display: grid;
   grid-template-columns: repeat(3, 1fr);
@@ -1480,13 +1645,30 @@ status: "draft"
   border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-md);
   overflow: hidden;
-  cursor: pointer;
+  cursor: move;
   transition: all 0.2s ease;
+  position: relative;
 }
 
 .image-item:hover {
   border-color: var(--primary-deep-teal);
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+  box-shadow: 0 2px 6px rgba(28, 107, 128, 0.15);
+}
+
+.image-item:hover::after {
+  content: '⋮⋮';
+  position: absolute;
+  top: 0;
+  right: 0;
+  background: rgba(0, 0, 0, 0.5);
+  color: white;
+  padding: 0.25rem 0.5rem;
+  font-size: 0.7rem;
+  letter-spacing: -0.5px;
+}
+
+.image-item:active {
+  opacity: 0.7;
 }
 
 .image-thumbnail {
