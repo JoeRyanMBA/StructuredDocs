@@ -1149,20 +1149,29 @@ status: "draft"
   font-size: 1.1rem;
 }
 
-/* Collapse the global sidebar for this page to maximize workspace */
+/* Collapse (not hide) the global sidebar on Document Builder to save space while keeping access */
 :global(body.document-builder-collapsed .app-sidebar),
 :global(body.document-builder-collapsed .sidebar),
 :global(body.document-builder-collapsed .side-nav) {
-  display: none !important;
-  width: 0 !important;
-  min-width: 0 !important;
+  width: 56px !important;
+  min-width: 56px !important;
+  overflow: hidden;
+  transition: width 0.2s ease;
+}
+
+/* Allow quick peek/interaction on hover without fully hiding */
+:global(body.document-builder-collapsed .app-sidebar:hover),
+:global(body.document-builder-collapsed .sidebar:hover),
+:global(body.document-builder-collapsed .side-nav:hover) {
+  width: 220px !important;
 }
 
 :global(body.document-builder-collapsed .main-content),
 :global(body.document-builder-collapsed .content),
 :global(body.document-builder-collapsed .page-wrapper) {
-  margin-left: 0 !important;
-  padding-left: 0 !important;
+  margin-left: 56px !important;
+  padding-left: 1rem !important;
+  transition: margin-left 0.2s ease;
 }
 
 .builder-layout {
