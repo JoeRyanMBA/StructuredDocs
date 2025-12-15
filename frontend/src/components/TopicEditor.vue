@@ -180,6 +180,15 @@
                   @click="openExistingLinks"
                   title="Choose from existing saved links"
                 >Existing</button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(linkInsertMode === 'upload').toString()"
+                  :tabindex="linkInsertMode === 'upload' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', linkInsertMode === 'upload' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="linkInsertMode = 'upload'"
+                  title="Upload an image and link to it"
+                >Upload Image</button>
               </div>
             </div>
             <div v-if="linkInsertMode === 'manual'">
@@ -192,7 +201,7 @@
               <input v-model="linkUrl" type="url" class="form-input" placeholder="https://example.com">
             </div>
             </div>
-            <div v-else>
+            <div v-else-if="linkInsertMode === 'existing'">
               <div class="form-group">
                 <label>Search Links</label>
                 <input v-model="linkSearch" type="text" class="form-input" placeholder="Search by title, description, reference, or URL" @input="debouncedFetchLinks">
@@ -204,6 +213,26 @@
                 </div>
               </div>
               <div class="empty-state" v-else>No links found.</div>
+            </div>
+            <div v-else>
+              <div class="form-group">
+                <label>Upload Image (becomes link URL)</label>
+                <input type="file" accept="image/*" @change="onLinkUploadSelect" />
+              </div>
+              <div class="upload-status" v-if="linkUploadMessage">{{ linkUploadMessage }}</div>
+              <div class="upload-actions">
+                <button class="btn btn-primary" :disabled="linkUploadUploading || !linkUploadFile" @click="uploadLinkImage">
+                  {{ linkUploadUploading ? 'Uploading...' : 'Upload & Use as Link' }}
+                </button>
+              </div>
+              <div class="form-group" v-if="linkUrl">
+                <label>Resulting URL</label>
+                <input v-model="linkUrl" type="url" class="form-input">
+              </div>
+              <div class="form-group" v-if="linkText === '' && linkUrl">
+                <label>Link Text</label>
+                <input v-model="linkText" type="text" class="form-input" placeholder="Display text">
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -241,6 +270,15 @@
                   @click="openExistingImages"
                   title="Browse previously uploaded images"
                 >Browse</button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(imageInsertMode === 'upload').toString()"
+                  :tabindex="imageInsertMode === 'upload' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', imageInsertMode === 'upload' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="imageInsertMode = 'upload'"
+                  title="Upload an image from your computer"
+                >Upload</button>
               </div>
             </div>
             <div v-if="imageInsertMode === 'url'">
@@ -253,7 +291,7 @@
               <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
             </div>
             </div>
-            <div v-else>
+            <div v-else-if="imageInsertMode === 'existing'">
               <div class="form-group">
                 <label>Search Images</label>
                 <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
@@ -265,6 +303,26 @@
                 </div>
               </div>
               <div class="empty-state" v-else>No images found.</div>
+            </div>
+            <div v-else>
+              <div class="form-group">
+                <label>Upload Image</label>
+                <input type="file" accept="image/*" @change="onImageUploadSelect" />
+              </div>
+              <div class="upload-status" v-if="imageUploadMessage">{{ imageUploadMessage }}</div>
+              <div class="upload-actions">
+                <button class="btn btn-primary" :disabled="imageUploadUploading || !imageUploadFile" @click="uploadImageFile">
+                  {{ imageUploadUploading ? 'Uploading...' : 'Upload & Use' }}
+                </button>
+              </div>
+              <div class="form-group" v-if="imageUrl">
+                <label>Resulting URL</label>
+                <input v-model="imageUrl" type="url" class="form-input">
+              </div>
+              <div class="form-group">
+                <label>Alt Text</label>
+                <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
+              </div>
             </div>
           </div>
           <div class="modal-footer">
@@ -320,13 +378,19 @@ export default {
       tableRows: 3,
       tableCols: 3,
   imageInsertMode: 'url',
-      selectedImageFile: null,
+  imageUploadFile: null,
+  imageUploadUploading: false,
+  imageUploadMessage: '',
+  imageUploadPreview: '',
       imageUrl: '',
       imageAlt: '',
       availableImages: [],
   filteredImages: [],
   imageSearch: '',
       linkInsertMode: 'manual',
+  linkUploadFile: null,
+  linkUploadUploading: false,
+  linkUploadMessage: '',
       linkText: '',
       linkTitle: '',
       linkUrl: '',
@@ -602,6 +666,72 @@ export default {
     selectExistingImage(img) {
       this.imageUrl = img.public_url || img.file_path
       this.imageAlt = img.alt_text || img.filename
+    },
+
+    onImageUploadSelect(event) {
+      const file = event.target.files && event.target.files[0]
+      this.imageUploadFile = file || null
+      this.imageUploadMessage = file ? `Selected ${file.name}` : ''
+    },
+
+    async uploadImageFile() {
+      if (!this.imageUploadFile) return
+      this.imageUploadUploading = true
+      this.imageUploadMessage = 'Uploading...'
+      try {
+        const formData = new FormData()
+        formData.append('image', this.imageUploadFile)
+        const res = await fetch('/api/images/upload', {
+          method: 'POST',
+          body: formData
+        })
+        if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+        const data = await res.json()
+        this.imageUrl = data.public_url || data.file_path
+        this.imageAlt = data.alt_text || data.filename
+        this.imageUploadMessage = 'Upload successful. Ready to insert.'
+        // Refresh existing list so it appears in Browse
+        await this.fetchImages()
+        this.filterImages()
+      } catch (e) {
+        console.error('Upload failed', e)
+        this.imageUploadMessage = 'Upload failed. Please try again.'
+      } finally {
+        this.imageUploadUploading = false
+      }
+    },
+
+    onLinkUploadSelect(event) {
+      const file = event.target.files && event.target.files[0]
+      this.linkUploadFile = file || null
+      this.linkUploadMessage = file ? `Selected ${file.name}` : ''
+    },
+
+    async uploadLinkImage() {
+      if (!this.linkUploadFile) return
+      this.linkUploadUploading = true
+      this.linkUploadMessage = 'Uploading...'
+      try {
+        const formData = new FormData()
+        formData.append('image', this.linkUploadFile)
+        const res = await fetch('/api/images/upload', {
+          method: 'POST',
+          body: formData
+        })
+        if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+        const data = await res.json()
+        // Use uploaded image URL as link target
+        this.linkUrl = data.public_url || data.file_path
+        if (!this.linkText) {
+          this.linkText = data.alt_text || data.filename || 'Image'
+        }
+        this.linkUploadMessage = 'Upload successful. Link URL populated.'
+      } catch (e) {
+        console.error('Upload failed', e)
+        this.linkUploadMessage = 'Upload failed. Please try again.'
+      } finally {
+        this.linkUploadUploading = false
+      }
     },
     async saveTopic() {
       if (!this.title.trim()) return

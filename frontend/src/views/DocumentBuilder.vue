@@ -44,18 +44,6 @@
                     <h3>New Collection</h3>
                   </div>
               </a>
-              <router-link class="quick-action-card" to="/links">
-                <div class="action-icon">🔗</div>
-                <div class="action-content" title="Manage and reuse links across your documents">
-                  <h3>View Links</h3>
-                </div>
-              </router-link>
-              <router-link class="quick-action-card" to="/images">
-                <div class="action-icon">🖼️</div>
-                <div class="action-content" title="Find images from your library for quick insertion">
-                  <h3>Browse Images</h3>
-                </div>
-              </router-link>
               <button class="quick-action-card" @click="showVariablesPanel = !showVariablesPanel" :aria-pressed="showVariablesPanel.toString()">
                 <div class="action-icon">🏷️</div>
                 <div class="action-content"><h3>{{ showVariablesPanel ? 'Hide' : 'Variables' }}</h3></div>
@@ -77,7 +65,7 @@
                 <p class="empty-hint">Create a new topic or drag one from the Topics panel on the right, or add from Available Topics below.</p>
               </div>
               
-              <div v-else class="topics-list" @dragover.prevent="isDraggingOver = true" @dragleave="isDraggingOver = false" @drop.prevent="handleDropTopic">
+              <div v-else class="topics-list" :class="{ 'dragging-over': isDraggingOver }" @dragover.prevent="isDraggingOver = true" @dragleave="isDraggingOver = false" @drop.prevent="handleDropTopic">
                 <div 
                   v-for="topic in collectionTopics" 
                   :key="topic.id" 
@@ -105,142 +93,33 @@
               </div>
             </div>
 
-            <!-- Available Topics for Adding -->
-            <div class="available-topics-section">
-              <div class="section-divider">
-                <h3>📚 Available Topics</h3>
-              </div>
-              <div class="topics-filter">
-                <input 
-                  v-model="topicsFilter" 
-                  placeholder="Search topics..." 
-                  class="filter-input"
-                />
-              </div>
-              
-              <div v-if="filteredAvailableTopics.length === 0" class="no-topics-message">
-                <p>No available topics found. <a href="#" @click.prevent="addNewTopic">Create one</a> to get started.</p>
-              </div>
-              
-              <div v-else class="available-topics-grid">
-                <div 
-                  v-for="topic in filteredAvailableTopics" 
-                  :key="topic.id"
-                  class="available-topic-card"
-                  @click="addTopicToCollection(topic)"
-                >
-                  <div class="topic-header">
-                    <h4>{{ topic.title }}</h4>
-                    <span :class="['topic-status', `status-${topic.status}`]">
-                      {{ formatStatus(topic.status) }}
-                    </span>
-                  </div>
-                  <div class="topic-summary">{{ topic.summary || 'No summary available' }}</div>
-                  <button class="btn-add" @click.stop="addTopicToCollection(topic)">➕︎ Add to Collection</button>
-                </div>
-              </div>
-            </div>
         </div>
       </div>
 
-  <!-- Right Sidebar - Resources -->
+  <!-- Right Sidebar - Available Topics Only -->
   <div class="builder-resources">
-        <!-- Links Repository -->
-        <div class="resource-section">
-          <div class="section-header">
-            <h3>🔗 Links</h3>
-            <button class="btn-icon" @click="showLinksModal = true" title="Manage Links">
-              ⚙️
-            </button>
-          </div>
-          
-          <div class="links-list">
-            <div 
-              v-for="link in recentLinks" 
-              :key="link.id"
-              class="link-item"
-              draggable="true"
-              @dragstart="startDragLink($event, link)"
-              @click="copyLinkReference(link)"
-              :title="link.url"
-            >
-              <div class="link-icon">🔗</div>
-              <div class="link-info">
-                <div class="link-title">{{ link.title }}</div>
-                <div class="link-code">{{ link.reference_code }}</div>
-              </div>
-              <div class="drag-hint">⋮⋮</div>
-            </div>
-          </div>
-          
-          <button class="quick-action-card w-100" @click="showLinksModal = true">
-            <div class="action-icon">🔗</div>
-            <div class="action-content" title="Manage and insert references">
-              <h3>View Links</h3>
-            </div>
-          </button>
-        </div>
-
-        <!-- Images Repository -->
-        <div class="resource-section">
-          <div class="section-header">
-            <h3>🖼️ Images</h3>
-            <button class="btn-icon" @click="showImagesModal = true" title="Browse Images">
-              📷
-            </button>
-          </div>
-          
-          <div class="images-grid">
-            <div 
-              v-for="image in recentImages" 
-              :key="image.id"
-              class="image-item"
-              draggable="true"
-              @dragstart="startDragImage($event, image)"
-              @click="copyImagePath(image)"
-              :title="image.filename"
-            >
-              <img 
-                :src="getImageUrl(image)" 
-                :alt="image.filename"
-                class="image-thumbnail"
-                @error="handleImageError"
-              />
-            </div>
-          </div>
-          
-          <button class="quick-action-card w-100" @click="showImagesModal = true">
-
-              <div class="action-icon">🖼️</div>
-            <div class="action-content" title="Find and insert media">
-              <h3>Browse Images</h3>
-            </div>
-          </button>
-        </div>
-
-        <!-- Available Topics Repository -->
         <div class="resource-section" v-if="selectedCollection">
           <div class="section-header">
-            <h3>📚 Topics</h3>
+            <h3>📚 Available Topics</h3>
             <button class="btn-icon" @click="topicsSearchOpen = !topicsSearchOpen" title="Search Topics">
               🔍
             </button>
           </div>
           
-          <div v-if="topicsSearchOpen" class="topics-search-bar">
+          <div class="topics-search-bar" v-if="topicsSearchOpen">
             <input 
               v-model="topicsSearch" 
               placeholder="Search available topics..." 
               class="filter-input"
             />
           </div>
-          
+
           <div class="topics-list-sidebar">
             <div 
               v-if="availableTopicsForDrag.length === 0"
               class="no-items-message"
             >
-              <p>No topics available</p>
+              <p>No available topics to add.</p>
             </div>
             
             <div 
@@ -553,7 +432,6 @@ export default {
       
       // Topics
       allTopics: [],
-      topicsFilter: '',
       topicsSearch: '',
       topicsSearchOpen: false,
       activeTopicId: null,
@@ -654,16 +532,6 @@ export default {
       return this.allTopics.filter(topic => !collectionTopicIds.has(topic.id))
     },
     
-    filteredAvailableTopics() {
-      if (!this.topicsFilter) return this.availableTopics.slice(0, 10) // Limit for performance
-      
-      const filter = this.topicsFilter.toLowerCase()
-      return this.availableTopics.filter(topic => 
-        topic.title.toLowerCase().includes(filter) ||
-        (topic.summary && topic.summary.toLowerCase().includes(filter))
-      ).slice(0, 10)
-    },
-
     availableTopicsForDrag() {
       let topics = this.availableTopics
       
@@ -676,8 +544,8 @@ export default {
         )
       }
       
-      // Return first 8 for sidebar
-      return topics.slice(0, 8)
+      // Return first 20 for sidebar on large screens
+      return topics.slice(0, 20)
     },
     
     filteredLinks() {
@@ -706,6 +574,14 @@ export default {
   
   async created() {
     await this.loadData()
+  },
+
+  mounted() {
+    document.body.classList.add('document-builder-collapsed')
+  },
+
+  beforeUnmount() {
+    document.body.classList.remove('document-builder-collapsed')
   },
   
   methods: {
@@ -964,7 +840,7 @@ export default {
     
     selectCollection(collection) {
       this.selectedCollection = collection
-      this.topicsFilter = '' // Reset filter when switching collections
+      this.topicsSearch = '' // Reset search when switching collections
     },
     
     async createCollection() {
@@ -1148,22 +1024,6 @@ status: "draft"
       })
     },
 
-    startDragLink(event, link) {
-      event.dataTransfer.effectAllowed = 'copy'
-      const reference = link.reference_code || link.title
-      event.dataTransfer.setData('text/plain', reference)
-      event.dataTransfer.setData('application/link', JSON.stringify(link))
-    },
-
-    startDragImage(event, image) {
-      event.dataTransfer.effectAllowed = 'copy'
-      const path = image.public_url 
-        || image.file_path 
-        || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
-      event.dataTransfer.setData('text/plain', path)
-      event.dataTransfer.setData('application/image', JSON.stringify(image))
-    },
-
     startDragTopic(event, topic) {
       event.dataTransfer.effectAllowed = 'copy'
       event.dataTransfer.setData('application/topic', JSON.stringify(topic))
@@ -1267,7 +1127,7 @@ status: "draft"
 <style scoped>
 .document-builder {
   padding: 1rem;
-  max-width: 1400px;
+  max-width: 1800px;
   margin: 0 auto;
   /* background removed for white layout */
 }
@@ -1289,10 +1149,26 @@ status: "draft"
   font-size: 1.1rem;
 }
 
+/* Collapse the global sidebar for this page to maximize workspace */
+:global(body.document-builder-collapsed .app-sidebar),
+:global(body.document-builder-collapsed .sidebar),
+:global(body.document-builder-collapsed .side-nav) {
+  display: none !important;
+  width: 0 !important;
+  min-width: 0 !important;
+}
+
+:global(body.document-builder-collapsed .main-content),
+:global(body.document-builder-collapsed .content),
+:global(body.document-builder-collapsed .page-wrapper) {
+  margin-left: 0 !important;
+  padding-left: 0 !important;
+}
+
 .builder-layout {
   display: grid;
-  grid-template-columns: 1fr 280px;
-  gap: 2rem;
+  grid-template-columns: 1fr 360px;
+  gap: 1.5rem;
   min-height: 60vh;
 }
 
