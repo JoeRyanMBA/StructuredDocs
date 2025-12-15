@@ -690,9 +690,25 @@ export default {
         this.imageUrl = data.public_url || data.file_path
         this.imageAlt = data.alt_text || data.filename
         this.imageUploadMessage = 'Upload successful. Ready to insert.'
-        // Refresh existing list so it appears in Browse
+        // Refresh existing list so it appears in Browse and push into arrays
         await this.fetchImages()
         this.filterImages()
+        if (data) {
+          const newImg = {
+            id: data.id || Date.now(),
+            filename: data.filename,
+            public_url: data.public_url,
+            file_path: data.file_path,
+            alt_text: data.alt_text,
+            created_at: data.created_at,
+          }
+          if (!this.availableImages.find(img => img.public_url === newImg.public_url)) {
+            this.availableImages.unshift(newImg)
+            this.filteredImages = this.availableImages
+          }
+        }
+        // Switch to Browse tab so user can see it if they reopen
+        this.imageInsertMode = 'existing'
       } catch (e) {
         console.error('Upload failed', e)
         this.imageUploadMessage = 'Upload failed. Please try again.'
@@ -861,16 +877,21 @@ export default {
 
     insertImage() {
       if (!this.imageUrl) return
-      
-      const imageMarkdown = `![${this.imageAlt || 'Image'}](${this.imageUrl})`
+      const alt = this.imageAlt || 'Image'
+      const imageMarkdown = `![${alt}](${this.imageUrl})`
       
       if (this.editorMode === 'markdown') {
         this.insertMarkdown(imageMarkdown, '')
+      } else if (this.editorMode === 'wysiwyg') {
+        const imgHtml = `<img src="${this.imageUrl}" alt="${alt}" />`
+        document.execCommand('insertHTML', false, imgHtml)
+        this.updateContentFromWysiwyg()
       }
       
       // Reset modal
       this.imageUrl = ''
       this.imageAlt = ''
+      this.imageInsertMode = 'url'
       this.showImageModal = false
     },
 
