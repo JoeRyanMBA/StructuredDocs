@@ -6,7 +6,7 @@ services:
     container_name: structureddocs_app
     environment:
       - PORT=8080
-      - DATABASE_URL=sqlite:///instance/structured_docs.db
+      - DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
@@ -27,3 +27,5 @@ services:
     env_file:
       - backend.env
     command: ["./start.sh"]
+    # Optional: Run permission fix on startup (if needed)
+    # init: true  # Enable this if you want to run an init process

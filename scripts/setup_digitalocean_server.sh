@@ -40,13 +40,14 @@ REMOTE_DIR="/opt/structureddocs"
 mkdir -p "$REMOTE_DIR"
 mkdir -p "$REMOTE_DIR/data/images"
 mkdir -p "$REMOTE_DIR/instance"
-chmod 755 "$REMOTE_DIR/data/images"
-chmod 755 "$REMOTE_DIR/instance"
+# CRITICAL: Set permissions to 777 so container (appuser) can write to volumes
+chmod 777 "$REMOTE_DIR/data/images"
+chmod 777 "$REMOTE_DIR/instance"
 
-echo "✅ Directories created:"
+echo "✅ Directories created with proper permissions:"
 echo "   - $REMOTE_DIR"
-echo "   - $REMOTE_DIR/data/images (for uploaded images)"
-echo "   - $REMOTE_DIR/instance (for database)"
+echo "   - $REMOTE_DIR/data/images (777 - writable by container)"
+echo "   - $REMOTE_DIR/instance (777 - writable by container)"
 
 # Create .enable_blueprints file
 echo "📝 Creating .enable_blueprints configuration..."
