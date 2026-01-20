@@ -1,12 +1,12 @@
 #!/bin/bash
-# Deploy to DigitalOcean Droplet via SSH using Docker
+# Deploy to DigitalOcean Droplet via SSH using Docker Compose
 # Prerequisites: SSH key added, remote has docker + docker-compose plugin
-# Usage: ./scripts/deploy_digitalocean.sh
+# Usage: ./scripts/deploy_digitalocean.sh [REMOTE_HOST]
 
 set -euo pipefail
 
-REMOTE_HOST="your_droplet_ip"   # e.g. 203.0.113.10
-REMOTE_USER="root"              # or a non-root sudo user
+REMOTE_HOST="${1:-64.225.29.187}"  # Can override with first argument
+REMOTE_USER="root"                  # or a non-root sudo user
 REMOTE_DIR="/opt/structureddocs"
 IMAGE_NAME="structureddocs-backend"
 TAG="latest"
@@ -35,21 +35,31 @@ rm /tmp/structureddocs_backend_image.tar.gz || true
 echo "🗑️  Cleaning old containers..."
 docker ps -a --filter "name=structureddocs-backend" -q | xargs -r docker rm -f
 
-echo "🗄️  Starting new container..."
-docker run -d --name structureddocs-backend \
-  -p 8080:8080 \
-  --env-file backend.env \
-  --restart unless-stopped \
-  structureddocs-backend:latest
+echo "🗄️  Starting application with Docker Compose..."
+cd "$REMOTE_DIR"
+
+# Stop and remove existing containers
+docker compose down || true
+
+# Start with docker compose (includes volume mounts)
+docker compose up -d
 
 echo "🧪 Health check (curl)..."
 sleep 5
-curl -f http://localhost:8080/api/health || (echo "❌ Health check failed" && docker logs structureddocs-backend && exit 1)
+curl -f http://localhost:8080/api/health || (echo "❌ Health check failed" && docker compose logs && exit 1)
 
 echo "✅ Deployment successful"
+echo "📁 Images persist in: $REMOTE_DIR/data/images"
+echo "📁 Database persists in: $REMOTE_DIR/instance"
 EOF
 
 echo "🧹 Cleaning local artifacts..."
 rm structureddocs_backend_image.tar.gz || true
 
-echo "🎉 Done. Remember to create a backend.env on the server with real secrets."
+echo ""
+echo "🎉 Deployment complete!"
+echo "   Server: $REMOTE_HOST"
+echo "   Images: $REMOTE_DIR/data/images"
+echo "   Database: $REMOTE_DIR/instance"
+echo ""
+echo "💡 To check logs: ssh $REMOTE_USER@$REMOTE_HOST 'cd $REMOTE_DIR && docker compose logs -f'"
