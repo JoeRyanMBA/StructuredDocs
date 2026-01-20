@@ -198,3 +198,7 @@ yarn.lock
 # Email debug artifacts
 backend/debug_emails/
 backend/debug_emails/**
+
+# Docker image archives (too large for GitHub)
+*.tar.gz
+structureddocs_backend_image.tar.gz
