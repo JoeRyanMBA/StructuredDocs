@@ -20,6 +20,11 @@ docker save ${IMAGE_NAME}:${TAG} | gzip > structureddocs_backend_image.tar.gz
 echo "📤 Copying image to remote host..."
 scp structureddocs_backend_image.tar.gz ${REMOTE_USER}@${REMOTE_HOST}:/tmp/
 
+echo "📋 Copying docker-compose.yml to remote host..."
+scp docker-compose.prod.yml ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/docker-compose.yml || \
+scp docker-compose.yml ${REMOTE_USER}@${REMOTE_HOST}:${REMOTE_DIR}/docker-compose.yml || \
+echo "⚠️  Could not find docker-compose file"
+
 ssh ${REMOTE_USER}@${REMOTE_HOST} bash -s <<'EOF'
 set -euo pipefail
 REMOTE_DIR="/opt/structureddocs"

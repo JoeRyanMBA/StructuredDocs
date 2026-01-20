@@ -1,0 +1,29 @@
+version: '3.8'
+
+services:
+  app:
+    image: structureddocs-backend:latest
+    container_name: structureddocs_app
+    environment:
+      - PORT=8080
+      - DATABASE_URL=sqlite:///instance/structured_docs.db
+      - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
+      - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
+      - FROM_EMAIL=${FROM_EMAIL:-}
+      - FROM_NAME=${FROM_NAME:-StructuredDocs}
+      - SENDGRID_VERIFIED_SENDER=${SENDGRID_VERIFIED_SENDER:-}
+      - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
+      - ADMIN_API_KEY=${ADMIN_API_KEY:-}
+      - SECRET_KEY=${SECRET_KEY}
+    ports:
+      - "8080:8080"
+    restart: unless-stopped
+    volumes:
+      - ./.enable_blueprints:/app/.enable_blueprints:ro
+      - ./instance:/app/instance
+      - ./data/images:/app/backend/static/images
+    env_file:
+      - backend.env
+    command: ["./start.sh"]
