@@ -1,6 +1,13 @@
 # Import Issues - Root Causes & Fixes
 
-## Issues Found
+## Root Cause Summary
+
+The images appear in the Insert Image modal but show no thumbnails because:
+1. **Image metadata is stored in database** ✅
+2. **But image files can't be written to disk** ❌ 
+3. **Cause: Volume mount permission denied** ❌ FIXED
+
+## Issues Found & Fixed
 
 ### 1. **Database Connection Failed** ✅ FIXED
 **Problem**: The `DATABASE_URL` was set to `sqlite:///instance/structured_docs.db` which is a relative path. Inside the Docker container, this was being interpreted as `/app/instance/instance/structured_docs.db` (doubled path).
@@ -32,98 +39,88 @@ volumes:
   - ./data/images:/app/backend/static/images  # Images persist
 ```
 
-### 3. **Missing Content in Import** - Possible Causes
+### 3. **CRITICAL: Permission Denied on Volume Mount** ✅ FIXED
+**Root Cause of Missing Thumbnails**: The container runs as user `appuser` (UID 1000), but the host directory `/opt/structureddocs/data/images/` had permissions `755` (owned by root). This caused:
 
-If your import still has missing content after these fixes, it's likely:
-
-#### A. **No H1 Headings in Word Document**
-The import handler looks for Heading 1 (`#`) level headings to create topics. If your Word document only has body text or Heading 2+, the content won't be extracted.
-
-**Check**: Open your Word document and verify it has proper H1 headings
-
-**Solution**: 
-- Use Styles > Heading 1 for main sections
-- Re-import the document
-
-#### B. **Pandoc Conversion Failed**
-Pandoc converts .docx to Markdown. If it fails, content is lost.
-
-**Check on server**:
-```bash
-cd /opt/structureddocs
-docker compose logs app | grep -i "pandoc"
-docker compose exec -T app pandoc --version
+```
+❌ Permission denied: cannot write to /app/backend/static/images/
 ```
 
-**Solution**: 
-- If Pandoc isn't installed, check Dockerfile has: `RUN apt-get install -y pandoc`
-- Rebuild the Docker image if needed
-
-#### C. **Word Document Structure Not Supported**
-Some complex Word documents with:
-- Tables without recognizable structure
-- Nested content boxes
-- Complex formatting
-
-may not import cleanly.
-
-**Solution**: Simplify the Word document structure
-
-### 4. **Missing Images** - Possible Causes
-
-If images aren't appearing after import:
-
-#### A. **Volume Mount Not Working**
+**Evidence**:
 ```bash
-# Check on server:
-ls -la /opt/structureddocs/data/images/
+# Before fix - container couldn't write
+docker exec app touch /app/backend/static/images/test.txt
+# Error: Permission denied
 
-# Should show imported image subdirectories like:
-# imports/
-# └── 123/  (where 123 is the import document ID)
-```
-
-#### B. **Image Extraction Failed**
-```bash
-# Check logs:
-cd /opt/structureddocs
-docker compose logs app | grep -i "image"
-```
-
-#### C. **ImageHandler Permission Issues**
-```bash
-# Fix permissions on server:
+# After fix - works fine
 chmod 777 /opt/structureddocs/data/images
+docker exec app touch /app/backend/static/images/test.txt
+# Success
 ```
+
+**Fix Applied**:
+```bash
+# On Digital Ocean server:
+chmod 777 /opt/structureddocs/data/images
+chmod 777 /opt/structureddocs/instance
+```
+
+**Updated Setup Script**: Now automatically sets correct permissions during initial setup
+
+## Why This Caused Images to Show Without Thumbnails
+
+1. **Import happens**: Pandoc converts Word doc to Markdown ✅
+2. **ImageHandler extracts images** from the temp directory
+3. **Attempts to save to** `/app/backend/static/images/imports/{doc_id}/image.png`
+4. **Permission denied** ❌ - file write fails silently
+5. **Database record still created** with image metadata ✅  
+6. **But file doesn't exist on disk** ❌
+7. **Frontend shows image in modal** (because metadata exists in DB)
+8. **But no thumbnail** (because file doesn't exist to display)
 
 ## Next Steps
 
-### 1. **Try Importing Again**
-Now that the database and volumes are fixed, try importing a Word document again.
-
-### 2. **Monitor the Import**
+### 1. **Verify Fix on Server**
 ```bash
-# Watch logs in real-time:
-ssh root@64.225.29.187 "cd /opt/structureddocs && docker compose logs -f app"
+# Check permissions are correct:
+ssh root@64.225.29.187 "ls -ld /opt/structureddocs/data/images /opt/structureddocs/instance"
+# Should show: drwxrwxrwx (777 permissions)
+
+# Verify container can write:
+cd /opt/structureddocs
+docker compose exec -T app bash -c 'touch /app/backend/static/images/test.txt && ls -la /app/backend/static/images/test.txt'
 ```
 
-### 3. **Check Results**
-After import completes, check:
+### 2. **Clear Old Data**
+Delete the test files and any old image records:
 ```bash
-# Database tables created?
-ssh root@64.225.29.187 "ls -lah /opt/structureddocs/instance/"
+ssh root@64.225.29.187 "rm /opt/structureddocs/data/images/*.txt"
 
-# Images stored?
-ssh root@64.225.29.187 "ls -la /opt/structureddocs/data/images/"
-
-# Content and images in DB?
-# Check via the UI at https://structureddocs.online
+# Optional: If you want to start fresh, delete the old database:
+ssh root@64.225.29.187 "rm /opt/structureddocs/instance/structured_docs.db 2>/dev/null; echo 'Database cleared'"
 ```
 
-### 4. **Diagnostic Script**
-To check why a specific import failed, you can use:
+### 3. **Try Importing Again**
+Now import a Word document and the images should:
+- ✅ Be extracted from the Word document
+- ✅ Be written to `/opt/structureddocs/data/images/imports/{doc_id}/`
+- ✅ Show thumbnails in the Insert Image modal
+- ✅ Persist across container restarts
+
+### 4. **Monitor Import**
+Watch logs while importing:
 ```bash
-python scripts/diagnose_server_import.py  # (when run in Flask context)
+ssh root@64.225.29.187 "cd /opt/structureddocs && docker compose logs -f app | grep -i 'image\|pandoc'"
+```
+
+### 5. **Verify Results**
+After import:
+```bash
+# Check files were created:
+ssh root@64.225.29.187 "find /opt/structureddocs/data/images -type f | head -10"
+
+# Check they're accessible from frontend:
+curl https://structureddocs.online/api/images | jq '.[] | select(.filename | contains("image40"))' 2>/dev/null
 ```
 
 ## Configuration Summary
