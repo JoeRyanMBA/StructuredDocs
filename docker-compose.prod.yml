@@ -6,8 +6,8 @@ services:
     container_name: structureddocs_app
     environment:
       - PORT=8080
-      # Override this in production via environment or .env if using an external DB
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///structured_docs.db}
+      # Use absolute path for SQLite database (4 slashes: sqlite:// + //)
+      - DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       # Email configuration (set these in your deployment environment)
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
@@ -18,12 +18,14 @@ services:
       - SENDGRID_VERIFIED_SENDER=${SENDGRID_VERIFIED_SENDER:-}
       - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
       - ADMIN_API_KEY=${ADMIN_API_KEY:-}
+      - SECRET_KEY=${SECRET_KEY}
     ports:
       - "8080:8080"
     restart: unless-stopped
-    # Persist SQLite DB on host (optional). Comment out if using Postgres.
+    # Persist SQLite DB and uploaded images across restarts
     volumes:
       - ./instance:/app/instance
-      # Persist imported images across restarts (served via /images)
+      # CRITICAL: Mount persistent storage for images
+      # Host permissions MUST be 777: chmod 777 ./data/images ./instance
       - ./data/images:/app/backend/static/images
     command: ["./start.sh"]
