@@ -493,8 +493,19 @@ class ImportImage(db.Model):
     # Relationship
     document = relationship('ImportDocument', backref='images')
 
-    def to_dict(self):
-        return {
+    def to_dict(self, include_file_exists=False):
+        """Convert to dict, optionally including file existence check
+        
+        Args:
+            include_file_exists: If True, check disk and include 'file_exists' field
+                                 If False, omit file_exists (faster for large lists)
+        
+        Returns:
+            dict with image metadata
+        """
+        from pathlib import Path
+        
+        result = {
             'id': self.id,
             'document_id': self.document_id,
             'filename': self.filename,
@@ -507,6 +518,13 @@ class ImportImage(db.Model):
             'mime_type': self.mime_type,
             'created_at': self.created_at.isoformat() if self.created_at else None
         }
+        
+        if include_file_exists:
+            backend_path = Path(self.backend_path)
+            frontend_path = Path(self.frontend_path)
+            result['file_exists'] = backend_path.exists() or frontend_path.exists()
+        
+        return result
 
     if TYPE_CHECKING:
         def __init__(self, id: int | None = None, document_id: int = ..., filename: str = ..., original_name: str = ..., public_url: str = ..., backend_path: str = ..., frontend_path: str = ..., width: int | None = None, height: int | None = None, format: str | None = None, file_size: int | None = None, mime_type: str | None = None, created_at: datetime | None = None): ...

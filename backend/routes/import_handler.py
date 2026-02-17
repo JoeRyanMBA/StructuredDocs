@@ -1585,8 +1585,7 @@ def get_import_images(doc_id):
     """Get all images associated with an import document
     
     Returns all database records regardless of whether files exist on disk.
-    Similar to how links work - we return the database truth, not just what's on filesystem.
-    The frontend should handle missing files gracefully with placeholders.
+    Includes 'file_exists' field so frontend can handle missing files.
     """
     try:
         doc = ImportDocument.query.get_or_404(doc_id)
@@ -1594,19 +1593,20 @@ def get_import_images(doc_id):
         # Get images from database - return ALL records, not just ones with files on disk
         db_images = ImportImage.query.filter_by(document_id=doc_id).order_by(ImportImage.created_at.desc()).all()
         
-        # Log which images exist vs missing on disk
+        # Convert to dicts with file_exists field
         from pathlib import Path
+        images_data = []
         for img in db_images:
-            backend_path = Path(img.backend_path)
-            frontend_path = Path(img.frontend_path)
-            file_exists = backend_path.exists() or frontend_path.exists()
-            if not file_exists:
+            img_dict = img.to_dict(include_file_exists=True)
+            
+            # Log warnings for missing files
+            if not img_dict.get('file_exists', False):
                 current_app.logger.warning(
-                    f"Image file missing for import {doc_id}/{img.filename}: "
-                    f"backend={backend_path}, frontend={frontend_path}"
+                    f"⚠️  Image file missing: {doc_id}/{img.filename} "
+                    f"(backend: {img.backend_path}, frontend: {img.frontend_path})"
                 )
-        
-        images_data = [img.to_dict() for img in db_images]
+            
+            images_data.append(img_dict)
         
         return jsonify({
             'document_id': doc_id,
