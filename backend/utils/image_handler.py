@@ -59,16 +59,20 @@ class ImageHandler:
         updated_content = markdown_content
         
         if not os.path.exists(temp_media_dir):
-            current_app.logger.warning(f"❌ No temp media directory found at {temp_media_dir} - Pandoc may not have extracted any images")
+            current_app.logger.warning(f"⚠️  No temp media directory found at {temp_media_dir} - Pandoc may not have extracted any images. This is OK if the document has no images.")
             return updated_content, stored_images
         
         current_app.logger.info(f"📁 Checking temp media directory: {temp_media_dir}")
         
         # Pre-flight checks
         try:
+            # Ensure backend images directory exists first
+            self.backend_images_dir.mkdir(parents=True, exist_ok=True)
+            current_app.logger.info(f"✅ Ensured backend images directory exists: {self.backend_images_dir}")
+            
             # Check disk space
             import shutil as shutil_util
-            stat = shutil_util.disk_usage(self.backend_images_dir)
+            stat = shutil_util.disk_usage(str(self.backend_images_dir.parent))
             free_gb = stat.free / (1024**3)
             current_app.logger.info(f"💾 Disk space available: {free_gb:.2f} GB")
             if free_gb < 0.1:
@@ -192,9 +196,18 @@ class ImageHandler:
             current_app.logger.info(f"   Frontend path: {frontend_path}")
             
             # Ensure directories exist
-            backend_path.parent.mkdir(parents=True, exist_ok=True)
-            frontend_path.parent.mkdir(parents=True, exist_ok=True)
-            current_app.logger.info(f"   ✅ Ensured backend and frontend directories exist")
+            try:
+                backend_path.parent.mkdir(parents=True, exist_ok=True)
+                current_app.logger.info(f"   ✅ Created backend directory: {backend_path.parent}")
+            except Exception as e:
+                current_app.logger.error(f"   ❌ Failed to create backend directory: {e}")
+                return None
+            
+            try:
+                frontend_path.parent.mkdir(parents=True, exist_ok=True)
+                current_app.logger.info(f"   ✅ Created frontend directory: {frontend_path.parent}")
+            except Exception as e:
+                current_app.logger.error(f"   ⚠️  Failed to create frontend directory (non-critical): {e}")
             
             # Optimize and copy image to backend
             optimization_success = self._optimize_image(temp_image_path, backend_path)
@@ -319,7 +332,7 @@ class ImageHandler:
             current_app.logger.warning(f"   ⚠️  Image optimization failed for {source_path}: {str(e)}")
             try:
                 shutil.copy2(source_path, dest_path)
-                current_app.logger.warning(f"   ⚠️  Fallback: Copied image without optimization")
+                current_app.logger.info(f"   ✅ Fallback: Successfully copied image without optimization")
                 if dest_path.exists():
                     return True
                 else:
@@ -328,10 +341,6 @@ class ImageHandler:
             except Exception as copy_err:
                 current_app.logger.error(f"   ❌ Fallback copy also failed: {copy_err}")
                 return False
-                current_app.logger.info(f"   ✅ Fallback: Successfully copied image without optimization")
-            except Exception as copy_err:
-                current_app.logger.error(f"   ❌ Fallback copy failed: {copy_err}")
-                raise
     
     def validate_markdown_images(self, markdown_content):
         """

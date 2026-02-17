@@ -85,6 +85,20 @@ def _convert_word_to_markdown(file_content, import_doc_id):
                 current_app.logger.error(f"❌ PANDOC ERROR: {result.stderr}")
                 raise Exception(f"Pandoc conversion failed: {result.stderr}")
             
+            # Check if pandoc extracted any images
+            if os.path.exists(temp_media_dir):
+                extracted_files = os.listdir(temp_media_dir)
+                print(f"PANDOC SUCCESS: Extracted {len(extracted_files)} files to {temp_media_dir}")
+                current_app.logger.info(f"🖼️  PANDOC EXTRACTED: {len(extracted_files)} files - {extracted_files}")
+                if extracted_files:
+                    for fname in extracted_files[:5]:
+                        fpath = os.path.join(temp_media_dir, fname)
+                        fsize = os.path.getsize(fpath) if os.path.isfile(fpath) else 'DIR'
+                        print(f"     - {fname} ({fsize} bytes)")
+            else:
+                print(f"PANDOC: No media directory created - document likely has no images")
+                current_app.logger.info(f"ℹ️  PANDOC: No images extracted (temp_media_dir not created)")
+            
             # Read the converted Markdown
             with open(temp_output_path, 'r', encoding='utf-8') as f:
                 markdown_content = f.read()
@@ -122,6 +136,16 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             
             print(f"IMAGE PROCESSING: Stored {len(stored_images)} images")
             current_app.logger.info(f"✅ IMAGE PROCESSING: Stored {len(stored_images)} images in database")
+            
+            if stored_images:
+                for img in stored_images:
+                    print(f"   ✅ {img['filename']} -> {img['public_url']}")
+                    print(f"      Backend: {img['backend_path']}")
+                    print(f"      Frontend: {img['frontend_path']}")
+                    current_app.logger.info(f"   ✅ Stored image: {img['filename']} (URL: {img['public_url']})")
+            else:
+                print(f"   ⚠️  No images were successfully stored!")
+                current_app.logger.warning(f"⚠️  IMAGE PROCESSING: No images were successfully stored")
             
             # Post-process the markdown to fix issues
             updated_markdown = _post_process_markdown(updated_markdown)
