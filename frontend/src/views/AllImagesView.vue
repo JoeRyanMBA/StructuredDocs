@@ -79,6 +79,12 @@
         </div>
       </div>
 
+      <!-- Missing Images Notice -->
+      <div v-if="missingImagesCount > 0" class="info-banner">
+        <i class="bi bi-info-circle"></i>
+        <span>{{ missingImagesCount }} image{{ missingImagesCount !== 1 ? 's' : '' }} not displaying (files missing). Try re-importing the document.</span>
+      </div>
+
       <!-- Grid View -->
       <div v-if="viewMode === 'grid'" class="images-grid">
         <div 
@@ -241,6 +247,9 @@ export default {
         return total + (image.size || 0)
       }, 0)
     },
+    missingImagesCount() {
+      return this.allImages.filter(img => img.file_exists === false).length
+    },
     apiBase() {
       try {
         const { API_BASE } = require('../api/base.js')
@@ -371,6 +380,17 @@ export default {
 
     applyFilters() {
       let filtered = [...this.allImages]
+
+      // Filter out images that definitely don't exist on disk
+      filtered = filtered.filter(image => {
+        // If file_exists is explicitly false, exclude it
+        if (image.file_exists === false) {
+          console.debug(`Filtering out missing image: ${image.filename}`)
+          return false
+        }
+        // Include images where file_exists is true, undefined, or null (unknown status)
+        return true
+      })
 
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase()
@@ -586,6 +606,24 @@ export default {
   font-size: 0.875rem;
   color: #666;
   margin-top: 0.25rem;
+}
+
+.info-banner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  padding: 1rem;
+  background: #e3f2fd;
+  border-left: 4px solid #2196f3;
+  border-radius: 4px;
+  margin-bottom: 1.5rem;
+  color: #1976d2;
+  font-size: 0.95rem;
+}
+
+.info-banner i {
+  flex-shrink: 0;
+  font-size: 1.2rem;
 }
 
 /* Grid View */
