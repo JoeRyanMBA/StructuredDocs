@@ -217,10 +217,22 @@ class ImageHandler:
             
             current_app.logger.info(f"   ✅ Optimized and saved to backend")
             
-            # Verify backend file exists
+            # Verify backend file exists and has content
             if not backend_path.exists():
                 current_app.logger.error(f"   ❌ Backend file does not exist after write: {backend_path}")
                 return None
+            
+            backend_size = backend_path.stat().st_size
+            if backend_size == 0:
+                current_app.logger.error(f"   ❌ Backend file is zero-sized (empty!): {backend_path}")
+                # Remove the empty file
+                try:
+                    backend_path.unlink()
+                except:
+                    pass
+                return None
+            
+            current_app.logger.info(f"   ✅ Backend file verified: {backend_size} bytes")
             
             # Copy to frontend public directory for serving
             try:
@@ -255,9 +267,13 @@ class ImageHandler:
                 'mime_type': mimetypes.guess_type(new_filename)[0]
             }
             
-            # Verify backend file exists (critical)
+            # Verify backend file exists and has content (double-check)
             backend_exists = backend_path.exists()
-            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {file_size} bytes, backend_exists={backend_exists})")
+            if not backend_exists or file_size == 0:
+                current_app.logger.error(f"   ❌ CRITICAL: Backend file invalid after metadata read!")
+                return None
+            
+            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {file_size} bytes)")
             
             if not backend_exists:
                 current_app.logger.error(f"   ❌ CRITICAL: Backend file missing after storage!")
@@ -283,6 +299,13 @@ class ImageHandler:
         """
         try:
             current_app.logger.info(f"   🖼️  Opening image: {source_path}")
+            
+            # Get source file size for validation
+            source_size = source_path.stat().st_size
+            if source_size == 0:
+                current_app.logger.error(f"   ❌ Source file is empty: {source_path}")
+                return False
+            
             with Image.open(source_path) as img:
                 # Convert RGBA to RGB for JPEG if needed
                 if img.mode == 'RGBA' and dest_path.suffix.lower() in ['.jpg', '.jpeg']:
@@ -306,11 +329,23 @@ class ImageHandler:
                 img.save(dest_path, **save_kwargs)
                 current_app.logger.info(f"   ✅ Successfully saved optimized image")
                 
-                # Verify file was written
+                # Verify file was written and has content
                 if not dest_path.exists():
                     current_app.logger.error(f"   ❌ File was not created after save: {dest_path}")
                     return False
                 
+                saved_size = dest_path.stat().st_size
+                if saved_size == 0:
+                    current_app.logger.error(f"   ❌ File is zero-sized after save: {dest_path}")
+                    current_app.logger.error(f"      Source file size: {source_size} bytes")
+                    # Remove the empty file
+                    try:
+                        dest_path.unlink()
+                    except:
+                        pass
+                    return False
+                
+                current_app.logger.info(f"   ✅ File verified: {saved_size} bytes")
                 return True
                 
         except PermissionError as e:
@@ -319,11 +354,13 @@ class ImageHandler:
             try:
                 shutil.copy2(source_path, dest_path)
                 current_app.logger.warning(f"   ⚠️  Fallback: Copied image without optimization")
-                if dest_path.exists():
-                    return True
-                else:
-                    current_app.logger.error(f"   ❌ Fallback copy created no file at {dest_path}")
+                
+                # Verify fallback copy
+                if not dest_path.exists() or dest_path.stat().st_size == 0:
+                    current_app.logger.error(f"   ❌ Fallback copy failed - file missing or empty")
                     return False
+                
+                return True
             except Exception as copy_err:
                 current_app.logger.error(f"   ❌ Fallback copy also failed: {copy_err}")
                 return False
@@ -333,6 +370,16 @@ class ImageHandler:
             try:
                 shutil.copy2(source_path, dest_path)
                 current_app.logger.info(f"   ✅ Fallback: Successfully copied image without optimization")
+                
+                # Verify fallback copy
+                if not dest_path.exists() or dest_path.stat().st_size == 0:
+                    current_app.logger.error(f"   ❌ Fallback copy failed - file missing or empty")
+                    return False
+                
+                return True
+            except Exception as copy_err:
+                current_app.logger.error(f"   ❌ Fallback copy also failed: {copy_err}")
+                return False
                 if dest_path.exists():
                     return True
                 else:
