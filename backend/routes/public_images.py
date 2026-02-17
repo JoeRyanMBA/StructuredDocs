@@ -22,22 +22,42 @@ def serve_import_image(doc_id: int, filename: str):
         backend_dir = Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(doc_id)
         backend_file = backend_dir / filename
         
+        current_app.logger.debug(f"🖼️ Image request: {doc_id}/{filename}")
+        current_app.logger.debug(f"   Backend path: {backend_file}")
+        current_app.logger.debug(f"   Backend exists: {backend_file.exists()}")
+        
         if backend_file.exists() and backend_file.is_file():
-            current_app.logger.debug(f"Serving image from backend: {backend_file}")
+            file_size = backend_file.stat().st_size
+            current_app.logger.debug(f"   ✅ Serving from backend ({file_size} bytes)")
             return send_from_directory(str(backend_dir), filename)
 
         # Frontend public fallback (secondary)
         public_dir = Path(current_app.root_path).parent / 'frontend' / 'public' / 'images' / 'imports' / str(doc_id)
         public_file = public_dir / filename
         
+        current_app.logger.debug(f"   Frontend path: {public_file}")
+        current_app.logger.debug(f"   Frontend exists: {public_file.exists()}")
+        
         if public_file.exists() and public_file.is_file():
-            current_app.logger.debug(f"Serving image from frontend public: {public_file}")
+            file_size = public_file.stat().st_size
+            current_app.logger.debug(f"   ✅ Serving from frontend ({file_size} bytes)")
             return send_from_directory(str(public_dir), filename)
 
-        # Not found - log for debugging
-        current_app.logger.warning(f"Image not found: /images/imports/{doc_id}/{filename}")
-        current_app.logger.debug(f"  Checked backend: {backend_file} (exists: {backend_file.exists()})")
-        current_app.logger.debug(f"  Checked frontend: {public_file} (exists: {public_file.exists()})")
+        # Not found - log detailed debugging info
+        current_app.logger.warning(f"❌ Image not found: /images/imports/{doc_id}/{filename}")
+        current_app.logger.warning(f"   Backend file: {backend_file} (exists: {backend_file.exists()})")
+        current_app.logger.warning(f"   Frontend file: {public_file} (exists: {public_file.exists()})")
+        
+        # Check if directories exist
+        if backend_dir.exists():
+            files_in_dir = list(backend_dir.glob('*'))
+            current_app.logger.warning(f"   Backend dir exists with {len(files_in_dir)} files")
+            # Show if a similar filename exists
+            for f in files_in_dir[:5]:
+                current_app.logger.warning(f"     - {f.name}")
+        else:
+            current_app.logger.warning(f"   Backend dir doesn't exist: {backend_dir}")
+        
         abort(404)
         
     except (ValueError, OSError) as e:
