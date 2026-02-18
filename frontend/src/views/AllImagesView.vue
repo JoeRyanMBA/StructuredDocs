@@ -248,7 +248,12 @@ export default {
       }, 0)
     },
     missingImagesCount() {
-      return this.allImages.filter(img => img.file_exists === false).length
+      return this.allImages.filter(img => {
+        if (img.source === 'import') {
+          return img.file_exists !== true
+        }
+        return img.file_exists === false
+      }).length
     },
     apiBase() {
       try {
@@ -401,11 +406,18 @@ export default {
 
       // Filter out images that definitely don't exist on disk
       filtered = filtered.filter(image => {
-        // If file_exists is explicitly false, exclude it
+        // Import images should only be shown when file existence is explicitly true
+        if (image.source === 'import' && image.file_exists !== true) {
+          console.debug(`Filtering out missing image: ${image.filename}`)
+          return false
+        }
+
+        // For non-import sources, honor explicit false
         if (image.file_exists === false) {
           console.debug(`Filtering out missing image: ${image.filename}`)
           return false
         }
+
         // Include images where file_exists is true, undefined, or null (unknown status)
         return true
       })
