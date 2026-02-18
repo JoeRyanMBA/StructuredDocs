@@ -258,6 +258,24 @@ export default {
         let raw = (import.meta.env.VITE_API_BASE_URL || '').trim()
         return raw ? raw.replace(/\/+$/, '') : ''
       }
+    },
+    apiBaseHost() {
+      try {
+        if (!this.apiBase) return ''
+
+        if (this.apiBase.startsWith('http')) {
+          const url = new URL(this.apiBase)
+          if (url.pathname.endsWith('/api')) {
+            url.pathname = url.pathname.slice(0, -4) || '/'
+          }
+          const normalizedPath = url.pathname.replace(/\/+$/, '')
+          return normalizedPath ? `${url.origin}${normalizedPath}` : url.origin
+        }
+
+        return this.apiBase.replace(/\/api\/?$/, '') || ''
+      } catch (_e) {
+        return ''
+      }
     }
   },
   async created() {
@@ -430,12 +448,20 @@ export default {
     },
 
     getImageUrl(image) {
-      const path = image.public_url || image.file_path || `/images/${image.filename}`;
-      // If path is relative and starts with /, prepend API base
-      if (path.startsWith('/') && this.apiBase) {
-        return `${this.apiBase}${path}`;
+      const path = image.public_url || image.file_path || `/images/${image.filename}`
+      if (!path) return ''
+
+      if (path.startsWith('http')) return path
+
+      if (path.startsWith('/images/')) {
+        return this.apiBaseHost ? `${this.apiBaseHost}${path}` : path
       }
-      return path;
+
+      if (path.startsWith('/') && this.apiBase) {
+        return `${this.apiBase}${path}`
+      }
+
+      return path
     },
 
     copyImagePath(image) {
