@@ -99,6 +99,7 @@
               :src="getImageUrl(image)" 
               :alt="image.filename"
               class="image-preview"
+              @load="handleImageLoad"
               @error="handleImageError($event, image)"
               loading="lazy"
             />
@@ -142,6 +143,7 @@
               :src="getImageUrl(image)" 
               :alt="image.filename"
               class="list-thumbnail"
+              @load="handleImageLoad"
               @error="handleImageError($event, image)"
               loading="lazy"
             />
@@ -175,6 +177,7 @@
                 :src="getImageUrl(selectedImage)" 
                 :alt="selectedImage.filename"
                 class="detail-preview"
+                @load="handleImageLoad"
                 @error="handleImageError($event, selectedImage)"
               />
             </div>
@@ -485,9 +488,31 @@ export default {
       })
     },
 
+    handleImageLoad(event) {
+      if (event?.target?.dataset) {
+        delete event.target.dataset.retryAttempted
+      }
+    },
+
     handleImageError(event, image) {
-      console.warn(`Failed to load image: ${image.filename}`)
-      event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='
+      const element = event?.target
+      const baseUrl = this.getImageUrl(image)
+      const alreadyRetried = element?.dataset?.retryAttempted === '1'
+
+      if (element && baseUrl && !alreadyRetried) {
+        element.dataset.retryAttempted = '1'
+        const sep = baseUrl.includes('?') ? '&' : '?'
+        const retryUrl = `${baseUrl}${sep}retry=${Date.now()}`
+        setTimeout(() => {
+          element.src = retryUrl
+        }, 120)
+        return
+      }
+
+      console.warn(`Failed to load image after retry: ${image.filename}`)
+      if (element) {
+        element.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iMjAwIiBoZWlnaHQ9IjIwMCIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj48cmVjdCB3aWR0aD0iMTAwJSIgaGVpZ2h0PSIxMDAlIiBmaWxsPSIjZjBmMGYwIi8+PHRleHQgeD0iNTAlIiB5PSI1MCUiIGZvbnQtZmFtaWx5PSJBcmlhbCIgZm9udC1zaXplPSIxNCIgZmlsbD0iIzk5OSIgdGV4dC1hbmNob3I9Im1pZGRsZSIgZHk9Ii4zZW0iPkltYWdlIE5vdCBGb3VuZDwvdGV4dD48L3N2Zz4='
+      }
     },
 
     formatFileSize(bytes) {
