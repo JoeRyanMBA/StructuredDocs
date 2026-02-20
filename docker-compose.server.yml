@@ -8,6 +8,7 @@ services:
       - PORT=8080
       - DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+      - IMAGE_STORAGE_ROOT=/app/backend/static/images
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
@@ -24,8 +25,6 @@ services:
       - ./.enable_blueprints:/app/.enable_blueprints:ro
       - ./instance:/app/instance
       - ./data/images:/app/backend/static/images
-    env_file:
-      - backend.env
     command: ["./start.sh"]
     # Optional: Run permission fix on startup (if needed)
     # init: true  # Enable this if you want to run an init process
