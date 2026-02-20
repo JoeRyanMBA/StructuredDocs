@@ -94,7 +94,9 @@ def get_images():
             from pathlib import Path
             import_images = ImportImage.query.all()
             for img in import_images:
-                public_url = img.public_url
+                public_url = (img.public_url or '').strip()
+                if not public_url.startswith('/images/imports/') and img.document_id and img.filename:
+                    public_url = f"/images/imports/{img.document_id}/{img.filename}"
                 # Deduplicate
                 if public_url not in seen:
                     seen.add(public_url)

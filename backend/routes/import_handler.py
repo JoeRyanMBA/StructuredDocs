@@ -1598,6 +1598,8 @@ def get_import_images(doc_id):
         images_data = []
         for img in db_images:
             img_dict = img.to_dict(include_file_exists=True)
+            if (not (img_dict.get('public_url') or '').startswith('/images/imports/')) and img_dict.get('filename'):
+                img_dict['public_url'] = f"/images/imports/{doc_id}/{img_dict['filename']}"
             
             # Log warnings for missing files
             if not img_dict.get('file_exists', False):
