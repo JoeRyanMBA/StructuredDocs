@@ -227,6 +227,7 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 
 export default {
   name: 'AllImagesView',
@@ -463,20 +464,10 @@ export default {
     },
 
     getImageUrl(image) {
-      const path = image.public_url || image.file_path || `/images/${image.filename}`
-      if (!path) return ''
-
-      if (path.startsWith('http')) return path
-
-      if (path.startsWith('/images/')) {
-        return this.apiBaseHost ? `${this.apiBaseHost}${path}` : path
-      }
-
-      if (path.startsWith('/') && this.apiBase) {
-        return `${this.apiBase}${path}`
-      }
-
-      return path
+      return getResolvedImageUrl(image, {
+        apiBase: this.apiBase,
+        apiBaseHost: this.apiBaseHost
+      })
     },
 
     copyImagePath(image) {
@@ -496,17 +487,27 @@ export default {
 
     handleImageError(event, image) {
       const element = event?.target
-      const baseUrl = this.getImageUrl(image)
-      const alreadyRetried = element?.dataset?.retryAttempted === '1'
+      if (element && image) {
+        const currentSrc = element.getAttribute('src') || ''
+        const retryResult = getRetryImageSrc(
+          currentSrc,
+          image,
+          element?.dataset?.retryAttempted === '1',
+          {
+            apiBase: this.apiBase,
+            apiBaseHost: this.apiBaseHost
+          }
+        )
 
-      if (element && baseUrl && !alreadyRetried) {
-        element.dataset.retryAttempted = '1'
-        const sep = baseUrl.includes('?') ? '&' : '?'
-        const retryUrl = `${baseUrl}${sep}retry=${Date.now()}`
-        setTimeout(() => {
-          element.src = retryUrl
-        }, 120)
-        return
+        if (retryResult?.src) {
+          if (retryResult.shouldMarkRetried && element?.dataset) {
+            element.dataset.retryAttempted = '1'
+          }
+          setTimeout(() => {
+            element.src = retryResult.src
+          }, 120)
+          return
+        }
       }
 
       console.warn(`Failed to load image after retry: ${image.filename}`)

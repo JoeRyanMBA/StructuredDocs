@@ -308,7 +308,7 @@
                   :src="getImageUrl(image)" 
                   :alt="image.filename"
                   class="image-preview"
-                  @error="handleImageError"
+                  @error="handleImageError($event, image)"
                 />
                 <div class="image-info">
                   <div class="image-name">{{ image.filename }}</div>
@@ -389,6 +389,7 @@
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { getTopics, createTopic } from '@/api/topics.js'
 import { toast } from '@/composables/useToast'
+import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { apiRequest } from '../api/base.js'
 
 export default {
@@ -1046,24 +1047,10 @@ status: "draft"
     },
     
     getImageUrl(image) {
-      const rawPath = image.public_url 
-        || image.file_path 
-        || (image.document_id ? `/images/imports/${image.document_id}/${image.filename}` : `/images/${image.filename}`)
-      if (!rawPath) return ''
-
-      // If already absolute URL, return as-is
-      if (rawPath.startsWith('http')) return rawPath
-
-      // Serve static assets from host root (/images/...) not the API prefix
-      if (rawPath.startsWith('/images/')) {
-        return this.apiBaseHost ? `${this.apiBaseHost}${rawPath}` : rawPath
-      }
-
-      // Fallback: prefix API base for API-relative paths
-      if (rawPath.startsWith('/') && this.apiBase) {
-        return `${this.apiBase}${rawPath}`
-      }
-      return rawPath
+      return getResolvedImageUrl(image, {
+        apiBase: this.apiBase,
+        apiBaseHost: this.apiBaseHost
+      })
     },
     
     copyImagePath(image) {
@@ -1089,9 +1076,33 @@ status: "draft"
       this.showLinksModal = true
     },
     
-    handleImageError(event) {
+    handleImageError(event, image) {
+      const element = event?.target
+      if (element && image) {
+        const currentSrc = element.getAttribute('src') || ''
+        const retryResult = getRetryImageSrc(
+          currentSrc,
+          image,
+          element?.dataset?.retryAttempted === '1',
+          {
+            apiBase: this.apiBase,
+            apiBaseHost: this.apiBaseHost
+          }
+        )
+
+        if (retryResult?.src) {
+          if (retryResult.shouldMarkRetried && element?.dataset) {
+            element.dataset.retryAttempted = '1'
+          }
+          setTimeout(() => {
+            element.src = retryResult.src
+          }, 120)
+          return
+        }
+      }
+
       event.target.src = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNDAiIGhlaWdodD0iNDAiIHZpZXdCb3g9IjAgMCA0MCA0MCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjQwIiBoZWlnaHQ9IjQwIiBmaWxsPSIjRjNGNEY2Ii8+CjxwYXRoIGQ9Ik0yMCAyNUwyNSAyMEgxNUwyMCAyNVoiIGZpbGw9IiM5Q0EzQUYiLz4KPC9zdmc+Cg=='
-  },
+    },
     
     formatStatus(status) {
       const statusMap = {
