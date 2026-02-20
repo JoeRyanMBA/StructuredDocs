@@ -310,7 +310,7 @@
                     :class="{ selected: selectedExistingImage && selectedExistingImage.id === img.id }"
                     @click="selectExistingImage(img)"
                   >
-                    <img :src="imageDisplayUrl(img)" :alt="img.alt_text || img.filename" @error="handleImageError">
+                    <img :src="imageDisplayUrl(img)" :alt="img.alt_text || img.filename" @error="handleImageError($event, img)">
                     <div class="image-caption">{{ img.filename }}</div>
                   </div>
                 </div>
@@ -349,6 +349,7 @@
 
 <script>
 import { marked } from 'marked'
+import { resolveImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 
 export default {
   name: 'TopicEditor',
@@ -685,13 +686,32 @@ export default {
       this.filteredImages = (this.availableImages || []).filter(img => !q || (img.filename || '').toLowerCase().includes(q))
     },
     imageDisplayUrl(img) {
-      // Try public_url first (preferred), then file_path, then construct from filename
       const url = img.public_url || img.file_path || (img.filename ? `/images/${img.filename}` : '')
-      console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, url })
-      return url
+      const resolved = resolveImageUrl(url)
+      console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, url, resolved })
+      return resolved
     },
-    handleImageError(event){
-      // Fallback placeholder SVG for broken images
+    handleImageError(event, img){
+      const element = event?.target
+      if (element && img) {
+        const currentSrc = element.getAttribute('src') || ''
+        const retryResult = getRetryImageSrc(
+          currentSrc,
+          img,
+          element?.dataset?.retryAttempted === '1'
+        )
+
+        if (retryResult?.src) {
+          if (retryResult.shouldMarkRetried && element?.dataset) {
+            element.dataset.retryAttempted = '1'
+          }
+          setTimeout(() => {
+            element.src = retryResult.src
+          }, 120)
+          return
+        }
+      }
+
       const placeholderSvg = 'data:image/svg+xml;base64,PHN2ZyB3aWR0aD0iNjQiIGhlaWdodD0iNjQiIHZpZXdCb3g9IjAgMCA2NCA2NCIgZmlsbD0ibm9uZSIgeG1sbnM9Imh0dHA6Ly93d3cudzMub3JnLzIwMDAvc3ZnIj4KPHJlY3Qgd2lkdGg9IjY0IiBoZWlnaHQ9IjY0IiByeD0iMTIiIGZpbGw9IiNGNUY2RjgiIHN0cm9rZT0iI0Q1RDZENSIgc3Ryb2tlLXdpZHRoPSIyIi8+Cjwvc3ZnPgo='
       event.target.src = placeholderSvg
       event.target.style.opacity = '0.5'
