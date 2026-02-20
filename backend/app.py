@@ -573,6 +573,7 @@ p { color: #666; }
                 'metrics': ('metrics', 'metrics_bp'),
                 'milestones': ('milestones', 'milestones_bp'),
                 'notifications': ('notifications', 'notifications_bp'),
+                'public_images': ('public_images', 'public_images_bp'),
                 'variables': ('variables', 'variables_bp'),
                 'projects': ('projects', 'projects_bp'),
                 'publications': ('publications', 'pubs_bp'),

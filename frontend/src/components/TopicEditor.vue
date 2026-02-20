@@ -350,6 +350,7 @@
 <script>
 import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
+import { API_BASE } from '@/api/base'
 
 export default {
   name: 'TopicEditor',
@@ -420,6 +421,27 @@ export default {
     }
   },
   computed: {
+    apiBase() {
+      return API_BASE || ''
+    },
+    apiBaseHost() {
+      try {
+        if (!this.apiBase) return ''
+
+        if (this.apiBase.startsWith('http')) {
+          const url = new URL(this.apiBase)
+          if (url.pathname.endsWith('/api')) {
+            url.pathname = url.pathname.slice(0, -4) || '/'
+          }
+          const normalizedPath = url.pathname.replace(/\/+$/, '')
+          return normalizedPath ? `${url.origin}${normalizedPath}` : url.origin
+        }
+
+        return this.apiBase.replace(/\/api\/?$/, '') || ''
+      } catch (_e) {
+        return ''
+      }
+    },
     markdownPreview() {
       if (!this.content) return ''
       // Use marked library if available, otherwise return plain text
@@ -686,7 +708,10 @@ export default {
       this.filteredImages = (this.availableImages || []).filter(img => !q || (img.filename || '').toLowerCase().includes(q))
     },
     imageDisplayUrl(img) {
-      const resolved = getResolvedImageUrl(img)
+      const resolved = getResolvedImageUrl(img, {
+        apiBase: this.apiBase,
+        apiBaseHost: this.apiBaseHost
+      })
       console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, resolved })
       return resolved
     },
@@ -697,7 +722,11 @@ export default {
         const retryResult = getRetryImageSrc(
           currentSrc,
           img,
-          element?.dataset?.retryAttempted === '1'
+          element?.dataset?.retryAttempted === '1',
+          {
+            apiBase: this.apiBase,
+            apiBaseHost: this.apiBaseHost
+          }
         )
 
         if (retryResult?.src) {
