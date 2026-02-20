@@ -53,12 +53,26 @@ export function resolveImageUrl(path, options = {}) {
 }
 
 export function getImageUrl(image, options = {}) {
-  const path = image?.public_url || image?.file_path || (image?.filename ? `/images/${image.filename}` : '')
+  const importLike = Boolean(image?.document_id) ||
+    (image?.public_url || '').includes('/images/imports/') ||
+    (image?.file_path || '').includes('/images/imports/') ||
+    image?.source === 'import'
+
+  const path = image?.public_url ||
+    image?.file_path ||
+    (importLike && image?.document_id && image?.filename
+      ? `/images/imports/${image.document_id}/${image.filename}`
+      : (image?.filename ? `/images/${image.filename}` : ''))
   return resolveImageUrl(path, options)
 }
 
 export function getImageUrlCandidates(image, options = {}) {
   const candidates = []
+  const importLike = Boolean(image?.document_id) ||
+    (image?.public_url || '').includes('/images/imports/') ||
+    (image?.file_path || '').includes('/images/imports/') ||
+    image?.source === 'import'
+
   const addCandidate = (value) => {
     const url = resolveImageUrl(value, options)
     if (!url) return
@@ -74,7 +88,7 @@ export function getImageUrlCandidates(image, options = {}) {
     addCandidate(`/images/imports/${image.document_id}/${image.filename}`)
   }
 
-  if (image?.filename) {
+  if (image?.filename && !importLike) {
     addCandidate(`/images/${image.filename}`)
   }
 
