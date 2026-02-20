@@ -349,7 +349,7 @@
 
 <script>
 import { marked } from 'marked'
-import { resolveImageUrl, getRetryImageSrc } from '@/services/imageUrl'
+import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 
 export default {
   name: 'TopicEditor',
@@ -686,9 +686,8 @@ export default {
       this.filteredImages = (this.availableImages || []).filter(img => !q || (img.filename || '').toLowerCase().includes(q))
     },
     imageDisplayUrl(img) {
-      const url = img.public_url || img.file_path || (img.filename ? `/images/${img.filename}` : '')
-      const resolved = resolveImageUrl(url)
-      console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, url, resolved })
+      const resolved = getResolvedImageUrl(img)
+      console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, resolved })
       return resolved
     },
     handleImageError(event, img){
