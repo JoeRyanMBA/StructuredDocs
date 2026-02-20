@@ -9,6 +9,7 @@ services:
       # Use absolute path for SQLite database (4 slashes: sqlite:// + //)
       - DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+      - IMAGE_STORAGE_ROOT=/app/data/images
       # Email configuration (set these in your deployment environment)
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY}
@@ -27,5 +28,6 @@ services:
       - ./instance:/app/instance
       # CRITICAL: Mount persistent storage for images
       # Host permissions MUST be 777: chmod 777 ./data/images ./instance
+      - ./data/images:/app/data/images
       - ./data/images:/app/backend/static/images
     command: ["./start.sh"]

@@ -17,8 +17,32 @@ class ImageHandler:
     def __init__(self, import_doc_id):
         """Initialize with import document ID for organizing images"""
         self.import_doc_id = import_doc_id
-        self.backend_images_dir = Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(import_doc_id)
+        configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+        candidate_roots = []
+        if configured_root:
+            candidate_roots.append(Path(configured_root))
+        candidate_roots.append(Path('/app/data/images'))
+        candidate_roots.append(Path(current_app.root_path) / 'static' / 'images')
+
+        selected_root = None
+        for root in candidate_roots:
+            try:
+                root.mkdir(parents=True, exist_ok=True)
+                test_file = root / '.write_test'
+                test_file.write_text('test')
+                test_file.unlink()
+                selected_root = root
+                break
+            except Exception:
+                continue
+
+        if selected_root is None:
+            selected_root = Path(current_app.root_path) / 'static' / 'images'
+
+        self.backend_images_root = selected_root
+        self.backend_images_dir = self.backend_images_root / 'imports' / str(import_doc_id)
         self.frontend_images_dir = Path(current_app.root_path).parent / 'frontend' / 'public' / 'images' / 'imports' / str(import_doc_id)
+        current_app.logger.info(f"🗂️ Using backend image root: {self.backend_images_root}")
         
         # Ensure directories exist
         try:
