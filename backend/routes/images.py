@@ -28,6 +28,8 @@ def get_images():
     try:
         images_data = []
 
+        configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+
         # Collect all candidate roots with their URL prefixes
         roots = []
         try:
@@ -41,6 +43,11 @@ def get_images():
 
         backend_images_dir = os.path.join(current_app.root_path, 'static', 'images')
         roots.append((backend_images_dir, '/images'))
+
+        shared_images_dir = '/app/data/images'
+        if configured_root:
+            roots.append((configured_root, '/images'))
+        roots.append((shared_images_dir, '/images'))
 
         seen = set()
 
@@ -103,12 +110,29 @@ def get_images():
                     try:
                         # Use created_at from database if available
                         stat = None
+                        configured_root_path = Path(configured_root) if configured_root else None
                         backend_path = Path(img.backend_path)
                         frontend_path = Path(img.frontend_path)
+                        fallback_backend_paths = [
+                            Path('/app/data/images') / 'imports' / str(img.document_id) / img.filename,
+                            Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(img.document_id) / img.filename,
+                        ]
+                        if configured_root_path is not None:
+                            fallback_backend_paths.insert(0, configured_root_path / 'imports' / str(img.document_id) / img.filename)
+
+                        existing_backend_path = None
                         if backend_path.exists():
-                            stat = backend_path.stat()
+                            existing_backend_path = backend_path
                         elif frontend_path.exists():
                             stat = frontend_path.stat()
+                        else:
+                            for fallback_path in fallback_backend_paths:
+                                if fallback_path.exists():
+                                    existing_backend_path = fallback_path
+                                    break
+
+                        if existing_backend_path is not None:
+                            stat = existing_backend_path.stat()
                         
                         images_data.append({
                             'id': hash(public_url) % 100000000,
@@ -120,7 +144,7 @@ def get_images():
                             'created_at': img.created_at.isoformat() if img.created_at else None,
                             'document_id': img.document_id,
                             'source': 'import',
-                            'file_exists': backend_path.exists() or frontend_path.exists()
+                            'file_exists': (existing_backend_path is not None) or frontend_path.exists()
                         })
                     except Exception as e:
                         # Still add the image record even if file check fails
