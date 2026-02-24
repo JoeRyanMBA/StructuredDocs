@@ -148,23 +148,30 @@ def get_storage_backend() -> StorageBackend:
     
     if all([spaces_bucket, spaces_region, spaces_access_key, spaces_secret_key]):
         # Try to use Spaces
+        import logging
+        logger = logging.getLogger(__name__)
+        logger.info(f"🔧 Attempting to initialize Spaces storage: bucket={spaces_bucket}, region={spaces_region}")
+        
         try:
             cdn_endpoint = os.environ.get('SPACES_CDN_ENDPOINT')
-            return SpacesStorage(
+            storage = SpacesStorage(
                 region=spaces_region,
                 bucket=spaces_bucket,
                 access_key=spaces_access_key,
                 secret_key=spaces_secret_key,
                 cdn_endpoint=cdn_endpoint
             )
+            logger.info(f"✅ SpacesStorage initialized successfully! Base URL: {storage.base_url}")
+            return storage
         except ImportError as ie:
             # boto3 not installed, fall back to local
-            import logging
-            logging.warning(f"boto3 not available for Spaces storage: {ie}. Falling back to local storage.")
+            logger.warning(f"⚠️ boto3 not available for Spaces storage: {ie}. Falling back to local storage.")
         except Exception as e:
-            import logging
-            logging.error(f"Failed to initialize Spaces storage: {e}. Falling back to local storage.")
+            logger.error(f"❌ Failed to initialize Spaces storage: {e}. Falling back to local storage.", exc_info=True)
     
     # Fall back to local storage
+    import logging
+    logger = logging.getLogger(__name__)
     storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
+    logger.warning(f"⚠️ Using LocalStorage fallback: {storage_root} (Spaces not configured or failed to initialize)")
     return LocalStorage(storage_root)
