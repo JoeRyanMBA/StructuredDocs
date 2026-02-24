@@ -288,10 +288,15 @@ class ImageHandler:
                 return None
             
             # Create image info
+            # For Spaces: frontend_path is the public URL
+            # For Local: frontend_path is the web-accessible path
+            frontend_path = public_url if not is_local_storage else f"/images/imports/{self.import_doc_id}/{new_filename}"
+            
             image_info = {
                 'filename': new_filename,
                 'original_name': temp_image_path.name,
                 'backend_path': storage_path,
+                'frontend_path': frontend_path,
                 'public_url': public_url,
                 'width': width,
                 'height': height,
