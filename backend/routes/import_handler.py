@@ -1056,7 +1056,13 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
         db.session.flush()  # get temp_imp_doc.id for image processing
         
         # Parse document with hierarchical structure preservation AND image processing
-        hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
+        try:
+            hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
+        except Exception as parse_error:
+            # Log the error but continue to fallback
+            print(f"HIERARCHICAL PARSING ERROR: {parse_error}")
+            current_app.logger.error(f"❌ HIERARCHICAL PARSING ERROR: {str(parse_error)}", exc_info=True)
+            hierarchical_items = []
         
         if not hierarchical_items:
             print("HIERARCHICAL PARSING FAILED: Falling back to regular flat parsing")
@@ -1252,7 +1258,9 @@ def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
         
     except Exception as e:
         print(f"HIERARCHICAL PARSING ERROR: {e}")
-        return []
+        current_app.logger.error(f"❌ HIERARCHICAL PARSING ERROR: {str(e)}", exc_info=True)
+        # Re-raise the exception so the caller can see the actual error
+        raise
 
 
 def _parse_hierarchical_content(markdown_content):
@@ -1465,7 +1473,13 @@ def _import_as_collection(file, source):
     db.session.flush()  # get temp_imp_doc.id for image processing
 
     # Parse document with hierarchical structure preservation AND image processing
-    hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
+    try:
+        hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
+    except Exception as e:
+        # Capture the actual error from parsing/conversion
+        error_msg = f"Import failed: {str(e)}"
+        current_app.logger.error(f"❌ IMPORT ERROR: {error_msg}", exc_info=True)
+        return jsonify({'error': error_msg}), 422
 
     if not hierarchical_items:
         error_msg = f"No content items could be extracted from the document. "
