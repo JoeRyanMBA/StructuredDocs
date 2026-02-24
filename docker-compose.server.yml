@@ -6,7 +6,7 @@ services:
     container_name: structureddocs_app
     environment:
       - PORT=8080
-      - DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
+      - DATABASE_URL=${DATABASE_URL}
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       - IMAGE_STORAGE_ROOT=/app/backend/static/images
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
