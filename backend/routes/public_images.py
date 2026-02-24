@@ -32,7 +32,7 @@ def serve_import_image(doc_id: int, filename: str):
         if db_image and db_image.public_url:
             # If public_url is a full CDN URL, redirect to it
             if db_image.public_url.startswith('http'):
-                current_app.logger.debug(f"   🔄 Redirecting to Spaces CDN: {db_image.public_url}")
+                current_app.logger.info(f"   🔄 Redirecting to Spaces CDN: {db_image.public_url}")
                 return redirect(db_image.public_url, code=302)
         
         # Otherwise, try to serve from local storage
