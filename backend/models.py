@@ -520,9 +520,16 @@ class ImportImage(db.Model):
         }
         
         if include_file_exists:
-            backend_path = Path(self.backend_path)
-            frontend_path = Path(self.frontend_path)
-            result['file_exists'] = backend_path.exists() or frontend_path.exists()
+            # For Spaces storage: if public_url is a CDN URL, assume file exists
+            # (we don't have local access to verify Spaces files)
+            if self.public_url and ('digitaloceanspaces.com' in self.public_url or 'cdn.' in self.public_url):
+                # Spaces/CDN storage - trust the upload was successful
+                result['file_exists'] = True
+            else:
+                # Local storage - check if file actually exists on disk
+                backend_path = Path(self.backend_path)
+                frontend_path = Path(self.frontend_path)
+                result['file_exists'] = backend_path.exists() or frontend_path.exists()
         
         return result
 
