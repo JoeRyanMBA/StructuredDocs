@@ -992,7 +992,10 @@ p { color: #666; }
                 resp.headers.setdefault('X-Frame-Options', 'DENY')
                 resp.headers.setdefault('Referrer-Policy', 'no-referrer-when-downgrade')
                 resp.headers.setdefault('Permissions-Policy', os.environ.get('PERMISSIONS_POLICY', 'geolocation=(), microphone=(), camera=()'))
-                resp.headers.setdefault('Content-Security-Policy', os.environ.get('CSP_HEADER', "default-src 'self'; img-src 'self' data: blob:; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src *; frame-ancestors 'none'; object-src 'none'"))
+                # Build CSP with Spaces CDN support
+                spaces_cdn = os.environ.get('SPACES_CDN_ENDPOINT', 'https://*.nyc3.digitaloceanspaces.com https://*.nyc3.cdn.digitaloceanspaces.com')
+                default_csp = f"default-src 'self'; img-src 'self' data: blob: {spaces_cdn}; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline'; font-src 'self' data:; connect-src *; frame-ancestors 'none'; object-src 'none'"
+                resp.headers.setdefault('Content-Security-Policy', os.environ.get('CSP_HEADER', default_csp))
             except Exception as e:
                 print(f"⚠️  Security headers error: {e}")
             return resp
