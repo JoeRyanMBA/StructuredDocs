@@ -21,3 +21,4 @@ Flask-Limiter>=3.8.0
 redis>=5.0.0
 rq>=1.15.1
 sentry-sdk[flask]>=2.0.0
+boto3>=1.34.0

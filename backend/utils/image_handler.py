@@ -7,6 +7,7 @@ from urllib.parse import urlparse
 from PIL import Image
 import mimetypes
 from flask import current_app
+from backend.utils.storage import get_storage_backend
 
 class ImageHandler:
     """Handles image extraction, storage, and path management for imports"""
@@ -17,6 +18,21 @@ class ImageHandler:
     def __init__(self, import_doc_id):
         """Initialize with import document ID for organizing images"""
         self.import_doc_id = import_doc_id
+        
+        # Get storage backend (Spaces or local)
+        try:
+            self.storage = get_storage_backend()
+            storage_type = type(self.storage).__name__
+            current_app.logger.info(f"🗂️ Using storage backend: {storage_type}")
+        except Exception as e:
+            current_app.logger.error(f"❌ Failed to initialize storage backend: {e}")
+            # Fallback to legacy local storage
+            from backend.utils.storage import LocalStorage
+            storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
+            self.storage = LocalStorage(storage_root)
+            current_app.logger.info(f"🗂️ Fallback to local storage: {storage_root}")
+        
+        # Keep legacy paths for backward compatibility
         configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
         candidate_roots = []
         if configured_root:
@@ -42,9 +58,8 @@ class ImageHandler:
         self.backend_images_root = selected_root
         self.backend_images_dir = self.backend_images_root / 'imports' / str(import_doc_id)
         self.frontend_images_dir = Path(current_app.root_path).parent / 'frontend' / 'public' / 'images' / 'imports' / str(import_doc_id)
-        current_app.logger.info(f"🗂️ Using backend image root: {self.backend_images_root}")
         
-        # Ensure directories exist
+        # Ensure directories exist (for local fallback)
         try:
             self.backend_images_dir.mkdir(parents=True, exist_ok=True)
             current_app.logger.info(f"📁 Created/verified backend images directory: {self.backend_images_dir}")
@@ -195,7 +210,7 @@ class ImageHandler:
     
     def _store_single_image(self, temp_image_path):
         """
-        Store a single image file permanently and return metadata.
+        Store a single image file permanently to Spaces or local storage and return metadata.
         
         Args:
             temp_image_path (Path): Path to temporary image file
@@ -212,97 +227,70 @@ class ImageHandler:
             
             current_app.logger.info(f"💾 Storing image: {temp_image_path.name} -> {new_filename}")
             
-            # Paths for storing
-            backend_path = self.backend_images_dir / new_filename
-            frontend_path = self.frontend_images_dir / new_filename
+            # Storage path for Spaces or local
+            storage_path = f"images/imports/{self.import_doc_id}/{new_filename}"
             
-            current_app.logger.info(f"   Backend path: {backend_path}")
-            current_app.logger.info(f"   Frontend path: {frontend_path}")
-            
-            # Ensure directories exist
+            # Optimize image in-memory
             try:
-                backend_path.parent.mkdir(parents=True, exist_ok=True)
-                current_app.logger.info(f"   ✅ Created backend directory: {backend_path.parent}")
-            except Exception as e:
-                current_app.logger.error(f"   ❌ Failed to create backend directory: {e}")
-                return None
-            
-            try:
-                frontend_path.parent.mkdir(parents=True, exist_ok=True)
-                current_app.logger.info(f"   ✅ Created frontend directory: {frontend_path.parent}")
-            except Exception as e:
-                current_app.logger.error(f"   ⚠️  Failed to create frontend directory (non-critical): {e}")
-            
-            # Optimize and copy image to backend
-            optimization_success = self._optimize_image(temp_image_path, backend_path)
-            if not optimization_success:
-                current_app.logger.error(f"   ❌ Failed to optimize/store image to backend: {backend_path}")
-                return None
-            
-            current_app.logger.info(f"   ✅ Optimized and saved to backend")
-            
-            # Verify backend file exists and has content
-            if not backend_path.exists():
-                current_app.logger.error(f"   ❌ Backend file does not exist after write: {backend_path}")
-                return None
-            
-            backend_size = backend_path.stat().st_size
-            if backend_size == 0:
-                current_app.logger.error(f"   ❌ Backend file is zero-sized (empty!): {backend_path}")
-                # Remove the empty file
-                try:
-                    backend_path.unlink()
-                except:
-                    pass
-                return None
-            
-            current_app.logger.info(f"   ✅ Backend file verified: {backend_size} bytes")
-            
-            # Copy to frontend public directory for serving
-            try:
-                shutil.copy2(backend_path, frontend_path)
-                current_app.logger.info(f"   ✅ Copied to frontend")
-            except Exception as copy_err:
-                current_app.logger.error(f"   ❌ Failed to copy to frontend ({frontend_path}): {copy_err}")
-                # If frontend copy fails, still continue but log it
-                # Frontend is optional for serving since backend can serve it
-            
-            # Get image metadata from backend file
-            try:
-                with Image.open(backend_path) as img:
+                with Image.open(temp_image_path) as img:
+                    # Get original dimensions
                     width, height = img.size
                     format_type = img.format
+                    
+                    # Optimize if needed
+                    if width > self.MAX_IMAGE_SIZE[0] or height > self.MAX_IMAGE_SIZE[1]:
+                        img.thumbnail(self.MAX_IMAGE_SIZE, Image.Resampling.LANCZOS)
+                        width, height = img.size
+                        current_app.logger.info(f"   🔽 Resized to {width}x{height}")
+                    
+                    # Convert to RGB if needed (for JPEG compatibility)
+                    if img.mode in ('RGBA', 'LA', 'P'):
+                        rgb_img = Image.new('RGB', img.size, (255, 255, 255))
+                        if img.mode == 'P':
+                            img = img.convert('RGBA')
+                        rgb_img.paste(img, mask=img.split()[-1] if img.mode in ('RGBA', 'LA') else None)
+                        img = rgb_img
+                    
+                    # Save to bytes
+                    import io
+                    img_bytes = io.BytesIO()
+                    save_format = format_type if format_type in ('JPEG', 'PNG', 'GIF', 'WEBP') else 'PNG'
+                    img.save(img_bytes, format=save_format, optimize=True, quality=85)
+                    img_data = img_bytes.getvalue()
+                    
             except Exception as img_err:
-                current_app.logger.error(f"   ❌ Failed to read image metadata: {img_err}")
+                current_app.logger.error(f"   ❌ Failed to optimize image: {img_err}")
+                # Fall back to raw file data
+                img_data = temp_image_path.read_bytes()
+                with Image.open(temp_image_path) as img:
+                    width, height = img.size
+                    format_type = img.format
+            
+            # Determine content type
+            content_type = mimetypes.guess_type(new_filename)[0] or 'image/jpeg'
+            
+            # Save to storage backend
+            try:
+                public_url = self.storage.save_file(img_data, storage_path, content_type)
+                current_app.logger.info(f"   ✅ Saved to storage: {public_url}")
+            except Exception as save_err:
+                current_app.logger.error(f"   ❌ Failed to save to storage: {save_err}")
                 return None
             
-            file_size = backend_path.stat().st_size
-            
+            # Create image info
             image_info = {
                 'filename': new_filename,
                 'original_name': temp_image_path.name,
-                'backend_path': str(backend_path),
-                'frontend_path': str(frontend_path),
-                'public_url': f"/images/imports/{self.import_doc_id}/{new_filename}",
+                'backend_path': storage_path,
+                'public_url': public_url,
                 'width': width,
                 'height': height,
                 'format': format_type,
-                'file_size': file_size,
-                'mime_type': mimetypes.guess_type(new_filename)[0]
+                'file_size': len(img_data),
+                'mime_type': content_type
             }
             
-            # Verify backend file exists and has content (double-check)
-            backend_exists = backend_path.exists()
-            if not backend_exists or file_size == 0:
-                current_app.logger.error(f"   ❌ CRITICAL: Backend file invalid after metadata read!")
-                return None
-            
-            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {file_size} bytes)")
-            
-            if not backend_exists:
-                current_app.logger.error(f"   ❌ CRITICAL: Backend file missing after storage!")
-                return None
-            
+            current_app.logger.info(f"✅ Stored image: {new_filename} ({width}x{height}, {len(img_data)} bytes)")
             return image_info
             
         except Exception as e:
