@@ -622,6 +622,7 @@ p { color: #666; }
                 admin,
                 collections,
                 dashboard,
+                diagnostics,
                 feedback,
                 images,
                 import_handler,
@@ -646,6 +647,7 @@ p { color: #666; }
             app.register_blueprint(admin.admin_bp)
             app.register_blueprint(collections.collections_bp)
             app.register_blueprint(dashboard.bp)
+            app.register_blueprint(diagnostics.diagnostics_bp)
             app.register_blueprint(feedback.feedback_bp)
             app.register_blueprint(images.images_bp)
             app.register_blueprint(import_handler.import_bp)
