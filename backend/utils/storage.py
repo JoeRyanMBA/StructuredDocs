@@ -138,6 +138,7 @@ def get_storage_backend() -> StorageBackend:
     """
     Factory function to get configured storage backend.
     Checks environment variables to determine which backend to use.
+    Falls back gracefully if boto3 is not available.
     """
     # Check if Spaces is configured
     spaces_bucket = os.environ.get('SPACES_BUCKET')
@@ -146,15 +147,23 @@ def get_storage_backend() -> StorageBackend:
     spaces_secret_key = os.environ.get('SPACES_SECRET_KEY')
     
     if all([spaces_bucket, spaces_region, spaces_access_key, spaces_secret_key]):
-        # Use Spaces
-        cdn_endpoint = os.environ.get('SPACES_CDN_ENDPOINT')
-        return SpacesStorage(
-            region=spaces_region,
-            bucket=spaces_bucket,
-            access_key=spaces_access_key,
-            secret_key=spaces_secret_key,
-            cdn_endpoint=cdn_endpoint
-        )
+        # Try to use Spaces
+        try:
+            cdn_endpoint = os.environ.get('SPACES_CDN_ENDPOINT')
+            return SpacesStorage(
+                region=spaces_region,
+                bucket=spaces_bucket,
+                access_key=spaces_access_key,
+                secret_key=spaces_secret_key,
+                cdn_endpoint=cdn_endpoint
+            )
+        except ImportError as ie:
+            # boto3 not installed, fall back to local
+            import logging
+            logging.warning(f"boto3 not available for Spaces storage: {ie}. Falling back to local storage.")
+        except Exception as e:
+            import logging
+            logging.error(f"Failed to initialize Spaces storage: {e}. Falling back to local storage.")
     
     # Fall back to local storage
     storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')

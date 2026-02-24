@@ -24,8 +24,15 @@ class ImageHandler:
             self.storage = get_storage_backend()
             storage_type = type(self.storage).__name__
             current_app.logger.info(f"🗂️ Using storage backend: {storage_type}")
+        except ImportError as ie:
+            current_app.logger.error(f"❌ Storage backend ImportError: {ie} - falling back to local")
+            # Fallback to legacy local storage
+            from backend.utils.storage import LocalStorage
+            storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
+            self.storage = LocalStorage(storage_root)
+            current_app.logger.info(f"🗂️ Fallback to local storage: {storage_root}")
         except Exception as e:
-            current_app.logger.error(f"❌ Failed to initialize storage backend: {e}")
+            current_app.logger.error(f"❌ Failed to initialize storage backend: {e} - falling back to local")
             # Fallback to legacy local storage
             from backend.utils.storage import LocalStorage
             storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
