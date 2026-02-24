@@ -31,10 +31,10 @@ def check_storage():
         if storage_type == 'SpacesStorage':
             storage_details = {
                 'type': 'Digital Ocean Spaces',
-                'bucket': storage.bucket_name,
+                'bucket': storage.bucket,
                 'region': storage.region,
-                'endpoint': storage.endpoint_url,
-                'cdn_endpoint': storage.cdn_endpoint
+                'base_url': storage.base_url,
+                'cdn_endpoint': storage.cdn_endpoint if storage.cdn_endpoint else 'Not configured (using default endpoint)'
             }
         elif storage_type == 'LocalStorage':
             storage_details = {
