@@ -235,7 +235,10 @@ class ImageHandler:
             current_app.logger.info(f"💾 Storing image: {temp_image_path.name} -> {new_filename}")
             
             # Storage path for Spaces or local
-            storage_path = f"images/imports/{self.import_doc_id}/{new_filename}"
+            # For Spaces: full path "images/imports/{doc_id}/{filename}"
+            # For Local: relative to IMAGE_STORAGE_ROOT which is already .../images, so use "imports/{doc_id}/{filename}"
+            is_local_storage = type(self.storage).__name__ == 'LocalStorage'
+            storage_path = f"imports/{self.import_doc_id}/{new_filename}" if is_local_storage else f"images/imports/{self.import_doc_id}/{new_filename}"
             
             # Optimize image in-memory
             try:
