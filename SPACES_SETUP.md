@@ -26,13 +26,13 @@ Add these to your App Platform environment variables:
 ```
 SPACES_BUCKET=1docimages
 SPACES_REGION=nyc3
-SPACES_ACCESS_KEY=<your-access-key>
-SPACES_SECRET_KEY=<your-secret-key>
+SPACES_ACCESS_KEY=DO00EEZBJ84FKCJ9MN9E
+SPACES_SECRET_KEY=pp+DF/m+4VsnaimgsFVv3KIWO6wZ2rDl3XP1Q4/N/fQ
 ```
 
 Optional CDN endpoint (if you configure CDN for faster delivery):
 ```
-SPACES_CDN_ENDPOINT=https://your-cdn-domain.com
+SPACES_CDN_ENDPOINT=https://1docimages.nyc3.digitaloceanspaces.com
 ```
 
 ### 4. Deploy Changes
