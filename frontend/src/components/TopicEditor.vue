@@ -93,7 +93,9 @@
               <button @click="insertMarkdown('*', '*')" class="toolbar-btn">𝐼 Italic</button>
               <button @click="insertMarkdown('`', '`')" class="toolbar-btn">⟨⟩ Code</button>
               <button @click="insertMarkdown('## ', '')" class="toolbar-btn">𝐇𝟐 Header</button>
+              <button @click="insertMarkdown('### ', '')" class="toolbar-btn">𝐇𝟑 Header</button>
               <button @click="insertMarkdown('- ', '')" class="toolbar-btn">• List</button>
+              <button @click="insertMarkdown('1. ', '')" class="toolbar-btn">1. List</button>
               <button @click="showLinkModal = true" class="toolbar-btn">🔗 Link</button>
               <button @click="showImageModal = true" class="toolbar-btn">🖼️ Image</button>
             </div>
@@ -113,7 +115,9 @@
               <button @click="execCommand('italic')" class="toolbar-btn">𝐼 Italic</button>
               <button @click="execCommand('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
               <button @click="execCommand('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
+              <button @click="execCommand('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
               <button @click="execCommand('insertUnorderedList')" class="toolbar-btn">• List</button>
+              <button @click="execCommand('insertOrderedList')" class="toolbar-btn">1. List</button>
               <button @click="showLinkModal = true" class="toolbar-btn">🔗 Link</button>
               <button @click="showImageModal = true" class="toolbar-btn">🖼️ Image</button>
             </div>
@@ -454,37 +458,56 @@ export default {
     },
     renderedMarkdown() {
       const content = this.content || ''
-      
-      // Configure marked with better image handling
-      marked.setOptions({
-        breaks: true,
-        gfm: true,
-        sanitize: false,
-        smartypants: true,
-        renderer: new marked.Renderer()
-      })
-      
+
       // Custom renderer to handle broken images
       const renderer = new marked.Renderer()
-      
+
+      const escapeAttr = (value) => String(value ?? '')
+        .replace(/&/g, '&amp;')
+        .replace(/"/g, '&quot;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+
       // Override image rendering to add error handling
-      renderer.image = function(href, title, text) {
-        let out = '<img src="' + href + '" alt="' + text + '"'
-        if (title) {
-          out += ' title="' + title + '"'
+      renderer.image = function(...args) {
+        let href = ''
+        let title = ''
+        let text = ''
+
+        // marked v16 passes a single token object; older versions pass (href, title, text)
+        if (args.length === 1 && args[0] && typeof args[0] === 'object') {
+          const token = args[0]
+          href = token.href || ''
+          title = token.title || ''
+          text = token.text || ''
+        } else {
+          href = args[0] || ''
+          title = args[1] || ''
+          text = args[2] || ''
         }
-        
+
+        const safeHref = escapeAttr(href)
+        const safeTitle = escapeAttr(title)
+        const safeText = escapeAttr(text)
+
+        let out = '<img src="' + safeHref + '" alt="' + safeText + '"'
+        if (title) {
+          out += ' title="' + safeTitle + '"'
+        }
+
         // Add error handling for broken images
-        out += ' onerror="this.style.border=\'2px dashed #ff6b6b\'; this.style.padding=\'10px\'; this.alt=\'❌ Image not found: ' + (text || href) + '\'; this.title=\'Click the 🖼️ button to upload this image\'"'
+        out += ' onerror="this.style.border=\'2px dashed #ff6b6b\'; this.style.padding=\'10px\'; this.alt=\'❌ Image not found: ' + (safeText || safeHref) + '\'; this.title=\'Click the 🖼️ button to upload this image\'"'
         out += ' onload="this.style.border=\'none\'; this.style.padding=\'0\'"'
         out += '>'
-        
+
         return out
       }
-      
-      marked.setOptions({ renderer })
-      
-      const rendered = marked(content)
+
+      let rendered = marked.parse(content, {
+        breaks: true,
+        gfm: true,
+        renderer
+      })
       
       // Post-process to add helpful messages for problematic image patterns
       if (content.includes('media/')) {
