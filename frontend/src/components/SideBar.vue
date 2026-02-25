@@ -31,7 +31,7 @@
 import { store } from '../store';
 
 export default {
-  name: 'SideBar',
+  name: 'Sidebar',
   props: {
     open: { type: Boolean, default: false }
   },

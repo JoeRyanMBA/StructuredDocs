@@ -114,8 +114,6 @@
 import { toast } from '@/composables/useToast'
 export default {
   name:'AdminVariablesView',
-  // Inject global toast composable
-  // (import added below after <script> tag adjustment)
   data(){
     return {
   variables:[],

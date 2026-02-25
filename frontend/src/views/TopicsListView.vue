@@ -794,9 +794,6 @@ export default {
 .btn-icon:hover:not(:disabled) { transform: translateY(-1px); box-shadow: 0 2px 4px rgba(0,0,0,0.1); }
 .btn-icon:disabled { opacity: 0.5; cursor: not-allowed; }
 /* Colored variants defined globally in assets/style.css */
-</style>
-
-<style scoped>
 .topics-list {
   padding: 2rem;
   background-color: var(--bg-light-gray);
