@@ -4,6 +4,8 @@
     <p class="subtitle">Create variables and define allowed values for publish-time substitution.</p>
 
     <div class="actions-bar">
+      <button v-if="canReturnToTopic" class="btn btn-secondary" @click="returnToTopic">Return to Topic</button>
+      <button v-else class="btn btn-secondary" @click="goToAdmin">Back to Admin</button>
       <button class="btn btn-primary" @click="openCreateVar">New Variable</button>
       <button class="btn btn-secondary" @click="refresh">Refresh</button>
     </div>
@@ -134,6 +136,14 @@ export default {
   },
   created(){ this.refresh() },
   computed:{
+    returnTopicId(){
+      const raw = this.$route?.query?.topicId;
+      const parsed = Number.parseInt(raw, 10);
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : null;
+    },
+    canReturnToTopic(){
+      return this.returnTopicId !== null;
+    },
     slugValid(){
       if(this.editingVar) return true; // existing slug assumed valid
       const s = this.varForm.slug;
@@ -152,6 +162,13 @@ export default {
   },
   methods:{
     navigate(path){ this.$router.push(path) },
+    goToAdmin(){
+      this.$router.push({ name: 'Admin' });
+    },
+    returnToTopic(){
+      if(!this.canReturnToTopic) return;
+      this.$router.push({ name: 'EditTopic', params: { id: this.returnTopicId } });
+    },
     async refresh(){
       this.loading = true
       try {
