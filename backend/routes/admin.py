@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, User, Notification, Topic, Collection, Project, Task
 from ..utils.email_service import get_email_service
+from ..utils.storage import get_storage_backend, SpacesStorage
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import os
@@ -379,12 +380,66 @@ def get_admin_notifications():
 
 @admin_bp.route('/clear-database', methods=['POST'])
 def clear_database():
-    db.session.execute(text("DELETE FROM tags;"))
     """Clear all data from the database except the admin user (admin-only endpoint)."""
     # NOTE: In production, you should add authentication/authorization checks here!
     # Adjust this email if your admin user uses a different address
     admin_email = 'admin@example.com'
+    payload = request.get_json(silent=True) or {}
+    purge_storage_requested = bool(payload.get('purge_storage', False))
+    storage_prefix = (payload.get('storage_prefix') or 'images/').strip() or 'images/'
+    env_name = (os.environ.get('FLASK_ENV') or os.environ.get('APP_ENV') or '').lower()
+    is_dev_like_env = env_name in ('development', 'dev', 'local')
+    allow_storage_purge = (os.environ.get('ALLOW_CLEAR_DB_STORAGE_PURGE') or '').lower() in ('1', 'true', 'yes', 'on')
+
+    def purge_spaces_objects(prefix: str) -> dict[str, Any]:
+        """Delete Spaces objects under the provided prefix in batches."""
+        storage = get_storage_backend()
+        if not isinstance(storage, SpacesStorage):
+            return {
+                'attempted': False,
+                'purged': False,
+                'deleted_count': 0,
+                'prefix': prefix,
+                'message': 'Active storage backend is not Spaces; skipped storage purge.'
+            }
+
+        deleted_count = 0
+        continuation_token = None
+        while True:
+            list_kwargs: dict[str, Any] = {
+                'Bucket': storage.bucket,
+                'Prefix': prefix
+            }
+            if continuation_token:
+                list_kwargs['ContinuationToken'] = continuation_token
+
+            response = storage.s3_client.list_objects_v2(**list_kwargs)
+            object_keys = [obj.get('Key') for obj in response.get('Contents', []) if obj.get('Key')]
+
+            for idx in range(0, len(object_keys), 1000):
+                chunk = object_keys[idx:idx + 1000]
+                if not chunk:
+                    continue
+                delete_response = storage.s3_client.delete_objects(
+                    Bucket=storage.bucket,
+                    Delete={'Objects': [{'Key': key} for key in chunk], 'Quiet': True}
+                )
+                deleted_count += len(delete_response.get('Deleted', []))
+
+            if not response.get('IsTruncated'):
+                break
+            continuation_token = response.get('NextContinuationToken')
+
+        return {
+            'attempted': True,
+            'purged': True,
+            'deleted_count': deleted_count,
+            'prefix': prefix,
+            'message': f'Deleted {deleted_count} Spaces object(s) under prefix "{prefix}".'
+        }
+
     try:
+        db.session.execute(text("DELETE FROM tags;"))
         db.session.execute(text("DELETE FROM review_feedback;"))
         db.session.execute(text("DELETE FROM review_tokens;"))
         db.session.execute(text("DELETE FROM reviews;"))
@@ -407,7 +462,41 @@ def clear_database():
         db.session.execute(text("DELETE FROM projects;"))
         db.session.execute(text("DELETE FROM users WHERE email != :admin_email"), {"admin_email": admin_email})
         db.session.commit()
-        return jsonify({'status': 'success', 'message': 'Database cleared except for admin user.'}), 200
+
+        storage_purge_result = {
+            'attempted': False,
+            'purged': False,
+            'deleted_count': 0,
+            'prefix': storage_prefix,
+            'message': 'Storage purge not requested.'
+        }
+
+        if purge_storage_requested:
+            if is_dev_like_env or allow_storage_purge:
+                try:
+                    storage_purge_result = purge_spaces_objects(storage_prefix)
+                except Exception as storage_err:
+                    storage_purge_result = {
+                        'attempted': True,
+                        'purged': False,
+                        'deleted_count': 0,
+                        'prefix': storage_prefix,
+                        'message': f'Storage purge failed: {storage_err}'
+                    }
+            else:
+                storage_purge_result = {
+                    'attempted': False,
+                    'purged': False,
+                    'deleted_count': 0,
+                    'prefix': storage_prefix,
+                    'message': 'Storage purge requested but blocked. Enable ALLOW_CLEAR_DB_STORAGE_PURGE=true or run in development environment.'
+                }
+
+        return jsonify({
+            'status': 'success',
+            'message': 'Database cleared except for admin user.',
+            'storage_purge': storage_purge_result
+        }), 200
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
