@@ -245,8 +245,8 @@ export default {
         const result = await response.json();
         if (response.ok) {
           const purgeResult = result?.storage_purge
-          const purgeMessage = purgeResult?.attempted || purgeResult?.purged
-            ? ` ${purgeResult.message || ''}`
+          const purgeMessage = this.purgeStorageOnClear
+            ? ` ${purgeResult?.message || 'Storage purge requested.'}`
             : ''
           toast.success(`Database cleared successfully!${purgeMessage}`.trim());
           await this.loadDashboardData();

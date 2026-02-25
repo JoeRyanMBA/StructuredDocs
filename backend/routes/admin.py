@@ -387,9 +387,20 @@ def clear_database():
     payload = request.get_json(silent=True) or {}
     purge_storage_requested = bool(payload.get('purge_storage', False))
     storage_prefix = (payload.get('storage_prefix') or 'images/').strip() or 'images/'
-    env_name = (os.environ.get('FLASK_ENV') or os.environ.get('APP_ENV') or '').lower()
-    is_dev_like_env = env_name in ('development', 'dev', 'local')
-    allow_storage_purge = (os.environ.get('ALLOW_CLEAR_DB_STORAGE_PURGE') or '').lower() in ('1', 'true', 'yes', 'on')
+    normalized_prefix = storage_prefix.lstrip('/')
+    if normalized_prefix and not normalized_prefix.endswith('/'):
+        normalized_prefix = f"{normalized_prefix}/"
+
+    purge_prefixes = [normalized_prefix] if normalized_prefix else ['images/']
+    if normalized_prefix == 'images/':
+        # Legacy imports may have been stored under imports/ directly
+        purge_prefixes.append('imports/')
+    # Include leading-slash variants to catch historical malformed keys
+    purge_prefixes.extend([f"/{p}" for p in list(purge_prefixes)])
+
+    # Preserve order, remove duplicates
+    seen_prefixes = set()
+    purge_prefixes = [p for p in purge_prefixes if p and not (p in seen_prefixes or seen_prefixes.add(p))]
 
     def purge_spaces_objects(prefix: str) -> dict[str, Any]:
         """Delete Spaces objects under the provided prefix in batches."""
@@ -404,6 +415,7 @@ def clear_database():
             }
 
         deleted_count = 0
+        matched_count = 0
         continuation_token = None
         while True:
             list_kwargs: dict[str, Any] = {
@@ -415,6 +427,7 @@ def clear_database():
 
             response = storage.s3_client.list_objects_v2(**list_kwargs)
             object_keys = [obj.get('Key') for obj in response.get('Contents', []) if obj.get('Key')]
+            matched_count += len(object_keys)
 
             for idx in range(0, len(object_keys), 1000):
                 chunk = object_keys[idx:idx + 1000]
@@ -434,8 +447,9 @@ def clear_database():
             'attempted': True,
             'purged': True,
             'deleted_count': deleted_count,
+            'matched_count': matched_count,
             'prefix': prefix,
-            'message': f'Deleted {deleted_count} Spaces object(s) under prefix "{prefix}".'
+            'message': f'Deleted {deleted_count} of {matched_count} Spaces object(s) under prefix "{prefix}".'
         }
 
     try:
@@ -467,29 +481,39 @@ def clear_database():
             'attempted': False,
             'purged': False,
             'deleted_count': 0,
-            'prefix': storage_prefix,
+            'matched_count': 0,
+            'prefix': normalized_prefix,
+            'prefixes': purge_prefixes,
             'message': 'Storage purge not requested.'
         }
 
         if purge_storage_requested:
-            if is_dev_like_env or allow_storage_purge:
-                try:
-                    storage_purge_result = purge_spaces_objects(storage_prefix)
-                except Exception as storage_err:
-                    storage_purge_result = {
-                        'attempted': True,
-                        'purged': False,
-                        'deleted_count': 0,
-                        'prefix': storage_prefix,
-                        'message': f'Storage purge failed: {storage_err}'
-                    }
-            else:
+            try:
+                per_prefix_results = [purge_spaces_objects(prefix) for prefix in purge_prefixes]
+                attempted = any(r.get('attempted') for r in per_prefix_results)
+                purged = any(r.get('purged') for r in per_prefix_results)
+                total_deleted = sum(int(r.get('deleted_count') or 0) for r in per_prefix_results)
+                total_matched = sum(int(r.get('matched_count') or 0) for r in per_prefix_results)
+
                 storage_purge_result = {
-                    'attempted': False,
+                    'attempted': attempted,
+                    'purged': purged,
+                    'deleted_count': total_deleted,
+                    'matched_count': total_matched,
+                    'prefix': normalized_prefix,
+                    'prefixes': purge_prefixes,
+                    'details': per_prefix_results,
+                    'message': f'Storage purge completed: deleted {total_deleted} of {total_matched} object(s) across {len(purge_prefixes)} prefix(es).'
+                }
+            except Exception as storage_err:
+                storage_purge_result = {
+                    'attempted': True,
                     'purged': False,
                     'deleted_count': 0,
-                    'prefix': storage_prefix,
-                    'message': 'Storage purge requested but blocked. Enable ALLOW_CLEAR_DB_STORAGE_PURGE=true or run in development environment.'
+                    'matched_count': 0,
+                    'prefix': normalized_prefix,
+                    'prefixes': purge_prefixes,
+                    'message': f'Storage purge failed: {storage_err}'
                 }
 
         return jsonify({
