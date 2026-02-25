@@ -203,8 +203,8 @@ export default {
 .loading-content, .error-content, .empty-content { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 .loading-spinner, .error-icon, .empty-icon { font-size: 3rem; }
 .notifications-table-container { overflow-x: auto; }
-.notifications-table { width: 100%; border-collapse: collapse; min-width: 800px; }
-.notifications-table th, .notifications-table td { padding: 1rem; text-align: left; border-bottom: 1px solid var(--border-light-gray); }
+.notifications-table { min-width: 800px; }
+.notifications-table th, .notifications-table td { padding: 1rem; border-bottom: 1px solid var(--border-light-gray); }
 .notifications-table th { background-color: var(--bg-light-mist-gray); font-weight: 600; color: var(--text-dark-gray); }
 .notification-row:hover { background-color: var(--bg-light-mist-gray); }
 .notification-message { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }

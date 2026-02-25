@@ -17,7 +17,8 @@
           @keyup.enter="loadImages"
         />
   <button @click="loadImages" class="btn btn-secondary btn-sm" type="button">
-    <i class="bi bi-search"></i> Search
+    <i class="bi bi-search" aria-hidden="true"></i>
+    <span>Search</span>
         </button>
       </div>
       <div class="view-controls">
@@ -40,8 +41,9 @@
           List
         </button>
       </div>
-  <button @click="refreshImages" class="btn btn-primary" type="button">
-        🔄 Refresh
+    <button @click="refreshImages" class="btn btn-primary btn-sm" type="button">
+      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+      <span>Refresh</span>
       </button>
     </div>
 
@@ -165,7 +167,6 @@
     <!-- Image Details Modal -->
   <div v-if="showDetailsModal" class="modal-overlay" @click.self="closeDetailsModal">
       <div class="modal large" @click.stop>
-            /* Modal Styles - use global .modal-overlay and .modal styles */
         <div class="modal-header">
           <h3>Image Details</h3>
           <button class="btn-close" @click="closeDetailsModal">✕</button>
@@ -600,20 +601,7 @@ export default {
   gap: 0.5rem;
 }
 
-.btn {
-  padding: 0.75rem 1.5rem;
-  border: none;
-  border-radius: 6px;
-  cursor: pointer;
-  font-size: 1rem;
-  transition: all 0.2s ease;
-  text-decoration: none;
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
-}
-
-/* Use global button styles; any local overrides should lean on CSS vars */
+/* Use global button styles from assets/style.css */
 
 .loading {
   text-align: center;

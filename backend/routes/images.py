@@ -28,6 +28,7 @@ def get_images():
     """
     try:
         images_data = []
+        include_missing = request.args.get('include_missing', 'false').lower() == 'true'
 
         configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
 
@@ -150,36 +151,43 @@ def get_images():
                 public_url = (img.public_url or '').strip()
                 if not public_url.startswith('/images/imports/') and img.document_id and img.filename:
                     public_url = f"/images/imports/{img.document_id}/{img.filename}"
-                # Deduplicate
-                if public_url not in seen:
-                    seen.add(public_url)
-                    try:
-                        # Use created_at from database if available
-                        stat = None
-                        configured_root_path = Path(configured_root) if configured_root else None
-                        backend_path = Path(img.backend_path)
-                        frontend_path = Path(img.frontend_path)
-                        fallback_backend_paths = [
-                            Path('/app/data/images') / 'imports' / str(img.document_id) / img.filename,
-                            Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(img.document_id) / img.filename,
-                        ]
-                        if configured_root_path is not None:
-                            fallback_backend_paths.insert(0, configured_root_path / 'imports' / str(img.document_id) / img.filename)
+                if public_url in seen:
+                    continue
+                try:
+                    # Use created_at from database if available
+                    stat = None
+                    configured_root_path = Path(configured_root) if configured_root else None
+                    backend_path = Path(img.backend_path)
+                    frontend_path = Path(img.frontend_path)
+                    fallback_backend_paths = [
+                        Path('/app/data/images') / 'imports' / str(img.document_id) / img.filename,
+                        Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(img.document_id) / img.filename,
+                    ]
+                    if configured_root_path is not None:
+                        fallback_backend_paths.insert(0, configured_root_path / 'imports' / str(img.document_id) / img.filename)
 
-                        existing_backend_path = None
-                        if backend_path.exists():
-                            existing_backend_path = backend_path
-                        elif frontend_path.exists():
-                            stat = frontend_path.stat()
-                        else:
-                            for fallback_path in fallback_backend_paths:
-                                if fallback_path.exists():
-                                    existing_backend_path = fallback_path
-                                    break
+                    existing_backend_path = None
+                    if backend_path.exists():
+                        existing_backend_path = backend_path
+                    elif frontend_path.exists():
+                        stat = frontend_path.stat()
+                    else:
+                        for fallback_path in fallback_backend_paths:
+                            if fallback_path.exists():
+                                existing_backend_path = fallback_path
+                                break
 
-                        if existing_backend_path is not None:
-                            stat = existing_backend_path.stat()
-                        
+                    if existing_backend_path is not None:
+                        stat = existing_backend_path.stat()
+
+                    # Remote import URLs (Spaces/CDN) are considered existing only if discovered in current listing.
+                    is_remote_url = public_url.startswith('http://') or public_url.startswith('https://')
+                    file_exists = ((existing_backend_path is not None) or frontend_path.exists())
+                    if not file_exists and is_remote_url:
+                        file_exists = public_url in seen
+
+                    if file_exists or include_missing:
+                        seen.add(public_url)
                         images_data.append({
                             'id': hash(public_url) % 100000000,
                             'filename': img.filename,
@@ -190,11 +198,12 @@ def get_images():
                             'created_at': img.created_at.isoformat() if img.created_at else None,
                             'document_id': img.document_id,
                             'source': 'import',
-                            'file_exists': (existing_backend_path is not None) or frontend_path.exists()
+                            'file_exists': file_exists
                         })
-                    except Exception as e:
-                        # Still add the image record even if file check fails
+                except Exception:
+                    if include_missing:
                         try:
+                            seen.add(public_url)
                             images_data.append({
                                 'id': hash(public_url) % 100000000,
                                 'filename': img.filename,

@@ -70,7 +70,6 @@ export default {
           icon: '📑',
           route: 'Collections',
           children: [
-            { key: 'doc-builder', label: 'Builder', route: 'DocumentBuilder', icon: '🧱' },
             { key: 'import-dashboard', label: 'Import', route: 'ImportDashboard', icon: '📥' },
             { key: 'publish-dashboard', label: 'Publish', route: 'PublicationsHome', icon: '📤' }
           ]

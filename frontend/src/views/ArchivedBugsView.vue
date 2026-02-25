@@ -1,11 +1,18 @@
 <template>
   <div class="archived-page">
     <h2>Archived Bug Reports</h2>
-    <div class="toolbar">
-      <button class="btn btn-sm btn-secondary" @click="load" :disabled="loading">Refresh</button>
+    <div class="projects-list-panel">
+      <div class="filter-row">
+        <div class="filter-group actions-group">
+          <div class="button-group">
+            <button class="btn btn-sm btn-secondary" @click="load" :disabled="loading">Refresh</button>
+          </div>
+        </div>
+      </div>
     </div>
   <div v-if="loading" class="loading">Loading...</div>
-  <table v-else-if="items.length" class="table archived-table">
+  <div v-else-if="items.length" class="archived-table-container">
+    <table class="table archived-table">
       <thead>
         <tr>
           <th>Title</th>
@@ -23,6 +30,7 @@
         </tr>
       </tbody>
     </table>
+  </div>
     <p v-else class="empty">No archived bug reports.</p>
   </div>
 </template>
@@ -42,14 +50,3 @@ export default {
   }
 }
 </script>
-
-<style scoped>
-.archived-page { padding: 1rem; }
-.table { width: 100%; border-collapse: collapse; }
-.table th, .table td { padding: 0.5rem 0.75rem; border-bottom: 1px solid #ddd; }
-.row-archived { opacity: 0.75; }
-.loading { font-style: italic; }
-.empty { margin-top: 1rem; color: #666; }
-.btn-icon.btn-archive { background: var(--warning-bg, #ffc107); color: #222; }
-.btn-icon.btn-archive:hover { filter: brightness(0.95); }
-</style>

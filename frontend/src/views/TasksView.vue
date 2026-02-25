@@ -1224,14 +1224,11 @@ export default {
 }
 
 .tasks-table {
-  width: 100%;
-  border-collapse: collapse;
   min-width: 1000px;
 }
 
 .tasks-table th, .tasks-table td {
   padding: 1rem;
-  text-align: left;
   border-bottom: 1px solid var(--border-light-gray);
 }
 

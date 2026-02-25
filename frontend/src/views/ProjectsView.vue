@@ -113,7 +113,7 @@
               <option value="completed">Completed</option>
             </select>
           </div>
-          <div class="filter-group">
+          <div class="filter-group actions-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm search-btn">
                 <i class="bi bi-search"></i> Search
@@ -1689,52 +1689,8 @@ export default {
   color: var(--text-secondary-cool-gray);
 }
 
-/* Filters */
-.filters-section {
-  background: var(--bg-primary-white);
-  padding: 1rem 1.5rem;
-  border-radius: 12px;
-  margin-bottom: 2rem;
-  box-shadow: var(--shadow-sm);
-  border: 1px solid var(--border-light-gray);
-}
-
-.filter-row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 1.5rem;
-}
-
 .projects-list-panel {
   margin-bottom: 1.25rem; /* space between filter panel and project list */
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-}
-
-.filter-group label {
-  font-size: 0.9rem;
-  font-weight: 500;
-  color: var(--text-secondary-cool-gray);
-  margin-bottom: 0.5rem;
-}
-
-.filter-input {
-  padding: 0.6rem 1rem;
-  border: 1px solid var(--border-color-gray);
-  border-radius: 6px;
-  background: var(--bg-primary-white);
-  font-size: 1rem;
-  min-width: 200px;
-}
-
-.button-group {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center !important; /* Force center alignment, override parent flex-end */
 }
 
 /* Projects Grid */
@@ -2064,5 +2020,8 @@ export default {
 
 .ml-1 {
   margin-left: 1rem;
+}
+
+@media (max-width: 768px) {
 }
 </style>
