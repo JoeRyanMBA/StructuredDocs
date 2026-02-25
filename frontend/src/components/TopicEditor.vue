@@ -96,8 +96,8 @@
               <button @click="insertMarkdown('### ', '')" class="toolbar-btn">𝐇𝟑 Header</button>
               <button @click="insertMarkdown('- ', '')" class="toolbar-btn">• List</button>
               <button @click="insertMarkdown('1. ', '')" class="toolbar-btn">1. List</button>
-              <button @click="showLinkModal = true" class="toolbar-btn">🔗 Link</button>
-              <button @click="showImageModal = true" class="toolbar-btn">🖼️ Image</button>
+              <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
+              <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
             </div>
             <textarea 
               ref="markdownEditor"
@@ -118,8 +118,8 @@
               <button @click="execCommand('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
               <button @click="execCommand('insertUnorderedList')" class="toolbar-btn">• List</button>
               <button @click="execCommand('insertOrderedList')" class="toolbar-btn">1. List</button>
-              <button @click="showLinkModal = true" class="toolbar-btn">🔗 Link</button>
-              <button @click="showImageModal = true" class="toolbar-btn">🖼️ Image</button>
+              <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
+              <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
             </div>
             <div 
               ref="wysiwygEditor"
@@ -342,6 +342,10 @@
                 <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
               </div>
             </div>
+            <div class="form-group">
+              <label>Caption (optional)</label>
+              <input v-model="imageCaption" type="text" class="form-input" placeholder="Image caption shown below the image">
+            </div>
           </div>
           <div class="modal-footer">
             <button @click="insertImage" class="btn btn-primary">Insert Image</button>
@@ -404,6 +408,7 @@ export default {
   imageUploadPreview: '',
       imageUrl: '',
       imageAlt: '',
+      imageCaption: '',
       availableImages: [],
   filteredImages: [],
   imageSearch: '',
@@ -423,7 +428,8 @@ export default {
   variableSearch: '',
   selectedVariableSlug: '',
   selectedExistingImage: null,
-  selectedExistingLink: null
+  selectedExistingLink: null,
+  savedWysiwygRange: null
     }
   },
   computed: {
@@ -588,6 +594,44 @@ export default {
     next(false)
   },
   methods: {
+    openLinkModal() {
+      if (this.editorMode === 'wysiwyg') {
+        this.captureWysiwygSelection()
+      }
+      this.showLinkModal = true
+    },
+    openImageModal() {
+      if (this.editorMode === 'wysiwyg') {
+        this.captureWysiwygSelection()
+      }
+      this.showImageModal = true
+    },
+    captureWysiwygSelection() {
+      const editor = this.$refs.wysiwygEditor
+      if (!editor) {
+        this.savedWysiwygRange = null
+        return
+      }
+      const selection = window.getSelection()
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0)
+        if (editor.contains(range.startContainer)) {
+          this.savedWysiwygRange = range.cloneRange()
+          return
+        }
+      }
+      this.savedWysiwygRange = null
+    },
+    restoreWysiwygSelection() {
+      const editor = this.$refs.wysiwygEditor
+      if (!editor || !this.savedWysiwygRange) return false
+      editor.focus()
+      const selection = window.getSelection()
+      if (!selection) return false
+      selection.removeAllRanges()
+      selection.addRange(this.savedWysiwygRange)
+      return true
+    },
     async loadVariables(){
       try {
         const res = await fetch('/api/variables')
@@ -828,6 +872,7 @@ export default {
           
           // Auto-insert immediately after successful upload and selection
           this.$nextTick(() => {
+            this.restoreWysiwygSelection()
             console.log('🔨 Auto-inserting image...')
             this.insertImage()
           })
@@ -875,6 +920,7 @@ export default {
         
         // Auto-insert the link immediately after upload
         this.$nextTick(() => {
+          this.restoreWysiwygSelection()
           this.insertLink()
         })
       } catch (e) {
@@ -1001,6 +1047,7 @@ export default {
       if (this.editorMode === 'markdown') {
         this.insertMarkdown(linkMarkdown, '')
       } else if (this.editorMode === 'wysiwyg') {
+        this.restoreWysiwygSelection()
         const editor = this.$refs.wysiwygEditor
         if (editor) {
           const selection = window.getSelection()
@@ -1043,18 +1090,30 @@ export default {
       this.linkText = ''
       this.linkUrl = ''
       this.selectedExistingLink = null
+      this.savedWysiwygRange = null
       this.showLinkModal = false
     },
 
     insertImage() {
       if (!this.imageUrl) return
       const alt = this.imageAlt || 'Image'
-      const imageMarkdown = `![${alt}](${this.imageUrl})`
+      const caption = (this.imageCaption || '').trim()
+      const imageMarkdown = caption
+        ? `![${alt}](${this.imageUrl})\n${caption}`
+        : `![${alt}](${this.imageUrl})`
       
       if (this.editorMode === 'markdown') {
         this.insertMarkdown(imageMarkdown, '')
       } else if (this.editorMode === 'wysiwyg') {
-        const imgHtml = `<img src="${this.imageUrl}" alt="${alt}" />`
+        this.restoreWysiwygSelection()
+        const escapedCaption = caption
+          .replace(/&/g, '&amp;')
+          .replace(/</g, '&lt;')
+          .replace(/>/g, '&gt;')
+          .replace(/"/g, '&quot;')
+        const imgHtml = caption
+          ? `<img src="${this.imageUrl}" alt="${alt}" /><p>${escapedCaption}</p>`
+          : `<img src="${this.imageUrl}" alt="${alt}" />`
         document.execCommand('insertHTML', false, imgHtml)
         this.updateContentFromWysiwyg()
       }
@@ -1062,7 +1121,9 @@ export default {
       // Reset modal
       this.imageUrl = ''
       this.imageAlt = ''
+      this.imageCaption = ''
       this.selectedExistingImage = null
+      this.savedWysiwygRange = null
       this.imageInsertMode = 'url'
       this.showImageModal = false
     },

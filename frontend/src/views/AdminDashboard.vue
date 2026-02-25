@@ -92,6 +92,19 @@
               <h3>Clear Database</h3>
             </div>
           </button>
+          <div class="clear-db-options">
+            <label class="clear-db-checkbox">
+              <input type="checkbox" v-model="purgeStorageOnClear" />
+              <span>Also purge Spaces objects (dev-safe)</span>
+            </label>
+            <input
+              v-model="clearStoragePrefix"
+              class="clear-db-prefix"
+              type="text"
+              placeholder="images/"
+              :disabled="!purgeStorageOnClear"
+            />
+          </div>
 <style>
 .quick-action-card.danger {
   background: #fff0f0;
@@ -204,6 +217,8 @@ export default {
       systemLogs: [],
       systemEvents: [],
       adminNotifications: [],
+      purgeStorageOnClear: false,
+      clearStoragePrefix: 'images/',
       newNotification: {
         title: '',
         description: ''
@@ -227,15 +242,24 @@ export default {
   },
   methods: {
     async confirmClearDatabase() {
-      if (!window.confirm('Are you sure you want to clear ALL data except the admin user? This cannot be undone!')) return;
+      const storageNote = this.purgeStorageOnClear ? `\n\nStorage purge enabled for prefix: ${this.clearStoragePrefix || 'images/'}` : ''
+      if (!window.confirm(`Are you sure you want to clear ALL data except the admin user? This cannot be undone!${storageNote}`)) return;
       try {
         const response = await fetch('/api/admin/clear-database', {
           method: 'POST',
           headers: this.getAuthHeaders(),
+          body: JSON.stringify({
+            purge_storage: this.purgeStorageOnClear,
+            storage_prefix: (this.clearStoragePrefix || 'images/').trim() || 'images/'
+          })
         });
         const result = await response.json();
         if (response.ok) {
-          toast.success('Database cleared successfully!');
+          const purgeResult = result?.storage_purge
+          const purgeMessage = purgeResult?.attempted || purgeResult?.purged
+            ? ` ${purgeResult.message || ''}`
+            : ''
+          toast.success(`Database cleared successfully!${purgeMessage}`.trim());
           await this.loadDashboardData();
         } else {
           toast.error('Error clearing database: ' + (result.message || 'Unknown error'));
@@ -482,6 +506,35 @@ export default {
   color: var(--text-secondary-cool-gray);
   font-size: 0.8rem;
   font-style: italic;
+}
+
+.clear-db-options {
+  grid-column: 1 / -1;
+  margin-top: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+  background: var(--bg-white);
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.clear-db-checkbox {
+  display: flex;
+  align-items: center;
+  gap: 0.45rem;
+  color: var(--text-secondary-cool-gray);
+  font-size: 0.85rem;
+}
+
+.clear-db-prefix {
+  min-width: 180px;
+  padding: 0.35rem 0.5rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.85rem;
 }
 
 /* Dashboard Sections: use global .dashboard-section from assets/style.css */
