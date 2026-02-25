@@ -120,6 +120,7 @@
             <div 
               ref="wysiwygEditor"
               @input="onWysiwygInput"
+              @paste="handleWysiwygPaste"
               contenteditable="true" 
               class="wysiwyg-content"
             ></div>
@@ -312,6 +313,7 @@
                   >
                     <img :src="imageDisplayUrl(img)" :alt="img.alt_text || img.filename" @error="handleImageError($event, img)">
                     <div class="image-caption">{{ img.filename }}</div>
+                    <div class="image-source-badge">{{ formatImageSource(img.source) }}</div>
                   </div>
                 </div>
               <div class="empty-state" v-else>No images found.</div>
@@ -718,6 +720,12 @@ export default {
       console.debug(`🖼️ imageDisplayUrl for ${img.filename || 'unknown'}:`, { img, resolved })
       return resolved
     },
+    formatImageSource(source) {
+      const value = (source || 'local').toLowerCase()
+      if (value === 'spaces') return 'Spaces'
+      if (value === 'import') return 'Imported'
+      return 'Local'
+    },
     handleImageError(event, img){
       const element = event?.target
       if (element && img) {
@@ -1113,10 +1121,89 @@ export default {
         .trim()
     },
 
-    handleWysiwygPaste(event) {
-      // Basic paste handling
+    async handleWysiwygPaste(event) {
+      const clipboard = event.clipboardData
+      if (!clipboard) return
+
+      const items = Array.from(clipboard.items || [])
+      const imageItem = items.find(item => (item.type || '').startsWith('image/'))
+
+      if (imageItem) {
+        event.preventDefault()
+
+        const imageFile = imageItem.getAsFile()
+        if (!imageFile) return
+
+        const mimeType = imageFile.type || 'image/png'
+        const extByMime = {
+          'image/png': '.png',
+          'image/jpeg': '.jpg',
+          'image/jpg': '.jpg',
+          'image/gif': '.gif',
+          'image/webp': '.webp',
+          'image/svg+xml': '.svg'
+        }
+        const ext = extByMime[mimeType] || '.png'
+        const generatedName = `pasted_image_${Date.now()}${ext}`
+
+        try {
+          const formData = new FormData()
+          formData.append('image', imageFile, generatedName)
+
+          const res = await fetch('/api/images/upload', {
+            method: 'POST',
+            body: formData
+          })
+          if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+
+          const uploaded = await res.json()
+          const src = uploaded.public_url || uploaded.file_path
+          if (!src) throw new Error('Upload succeeded but no image URL returned')
+
+          const editor = this.$refs.wysiwygEditor
+          if (editor) {
+            const selection = window.getSelection()
+            let insertedAtCaret = false
+
+            if (selection && selection.rangeCount > 0) {
+              const range = selection.getRangeAt(0)
+              if (editor.contains(range.startContainer)) {
+                const imageNode = document.createElement('img')
+                imageNode.src = src
+                imageNode.alt = uploaded.alt_text || generatedName
+
+                range.deleteContents()
+                range.insertNode(imageNode)
+
+                const spacer = document.createTextNode(' ')
+                imageNode.after(spacer)
+                range.setStartAfter(spacer)
+                range.collapse(true)
+                selection.removeAllRanges()
+                selection.addRange(range)
+                insertedAtCaret = true
+              }
+            }
+
+            if (!insertedAtCaret) {
+              const imageNode = document.createElement('img')
+              imageNode.src = src
+              imageNode.alt = uploaded.alt_text || generatedName
+              editor.appendChild(imageNode)
+              editor.appendChild(document.createTextNode(' '))
+            }
+
+            this.updateContentFromWysiwyg()
+          }
+          return
+        } catch (e) {
+          console.error('Image paste upload failed', e)
+        }
+      }
+
+      // Fallback: plain text paste handling
       event.preventDefault()
-      const text = event.clipboardData.getData('text/plain')
+      const text = clipboard.getData('text/plain')
       document.execCommand('insertText', false, text)
     },
 
@@ -1294,6 +1381,17 @@ export default {
 }
 .image-item img { max-width:100%; height:80px; object-fit:cover; display:block; margin:0 auto .5rem; }
 .image-caption { font-size:.8rem; color:#555; word-break: break-all; }
+.image-source-badge {
+  display:inline-block;
+  margin-top:.35rem;
+  padding:.1rem .35rem;
+  border-radius:999px;
+  font-size:.65rem;
+  text-transform:uppercase;
+  letter-spacing:.3px;
+  color:#475569;
+  background:#f1f5f9;
+}
 
 /* Title input styling */
 .title-label {

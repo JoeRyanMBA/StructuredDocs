@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from ..models import db, ImportImage
+from ..utils.storage import get_storage_backend, LocalStorage, SpacesStorage
 
 images_bp = Blueprint('images', __name__, url_prefix='/api/images')
 
@@ -93,6 +94,51 @@ def get_images():
                         # Fallback to filename-only
                         rel_path = f
                     _add_image(root_dir, rel_path, url_prefix)
+
+        # Include remote Spaces images when remote storage is configured
+        try:
+            storage = get_storage_backend()
+            if isinstance(storage, SpacesStorage):
+                continuation_token = None
+                while True:
+                    list_kwargs = {
+                        'Bucket': storage.bucket,
+                        'Prefix': 'images/'
+                    }
+                    if continuation_token:
+                        list_kwargs['ContinuationToken'] = continuation_token
+
+                    response = storage.s3_client.list_objects_v2(**list_kwargs)
+                    for obj in response.get('Contents', []):
+                        key = obj.get('Key') or ''
+                        if not key or key.endswith('/'):
+                            continue
+                        filename = os.path.basename(key)
+                        if not allowed_file(filename):
+                            continue
+
+                        public_url = storage.get_url(key)
+                        if public_url in seen:
+                            continue
+                        seen.add(public_url)
+
+                        last_modified = obj.get('LastModified')
+                        images_data.append({
+                            'id': hash(public_url) % 100000000,
+                            'filename': filename,
+                            'file_path': public_url,
+                            'public_url': public_url,
+                            'alt_text': filename,
+                            'size': obj.get('Size'),
+                            'created_at': last_modified.isoformat() if last_modified else None,
+                            'source': 'spaces'
+                        })
+
+                    if not response.get('IsTruncated'):
+                        break
+                    continuation_token = response.get('NextContinuationToken')
+        except Exception as e:
+            current_app.logger.warning(f"Could not list Spaces images: {e}")
 
         # Also include imported images from the database (ALL records, not just ones with files)
         # This matches how links work - return database truth, frontend handles missing files gracefully
@@ -194,20 +240,34 @@ def upload_image():
             original_filename = secure_filename(file.filename)
             name, ext = os.path.splitext(original_filename)
             unique_filename = f"{name}_{uuid.uuid4().hex[:8]}{ext}"
-            
-            # Ensure static images directory exists
-            static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-            os.makedirs(static_images_dir, exist_ok=True)
-            
-            # Save the file
-            file_path = os.path.join(static_images_dir, unique_filename)
-            file.save(file_path)
-            
-            # Get file size
-            file_size = os.path.getsize(file_path)
-            
-            # Create public URL
-            public_url = f"/images/{unique_filename}"
+
+            # Read upload into memory once so we can route through configured storage backend
+            file_bytes = file.read()
+            file_size = len(file_bytes)
+            content_type = file.mimetype or None
+
+            storage = get_storage_backend()
+
+            # Keep legacy local path shape while using Spaces/CDN URL when remote storage is configured
+            if isinstance(storage, LocalStorage):
+                storage_path = unique_filename
+            else:
+                storage_path = f"images/{unique_filename}"
+
+            stored_url = storage.save_file(file_bytes, storage_path, content_type=content_type)
+
+            if isinstance(storage, LocalStorage):
+                public_url = f"/images/{unique_filename}"
+
+                # Ensure legacy static/images path is still populated for existing consumers
+                static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
+                os.makedirs(static_images_dir, exist_ok=True)
+                static_file_path = os.path.join(static_images_dir, unique_filename)
+                if not os.path.exists(static_file_path):
+                    with open(static_file_path, 'wb') as image_file:
+                        image_file.write(file_bytes)
+            else:
+                public_url = stored_url
             
             # Return the image data
             return jsonify({
