@@ -2,7 +2,7 @@
   <div class="button-catalog">
     <div class="dashboard-header">
       <h1>Button Catalog</h1>
-      <p class="subtitle">Live examples of button styles, their source, and where they are used</p>
+      <p class="subtitle">Canonical button reference using the centralized styles in src/assets/style.css</p>
     </div>
 
     <div class="section-card">
@@ -16,6 +16,7 @@
             <tr>
               <th style="width: 240px">Example</th>
               <th>Name</th>
+              <th style="width: 160px">Recently standardized</th>
               <th>Classes</th>
               <th>Stylesheet</th>
               <th>Where used</th>
@@ -27,12 +28,24 @@
                 <component :is="row.exampleTag" v-bind="row.exampleBind" :class="row.classes">
                   <template #default>
                     <template v-if="row.exampleRender === 'IconPlus'">
-                      <div class="action-icon" style="width:60px;height:60px;display:flex;align-items:center;justify-content:center;border-radius:8px;background:var(--bg-light-mist-gray);color:var(--primary-deep-teal);margin-right:1rem;">
+                      <div class="iconplus-preview-icon">
                         <IconPlus size="28" />
                       </div>
-                      <div class="action-content">
-                        <h3 style="margin:0;color:var(--text-dark-gray);font-weight:600;">{{ row.text }}</h3>
-                        <p style="margin:0;color:var(--text-medium-gray);font-size:.9rem;">Standardized create quick action with IconPlus</p>
+                      <div class="iconplus-preview-content">
+                        <h3>{{ row.text }}</h3>
+                        <p>Standardized create quick action with IconPlus</p>
+                      </div>
+                    </template>
+                    <template v-else-if="row.exampleRender === 'Segmented'">
+                      <div class="segmented-control segmented-preview" role="group" aria-label="Segmented control preview">
+                        <button type="button" class="segmented-btn btn-primary active">Visual</button>
+                        <button type="button" class="segmented-btn btn-secondary">Markdown</button>
+                      </div>
+                    </template>
+                    <template v-else-if="row.exampleRender === 'ButtonGroupEqual'">
+                      <div class="button-group equal-width group-preview" role="group" aria-label="Equal width button group preview">
+                        <button type="button" class="btn btn-secondary btn-sm">Cancel</button>
+                        <button type="button" class="btn btn-primary btn-sm">Save</button>
                       </div>
                     </template>
                     <template v-else-if="row.icon">
@@ -46,6 +59,10 @@
                 </component>
               </td>
               <td>{{ row.name }}</td>
+              <td>
+                <span v-if="isRecentlyStandardized(row)" class="recent-badge">Recently standardized</span>
+                <span v-else class="recent-badge recent-badge--muted">Established</span>
+              </td>
               <td><code>{{ row.classes }}</code></td>
               <td>{{ row.stylesheet }}</td>
               <td>
@@ -77,6 +94,14 @@ export default {
   data() {
     return {
       filter: '',
+      recentlyStandardizedNames: [
+        'Warning',
+        'Segmented Control',
+        'Button Group (equal width)',
+        'Quick Action: Create',
+        'Small Primary',
+        'Small Secondary'
+      ],
       rows: [
         {
           name: 'Primary',
@@ -129,6 +154,19 @@ export default {
           stylesheet: 'assets/style.css (.btn-info)',
           usedIn: [
             'ReviewPortal.vue (Preview Changes)'
+          ],
+          exampleTag: 'button',
+          exampleBind: { type: 'button' }
+        },
+        {
+          name: 'Warning',
+          classes: 'btn btn-warning',
+          text: 'Archive',
+          icon: 'bi bi-archive',
+          stylesheet: 'assets/style.css (.btn-warning)',
+          usedIn: [
+            'ArchiveToggleButton.vue (archive actions)',
+            'Admin/archive management flows'
           ],
           exampleTag: 'button',
           exampleBind: { type: 'button' }
@@ -317,6 +355,33 @@ export default {
           exampleBind: { type: 'button' }
         },
         {
+          name: 'Segmented Control',
+          classes: 'segmented-control + segmented-btn',
+          text: '',
+          icon: '',
+          stylesheet: 'assets/style.css (.segmented-control, .segmented-btn)',
+          usedIn: [
+            'TopicEditor.vue (Visual/Markdown mode toggle)',
+            'Modal tab toggles'
+          ],
+          exampleTag: 'div',
+          exampleBind: {},
+          exampleRender: 'Segmented'
+        },
+        {
+          name: 'Button Group (equal width)',
+          classes: 'button-group equal-width',
+          text: '',
+          icon: '',
+          stylesheet: 'assets/style.css (.button-group.equal-width .btn)',
+          usedIn: [
+            'Form action bars and modal action groups'
+          ],
+          exampleTag: 'div',
+          exampleBind: {},
+          exampleRender: 'ButtonGroupEqual'
+        },
+        {
           name: 'Remove (x small)',
           classes: 'remove-btn',
           text: '×',
@@ -412,6 +477,11 @@ export default {
       ]
     }
   },
+  methods: {
+    isRecentlyStandardized(row) {
+      return this.recentlyStandardizedNames.includes(row.name)
+    }
+  },
   computed: {
     filteredRows() {
       const q = (this.filter || '').toLowerCase()
@@ -419,7 +489,8 @@ export default {
       return this.rows.filter(r =>
         r.name.toLowerCase().includes(q) ||
         r.classes.toLowerCase().includes(q) ||
-        r.usedIn.some(u => u.toLowerCase().includes(q))
+        r.usedIn.some(u => u.toLowerCase().includes(q)) ||
+        (q.includes('recent') && this.isRecentlyStandardized(r))
       )
     }
   }
@@ -455,5 +526,54 @@ export default {
   border-radius: 4px;
   padding: 2px 6px;
   font-size: 0.8rem;
+}
+
+.iconplus-preview-icon {
+  width: 60px;
+  height: 60px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 8px;
+  background: var(--bg-light-mist-gray);
+  color: var(--primary-deep-teal);
+  margin-right: 1rem;
+}
+
+.iconplus-preview-content h3 {
+  margin: 0;
+  color: var(--text-dark-gray);
+  font-weight: 600;
+}
+
+.iconplus-preview-content p {
+  margin: 0;
+  color: var(--text-medium-gray);
+  font-size: 0.9rem;
+}
+
+.segmented-preview {
+  margin: 0;
+}
+
+.group-preview {
+  min-width: 220px;
+}
+
+.recent-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  background: var(--info-light-blue);
+  color: var(--info-dark-blue);
+  white-space: nowrap;
+}
+
+.recent-badge--muted {
+  background: var(--bg-light-mist-gray);
+  color: var(--text-medium-gray);
 }
 </style>
