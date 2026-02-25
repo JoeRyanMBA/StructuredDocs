@@ -6,47 +6,29 @@
       These are lightweight, offline-ready HTML files that work without internet connectivity.
     </p>
 
-    <div class="features-list" :class="{ collapsed: featuresCollapsed }">
-      <button
-        class="features-header"
-        type="button"
-        @click="toggleFeatures"
-        :aria-expanded="(!featuresCollapsed).toString()"
-        aria-controls="features-content"
-      >
-        <span class="features-title">Key features</span>
-        <span class="chevron" aria-hidden="true">▾</span>
-      </button>
-
-      <div id="features-content" class="features-content" v-show="!featuresCollapsed">
-        <div class="feature-item">
-          <span class="feature-icon">📱</span>
-          <div class="feature-content">
-            <strong>Mobile-First Design</strong> - Optimized for touch interfaces and small screens
+    <div v-if="recentPublishedPublications.length" class="recent-section">
+      <h3>Recent Publications</h3>
+      <div class="recent-list">
+        <div
+          v-for="pub in recentPublishedPublications"
+          :key="`recent-${pub.id}`"
+          class="recent-item"
+          @click="selectPublication(pub)"
+        >
+          <div class="recent-main">
+            <div class="recent-title">{{ pub.title }}</div>
+            <div class="recent-meta">Updated {{ formatDate(pub.updated_at || pub.created_at) }}</div>
           </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon">⚡</span>
-          <div class="feature-content">
-            <strong>Lightweight</strong> - Fast loading with minimal data usage
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon">🔌</span>
-          <div class="feature-content">
-            <strong>Offline Ready</strong> - Works without internet connection
-          </div>
-        </div>
-        <div class="feature-item">
-          <span class="feature-icon">🌙</span>
-          <div class="feature-content">
-            <strong>Dark Mode</strong> - Automatic dark mode support
+          <div class="recent-actions">
+            <button @click.stop="previewMobileKB(pub.id)" class="btn-preview btn-compact">Preview</button>
+            <button @click.stop="exportMobileKB(pub.id)" class="btn-export btn-compact">Download</button>
           </div>
         </div>
       </div>
+      <button type="button" class="view-all-link" @click="scrollToAllPublications">View all published</button>
     </div>
 
-    <div class="publications-section">
+    <div ref="allPublicationsSection" class="publications-section">
       <h3>Select Publication to Export</h3>
       <div v-if="loading" class="loading">Loading publications...</div>
       <div v-else-if="error" class="error">{{ error }}</div>
@@ -77,32 +59,6 @@
       </div>
     </div>
 
-    <div class="help-section">
-      <h3>📚 Usage Instructions</h3>
-      <div class="instructions">
-        <div class="instruction-step">
-          <span class="step-number">1</span>
-          <div class="step-content">
-            <strong>Export Knowledge Base</strong>
-            <p>Click "Download" to get a single HTML file containing your entire knowledge base.</p>
-          </div>
-        </div>
-        <div class="instruction-step">
-          <span class="step-number">2</span>
-          <div class="step-content">
-            <strong>Deploy to Field Staff</strong>
-            <p>Share the HTML file via email, cloud storage, or mobile device management systems.</p>
-          </div>
-        </div>
-        <div class="instruction-step">
-          <span class="step-number">3</span>
-          <div class="step-content">
-            <strong>Access Offline</strong>
-            <p>Staff can open the file in any mobile browser and bookmark it for offline access.</p>
-          </div>
-        </div>
-      </div>
-    </div>
   </div>
 </template>
 
@@ -110,19 +66,22 @@
 
 export default {
   name: 'PublishMobileKB',
+  computed: {
+    recentPublishedPublications() {
+      return (this.publications || [])
+        .filter(pub => pub && pub.status === 'published')
+        .slice(0, 5)
+    }
+  },
   data() {
     return {
       publications: [],
       loading: true,
-      error: null,
-      featuresCollapsed: false
+      error: null
     }
   },
   async created() {
     await this.fetchPublications()
-    if (typeof window !== 'undefined') {
-      this.featuresCollapsed = window.innerWidth <= 768
-    }
   },
   methods: {
     async fetchPublications() {
@@ -166,6 +125,9 @@ export default {
       // Download the mobile knowledge base HTML file
       window.open(`/api/publications/${pubId}/export/mobile-kb`, '_blank')
     },
+    scrollToAllPublications() {
+      this.$refs.allPublicationsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    },
     
     formatDate(dateString) {
       // Parse the date and ensure it's treated as UTC, then convert to local time
@@ -196,9 +158,6 @@ export default {
         })
         return `${formattedDate} ${timeString}`
       }
-    },
-    toggleFeatures() {
-      this.featuresCollapsed = !this.featuresCollapsed
     }
   }
 }
@@ -207,89 +166,93 @@ export default {
 <style scoped>
 .publish-mobile-kb {
   margin: 0 auto;
-  padding: 2rem;
+  padding: 1.5rem 2rem;
   background-color: var(--bg-light-mist-gray);
 }
 
 .description {
   font-size: 1.1rem;
   color: var(--text-secondary-cool-gray);
-  margin-bottom: 2rem;
+  margin-bottom: 1.25rem;
   line-height: 1.6;
 }
 
-.features-list {
-  background: var(--bg-primary-white);
-  border-radius: 8px;
-  border: 1px solid var(--border-color-gray);
-  margin-bottom: 2rem;
-  overflow: hidden;
+.recent-section {
+  margin-bottom: 1.25rem;
 }
 
-.features-header {
-  width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0.5rem 1rem;
-  background: transparent;
-  border: 0;
-  cursor: pointer;
+.recent-section h3 {
+  margin: 0 0 0.75rem;
   color: var(--text-primary-charcoal);
-  font-weight: 600;
 }
 
-.features-title {
-  display: inline-flex;
-  align-items: center;
-  gap: 0.5rem;
+.view-all-link {
+  margin-top: 0.5rem;
+  background: none;
+  border: none;
+  padding: 0;
+  color: var(--primary-deep-teal);
+  text-decoration: underline;
+  cursor: pointer;
+  font-size: 0.9rem;
 }
 
-.chevron {
-  transition: transform 0.2s ease;
+.view-all-link:hover {
+  color: var(--primary-medium-teal);
 }
 
-.features-list.collapsed .chevron {
-  transform: rotate(-90deg);
-}
-
-.features-content {
-  border-top: 1px solid var(--border-color-gray);
-}
-
-.feature-item {
+.recent-list {
   display: flex;
+  flex-direction: column;
+  gap: 0.75rem;
+}
+
+.recent-item {
+  display: flex;
+  justify-content: space-between;
   align-items: center;
-  padding: 0.75rem 1rem;
-  border-bottom: 1px solid var(--border-color-gray);
   gap: 1rem;
+  background: var(--bg-primary-white);
+  border: 1px solid var(--border-color-gray);
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  cursor: pointer;
 }
 
-.feature-item:last-child {
-  border-bottom: none;
+.recent-main {
+  min-width: 0;
 }
 
-.feature-icon {
-  font-size: 1.4rem;
+.recent-title {
+  font-weight: 600;
+  color: var(--text-primary-charcoal);
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.recent-meta {
+  font-size: 0.85rem;
+  color: var(--text-secondary-cool-gray);
+}
+
+.recent-actions {
+  display: flex;
+  gap: 0.5rem;
   flex-shrink: 0;
 }
 
-.feature-content {
-  flex: 1;
-  color: var(--text-secondary-cool-gray);
-  line-height: 1.4;
-}
-
-.feature-content strong {
-  color: var(--text-primary-charcoal);
+.btn-compact {
+  padding: 0.35rem 0.65rem;
+  font-size: 0.8rem;
 }
 
 .publications-section {
-  margin-bottom: 3rem;
+  margin-bottom: 0;
 }
 
 .publications-section h3 {
-  margin-bottom: 1.5rem;
+  margin-bottom: 1rem;
   color: var(--text-primary-charcoal);
 }
 
@@ -309,12 +272,12 @@ export default {
 .publications-grid {
   display: grid;
   grid-template-columns: repeat(auto-fill, minmax(300px, 1fr));
-  gap: 1.5rem;
+  gap: 1rem;
 }
 
 .publication-card {
   background: var(--bg-primary-white);
-  padding: 1.5rem;
+  padding: 1.25rem;
   border-radius: 8px;
   box-shadow: var(--shadow-md);
   border: 1px solid var(--border-color-gray);
@@ -352,7 +315,7 @@ export default {
 }
 
 .publication-description {
-  margin: 0 0 1.5rem 0;
+  margin: 0 0 1rem 0;
   color: var(--text-secondary-cool-gray);
   line-height: 1.5;
 }
@@ -390,101 +353,33 @@ export default {
   background: var(--success-dark-mint);
 }
 
-.help-section {
-  background: var(--bg-light-mist-gray);
-  padding: 2rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-color-gray);
-}
-
-.help-section h3 {
-  margin: 0 0 1.5rem 0;
-  color: var(--text-primary-charcoal);
-}
-
-.instructions {
-  display: flex;
-  flex-direction: column;
-  gap: 1.5rem;
-}
-
-.instruction-step {
-  display: flex;
-  align-items: flex-start;
-  gap: 1rem;
-}
-
-.step-number {
-  background: var(--primary-deep-teal);
-  color: white;
-  width: 2rem;
-  height: 2rem;
-  border-radius: 50%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-weight: bold;
-  flex-shrink: 0;
-}
-
-.step-content {
-  flex: 1;
-}
-
-.step-content strong {
-  display: block;
-  margin-bottom: 0.25rem;
-  color: var(--text-primary-charcoal);
-}
-
-.step-content p {
-  margin: 0;
-  color: var(--text-secondary-cool-gray);
-  line-height: 1.5;
-}
-
 /* Mobile optimizations */
 @media (max-width: 768px) {
   .publish-mobile-kb {
     padding: 1rem;
   }
   
-  /* Compact the features list on small screens */
-  .features-list {
-    margin-bottom: 1rem;
-  }
-
-  .feature-item {
-    padding: 0.5rem 0.75rem;
-    gap: 0.5rem;
-  }
-
-  .feature-icon {
-    font-size: 1.2rem;
-  }
-
-  .feature-content {
-    font-size: 0.95rem;
-    line-height: 1.3;
-  }
-  
   .publications-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
+  }
+
+  .recent-item {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .recent-actions {
+    width: 100%;
+  }
+
+  .recent-actions .btn-compact {
+    flex: 1;
   }
   
   .card-actions {
     flex-direction: column;
   }
   
-  .instruction-step {
-    flex-direction: column;
-    align-items: center;
-    text-align: center;
-  }
-  
-  .help-section {
-    padding: 1.5rem;
-  }
 }
 </style>

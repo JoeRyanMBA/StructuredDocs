@@ -892,8 +892,8 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             
             # Apply additional content cleaning
             if source == 'word':
-                # For Word documents, remove ALL blank lines as requested
-                content = _remove_all_blank_lines(content)
+                # For Word documents, preserve paragraph breaks for consistent topic formatting
+                content = _clean_topic_content(content)
             else:
                 # For Markdown documents, use the existing cleaning that preserves paragraph breaks
                 content = _clean_topic_content(content)
@@ -952,7 +952,7 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             fallback_title = os.path.splitext(imp_doc.filename)[0] if getattr(imp_doc, 'filename', None) else 'Imported Document'
             fallback_content = full_text if 'full_text' in locals() else ''
             if source == 'word':
-                fallback_content = _remove_all_blank_lines(fallback_content)
+                fallback_content = _clean_topic_content(fallback_content)
             else:
                 fallback_content = _clean_topic_content(fallback_content)
 
@@ -1125,7 +1125,7 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
         # Pass 1: Create all topics first
         for i, item in enumerate(hierarchical_items):
             # Clean the content
-            content = _remove_all_blank_lines(item['content']) if item['content'] else ''
+            content = _clean_topic_content(item['content']) if item['content'] else ''
             
             topic = Topic(
                 title=item['title'],
@@ -1510,7 +1510,7 @@ def _import_as_collection(file, source):
 
     # Pass 1: Create all topics first so every index is available
     for i, item in enumerate(hierarchical_items):
-        content = _remove_all_blank_lines(item['content']) if item['content'] else ''
+        content = _clean_topic_content(item['content']) if item['content'] else ''
         topic = Topic(title=item['title'], content=content)
         db.session.add(topic)
         db.session.flush()  # get topic.id
