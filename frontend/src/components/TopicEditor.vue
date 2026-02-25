@@ -1047,33 +1047,70 @@ export default {
     },
 
     htmlToMarkdown(html) {
-      // Basic HTML to Markdown conversion
-      return html
-        .replace(/<h1[^>]*>/gi, '# ')
-        .replace(/<\/h1>/gi, '\n\n')
-        .replace(/<h2[^>]*>/gi, '## ')
-        .replace(/<\/h2>/gi, '\n\n')
-        .replace(/<h3[^>]*>/gi, '### ')
-        .replace(/<\/h3>/gi, '\n\n')
-        .replace(/<strong\b[^>]*>|<b\b[^>]*>/gi, '**')
-        .replace(/<\/strong>|<\/b>/gi, '**')
-        .replace(/<em\b[^>]*>|<i\b[^>]*>/gi, '*')
-        .replace(/<\/em>|<\/i>/gi, '*')
-        .replace(/<code[^>]*>/gi, '`')
-        .replace(/<\/code>/gi, '`')
-        .replace(/<p[^>]*>/gi, '')
-        .replace(/<\/p>/gi, '\n\n')
-        .replace(/<br[^>]*>/gi, '\n')
-  /* Treat block-level divs as paragraphs: many contenteditable environments emit <div> wraps */
-  .replace(/<div[^>]*>/gi, '')
-  .replace(/<\/div>/gi, '\n\n')
-        .replace(/&nbsp;/gi, ' ')
-        .replace(/&amp;/gi, '&')
-        .replace(/&lt;/gi, '<')
-        .replace(/&gt;/gi, '>')
-  /* Collapse 3+ newlines to double newlines */
-  .replace(/\n{3,}/g, '\n\n')
-  .trim()
+      const parser = new DOMParser()
+      const doc = parser.parseFromString(html || '', 'text/html')
+
+      const renderChildren = (node) => {
+        let out = ''
+        node.childNodes.forEach(child => {
+          out += renderNode(child)
+        })
+        return out
+      }
+
+      const renderList = (listNode, isOrdered) => {
+        let index = 1
+        const lines = []
+        listNode.childNodes.forEach(child => {
+          if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== 'li') return
+          const item = renderChildren(child).replace(/\n+/g, ' ').trim()
+          if (!item) return
+          const marker = isOrdered ? `${index}. ` : '- '
+          lines.push(`${marker}${item}`)
+          index += 1
+        })
+        return lines.join('\n') + '\n\n'
+      }
+
+      const renderNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          return node.textContent || ''
+        }
+
+        if (!(node instanceof HTMLElement)) return ''
+
+        const tag = node.tagName.toLowerCase()
+
+        if (tag === 'br') return '\n'
+        if (tag === 'h1') return `# ${renderChildren(node).trim()}\n\n`
+        if (tag === 'h2') return `## ${renderChildren(node).trim()}\n\n`
+        if (tag === 'h3') return `### ${renderChildren(node).trim()}\n\n`
+        if (tag === 'strong' || tag === 'b') return `**${renderChildren(node)}**`
+        if (tag === 'em' || tag === 'i') return `*${renderChildren(node)}*`
+        if (tag === 'code') return `\`${renderChildren(node).replace(/\n/g, ' ').trim()}\``
+        if (tag === 'a') {
+          const href = node.getAttribute('href') || ''
+          const text = renderChildren(node).trim() || href
+          return href ? `[${text}](${href})` : text
+        }
+        if (tag === 'img') {
+          const src = node.getAttribute('src') || ''
+          const alt = node.getAttribute('alt') || 'Image'
+          return src ? `![${alt}](${src})` : ''
+        }
+        if (tag === 'ul') return renderList(node, false)
+        if (tag === 'ol') return renderList(node, true)
+        if (tag === 'li') return `${renderChildren(node).trim()}\n`
+        if (tag === 'p' || tag === 'div') return `${renderChildren(node).trim()}\n\n`
+
+        return renderChildren(node)
+      }
+
+      return renderChildren(doc.body)
+        .replace(/\u00a0/g, ' ')
+        .replace(/[ \t]+\n/g, '\n')
+        .replace(/\n{3,}/g, '\n\n')
+        .trim()
     },
 
     handleWysiwygPaste(event) {
