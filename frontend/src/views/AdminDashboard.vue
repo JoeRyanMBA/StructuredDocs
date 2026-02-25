@@ -105,17 +105,6 @@
               :disabled="!purgeStorageOnClear"
             />
           </div>
-<style>
-.quick-action-card.danger {
-  background: #fff0f0;
-  border: 1px solid #e57373;
-  color: #b71c1c;
-}
-.quick-action-card.danger:hover {
-  background: #ffeaea;
-  border-color: #b71c1c;
-}
-</style>
         </div>
       </div>
   <!-- Database Metrics Panel -->
@@ -506,6 +495,17 @@ export default {
   color: var(--text-secondary-cool-gray);
   font-size: 0.8rem;
   font-style: italic;
+}
+
+.quick-action-card.danger {
+  background: #fff0f0;
+  border: 1px solid #e57373;
+  color: #b71c1c;
+}
+
+.quick-action-card.danger:hover {
+  background: #ffeaea;
+  border-color: #b71c1c;
 }
 
 .clear-db-options {

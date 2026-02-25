@@ -1,7 +1,7 @@
 <template>
   <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage, 'sidebar-open': sidebarOpen && !isLoginPage }]">
     <HeaderBar v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" :sidebarOpen="sidebarOpen" />
-    <SideBar v-if="!isLoginPage" :open="sidebarOpen" @close="closeSidebar" />
+    <Sidebar v-if="!isLoginPage" :open="sidebarOpen" @close="closeSidebar" />
     <transition name="fade">
       <div v-if="!isLoginPage && sidebarOpen" class="sidebar-backdrop mobile-only" @click="closeSidebar" aria-hidden="true"></div>
     </transition>
@@ -29,7 +29,7 @@
 </template>
 
 <script>
-import SideBar from '@/components/SideBar.vue'
+import Sidebar from '@/components/SideBar.vue'
 import HeaderBar from '@/components/HeaderBar.vue'
 import NotificationTicker from './components/NotificationTicker.vue'
 import FeedbackWidget from '@/components/FeedbackWidget.vue';
@@ -37,7 +37,7 @@ import ToastContainer from '@/components/ToastContainer.vue'
 import VersionFooter from '@/components/VersionFooter.vue'
 
 export default {
-  components: { SideBar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter },
+  components: { Sidebar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter },
   data() {
     return {
       notifications: [],

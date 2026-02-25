@@ -1310,9 +1310,6 @@ export default {
 }
 </script>
 
-<!-- Remove all duplicate and misplaced JS and style code above this line. 
-     All JS logic should be inside the <script> block above, and only one <style> block below. -->
-
 <style>
 .topic-editor {
   padding: 1rem;
