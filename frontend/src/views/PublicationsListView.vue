@@ -117,8 +117,6 @@ export default {
   overflow-x: auto;
 }
 .publications-table {
-  width: 100%;
-  border-collapse: collapse;
   background: var(--bg-primary-white);
   border-radius: 8px;
   box-shadow: var(--shadow-sm);
@@ -126,7 +124,6 @@ export default {
 .publications-table th, .publications-table td {
   padding: 0.75rem 1rem;
   border-bottom: 1px solid var(--border-color-gray);
-  text-align: left;
 }
 .publications-table th {
   background: var(--bg-light-mist-gray);

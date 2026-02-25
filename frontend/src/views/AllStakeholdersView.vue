@@ -51,7 +51,7 @@
               <option v-for="div in uniqueDivisions" :key="div" :value="div">{{ div }}</option>
             </select>
           </div>
-          <div class="filter-group">
+          <div class="filter-group actions-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm">
                 <i class="bi bi-search"></i> Search
@@ -532,55 +532,6 @@ export default {
   justify-content: flex-end;
 }
 
-/* Filters */
-.filters-section {
-  background: var(--bg-white);
-  padding: 1rem;
-  border-radius: var(--border-radius-lg);
-  margin-bottom: 2rem;
-  border: 1px solid var(--border-light-gray);
-  box-shadow: var(--box-shadow-sm);
-}
-
-.filter-row {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
-  gap: 1rem;
-  align-items: center;
-}
-
-.filter-group {
-  display: flex;
-  flex-direction: column;
-  gap: 0.5rem;
-}
-
-.filter-group label {
-  font-weight: 600;
-  color: var(--text-dark-gray);
-  font-size: 0.9rem;
-}
-
-.filter-input {
-  padding: 0.5rem;
-  border: 1px solid var(--extended-lavender-gray);
-  border-radius: 4px;
-  font-size: 0.9rem;
-  background: white;
-}
-
-.filter-input:focus {
-  outline: none;
-  border-color: var(--primary-deep-teal);
-  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
-}
-
-.button-group {
-  display: flex;
-  gap: 0.5rem;
-  align-items: center !important; /* Force center alignment, override parent flex-end */
-}
-
 .table-instruction {
   color: var(--text-secondary-cool-gray);
   font-size: 0.9rem;
@@ -601,24 +552,13 @@ export default {
   border-radius: 4px;
 }
 
-.stakeholders-table-container {
-  overflow-x: auto;
-  background: white;
-  border-radius: 8px;
-  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
-}
-
 .stakeholders-table {
-  width: 100%;
-  border-collapse: collapse;
   min-width: 800px;
 }
 
 .stakeholders-table th,
 .stakeholders-table td {
   padding: 0.25rem;
-  text-align: left;
-  border-bottom: 1px solid #e0e0e0;
   font-size: 0.85rem;
 }
 
@@ -632,8 +572,6 @@ export default {
 }
 
 .stakeholders-table th {
-  background-color: #f5f5f5;
-  font-weight: 600;
   color: var(--text-primary-charcoal);
 }
 

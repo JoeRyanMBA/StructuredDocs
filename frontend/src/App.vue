@@ -8,7 +8,7 @@
     <div class="ticker-bar" v-if="!isLoginPage">
       <NotificationTicker
         :notifications="notifications"
-        contextType="global"
+        :contextType="notificationContextType"
         @mark-read="markNotificationRead"
       />
     </div>
@@ -58,6 +58,20 @@ export default {
     },
     isLoginPage() {
       return this.$route.name === 'Login';
+    },
+    notificationContextType() {
+      const path = this.$route?.path || ''
+
+      if (path.startsWith('/author')) return 'author'
+      if (path.startsWith('/admin') || path.startsWith('/notifications')) return 'admin'
+      if (path.startsWith('/projects') || path.startsWith('/all-tags') || path.startsWith('/all-stakeholders') || path.startsWith('/all-milestones')) return 'projects'
+      if (path.startsWith('/collections') || path.startsWith('/organize')) return 'collections'
+      if (path.startsWith('/import')) return 'import'
+      if (path.startsWith('/publications') || path.startsWith('/publish')) return 'publish'
+      if (path.startsWith('/reviews') || path.startsWith('/review/')) return 'reviews'
+      if (path.startsWith('/topics') || path.startsWith('/all-images') || path.startsWith('/all-links')) return 'topics'
+
+      return 'global'
     }
   },
   watch: {

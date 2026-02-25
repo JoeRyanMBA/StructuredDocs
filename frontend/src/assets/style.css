@@ -305,6 +305,52 @@ a:hover {
   min-width: 120px;
 }
 
+/* === Global Button Normalization Layer ===
+   Purpose: enforce consistent button sizing/alignment across all pages,
+   even when individual views define local .btn styles. */
+.btn,
+a.btn {
+  display: inline-flex !important;
+  align-items: center !important;
+  justify-content: center !important;
+  gap: 0.5rem !important;
+  min-height: 36px !important;
+  padding: 0.5rem 1rem !important;
+  border-radius: 6px !important;
+  font-size: 0.9rem !important;
+  font-weight: 500 !important;
+  line-height: 1.2 !important;
+  box-sizing: border-box !important;
+  vertical-align: middle !important;
+}
+
+.btn-sm,
+a.btn-sm {
+  min-height: 32px !important;
+  height: 32px !important;
+  padding: 0.35rem 0.65rem !important;
+  font-size: 0.85rem !important;
+  line-height: 1.2 !important;
+  border-radius: 4px !important;
+  box-sizing: border-box !important;
+}
+
+.btn > i,
+.btn > .bi,
+a.btn > i,
+a.btn > .bi {
+  line-height: 1 !important;
+  font-size: 1em !important;
+}
+
+/* Standardize common action bars used across dashboard/list pages */
+.page-actions .btn,
+.search-controls .btn,
+.view-controls .btn,
+.button-group .btn {
+  min-width: 96px;
+}
+
 /* Normalize margins for filter action buttons to prevent external overrides */
 .filters-section .button-group button,
 .filters-section .button-group .btn,
@@ -570,6 +616,294 @@ a:hover {
 .cancel-btn:hover:not(:disabled) {
   background: var(--extended-lavender-gray);
   border-color: var(--border-light-gray);
+}
+
+/* === ARCHIVED LIST PAGES === */
+.archived-page {
+  padding: 2rem;
+  max-width: 1400px;
+  margin: 0 auto;
+}
+
+.archived-page h2 {
+  margin: 0 0 1rem;
+  color: var(--text-dark-gray, #374151);
+}
+
+.archived-page .projects-list-panel {
+  margin-bottom: 1.25rem;
+  background: var(--bg-primary-white, #fff);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.08));
+  border: 1px solid var(--border-light-gray, #e5e7eb);
+}
+
+.archived-page .filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  align-items: end;
+  gap: 1rem;
+}
+
+.archived-page .filter-group {
+  display: flex;
+  flex-direction: column;
+  min-width: 0;
+}
+
+.archived-page .actions-group {
+  justify-content: flex-end;
+}
+
+.archived-page .button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.archived-page .archived-table-container {
+  overflow-x: auto;
+  background: var(--bg-primary-white, #fff);
+  border: 1px solid var(--border-light-gray, #e5e7eb);
+  border-radius: 12px;
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.08));
+}
+
+.archived-page .table {
+  width: 100%;
+  border-collapse: collapse;
+  min-width: 560px;
+}
+
+.archived-page .table th,
+.archived-page .table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-light-gray, #e5e7eb);
+}
+
+.archived-page .table th {
+  background: var(--bg-light-gray, #f9fafb);
+  font-weight: 600;
+  color: var(--text-dark-gray, #374151);
+  text-align: left;
+}
+
+.archived-page .row-archived {
+  opacity: 0.8;
+}
+
+.archived-page .loading {
+  font-style: italic;
+  color: var(--text-secondary-cool-gray, #6b7280);
+  padding: 0.75rem 0;
+}
+
+.archived-page .empty {
+  margin-top: 1rem;
+  color: var(--text-secondary-cool-gray, #6b7280);
+}
+
+.archived-page .btn-icon.btn-archive {
+  background: var(--warning-bg, #ffc107);
+  color: #222;
+}
+
+.archived-page .btn-icon.btn-archive:hover {
+  filter: brightness(0.95);
+}
+
+@media (max-width: 768px) {
+  .archived-page {
+    padding: 1rem;
+  }
+
+  .archived-page .projects-list-panel {
+    padding: 1rem;
+  }
+
+  .archived-page .filter-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .archived-page .actions-group,
+  .archived-page .button-group {
+    justify-content: flex-start;
+  }
+
+  .archived-page .button-group .btn {
+    flex: 1 1 160px;
+  }
+}
+
+/* === LIST FILTER PANELS (ALL* + PROJECTS) === */
+.all-tags .filters-section,
+.all-milestones .filters-section,
+.all-stakeholders .filters-section,
+.projects-dashboard .projects-list-panel {
+  margin-bottom: 1.25rem;
+  background: var(--bg-primary-white, #fff);
+  padding: 1rem 1.5rem;
+  border-radius: 12px;
+  border: 1px solid var(--border-light-gray, #e5e7eb);
+  box-shadow: var(--shadow-sm, 0 1px 2px rgba(0, 0, 0, 0.08));
+}
+
+.all-tags .filter-row,
+.all-milestones .filter-row,
+.all-stakeholders .filter-row,
+.projects-dashboard .filter-row {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  gap: 1rem;
+  align-items: end;
+}
+
+.all-tags .filter-group,
+.all-milestones .filter-group,
+.all-stakeholders .filter-group,
+.projects-dashboard .filter-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.5rem;
+  min-width: 0;
+}
+
+.all-tags .actions-group,
+.all-milestones .actions-group,
+.all-stakeholders .actions-group,
+.projects-dashboard .actions-group {
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+.all-tags .filter-group label,
+.all-milestones .filter-group label,
+.all-stakeholders .filter-group label,
+.projects-dashboard .filter-group label {
+  font-weight: 600;
+  color: var(--text-dark-gray);
+  font-size: 0.9rem;
+  margin-bottom: 0;
+}
+
+.all-tags .filter-input,
+.all-milestones .filter-input,
+.all-stakeholders .filter-input,
+.projects-dashboard .filter-input {
+  padding: 0.5rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: 4px;
+  font-size: 0.9rem;
+  background: var(--bg-primary-white, #fff);
+  min-width: 0;
+  width: 100%;
+}
+
+.all-tags .filter-input:focus,
+.all-milestones .filter-input:focus,
+.all-stakeholders .filter-input:focus,
+.projects-dashboard .filter-input:focus {
+  outline: none;
+  border-color: var(--primary-deep-teal);
+  box-shadow: 0 0 0 2px rgba(32, 84, 147, 0.2);
+}
+
+.all-tags .button-group,
+.all-milestones .button-group,
+.all-stakeholders .button-group,
+.projects-dashboard .button-group {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: flex-end;
+  min-width: 0;
+}
+
+@media (max-width: 768px) {
+  .all-tags .filter-row,
+  .all-milestones .filter-row,
+  .all-stakeholders .filter-row,
+  .projects-dashboard .filter-row {
+    grid-template-columns: 1fr;
+    gap: 1rem;
+  }
+
+  .all-tags .actions-group,
+  .all-milestones .actions-group,
+  .all-stakeholders .actions-group,
+  .projects-dashboard .actions-group,
+  .all-tags .button-group,
+  .all-milestones .button-group,
+  .all-stakeholders .button-group,
+  .projects-dashboard .button-group {
+    justify-content: flex-start;
+  }
+
+  .all-tags .button-group .btn,
+  .all-milestones .button-group .btn,
+  .all-stakeholders .button-group .btn,
+  .projects-dashboard .button-group .btn {
+    flex: 1 1 160px;
+  }
+}
+
+/* === LIST TABLE CONTAINERS (ALL TAGS / MILESTONES / STAKEHOLDERS) === */
+.all-tags .tags-table-container,
+.all-milestones .milestones-table-container,
+.all-stakeholders .stakeholders-table-container {
+  overflow-x: auto;
+  background: var(--bg-primary-white, #fff);
+  border-radius: 8px;
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+.all-tags .tags-table,
+.all-milestones .milestones-table,
+.all-stakeholders .stakeholders-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.all-tags .tags-table th,
+.all-tags .tags-table td,
+.all-milestones .milestones-table th,
+.all-milestones .milestones-table td,
+.all-stakeholders .stakeholders-table th,
+.all-stakeholders .stakeholders-table td {
+  text-align: left;
+  border-bottom: 1px solid #e0e0e0;
+}
+
+.all-tags .tags-table th,
+.all-milestones .milestones-table th,
+.all-stakeholders .stakeholders-table th {
+  background-color: #f5f5f5;
+  font-weight: 600;
+}
+
+/* === ADDITIONAL LIST TABLE BASES (NOTIFICATIONS / TASKS / PUBLICATIONS) === */
+.notification-management .notifications-table,
+.tasks-page .tasks-table,
+.all-tasks .tasks-table,
+.publications-list-view .publications-table {
+  width: 100%;
+  border-collapse: collapse;
+}
+
+.notification-management .notifications-table th,
+.notification-management .notifications-table td,
+.tasks-page .tasks-table th,
+.tasks-page .tasks-table td,
+.all-tasks .tasks-table th,
+.all-tasks .tasks-table td,
+.publications-list-view .publications-table th,
+.publications-list-view .publications-table td {
+  text-align: left;
 }
 
 /* Create buttons - for create/new actions */

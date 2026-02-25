@@ -1,5 +1,11 @@
 <template>
-  <div class="notification-ticker">
+  <div
+    class="notification-ticker"
+    @mouseenter="pauseAutoRotate"
+    @mouseleave="resumeAutoRotate"
+    @focusin="pauseAutoRotate"
+    @focusout="resumeAutoRotate"
+  >
     <div v-if="filteredNotifications.length > 0" class="ticker-content-wrapper">
       <div class="ticker-content">
         <div
@@ -36,11 +42,21 @@ export default {
     contextType: {
       type: String,
       default: 'global' // e.g., 'global', 'project', 'publish', 'review'
+    },
+    autoRotate: {
+      type: Boolean,
+      default: true
+    },
+    autoRotateIntervalMs: {
+      type: Number,
+      default: 8000
     }
   },
   data() {
     return {
-      currentIndex: 0
+      currentIndex: 0,
+      autoRotateTimer: null,
+      isPaused: false
     }
   },
   computed: {
@@ -54,7 +70,53 @@ export default {
       return this.filteredNotifications[this.currentIndex] || null
     }
   },
+  watch: {
+    filteredNotifications(newList) {
+      if (!Array.isArray(newList) || newList.length === 0) {
+        this.currentIndex = 0
+        this.stopAutoRotate()
+        return
+      }
+      if (this.currentIndex >= newList.length) {
+        this.currentIndex = 0
+      }
+      this.startAutoRotate()
+    }
+  },
+  mounted() {
+    this.startAutoRotate()
+  },
+  beforeUnmount() {
+    this.stopAutoRotate()
+  },
   methods: {
+    nextNotification() {
+      if (this.filteredNotifications.length <= 1) return
+      this.currentIndex = (this.currentIndex + 1) % this.filteredNotifications.length
+    },
+    startAutoRotate() {
+      this.stopAutoRotate()
+      if (!this.autoRotate || this.isPaused || this.filteredNotifications.length <= 1) return
+      this.autoRotateTimer = setInterval(() => {
+        if (!this.isPaused) {
+          this.nextNotification()
+        }
+      }, Math.max(2000, this.autoRotateIntervalMs))
+    },
+    stopAutoRotate() {
+      if (this.autoRotateTimer) {
+        clearInterval(this.autoRotateTimer)
+        this.autoRotateTimer = null
+      }
+    },
+    pauseAutoRotate() {
+      this.isPaused = true
+      this.stopAutoRotate()
+    },
+    resumeAutoRotate() {
+      this.isPaused = false
+      this.startAutoRotate()
+    },
     scrollUp() {
       if (this.currentIndex > 0) {
         this.currentIndex--
