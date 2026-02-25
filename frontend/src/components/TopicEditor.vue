@@ -639,7 +639,10 @@ export default {
   this.selectedVariableSlug = ''
     },
     openVariablesAdmin(){
-      if(this.$router) this.$router.push({ name: 'AdminVariables' })
+      if(!this.$router) return
+      const query = {}
+      if(this.topicId) query.topicId = String(this.topicId)
+      this.$router.push({ name: 'AdminVariables', query })
     },
     setSnapshot() {
       this.lastSaved = {
@@ -967,7 +970,42 @@ export default {
       if (this.editorMode === 'markdown') {
         this.insertMarkdown(linkMarkdown, '')
       } else if (this.editorMode === 'wysiwyg') {
-        this.execCommand('createLink', this.linkUrl)
+        const editor = this.$refs.wysiwygEditor
+        if (editor) {
+          const selection = window.getSelection()
+          let insertedAtCaret = false
+
+          if (selection && selection.rangeCount > 0) {
+            const range = selection.getRangeAt(0)
+            if (editor.contains(range.startContainer)) {
+              const anchor = document.createElement('a')
+              anchor.href = this.linkUrl
+              anchor.textContent = this.linkText
+              anchor.target = '_blank'
+              anchor.rel = 'noopener noreferrer'
+
+              range.deleteContents()
+              range.insertNode(anchor)
+              range.setStartAfter(anchor)
+              range.collapse(true)
+              selection.removeAllRanges()
+              selection.addRange(range)
+              insertedAtCaret = true
+            }
+          }
+
+          if (!insertedAtCaret) {
+            const anchor = document.createElement('a')
+            anchor.href = this.linkUrl
+            anchor.textContent = this.linkText
+            anchor.target = '_blank'
+            anchor.rel = 'noopener noreferrer'
+            editor.appendChild(anchor)
+            editor.appendChild(document.createTextNode(' '))
+          }
+
+          this.updateContentFromWysiwyg()
+        }
       }
       
       // Reset modal
@@ -1017,9 +1055,9 @@ export default {
         .replace(/<\/h2>/gi, '\n\n')
         .replace(/<h3[^>]*>/gi, '### ')
         .replace(/<\/h3>/gi, '\n\n')
-        .replace(/<strong[^>]*>|<b[^>]*>/gi, '**')
+        .replace(/<strong\b[^>]*>|<b\b[^>]*>/gi, '**')
         .replace(/<\/strong>|<\/b>/gi, '**')
-        .replace(/<em[^>]*>|<i[^>]*>/gi, '*')
+        .replace(/<em\b[^>]*>|<i\b[^>]*>/gi, '*')
         .replace(/<\/em>|<\/i>/gi, '*')
         .replace(/<code[^>]*>/gi, '`')
         .replace(/<\/code>/gi, '`')
