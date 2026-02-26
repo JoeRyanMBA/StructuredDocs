@@ -119,6 +119,7 @@
                   <select v-model="statusFilter" @change="applyFilters" class="filter-input">
                     <option value="">All Statuses</option>
                     <option value="draft">Draft</option>
+                    <option value="pending_review">Pending Review</option>
                     <option value="in_review">In Review</option>
                     <option value="published">Published</option>
                   </select>
@@ -240,6 +241,7 @@
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'AuthorDashboard',
@@ -409,7 +411,7 @@ export default {
         const total = this.myTopics.length
         const drafts = this.myTopics.filter(t => t.status === 'draft').length
         const published = this.myTopics.filter(t => t.status === 'published').length
-        const inReview = this.myTopics.filter(t => t.status === 'in_review').length
+        const inReview = this.myTopics.filter(t => ['in_review', 'pending_review'].includes(t.status)).length
         
         // Calculate topics created this week
         const oneWeekAgo = new Date()
@@ -449,17 +451,24 @@ export default {
     },
 
     async submitForReview(id) {
-      // Open TopicsListView flow: create review requests via modal or simple POST
       try {
+        const topic = this.myTopics.find(t => t.id === id)
         const res = await fetch(`/api/topics/${id}/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ status: 'in_review' })
         })
-        if (!res.ok) throw new Error('Failed to submit for review')
+
+        const payload = await res.json().catch(() => null)
+        if (!res.ok) throw new Error(payload?.error || 'Failed to submit for review')
+
         await this.loadMyTopics()
+        await this.loadStats()
+        toast.success(`"${topic?.title || `Topic #${id}`}" submitted for review.`)
+        this.$router.push({ name: 'ReviewsHome' })
       } catch (err) {
         console.error('Submit for review failed:', err)
+        toast.error(err.message || 'Failed to submit for review')
       }
     },
 
@@ -480,19 +489,7 @@ export default {
     },
 
     async sendForReview(topic) {
-      // Persist review request to backend
-      try {
-        const res = await fetch(`/api/topics/${topic.id}/review`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'in_review' })
-        })
-        if (!res.ok) throw new Error('Failed to send for review')
-        await this.loadMyTopics()
-      } catch (err) {
-        console.error('Error sending for review:', err)
-      }
-      this.$router.push(`/topics/${topic.id}/review`)
+      await this.submitForReview(topic.id)
     },
 
     async duplicateTopic(topic) {
@@ -516,6 +513,7 @@ export default {
     formatStatus(status) {
       const statusMap = {
         'draft': 'Draft',
+        'pending_review': 'Pending Review',
         'in_review': 'In Review',
         'published': 'Published',
         'archived': 'Archived'
@@ -783,6 +781,11 @@ export default {
 }
 
 .status-badge.in_review {
+  background-color: #e3f2fd;
+  color: #1976d2;
+}
+
+.status-badge.pending_review {
   background-color: #e3f2fd;
   color: #1976d2;
 }
