@@ -10,7 +10,7 @@ sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
 def create_review_sequence():
     """Create a new review sequence for a topic"""
     try:
-        data = request.get_json()
+        data = request.get_json() or {}
         
         # Validate required fields
         if not data.get('topic_id'):
@@ -36,14 +36,25 @@ def create_review_sequence():
         if existing_sequence:
             return jsonify({'error': 'Topic already has an active review sequence'}), 400
         
+        # Determine requester stakeholder (author) for generated Review rows
+        requester_id = data.get('created_by')
+        requester = Stakeholder.query.get(requester_id) if requester_id else None
+
+        # Fallback: use first reviewer as requester if provided requester is invalid/missing
+        if not requester:
+            first_reviewer_id = data['reviewers'][0].get('reviewer_id')
+            requester = Stakeholder.query.get(first_reviewer_id) if first_reviewer_id else None
+
+        if not requester:
+            return jsonify({'error': 'Unable to resolve requester stakeholder for this sequence'}), 400
+
+        sequence_name = (data.get('name') or '').strip() or f"Review Sequence for Topic {data['topic_id']}"
+
         # Create the sequence
         sequence = ReviewSequence(
             topic_id=data['topic_id'],
-            created_by=data.get('created_by', 1),  # Default to user 1 for now
-            name=data.get('name'),
-            description=data.get('description'),
-            auto_advance_on_approve=data.get('auto_advance_on_approve', True),
-            pause_on_changes=data.get('pause_on_changes', True)
+            name=sequence_name,
+            description=data.get('description')
         )
         
         db.session.add(sequence)
@@ -58,26 +69,26 @@ def create_review_sequence():
             
             step = ReviewSequenceStep(
                 sequence_id=sequence.id,
-                step_order=i,
+                position=i,
                 reviewer_id=reviewer_data['reviewer_id'],
-                step_name=reviewer_data.get('step_name'),
+                reviewer_role=reviewer.role,
+                name=(reviewer_data.get('step_name') or '').strip() or f'Review Step {i + 1}',
                 instructions=reviewer_data.get('instructions')
             )
             db.session.add(step)
         
         # Start the sequence by assigning the first reviewer
         if data.get('auto_start', True):
-            sequence.started_at = datetime.utcnow()
             first_step = ReviewSequenceStep.query.filter_by(
                 sequence_id=sequence.id,
-                step_order=0
+                position=0
             ).first()
             
             if first_step:
                 # Create the first review
                 review = Review(
                     topic_id=sequence.topic_id,
-                    requested_by=sequence.created_by,
+                    requested_by=requester.id,
                     reviewer_id=first_step.reviewer_id,
                     sequence_id=sequence.id,
                     sequence_position=0,
@@ -86,12 +97,8 @@ def create_review_sequence():
                     due_date=datetime.utcnow() + timedelta(days=data.get('days_per_review', 5))
                 )
                 db.session.add(review)
-                db.session.flush()
-                
-                # Update the step
-                first_step.status = 'active'
-                first_step.review_id = review.id
-                first_step.assigned_at = datetime.utcnow()
+                topic.status = 'pending_review'
+                topic.updated_at = datetime.utcnow()
                 
                 # Send notification email
                 if email_service:
@@ -100,9 +107,9 @@ def create_review_sequence():
                             reviewer_email=first_step.reviewer.email,
                             reviewer_name=first_step.reviewer.name,
                             topic_title=topic.title,
-                            author_name=sequence.creator.name if sequence.creator else 'Unknown',
+                            author_name=requester.name,
                             due_date=review.due_date,
-                            review_url=f"/reviews/{review.id}",
+                            review_url=f"/reviews",
                             author_message=review.author_message,
                             is_sequential=True,
                             sequence_position=1,
@@ -116,7 +123,7 @@ def create_review_sequence():
         
         return jsonify({
             'message': 'Review sequence created successfully',
-            'sequence': sequence.to_dict()
+            'sequence': sequence.to_dict(include_steps=True)
         }), 201
         
     except Exception as e:
