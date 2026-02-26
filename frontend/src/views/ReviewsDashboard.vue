@@ -67,6 +67,12 @@
               <h3>Send for Review</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="showGuide = true">
+            <div class="action-icon">📘</div>
+            <div class="action-content" title="How the review workflow works">
+              <h3>Review Guide</h3>
+            </div>
+          </button>
           <button class="quick-action-card" @click="navigateTo('/reviews/incorporate')">
             <div class="action-icon">🔄</div>
             <div class="action-content" title="Process stakeholder comments">
@@ -175,6 +181,25 @@
 
     </div>
 
+    <div v-if="showGuide" class="guide-modal-backdrop" @click.self="showGuide = false">
+      <div class="guide-modal" role="dialog" aria-modal="true" aria-label="Review workflow guide">
+        <div class="guide-modal-header">
+          <h3>How Reviews Work</h3>
+          <button type="button" class="guide-close-btn" @click="showGuide = false" aria-label="Close">&times;</button>
+        </div>
+        <div class="guide-modal-body">
+          <ol>
+            <li><strong>Author submits topic for review:</strong> open a topic from Author Dashboard and click Submit for Review.</li>
+            <li><strong>Select reviewer + details:</strong> choose reviewer, priority, due date, and optional message.</li>
+            <li><strong>Topic status changes:</strong> topic moves to Pending Review and appears in the Reviews area.</li>
+            <li><strong>Reviewer completes review:</strong> reviewer submits recommendation and feedback.</li>
+            <li><strong>Author incorporates changes:</strong> use Incorporate Feedback to apply requested edits, then re-submit if needed.</li>
+          </ol>
+          <p><strong>Sequential review:</strong> when enabled, reviewers run in order (expert-first), and each next reviewer gets the updated content flow.</p>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div v-if="loading" class="loading-overlay">
       <div class="loading-spinner"></div>
@@ -217,6 +242,7 @@ export default {
       },
       urgentReviews: [],
       recentReviews: [],
+      showGuide: false,
       
       currentUser: JSON.parse(localStorage.getItem('user') || '{}')
     }
@@ -451,6 +477,60 @@ export default {
 .quick-actions-grid {
   --quick-action-min-width: 200px;
   --quick-action-gap: 1rem;
+}
+
+.guide-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.guide-modal {
+  width: min(760px, 94vw);
+  max-height: 88vh;
+  overflow: auto;
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 30px rgba(0,0,0,0.2);
+}
+
+.guide-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid var(--border-light-gray);
+}
+
+.guide-modal-header h3 {
+  margin: 0;
+  color: var(--primary-deep-teal);
+}
+
+.guide-close-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: var(--text-medium-gray);
+  cursor: pointer;
+}
+
+.guide-modal-body {
+  padding: 1rem;
+  color: var(--text-dark-gray);
+}
+
+.guide-modal-body ol {
+  margin: 0 0 0.9rem 1.15rem;
+}
+
+.guide-modal-body li {
+  margin-bottom: 0.45rem;
 }
 
 /* Review Items */
