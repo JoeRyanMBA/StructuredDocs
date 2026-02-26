@@ -663,6 +663,12 @@ export default {
         console.log('Starting review submission...')
         console.log('Selected topic:', this.selectedTopic)
         console.log('Review data:', this.reviewData)
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+        const requesterPayload = {
+          requested_by: Number(currentUser.id) || null,
+          requester_email: currentUser.email || '',
+          requester_name: currentUser.name || ''
+        }
         
         if (!this.selectedTopic || this.reviewData.assigned_stakeholder_ids.length === 0) {
           console.error('Validation failed:', {
@@ -730,7 +736,7 @@ export default {
             const reviewPayload = {
               topic_id: this.selectedTopic.id,
               reviewer_id: stakeholderId,
-              requested_by: 1, // TODO: Get current user ID from auth context
+              ...requesterPayload,
               priority: 'medium',
               due_date: this.reviewData.due_date,
               message: this.reviewData.submitter_notes || `Review requested for: ${this.selectedTopic.title}`
@@ -773,7 +779,7 @@ export default {
 
       } catch (err) {
         console.error('Submit for review failed:', err)
-  toast.error('Failed to submit topic for review. Please try again.')
+  toast.error(err.message || 'Failed to submit topic for review. Please try again.')
       }
     },
 

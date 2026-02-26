@@ -75,6 +75,9 @@ export async function sendFollowUpReminder(reviewId) {
       'Content-Type': 'application/json'
     }
   })
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) {
+    const payload = await res.json().catch(() => null)
+    throw new Error(payload?.error || res.statusText || 'Failed to send follow-up reminder')
+  }
   return res.json()
 }

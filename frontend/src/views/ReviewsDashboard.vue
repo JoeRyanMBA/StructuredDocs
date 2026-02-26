@@ -136,6 +136,7 @@
                 </div>
                 <div class="card-status-group">
                   <span class="card-status" :class="review.status">{{ formatStatus(review.status) }}</span>
+                  <span v-if="review.email_delivery_unavailable" class="email-delivery-badge">Email delivery unavailable</span>
                   <span class="topic-id-subtle">Topic #{{ review.topic_id }}</span>
                 </div>
               </div>
@@ -360,12 +361,22 @@ export default {
         
         // Send the follow-up reminder
         const response = await sendFollowUpReminder(review.id)
-        
-  // Show success toast
-  import('@/composables/useToast').then(({ toast }) => toast.success(`Follow-up reminder sent to ${review.reviewer_name}!`))
+
+        if (response?.email_sent === false) {
+          import('@/composables/useToast').then(({ toast }) => toast.warn(response.warning || 'Follow-up was recorded, but email delivery failed.'))
+        } else {
+          import('@/composables/useToast').then(({ toast }) => toast.success(`Follow-up reminder sent to ${review.reviewer_name}!`))
+        }
         
         // Refresh the reviews list to show updated data
         await this.loadReviews()
+
+        if (response?.email_sent === false) {
+          const failedReview = this.recentReviews.find(r => r.id === review.id)
+          if (failedReview) {
+            failedReview.email_delivery_unavailable = true
+          }
+        }
         
       } catch (error) {
   console.error('Error sending follow-up reminder:', error)
@@ -780,6 +791,17 @@ export default {
   font-size: 0.7rem;
   font-weight: 400;
   text-align: right;
+}
+
+.email-delivery-badge {
+  display: inline-block;
+  margin-top: 0.1rem;
+  padding: 0.15rem 0.45rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
+  background: var(--warning-light-yellow);
+  color: var(--warning-dark-yellow);
 }
 
 /* Loading */

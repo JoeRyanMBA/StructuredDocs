@@ -1086,6 +1086,7 @@ class Review(db.Model):
     started_at = db.Column(db.DateTime, nullable=True)
     completed_at = db.Column(db.DateTime, nullable=True)
     follow_up_sent_at = db.Column(db.DateTime, nullable=True)  # Track when follow-up reminder was sent
+    email_delivery_unavailable = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
     
     # Feedback
     feedback = db.Column(db.Text, nullable=True)
@@ -1126,6 +1127,7 @@ class Review(db.Model):
             "started_at": self.started_at.isoformat() if self.started_at else None,
             "completed_at": self.completed_at.isoformat() if self.completed_at else None,
             "follow_up_sent_at": self.follow_up_sent_at.isoformat() if self.follow_up_sent_at else None,
+            "email_delivery_unavailable": bool(self.email_delivery_unavailable),
             "feedback": self.feedback,
             "recommendation": self.recommendation,
             "review_notes": self.review_notes,
@@ -1136,7 +1138,7 @@ class Review(db.Model):
         }
 
     if TYPE_CHECKING:
-        def __init__(self, id: int | None = None, topic_id: int = ..., requested_by: int = ..., reviewer_id: int = ..., status: str = 'pending', priority: str = 'medium', requested_at: datetime | None = None, due_date: datetime | None = None, started_at: datetime | None = None, completed_at: datetime | None = None, follow_up_sent_at: datetime | None = None, feedback: str | None = None, recommendation: str | None = None, review_notes: str | None = None, author_message: str | None = None, edited_content: str | None = None, sequence_id: int | None = None, sequence_position: int | None = None): ...
+        def __init__(self, id: int | None = None, topic_id: int = ..., requested_by: int = ..., reviewer_id: int = ..., status: str = 'pending', priority: str = 'medium', requested_at: datetime | None = None, due_date: datetime | None = None, started_at: datetime | None = None, completed_at: datetime | None = None, follow_up_sent_at: datetime | None = None, email_delivery_unavailable: bool = False, feedback: str | None = None, recommendation: str | None = None, review_notes: str | None = None, author_message: str | None = None, edited_content: str | None = None, sequence_id: int | None = None, sequence_position: int | None = None): ...
 
 
 class PasswordResetToken(db.Model):
