@@ -2,8 +2,8 @@
   
   <div class="publish-dashboard">
     <div class="dashboard-header">
-      <h1>Publish Dashboard</h1>
-      <p class="subtitle">Create and manage your publications</p>
+      <h1>Publication Dashboard</h1>
+      <p class="subtitle">Manage and download your publications</p>
     </div>
     <!-- Compact Toolbar for Metrics -->
     <CompactToolbar :showMetrics="true" :showCalendar="false">
@@ -44,29 +44,44 @@
         </div>
       </template>
     </CompactToolbar>
-    <!-- Quick Actions Section (Start Page style) -->
-    <div class="quick-actions-section">
-      <h2>Quick Actions</h2>
-      <p class="section-description">Create and publish outputs</p>
-      <div class="quick-actions-grid">
-          <button class="quick-action-card" @click="navigateTo('/publications/list')">
-            <div class="action-icon">📚</div>
-            <div class="action-content" title="View and organize publications">
-              <h3>Manage Publications</h3>
-            </div>
-          </button>
-          <button class="quick-action-card" @click="navigateTo('/publish/mobile-kb')">
-            <div class="action-icon">📱</div>
-            <div class="action-content" title="Create mobile knowledge base">
-              <h3>Publish Mobile KB</h3>
-            </div>
-          </button>
-          <button class="quick-action-card" @click="navigateTo('/publish/pdf')">
-            <div class="action-icon">📄</div>
-            <div class="action-content" title="Export content as PDF">
-              <h3>Generate PDF</h3>
-            </div>
-          </button>
+    <!-- Publications Table (replaces quick actions) -->
+    <div class="dashboard-section publications-table-section">
+      <h2>Manage Publications</h2>
+      <div v-if="publications.length === 0" class="empty-state">
+        <p>No publications found. <button @click="navigateTo('/publications?template=new')" class="link-btn">Create your first publication</button></p>
+      </div>
+      <div v-else class="publications-table-wrapper">
+        <table class="publications-table">
+          <thead>
+            <tr>
+              <th class="id-column">ID</th>
+              <th>Title</th>
+              <th>Type</th>
+              <th>Status</th>
+              <th>Pages</th>
+              <th>Topics</th>
+              <th>Last Updated</th>
+              <th>Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="publication in publications" :key="publication.id">
+              <td class="id-cell">{{ publication.id }}</td>
+              <td>{{ publication.title }}</td>
+              <td>{{ publication.type || 'N/A' }}</td>
+              <td>{{ formatStatus(publication.status) }}</td>
+              <td>{{ publication.pages_count || 0 }}</td>
+              <td>{{ publication.topics_count || 0 }}</td>
+              <td>{{ formatRelativeTime(publication.updated_at || publication.created_at) }}</td>
+              <td>
+                <button @click="viewPublication(publication)" class="table-btn">View</button>
+                <button @click="editPublication(publication)" class="table-btn">Edit</button>
+                <button @click="downloadMobileKB(publication)" class="table-btn">Download KB</button>
+                <button @click="downloadPDF(publication)" class="table-btn">Download PDF</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
       </div>
     </div>
 
@@ -207,7 +222,7 @@ export default {
           this.loadStats()
         ])
       } catch (error) {
-        console.error('Failed to load publish dashboard:', error)
+        console.error('Failed to load publication dashboard:', error)
       } finally {
         this.loading = false
       }
@@ -284,9 +299,17 @@ export default {
         console.error('Error publishing:', err)
       }
     },
-    downloadPublication(publication) {
-      // Implement download functionality
-      console.log('Downloading:', publication.title)
+    downloadMobileKB(publication) {
+      window.open(`/api/publications/${publication.id}/export/mobile-kb`, '_blank')
+    },
+    downloadPDF(publication) {
+      const pdfUrl = `/api/publications/${publication.id}/export/pdf`
+      const link = document.createElement('a')
+      link.href = pdfUrl
+      link.download = `${publication.title || 'publication'}.pdf`
+      document.body.appendChild(link)
+      link.click()
+      document.body.removeChild(link)
     },
     navigateTo(path) {
       this.$router.push(path)
@@ -382,11 +405,60 @@ export default {
 
 
 
-/* Quick Actions */
-.quick-actions-grid {
-  --quick-action-min-width: 240px;
-  --quick-action-gap: 1rem;
+/* Manage Publications Table */
+.publications-table-section {
   margin-bottom: 2rem;
+}
+
+.publications-table-wrapper {
+  overflow-x: auto;
+}
+
+.publications-table {
+  width: 100%;
+  background: var(--bg-primary-white);
+  border-radius: 8px;
+  box-shadow: var(--shadow-sm);
+  border-collapse: collapse;
+}
+
+.publications-table th,
+.publications-table td {
+  padding: 0.75rem 1rem;
+  border-bottom: 1px solid var(--border-color-gray);
+  text-align: left;
+}
+
+.publications-table th {
+  background: var(--bg-light-mist-gray);
+  font-weight: 600;
+  color: var(--text-primary-charcoal);
+}
+
+.id-column,
+.id-cell {
+  width: 60px;
+  text-align: center;
+  font-size: 0.85rem;
+  color: var(--text-secondary-cool-gray);
+  white-space: nowrap;
+}
+
+.table-btn {
+  background: var(--primary-deep-teal);
+  color: white;
+  border: none;
+  border-radius: 4px;
+  padding: 0.25rem 0.75rem;
+  margin-right: 0.5rem;
+  margin-bottom: 0.35rem;
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background 0.2s;
+}
+
+.table-btn:hover {
+  background: var(--primary-medium-teal);
 }
 
 /* Template Section */
