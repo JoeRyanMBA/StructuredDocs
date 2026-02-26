@@ -25,7 +25,7 @@
       <div class="slide-panel metrics-panel" :class="{ 'slide-in': metricsModalOpen }">
         <div class="panel-header">
           <h2>Key Metrics</h2>
-          <button @click="closeMetricsModal" class="close-btn">×</button>
+          <button @click="closeMetricsModal" class="plain-close close-btn">×</button>
         </div>
         <div class="panel-body">
           <div class="metrics-stack">
@@ -40,7 +40,7 @@
       <div class="slide-panel calendar-panel" :class="{ 'slide-in': calendarModalOpen }">
         <div class="panel-header">
           <h2>Calendar</h2>
-          <button @click="closeCalendarModal" class="close-btn">×</button>
+          <button @click="closeCalendarModal" class="plain-close close-btn">×</button>
         </div>
         <div class="panel-body">
           <slot name="calendar"></slot>

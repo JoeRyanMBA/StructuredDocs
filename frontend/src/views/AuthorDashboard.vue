@@ -222,49 +222,40 @@
         </div>
       </div>
 
-    <div v-if="showReviewModal" class="review-modal-backdrop" @click.self="closeReviewModal">
-      <div class="review-modal" role="dialog" aria-modal="true" aria-label="Request review">
-        <div class="review-modal-header">
-          <h3>Submit for Review</h3>
-          <button type="button" class="close-btn" @click="closeReviewModal" aria-label="Close">&times;</button>
+    <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
+      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Request review">
+        <div class="modal-header-row review-modal-header">
+          <h3 class="modal-heading">Submit for Review</h3>
+          <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close">&times;</button>
         </div>
-        <div class="review-modal-body">
+        <div class="modal-body review-modal-body">
           <p class="review-topic-title">{{ selectedTopicForReview?.title }}</p>
 
           <div class="review-form-group">
-            <label for="reviewer-select">Reviewer</label>
-            <select id="reviewer-select" v-model="selectedReviewerId" class="filter-input">
-              <option value="">Select reviewer...</option>
-              <option v-for="reviewer in availableReviewers" :key="reviewer.id" :value="reviewer.id">
-                {{ reviewer.name }} ({{ reviewer.role || 'reviewer' }})
-              </option>
-            </select>
+            <label>Select one or more reviewers</label>
+            <div v-if="availableReviewers.length" class="reviewers-list">
+              <label v-for="reviewer in availableReviewers" :key="reviewer.id" class="reviewer-option">
+                <input type="checkbox" :value="reviewer.id" v-model="selectedReviewerIds" />
+                <span>{{ reviewer.name }} <small>({{ reviewer.role || 'reviewer' }})</small></span>
+              </label>
+            </div>
+            <div v-else class="empty-help">No reviewers available. Please configure reviewers first.</div>
           </div>
 
           <div class="review-form-group">
-            <label for="review-priority">Priority</label>
-            <select id="review-priority" v-model="reviewPriority" class="filter-input">
-              <option value="low">Low</option>
-              <option value="medium">Medium</option>
-              <option value="high">High</option>
-              <option value="urgent">Urgent</option>
-            </select>
+            <label>Due Date</label>
+            <input v-model="reviewDueDate" type="date" class="filter-input" />
           </div>
 
           <div class="review-form-group">
-            <label for="review-due-days">Due (days)</label>
-            <input id="review-due-days" v-model.number="reviewDueInDays" type="number" min="1" max="30" class="filter-input" />
-          </div>
-
-          <div class="review-form-group">
-            <label for="review-message">Message (optional)</label>
-            <textarea id="review-message" v-model="reviewMessage" class="filter-input" rows="3" placeholder="Add guidance for the reviewer"></textarea>
+            <label>Notes to reviewer(s) (optional)</label>
+            <textarea v-model="reviewMessage" class="filter-input" rows="3" placeholder="What should reviewers focus on?"></textarea>
           </div>
         </div>
-        <div class="review-modal-actions">
+        <div class="modal-footer review-modal-actions">
           <button type="button" class="btn btn-secondary" @click="closeReviewModal" :disabled="submittingReview">Cancel</button>
-          <button type="button" class="btn btn-primary" @click="confirmSubmitForReview" :disabled="submittingReview || !selectedReviewerId">
-            {{ submittingReview ? 'Submitting...' : 'Request Review' }}
+          <button type="button" class="btn btn-primary" @click="confirmSubmitForReview" :disabled="submittingReview || selectedReviewerIds.length === 0">
+            Request Review
           </button>
         </div>
       </div>
@@ -355,9 +346,9 @@ export default {
       submittingReview: false,
       selectedTopicForReview: null,
       availableReviewers: [],
-      selectedReviewerId: '',
+      selectedReviewerIds: [],
       reviewPriority: 'medium',
-      reviewDueInDays: 7,
+      reviewDueDate: '',
       reviewMessage: '',
   recentTopics: [], /* deprecated after removing Recent Work */
   sortKey: 'updated',
@@ -514,9 +505,11 @@ export default {
       }
 
       this.selectedTopicForReview = topic
-      this.selectedReviewerId = ''
+      this.selectedReviewerIds = []
       this.reviewPriority = 'medium'
-      this.reviewDueInDays = 7
+      const defaultDueDate = new Date()
+      defaultDueDate.setDate(defaultDueDate.getDate() + 7)
+      this.reviewDueDate = defaultDueDate.toISOString().split('T')[0]
       this.reviewMessage = ''
       this.showReviewModal = true
 
@@ -527,9 +520,9 @@ export default {
       this.showReviewModal = false
       this.submittingReview = false
       this.selectedTopicForReview = null
-      this.selectedReviewerId = ''
+      this.selectedReviewerIds = []
       this.reviewPriority = 'medium'
-      this.reviewDueInDays = 7
+      this.reviewDueDate = ''
       this.reviewMessage = ''
     },
 
@@ -547,32 +540,41 @@ export default {
     },
 
     async confirmSubmitForReview() {
-      if (!this.selectedTopicForReview || !this.selectedReviewerId) {
-        toast.error('Please select a reviewer')
+      if (!this.selectedTopicForReview || this.selectedReviewerIds.length === 0) {
+        toast.error('Please select at least one reviewer')
         return
       }
 
       this.submittingReview = true
       try {
-        const res = await fetch(`/api/topics/${this.selectedTopicForReview.id}/review`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            reviewer_id: Number(this.selectedReviewerId),
-            priority: this.reviewPriority,
-            due_in_days: Number(this.reviewDueInDays) || 7,
-            message: this.reviewMessage || ''
+        const reviewPromises = this.selectedReviewerIds.map(async (reviewerId) => {
+          const res = await fetch('/api/reviews/request', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              topic_id: this.selectedTopicForReview.id,
+              reviewer_id: Number(reviewerId),
+              requested_by: 1,
+              priority: this.reviewPriority,
+              due_date: this.reviewDueDate || null,
+              message: this.reviewMessage || `Review requested for: ${this.selectedTopicForReview.title}`
+            })
           })
+
+          const payload = await res.json().catch(() => null)
+          if (!res.ok) throw new Error(payload?.error || 'Failed to submit for review')
+
+          return payload
         })
 
-        const payload = await res.json().catch(() => null)
-        if (!res.ok) throw new Error(payload?.error || 'Failed to submit for review')
+        await Promise.all(reviewPromises)
 
         const topicTitle = this.selectedTopicForReview.title
+        const reviewerCount = this.selectedReviewerIds.length
         await this.loadMyTopics()
         await this.loadStats()
         this.closeReviewModal()
-        toast.success(`"${topicTitle}" submitted for review.`)
+        toast.success(`"${topicTitle}" submitted for review to ${reviewerCount} reviewer(s).`)
         this.$router.push({ name: 'ReviewsHome' })
       } catch (err) {
         console.error('Submit for review failed:', err)
@@ -712,50 +714,7 @@ export default {
   grid-column: 1 / -1;
 }
 
-.review-modal-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.45);
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  z-index: 1200;
-}
-
-.review-modal {
-  width: min(560px, 92vw);
-  background: #fff;
-  border-radius: 10px;
-  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
-  overflow: hidden;
-}
-
-.review-modal-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  padding: 0.9rem 1rem;
-  border-bottom: 1px solid #e5e7eb;
-}
-
-.review-modal-header h3 {
-  margin: 0;
-  color: var(--primary-deep-teal);
-  font-size: 1.1rem;
-}
-
-.close-btn {
-  border: none;
-  background: transparent;
-  font-size: 1.4rem;
-  line-height: 1;
-  color: #6b7280;
-  cursor: pointer;
-}
-
-.review-modal-body {
-  padding: 1rem;
-}
+.review-modal-content { width: min(560px, 92vw); max-width: 560px; }
 
 .review-topic-title {
   margin: 0 0 0.9rem;
@@ -776,13 +735,26 @@ export default {
   color: var(--text-dark-gray);
 }
 
-.review-modal-actions {
-  display: flex;
-  justify-content: flex-end;
-  gap: 0.6rem;
-  padding: 0.9rem 1rem;
-  border-top: 1px solid #e5e7eb;
+.reviewers-list {
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  max-height: 180px;
+  overflow: auto;
+  padding: .5rem .6rem;
 }
+
+.reviewer-option {
+  display: flex;
+  align-items: center;
+  gap: .5rem;
+  margin-bottom: .35rem;
+}
+
+.empty-help {
+  font-size: .85rem;
+  color: #6b7280;
+}
+
 
 /* Dashboard Sections */
 /* Use global .dashboard-section from style.css */

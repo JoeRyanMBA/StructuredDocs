@@ -175,9 +175,9 @@
     <!-- Create Project Modal -->
   <div v-if="showCreateModal" class="modal-overlay" @click="showCreateModal = false">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Create New Project</h2>
-          <button @click="showCreateModal = false" class="close-btn">×</button>
+          <button @click="showCreateModal = false" class="plain-close close-btn">×</button>
         </div>
         <form @submit.prevent="createProject" class="modal-body">
           <div class="form-group">
@@ -225,7 +225,7 @@
               <option value="on_hold">On Hold</option>
             </select>
           </div>
-          <div class="modal-actions">
+          <div class="modal-footer modal-actions">
             <button type="button" @click="showCreateModal = false" class="cancel-btn">
               Cancel
             </button>
@@ -238,9 +238,9 @@
     <!-- Stakeholders Management Modal -->
   <div v-if="showStakeholdersModal" class="modal-overlay" @click="showStakeholdersModal = false">
       <div class="modal stakeholders-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Manage Stakeholders - {{ selectedProject?.name }}</h2>
-          <button @click="showStakeholdersModal = false" class="close-btn">×</button>
+          <button @click="showStakeholdersModal = false" class="plain-close close-btn">×</button>
         </div>
         <div class="modal-body">
           <!-- Add New Stakeholder Form -->

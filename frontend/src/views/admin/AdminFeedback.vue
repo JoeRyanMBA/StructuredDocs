@@ -70,9 +70,9 @@
     <!-- Edit modal -->
     <div v-if="editing" class="modal-overlay" @click.self="closeEdit">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>Edit Feedback #{{ editItem.id }}</h3>
-          <button class="close-btn" @click="closeEdit" aria-label="Close">&times;</button>
+          <button class="plain-close close-btn" @click="closeEdit" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body">
         <h3>Edit Feedback #{{ editItem.id }}</h3>
@@ -86,7 +86,7 @@
         <label>Contact <input v-model="editItem.user_contact" /></label>
         <label>Status <select v-model="editItem.status"><option>new</option><option>in_progress</option><option>resolved</option><option>archived</option></select></label>
         <label>Message <textarea v-model="editItem.message"></textarea></label>
-          <div class="modal-actions">
+          <div class="modal-footer modal-actions">
             <button class="btn btn-primary" @click="saveEdit">Save</button>
             <button class="btn btn-secondary" @click="closeEdit">Cancel</button>
           </div>

@@ -1,9 +1,9 @@
 <template>
   <div v-if="show" class="modal-overlay" @click="closeModal">
     <div class="modal-content" @click.stop>
-      <div class="modal-header">
+      <div class="modal-header-row modal-header">
         <h3>Configure Variables for Publishing</h3>
-        <button class="btn-close" @click="closeModal">&times;</button>
+        <button class="plain-close btn-close" @click="closeModal">&times;</button>
       </div>
       
       <div class="modal-body">

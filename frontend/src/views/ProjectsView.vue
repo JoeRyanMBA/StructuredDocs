@@ -212,9 +212,9 @@
     <!-- Create Project Modal -->
     <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
       <div class="modal large-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Create New Project</h2>
-          <button @click="showCreateModal = false" class="close-btn">×</button>
+          <button @click="showCreateModal = false" class="plain-close close-btn">×</button>
         </div>
     <form @submit.prevent="handleCreateProject" class="modal-body">
           <!-- Basic Information -->
@@ -256,7 +256,7 @@
             ✓ Project created — click Next to add stakeholders.
           </div>
 
-          <div class="modal-actions">
+          <div class="modal-footer modal-actions">
             <button type="button" @click="showCreateModal = false" class="btn btn-secondary">
               Cancel
             </button>
@@ -269,9 +269,9 @@
     <!-- Stakeholder Modal (Step 2) -->
     <div v-if="showStakeholderModal" class="modal-overlay" @click.self="showStakeholderModal = false">
       <div class="modal large-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Add Stakeholders to Project</h2>
-          <button @click="showStakeholderModal = false" class="close-btn">×</button>
+          <button @click="showStakeholderModal = false" class="plain-close close-btn">×</button>
         </div>
         <div class="modal-body">
           <div class="form-section">
@@ -320,7 +320,7 @@
               </li>
             </ul>
           </div>
-          <div class="modal-actions">
+          <div class="modal-footer modal-actions">
             <button type="button" class="btn btn-primary" @click="proceedToMilestones">Add Stakeholders</button>
             <button type="button" class="btn btn-secondary ml-1" @click="skipStakeholders">Not Now</button>
           </div>
@@ -331,9 +331,9 @@
     <!-- Milestone Modal (Step 3) -->
     <div v-if="showMilestoneModal" class="modal-overlay" @click.self="showMilestoneModal = false">
       <div class="modal large-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Add Project Milestones</h2>
-          <button @click="showMilestoneModal = false" class="close-btn">×</button>
+          <button @click="showMilestoneModal = false" class="plain-close close-btn">×</button>
         </div>
         <div class="modal-body">
           <div class="form-section">
@@ -351,7 +351,7 @@
             </div>
             <button type="button" @click="addMilestoneRow" class="btn btn-primary btn-sm add-btn">+ Add Milestone</button>
           </div>
-          <div class="modal-actions">
+          <div class="modal-footer modal-actions">
             <button type="button" class="btn btn-primary" @click="saveMilestonesAndFinish">Add Milestones</button>
             <button type="button" class="btn btn-secondary ml-1" @click="skipMilestones">Not Now</button>
           </div>
@@ -363,9 +363,9 @@
   <!-- Edit Project Modal -->
   <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
     <div class="modal large-modal" @click.stop>
-      <div class="modal-header">
+      <div class="modal-header-row modal-header">
         <h2>Edit Project: {{ editingProject.name || 'Loading...' }}</h2>
-        <button @click="showEditModal = false" class="close-btn">×</button>
+        <button @click="showEditModal = false" class="plain-close close-btn">×</button>
       </div>
       <form @submit.prevent="handleUpdateProject" class="modal-body">
         <!-- Basic Information -->
@@ -548,7 +548,7 @@
           </div>
         </div>
 
-        <div class="modal-actions">
+        <div class="modal-footer modal-actions">
           <button type="button" @click="showEditModal = false" class="btn btn-secondary">
             Cancel
           </button>

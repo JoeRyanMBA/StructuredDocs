@@ -101,7 +101,7 @@
               <option value="collection">Collection</option>
             </select>
           </label>
-          <div class="modal-actions">
+          <div class="modal-footer modal-actions">
             <button type="button" class="btn btn-secondary btn-sm" @click="closeVarModal">Cancel</button>
             <button type="submit" class="btn btn-primary btn-sm" :disabled="!formSubmitEnabled || isSaving">{{ isSaving ? (editingVar ? 'Saving…' : 'Creating…') : (editingVar ? 'Update' : 'Create') }}</button>
           </div>

@@ -167,9 +167,9 @@
     <!-- Image Details Modal -->
   <div v-if="showDetailsModal" class="modal-overlay" @click.self="closeDetailsModal">
       <div class="modal large" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>Image Details</h3>
-          <button class="btn-close" @click="closeDetailsModal">✕</button>
+          <button class="plain-close btn-close" @click="closeDetailsModal">✕</button>
         </div>
         <div class="modal-body" v-if="selectedImage">
           <div class="image-details">

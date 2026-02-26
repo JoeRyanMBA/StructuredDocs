@@ -1,7 +1,8 @@
 /* Shared Modal Utilities (imported by src/style.css)
    Keeps modal visuals consistent across the app. */
 
-.modal-overlay {
+.modal-overlay,
+.request-review-modal {
   position: fixed;
   inset: 0;
   background-color: rgba(0, 0, 0, 0.6);
@@ -13,7 +14,12 @@
   overflow-y: auto;
 }
 
-.modal-content {
+.modal-content,
+.modal-overlay > .modal,
+.modal-overlay > .custom-modal,
+.modal-overlay .sd-modal,
+.modal-overlay .review-modal-content,
+.request-review-modal > .modal-content {
   background: var(--bg-white);
   border-radius: var(--border-radius-xl);
   box-shadow: var(--shadow-lg);
@@ -23,7 +29,10 @@
   overflow: visible; /* Avoid focus halo clipping */
 }
 
-.modal-header-row {
+.modal-header-row,
+.modal-header,
+.sd-modal-header,
+.review-modal-header {
   display: flex;
   align-items: center;
   justify-content: space-between;
@@ -31,7 +40,11 @@
   border-bottom: 1px solid var(--border-light-gray);
 }
 
-.modal-heading {
+.modal-heading,
+.modal-header h2,
+.modal-header h3,
+.sd-modal-header h3,
+.review-modal-header h3 {
   margin: 0;
   font-size: 1.15rem;
   font-weight: 600;
@@ -45,9 +58,13 @@
   overflow-y: auto;
 }
 
-.modal-footer {
+.modal-footer,
+.modal-actions,
+.sd-modal-actions,
+.review-modal-actions {
   display: flex;
   align-items: center;
+  justify-content: flex-end;
   gap: 0.75rem;
   padding: 0.75rem 1.25rem 1.25rem;
   border-top: 1px solid var(--border-light-gray);
@@ -55,7 +72,9 @@
 }
 
 /* Close button */
-.plain-close {
+.plain-close,
+.close-btn,
+.btn-close {
   background: transparent;
   border: none;
   color: var(--text-secondary-cool-gray);
@@ -68,13 +87,18 @@
   line-height: 1;
   border-radius: 4px;
   font-size: 1.35rem;
+  cursor: pointer;
 }
-.plain-close:hover, .plain-close:focus {
+.plain-close:hover, .plain-close:focus,
+.close-btn:hover, .close-btn:focus,
+.btn-close:hover, .btn-close:focus {
   color: var(--text-primary, #205493);
   background: rgba(32,84,147,0.08);
   outline: none;
 }
-.plain-close:active { background: rgba(32,84,147,0.15); }
+.plain-close:active,
+.close-btn:active,
+.btn-close:active { background: rgba(32,84,147,0.15); }
 
 /* Form control focus ring (consistent) */
 .modal-content .form-control:focus,
@@ -86,12 +110,86 @@
 }
 
 /* Modal button palette normalization */
-.modal-footer .btn { padding: 0.55rem 1.1rem; }
-.modal-footer .btn-secondary { background:#6c757d; border:1px solid #6c757d; }
-.modal-footer .btn-secondary:hover:not(:disabled) { background:#5a6268; }
-.modal-footer .btn-primary { background: var(--primary-teal); border:1px solid var(--primary-teal); }
-.modal-footer .btn-primary:not(:disabled):hover { background: var(--primary-medium-teal); border-color: var(--primary-medium-teal); }
-.modal-footer .btn-primary:disabled { background:#9cb2cc; border-color:#9cb2cc; opacity:1; }
+.modal-footer .btn,
+.modal-actions .btn,
+.sd-modal-actions .btn,
+.review-modal-actions .btn,
+.modal-footer .cancel-btn,
+.modal-actions .cancel-btn,
+.modal-footer .save-btn,
+.modal-actions .save-btn,
+.modal-footer .submit-btn,
+.modal-actions .submit-btn,
+.modal-footer .primary-btn,
+.modal-actions .primary-btn,
+.sd-modal-actions .primary-btn,
+.modal-footer .secondary-btn,
+.modal-actions .secondary-btn {
+  padding: 0.55rem 1.1rem;
+}
+
+.modal-footer .btn-secondary,
+.modal-actions .btn-secondary,
+.modal-footer .cancel-btn,
+.modal-actions .cancel-btn,
+.modal-footer .secondary-btn,
+.modal-actions .secondary-btn {
+  background:#6c757d;
+  border:1px solid #6c757d;
+  color: #fff;
+}
+
+.modal-footer .btn-secondary:hover:not(:disabled),
+.modal-actions .btn-secondary:hover:not(:disabled),
+.modal-footer .cancel-btn:hover:not(:disabled),
+.modal-actions .cancel-btn:hover:not(:disabled),
+.modal-footer .secondary-btn:hover:not(:disabled),
+.modal-actions .secondary-btn:hover:not(:disabled) {
+  background:#5a6268;
+  border-color:#5a6268;
+}
+
+.modal-footer .btn-primary,
+.modal-actions .btn-primary,
+.modal-footer .save-btn,
+.modal-actions .save-btn,
+.modal-footer .submit-btn,
+.modal-actions .submit-btn,
+.modal-footer .primary-btn,
+.modal-actions .primary-btn,
+.sd-modal-actions .primary-btn,
+.review-modal-actions .btn-primary {
+  background: var(--primary-deep-teal);
+  border:1px solid var(--primary-deep-teal);
+  color: #fff;
+}
+
+.modal-footer .btn-primary:not(:disabled):hover,
+.modal-actions .btn-primary:not(:disabled):hover,
+.modal-footer .save-btn:hover:not(:disabled),
+.modal-actions .save-btn:hover:not(:disabled),
+.modal-footer .submit-btn:hover:not(:disabled),
+.modal-actions .submit-btn:hover:not(:disabled),
+.modal-footer .primary-btn:hover:not(:disabled),
+.modal-actions .primary-btn:hover:not(:disabled),
+.sd-modal-actions .primary-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal);
+}
+
+.modal-footer .btn-primary:disabled,
+.modal-actions .btn-primary:disabled,
+.modal-footer .save-btn:disabled,
+.modal-actions .save-btn:disabled,
+.modal-footer .submit-btn:disabled,
+.modal-actions .submit-btn:disabled,
+.modal-footer .primary-btn:disabled,
+.modal-actions .primary-btn:disabled,
+.sd-modal-actions .primary-btn:disabled {
+  background:#9cb2cc;
+  border-color:#9cb2cc;
+  opacity:1;
+}
 
 /* Accent badge inside modals */
 .modal-content .topic-status-badge {
