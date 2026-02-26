@@ -87,9 +87,9 @@
     <!-- Create/Edit Modal -->
   <div v-if="showModal" class="modal-overlay" @click.self="closeModal">
       <div class="custom-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>{{ isEditing ? 'Edit Tag' : 'Create New Tag' }}</h3>
-          <button @click="closeModal" class="close-btn">&times;</button>
+          <button @click="closeModal" class="plain-close close-btn">&times;</button>
         </div>
         
         <div class="modal-body">
@@ -121,9 +121,9 @@
     <!-- Delete Confirmation Modal -->
   <div v-if="showDeleteModal" class="modal-overlay" @click.self="closeDeleteModal">
       <div class="custom-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>Confirm Delete</h3>
-          <button @click="closeDeleteModal" class="close-btn">&times;</button>
+          <button @click="closeDeleteModal" class="plain-close close-btn">&times;</button>
         </div>
         
         <div class="modal-body">

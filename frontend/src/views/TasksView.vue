@@ -235,9 +235,9 @@
     <!-- Create/Edit Task Modal -->
   <div v-if="showCreateModal || showEditModal" class="modal-overlay" @click.self="closeModal">
       <div class="modal large-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>{{ showCreateModal ? 'Create New Task' : 'Edit Task' }}</h2>
-          <button @click="closeModal" class="close-btn">×</button>
+          <button @click="closeModal" class="plain-close close-btn">×</button>
         </div>
         
         <form @submit.prevent="saveTask" class="modal-body">
@@ -457,11 +457,11 @@
             </div>
           </div>
 
-          <div class="modal-actions">
-            <button type="button" @click="closeModal" class="cancel-btn">
+          <div class="modal-footer modal-actions">
+            <button type="button" @click="closeModal" class="btn btn-secondary cancel-btn">
               Cancel
             </button>
-            <button type="submit" class="save-btn">
+            <button type="submit" class="btn btn-primary save-btn">
               {{ showCreateModal ? 'Create Task' : 'Update Task' }}
             </button>
           </div>

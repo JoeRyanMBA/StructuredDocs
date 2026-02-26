@@ -155,6 +155,67 @@
       </div>
     </div>
 
+    <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
+      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Submit topic for review">
+        <div class="modal-header-row review-modal-header">
+          <h3 class="modal-heading">Submit for Review</h3>
+          <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close">&times;</button>
+        </div>
+
+        <div class="modal-body review-modal-body">
+          <p class="review-topic-title">{{ selectedTopic?.title }}</p>
+
+          <div class="form-group">
+            <label>Project (optional)</label>
+            <select v-model="reviewData.project_id" class="filter-input" @change="onProjectChange">
+              <option value="">No project selected</option>
+              <option v-for="project in availableProjects" :key="project.id" :value="project.id">
+                {{ project.name }}
+              </option>
+            </select>
+          </div>
+
+          <div class="form-group">
+            <label>Select one or more reviewers</label>
+            <div v-if="safeProjectStakeholders.length" class="reviewers-list">
+              <label v-for="stakeholder in safeProjectStakeholders" :key="stakeholder.id" class="reviewer-option">
+                <input type="checkbox" :value="stakeholder.id" v-model="reviewData.assigned_stakeholder_ids" />
+                <span>{{ stakeholder.name }} <small v-if="stakeholder.role">({{ stakeholder.role }})</small></span>
+              </label>
+            </div>
+            <div v-else class="empty-help">No reviewers available. Please configure stakeholders with review access.</div>
+          </div>
+
+          <div class="form-group">
+            <label>Due Date</label>
+            <input v-model="reviewData.due_date" type="date" class="filter-input" />
+          </div>
+
+          <div class="form-group">
+            <label>Notes to reviewer(s) (optional)</label>
+            <textarea v-model="reviewData.submitter_notes" rows="3" class="filter-input" placeholder="What should reviewers focus on?"></textarea>
+          </div>
+
+          <div class="form-check form-switch" style="margin-top: .25rem;">
+            <input class="form-check-input" id="sequentialToggle" type="checkbox" v-model="reviewData.isSequential" />
+            <label class="form-check-label" for="sequentialToggle">Use sequential review order (expert first)</label>
+          </div>
+        </div>
+
+        <div class="modal-footer review-modal-actions">
+          <button type="button" class="btn btn-secondary" @click="closeReviewModal">Cancel</button>
+          <button
+            type="button"
+            class="btn btn-primary"
+            @click="confirmSubmitForReview"
+            :disabled="!selectedTopic || reviewData.assigned_stakeholder_ids.length === 0"
+          >
+            Request Review
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Sequential Review Modal - Using Vue reactivity instead of Bootstrap modal events -->
     <SequentialReviewModal
       v-if="showSequentialModal"
@@ -242,13 +303,11 @@ export default {
       }
       
       // Otherwise, fall back to general reviewers if project is selected but has no stakeholders
-      if (this.reviewData.project_id && this.availableReviewers.length > 0) {
-        return (this.availableReviewers || []).filter(s => s && s.id && s.name).map(reviewer => ({
-        }))
+      if ((this.reviewData.project_id || !projectStakeholders.length) && this.availableReviewers.length > 0) {
+        return (this.availableReviewers || []).filter(s => s && s.id && s.name)
       }
-      
-      const today = new Date()
-      return today.toISOString().split('T')[0]
+
+      return []
     },
     allSelectedOnPage() {
       if (!this.filteredTopics || this.filteredTopics.length === 0) return false
@@ -605,12 +664,12 @@ export default {
         console.log('Selected topic:', this.selectedTopic)
         console.log('Review data:', this.reviewData)
         
-        if (!this.selectedTopic || !this.reviewData.project_id || this.reviewData.assigned_stakeholder_ids.length === 0) {
+        if (!this.selectedTopic || this.reviewData.assigned_stakeholder_ids.length === 0) {
           console.error('Validation failed:', {
             selectedTopic: !!this.selectedTopic,
-            project_id: this.reviewData.project_id,
             stakeholder_ids: this.reviewData.assigned_stakeholder_ids
           })
+          toast.error('Select at least one reviewer before submitting.')
           return
         }
 
@@ -776,6 +835,11 @@ export default {
 <style scoped>
 .topics-table .actions-cell { text-align: center; }
 .action-buttons { display: inline-flex; gap: 0.5rem; align-items: center; justify-content: center; }
+.review-modal-content { width: min(700px, 94vw); max-width: 700px; }
+.review-topic-title { font-weight: 600; color: #374151; margin-bottom: .85rem; }
+.reviewers-list { border: 1px solid #e5e7eb; border-radius: 6px; max-height: 180px; overflow: auto; padding: .5rem .6rem; }
+.reviewer-option { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+.empty-help { font-size: .85rem; color: #6b7280; }
 /* Match User Management icon buttons */
 .btn-icon {
   width: 32px;

@@ -127,12 +127,12 @@
     <!-- Request Access Modal -->
   <div v-if="showRequestAccess" class="login-modal-overlay" @click.self="showRequestAccess = false">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <div class="modal-logo">
             <img class="modal-logo-image" :src="symbolLogoSrc" alt="StructuredDocs logo" decoding="async" @error="onSymbolError" />
             <h2>Request Author Access</h2>
           </div>
-          <button @click="showRequestAccess = false" class="close-btn">×</button>
+          <button @click="showRequestAccess = false" class="plain-close close-btn">×</button>
         </div>
         <form @submit.prevent="submitAccessRequest" class="modal-body">
           <div class="form-group">
@@ -181,11 +181,11 @@
             ></textarea>
           </div>
           
-          <div class="modal-actions">
-            <button type="button" @click="showRequestAccess = false" class="cancel-btn">
+          <div class="modal-footer modal-actions">
+            <button type="button" @click="showRequestAccess = false" class="btn btn-secondary cancel-btn">
               Cancel
             </button>
-            <button type="submit" class="submit-btn">Submit Request</button>
+            <button type="submit" class="btn btn-primary submit-btn">Submit Request</button>
           </div>
         </form>
       </div>
@@ -194,12 +194,12 @@
     <!-- Forgot Password Modal -->
   <div v-if="showForgotPassword" class="login-modal-overlay" @click.self="showForgotPassword = false">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <div class="modal-logo">
             <img class="modal-logo-image" :src="symbolLogoSrc" alt="StructuredDocs logo" decoding="async" @error="onSymbolError" />
             <h2>Reset Password</h2>
           </div>
-          <button @click="showForgotPassword = false" class="close-btn">×</button>
+          <button @click="showForgotPassword = false" class="plain-close close-btn">×</button>
         </div>
         <form @submit.prevent="submitPasswordReset" class="modal-body">
           <p class="modal-description">
@@ -217,11 +217,11 @@
             />
           </div>
           
-          <div class="modal-actions">
-            <button type="button" @click="showForgotPassword = false" class="cancel-btn">
+          <div class="modal-footer modal-actions">
+            <button type="button" @click="showForgotPassword = false" class="btn btn-secondary cancel-btn">
               Cancel
             </button>
-            <button type="submit" class="submit-btn">Send Reset Link</button>
+            <button type="submit" class="btn btn-primary submit-btn">Send Reset Link</button>
           </div>
         </form>
       </div>

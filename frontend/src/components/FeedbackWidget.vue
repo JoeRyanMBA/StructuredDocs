@@ -14,7 +14,7 @@
           <div class="sd-modal small-modal feedback-modal" @click.stop>
           <div class="sd-modal-header">
             <h2>Provide Feedback</h2>
-            <button @click="showFeedbackModal = false" class="close-btn">×</button>
+            <button @click="showFeedbackModal = false" class="plain-close close-btn">×</button>
           </div>
           <form @submit.prevent="submitFeedback" class="sd-modal-body">
             <div class="form-group">
@@ -29,8 +29,8 @@
               <label for="feedbackMessage">Message</label>
               <textarea id="feedbackMessage" v-model="feedback.message" required rows="5"></textarea>
             </div>
-            <div class="sd-modal-actions">
-              <button type="submit" class="primary-btn">Submit Feedback</button>
+            <div class="modal-footer sd-modal-actions">
+              <button type="submit" class="btn btn-primary primary-btn">Submit Feedback</button>
             </div>
           </form>
           </div>
@@ -45,7 +45,7 @@
           <div class="sd-modal small-modal feedback-modal" @click.stop>
           <div class="sd-modal-header">
             <h2>Report a Bug</h2>
-            <button @click="showBugModal = false" class="close-btn">×</button>
+            <button @click="showBugModal = false" class="plain-close close-btn">×</button>
           </div>
           <form @submit.prevent="submitBugReport" class="sd-modal-body">
             <div class="form-group">
@@ -60,8 +60,8 @@
               <label for="bugReproduction">Steps to Reproduce</label>
               <textarea id="bugReproduction" v-model="bugReport.reproduction_steps" rows="5" placeholder="1. Go to '...' page. 2. Click on '....' button. 3. See error."></textarea>
             </div>
-            <div class="sd-modal-actions">
-              <button type="submit" class="primary-btn">Submit Bug Report</button>
+            <div class="modal-footer sd-modal-actions">
+              <button type="submit" class="btn btn-primary primary-btn">Submit Bug Report</button>
             </div>
           </form>
           </div>

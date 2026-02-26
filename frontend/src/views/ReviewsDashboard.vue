@@ -283,7 +283,7 @@ export default {
     async loadReviews() {
       try {
         // Load reviews from the new reviews API
-        const { getPendingReviews, getMyReviews } = await import('@/api/reviews.js')
+        const { getPendingReviews, getMyReviews, getReviews } = await import('@/api/reviews.js')
         
         // Get pending reviews (urgent ones)
         const pendingReviews = await getPendingReviews()
@@ -296,11 +296,24 @@ export default {
           return isUrgent || isOverdue
         }).slice(0, 5) // Show top 5
         
-        // Get recent reviews requested by current user
+        // Get recent reviews requested by current user when possible
         if (this.currentUser.id) {
           this.recentReviews = await getMyReviews(this.currentUser.id)
-          this.recentReviews = this.recentReviews.slice(0, 10) // Show recent 10
         }
+
+        // Fallback: if requester-scoped query returns nothing (or no user id), show recent global reviews.
+        if (!this.recentReviews || this.recentReviews.length === 0) {
+          this.recentReviews = await getReviews()
+        }
+
+        // Ensure newest first and cap visible list
+        this.recentReviews = (this.recentReviews || [])
+          .sort((a, b) => {
+            const aTime = new Date(a.requested_at || 0).getTime()
+            const bTime = new Date(b.requested_at || 0).getTime()
+            return bTime - aTime
+          })
+          .slice(0, 10)
         
       } catch (error) {
         console.error('Failed to load reviews:', error)

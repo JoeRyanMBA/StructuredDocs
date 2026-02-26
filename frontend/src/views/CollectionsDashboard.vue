@@ -157,9 +157,9 @@
     <!-- Create Collection Modal -->
   <div v-if="showCreateModal" class="modal-overlay" @click.self="showCreateModal = false">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Create New Collection</h2>
-          <button @click="showCreateModal = false" class="close-btn">×</button>
+          <button @click="showCreateModal = false" class="plain-close close-btn">×</button>
         </div>
         <form @submit.prevent="submitNewCollection" class="modal-body">
           <div class="form-group">
@@ -226,8 +226,8 @@
             </select>
           </div>
           
-          <div class="modal-actions">
-            <button type="button" @click="showCreateModal = false" class="cancel-btn">
+          <div class="modal-footer modal-actions">
+            <button type="button" @click="showCreateModal = false" class="btn btn-secondary cancel-btn">
               Cancel
             </button>
             <button type="submit" class="create-btn">Create Collection</button>
@@ -244,16 +244,16 @@
     <!-- Delete Confirmation Modal -->
     <div v-if="showDeleteModal" class="modal-overlay" @click.self="cancelDelete">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h2>Delete Collection</h2>
-          <button @click="cancelDelete" class="close-btn">×</button>
+          <button @click="cancelDelete" class="plain-close close-btn">×</button>
         </div>
         <div class="modal-body">
           <p><strong>Warning:</strong> This will permanently remove the collection <strong>{{ collectionToDelete?.name }}</strong> and all nested child collections. Topics inside remain in the system and are not deleted.</p>
           <p>Type the collection name to confirm:</p>
           <input v-model="deleteConfirmText" :placeholder="collectionToDelete?.name" />
-          <div class="modal-actions" style="margin-top:1rem;">
-            <button type="button" class="cancel-btn" @click="cancelDelete">Cancel</button>
+          <div class="modal-footer modal-actions" style="margin-top:1rem;">
+            <button type="button" class="btn btn-secondary cancel-btn" @click="cancelDelete">Cancel</button>
             <button type="button" class="btn btn-danger" :disabled="deleteConfirmText !== collectionToDelete?.name" @click="confirmDelete">Delete</button>
           </div>
         </div>

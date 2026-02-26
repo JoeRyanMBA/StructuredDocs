@@ -60,26 +60,24 @@
 
 .modal-overlay {
   position: fixed;
-  top: 0;
-  left: 0;
-  right: 0;
-  bottom: 0;
+  inset: 0;
   background-color: rgba(0, 0, 0, 0.6);
   display: flex;
   justify-content: center;
   align-items: center;
-  padding-top: 0.5rem;
+  padding: 0.5rem 0.75rem;
   z-index: 1000;
   overflow-y: auto;
 }
 
 .modal-content {
   background: var(--bg-white);
-  padding: 2rem;
   border-radius: var(--border-radius-xl);
   box-shadow: var(--shadow-lg);
-  width: 90%;
-  max-width: 600px;
+  width: 92%;
+  max-width: 720px;
+  padding: 0;
+  overflow: visible;
 }
 
 .btn-send-setup:hover {

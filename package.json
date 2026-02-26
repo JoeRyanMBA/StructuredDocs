@@ -7,7 +7,12 @@
     "build": "echo '🔧 Starting build process...' && cd frontend && npm install && npm run build && cd .. && echo '✅ Build completed - Python dependencies will be installed at runtime'",
     "start": "./start.sh",
     "dev": "npm --prefix frontend run dev",
-    "postinstall": "echo '🔧 Postinstall completed - Python dependencies will be installed at runtime'"
+    "postinstall": "echo '🔧 Postinstall completed - Python dependencies will be installed at runtime'",
+    "cy:open": "npx cypress open",
+    "cy:run": "npx cypress run",
+    "cy:modal-smoke": "npx cypress run --spec cypress/e2e/modal-smoke.cy.js",
+    "cy:headed": "npx cypress run --headed --browser chrome",
+    "cy:modal-smoke:headed": "npx cypress run --headed --browser chrome --spec cypress/e2e/modal-smoke.cy.js"
   },
   "engines": {
     "node": ">=16.0.0"

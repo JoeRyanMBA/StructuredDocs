@@ -172,9 +172,9 @@
       <!-- Link Modal -->
   <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
         <div class="modal-content" @click.stop>
-          <div class="modal-header">
+          <div class="modal-header-row modal-header">
             <h3>Insert Link</h3>
-            <button @click="showLinkModal = false" class="close-btn">&times;</button>
+            <button @click="showLinkModal = false" class="plain-close close-btn">&times;</button>
           </div>
           <div class="modal-body">
             <div class="tabs">
@@ -268,9 +268,9 @@
       <!-- Image Modal -->
   <div v-if="showImageModal" class="modal-overlay" @click.self="showImageModal = false">
         <div class="modal-content" @click.stop>
-          <div class="modal-header">
+          <div class="modal-header-row modal-header">
             <h3>Insert Image</h3>
-            <button @click="showImageModal = false" class="close-btn">&times;</button>
+            <button @click="showImageModal = false" class="plain-close close-btn">&times;</button>
           </div>
           <div class="modal-body">
             <div class="tabs">

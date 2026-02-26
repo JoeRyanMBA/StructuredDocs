@@ -1,9 +1,9 @@
 <template>
   <div class="request-review-modal" v-if="isVisible" @click.self="closeModal">
     <div class="modal-content">
-      <div class="modal-header">
+      <div class="modal-header-row modal-header">
         <h3>Request Review</h3>
-        <button @click="closeModal" class="close-btn">&times;</button>
+        <button @click="closeModal" class="plain-close close-btn">&times;</button>
       </div>
       
       <div class="modal-body">

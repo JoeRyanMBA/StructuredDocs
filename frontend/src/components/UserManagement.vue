@@ -71,9 +71,9 @@
     <!-- Add/Edit User Modal -->
   <div v-if="showAddUser || editingUser" class="modal-overlay" @click.self="closeModal" style="display: block !important;">
       <div class="modal" @click.stop style="display: block !important;">
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>{{ editingUser ? 'Edit User' : 'Add User' }}</h3>
-          <button @click="closeModal" class="close-btn">&times;</button>
+          <button @click="closeModal" class="plain-close close-btn">&times;</button>
         </div>
         
         <div class="modal-body">

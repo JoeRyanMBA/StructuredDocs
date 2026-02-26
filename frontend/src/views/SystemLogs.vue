@@ -98,9 +98,9 @@
     <!-- Log Details Modal -->
   <div v-if="selectedLog" class="modal-overlay" @click.self="closeModal">
       <div class="modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>Log Details</h3>
-          <button @click="closeModal" class="close-btn">&times;</button>
+          <button @click="closeModal" class="plain-close close-btn">&times;</button>
         </div>
         <div class="modal-body">
           <div class="log-detail">

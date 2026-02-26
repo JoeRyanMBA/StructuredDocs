@@ -329,9 +329,9 @@
 
     <div v-if="previewModal.show" class="modal-overlay" @click.self="closePreviewModal">
       <div class="modal-content preview-modal" @click.stop>
-        <div class="modal-header">
+        <div class="modal-header-row modal-header">
           <h3>👁️ Topic Preview</h3>
-          <button class="btn-close" @click="closePreviewModal">✕</button>
+          <button class="plain-close btn-close" @click="closePreviewModal">✕</button>
         </div>
         <div class="modal-body">
           <div v-if="previewModal.loading">Loading…</div>
