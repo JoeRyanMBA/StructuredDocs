@@ -86,7 +86,6 @@ export default {
           icon: '✅',
           route: 'ReviewsHome',
           children: [
-            { key: 'reviews-home', label: 'Dashboard', route: 'ReviewsHome', icon: '📊' },
             { key: 'reviews-tasks', label: 'Tasks', route: 'ReviewTasks', icon: '📋' },
             { key: 'reviews-history', label: 'History', route: 'ReviewHistory', icon: '🕘' }
           ]
