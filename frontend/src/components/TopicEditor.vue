@@ -84,6 +84,17 @@
           </button>
         </div>
 
+        <div class="paste-options">
+          <label class="paste-option-label">
+            <input
+              type="checkbox"
+              v-model="normalizePastedLineBreaks"
+              @change="persistPastePreferences"
+            />
+            Normalize pasted Word line breaks
+          </label>
+        </div>
+
         <!-- Content Editor -->
         <div class="editor-content">
           <!-- Markdown Mode -->
@@ -102,6 +113,7 @@
             <textarea 
               ref="markdownEditor"
               v-model="content" 
+              @paste="handleMarkdownPaste"
               class="markdown-textarea"
               placeholder="Write your content in Markdown..."
               rows="20"
@@ -427,6 +439,7 @@ export default {
   recentVariables: [],
   variableSearch: '',
   selectedVariableSlug: '',
+  normalizePastedLineBreaks: true,
   selectedExistingImage: null,
   selectedExistingLink: null,
   savedWysiwygRange: null
@@ -510,7 +523,7 @@ export default {
       }
 
       let rendered = marked.parse(content, {
-        breaks: true,
+        breaks: false,
         gfm: true,
         renderer
       })
@@ -577,6 +590,7 @@ export default {
     window.addEventListener('beforeunload', this.beforeUnloadHandler)
   this.loadVariables()
   this.loadRecentVariables()
+  this.loadPastePreferences()
     // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
     if(this.editorMode === 'wysiwyg' && this.$refs.wysiwygEditor){
       this.$refs.wysiwygEditor.innerHTML = this.renderedMarkdown
@@ -594,6 +608,72 @@ export default {
     next(false)
   },
   methods: {
+    normalizeSoftWrappedPastedText(input) {
+      const lines = (input || '').replace(/\r\n?/g, '\n').split('\n')
+      const out = []
+      let buffer = []
+
+      const flushBuffer = () => {
+        if (!buffer.length) return
+        const merged = buffer.join(' ').replace(/\s{2,}/g, ' ').trim()
+        if (merged) out.push(merged)
+        buffer = []
+      }
+
+      const isStructuralLine = (line) => {
+        const t = line.trim()
+        if (!t) return true
+        return /^(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s*|```|\|.*\||-{3,}$|!\[|\[[^\]]+\]:)/.test(t)
+      }
+
+      lines.forEach(line => {
+        if (!line.trim()) {
+          flushBuffer()
+          out.push('')
+          return
+        }
+
+        if (isStructuralLine(line)) {
+          flushBuffer()
+          out.push(line.trimEnd())
+          return
+        }
+
+        buffer.push(line.trim())
+      })
+
+      flushBuffer()
+
+      return out.join('\n').replace(/\n{3,}/g, '\n\n').trimEnd()
+    },
+    handleMarkdownPaste(event) {
+      if (!this.normalizePastedLineBreaks) return
+
+      const clipboard = event.clipboardData
+      if (!clipboard) return
+
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+
+      const pastedText = clipboard.getData('text/plain')
+      if (!pastedText) return
+
+      event.preventDefault()
+
+      const normalized = this.normalizeSoftWrappedPastedText(pastedText)
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const before = this.content.slice(0, start)
+      const after = this.content.slice(end)
+
+      this.content = before + normalized + after
+
+      this.$nextTick(() => {
+        textarea.focus()
+        const cursor = start + normalized.length
+        textarea.setSelectionRange(cursor, cursor)
+      })
+    },
     openLinkModal() {
       if (this.editorMode === 'wysiwyg') {
         this.captureWysiwygSelection()
@@ -666,6 +746,21 @@ export default {
       const set = [slug, ...this.recentVariables.filter(s=>s!==slug)]
       this.recentVariables = set.slice(0,8)
       try { localStorage.setItem('recentVariableSlugs', JSON.stringify(this.recentVariables)) } catch(_e){ }
+    },
+    loadPastePreferences() {
+      try {
+        const raw = localStorage.getItem('topicEditorNormalizePastedLineBreaks')
+        if (raw === '0') this.normalizePastedLineBreaks = false
+        if (raw === '1') this.normalizePastedLineBreaks = true
+      } catch (_e) {
+        this.normalizePastedLineBreaks = true
+      }
+    },
+    persistPastePreferences() {
+      try {
+        localStorage.setItem('topicEditorNormalizePastedLineBreaks', this.normalizePastedLineBreaks ? '1' : '0')
+      } catch (_e) {
+      }
     },
     handleInsertVariable(){
       if(!this.selectedVariableSlug) return
@@ -1142,6 +1237,50 @@ export default {
       const parser = new DOMParser()
       const doc = parser.parseFromString(html || '', 'text/html')
 
+      const normalizeSoftWrappedText = (text) => {
+        const lines = text.split('\n')
+        const out = []
+        let buffer = []
+
+        const flushBuffer = () => {
+          if (!buffer.length) return
+          const merged = buffer
+            .join(' ')
+            .replace(/\s{2,}/g, ' ')
+            .trim()
+          if (merged) out.push(merged)
+          buffer = []
+        }
+
+        const isStructuralLine = (line) => {
+          const t = line.trim()
+          if (!t) return true
+          return /^(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s*|```|\|.*\||-{3,}$|!\[|\[[^\]]+\]:)/.test(t)
+        }
+
+        lines.forEach(line => {
+          if (!line.trim()) {
+            flushBuffer()
+            out.push('')
+            return
+          }
+
+          if (isStructuralLine(line)) {
+            flushBuffer()
+            out.push(line.trimEnd())
+            return
+          }
+
+          buffer.push(line.trim())
+        })
+
+        flushBuffer()
+
+        return out
+          .join('\n')
+          .replace(/\n{3,}/g, '\n\n')
+      }
+
       const renderChildren = (node) => {
         let out = ''
         node.childNodes.forEach(child => {
@@ -1198,10 +1337,12 @@ export default {
         return renderChildren(node)
       }
 
-      return renderChildren(doc.body)
+      const markdown = renderChildren(doc.body)
         .replace(/\u00a0/g, ' ')
         .replace(/[ \t]+\n/g, '\n')
         .replace(/\n{3,}/g, '\n\n')
+
+      return normalizeSoftWrappedText(markdown)
         .trim()
     },
 
@@ -1288,7 +1429,9 @@ export default {
       // Fallback: plain text paste handling
       event.preventDefault()
       const text = clipboard.getData('text/plain')
-      document.execCommand('insertText', false, text)
+      const nextText = this.normalizePastedLineBreaks ? this.normalizeSoftWrappedPastedText(text) : text
+      document.execCommand('insertText', false, nextText)
+      this.onWysiwygInput()
     },
 
     handleWysiwygKeydown(event) {
@@ -1312,13 +1455,41 @@ export default {
 
 <style>
 .topic-editor {
+  --topic-editor-offset: calc(var(--header-height, 0px) + var(--ticker-height, 0px));
   padding: 1rem;
+  height: calc(100dvh - var(--topic-editor-offset));
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.editor-container {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
+}
+
+.editor-content {
+  flex: 1;
+  min-height: 0;
+  overflow: auto;
+}
+
+.markdown-editor,
+.wysiwyg-editor,
+.preview-mode {
+  height: 100%;
+  min-height: 0;
+  display: flex;
+  flex-direction: column;
 }
 
 /* Variable insertion UI */
 .variable-insert { display:flex; gap:.4rem; align-items:center; margin-top:.4rem; flex-wrap:wrap; }
 .variable-insert select { padding:.25rem .4rem; font-size:.7rem; }
 .var-insert-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; color:#475569; }
+.paste-options { margin: .25rem 0 .75rem; }
+.paste-option-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .9rem; color: #475569; }
 
 /* Editor mode segmented control */
 
@@ -1380,7 +1551,8 @@ export default {
 /* Editor content styling */
 .markdown-textarea {
   width: 100%;
-  min-height: 400px;
+  min-height: 0;
+  height: 100%;
   padding: 1.25rem;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -1388,7 +1560,8 @@ export default {
   font-size: 14px;
   line-height: 1.6;
   background: white;
-  resize: vertical;
+  resize: none;
+  overflow: auto;
   box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
@@ -1401,7 +1574,8 @@ export default {
 
 .wysiwyg-content {
   width: 100%;
-  min-height: 400px;
+  min-height: 0;
+  height: 100%;
   padding: 1.25rem;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -1427,6 +1601,12 @@ export default {
 /* Preview area (when user selects Preview mode) */
 .preview-mode .preview-content p { margin: 0 0 1rem 0; line-height: 1.7; }
 .preview-mode .preview-content p:last-child { margin-bottom: 0; }
+
+.preview-content {
+  height: 100%;
+  min-height: 0;
+  overflow: auto;
+}
 
 /* Editor actions styling */
 .editor-actions {
