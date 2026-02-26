@@ -373,11 +373,6 @@ const routes = [
     component: () => import('@/views/PublishDashboard.vue')
   },
   {
-    path: '/publications/list',
-    name: 'PublicationsList',
-    component: () => import('@/views/PublicationsListView.vue')
-  },
-  {
     path: '/publications/:id',
     name: 'PublicationView',
     component: () => import('@/views/PublicationView.vue'),

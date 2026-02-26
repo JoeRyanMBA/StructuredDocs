@@ -6,29 +6,6 @@
     </div>
     
 
-    <div class="features-grid">
-      <div class="feature-card">
-        <div class="feature-icon">📄</div>
-        <h3>Professional Layout</h3>
-        <p>Clean, formatted documents ready for business use</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">🖨️</div>
-        <h3>Print Ready</h3>
-        <p>Optimized for high-quality printing and physical distribution</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📧</div>
-        <h3>Easy Sharing</h3>
-        <p>Perfect for email attachments and document management</p>
-      </div>
-      <div class="feature-card">
-        <div class="feature-icon">📚</div>
-        <h3>Table of Contents</h3>
-        <p>Automatic navigation with bookmarks and page numbers</p>
-      </div>
-    </div>
-
     <div class="publications-section">
       <h3>Select Publication to Export as PDF</h3>
       <div v-if="loading" class="loading">Loading publications...</div>
@@ -57,17 +34,6 @@
       </div>
     </div>
 
-    <div class="help-section">
-      <h3>PDF Export Features</h3>
-      <ul class="feature-list">
-        <li><strong>Hierarchical Structure:</strong> Topics are organized with proper headings and sub-headings</li>
-        <li><strong>Automatic Table of Contents:</strong> Generated based on your topic structure</li>
-        <li><strong>Professional Formatting:</strong> Clean typography and consistent styling</li>
-        <li><strong>Page Numbers:</strong> Automatic page numbering and headers</li>
-        <li><strong>Print Optimization:</strong> Properly formatted for standard paper sizes</li>
-        <li><strong>Hyperlinks:</strong> Internal navigation links within the document</li>
-      </ul>
-    </div>
   </div>
 </template>
 
@@ -147,46 +113,8 @@ export default {
   line-height: 1.6;
 }
 
-.features-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(250px, 1fr));
-  gap: 1.5rem;
-  margin-bottom: 3rem;
-}
-
-.feature-card {
-  background: var(--bg-primary-white);
-  border: 1px solid var(--border-color-gray);
-  border-radius: 8px;
-  padding: 1.5rem;
-  text-align: center;
-  transition: box-shadow 0.2s ease;
-}
-
-.feature-card:hover {
-  box-shadow: var(--shadow-md);
-}
-
-.feature-icon {
-  font-size: 2rem;
-  margin-bottom: 1rem;
-}
-
-.feature-card h3 {
-  margin: 0 0 0.5rem 0;
-  color: var(--text-primary-charcoal);
-  font-size: 1.1rem;
-}
-
-.feature-card p {
-  margin: 0;
-  color: var(--text-secondary-cool-gray);
-  font-size: 0.9rem;
-  line-height: 1.4;
-}
-
 .publications-section {
-  margin: 3rem 0;
+  margin: 1.5rem 0 0;
 }
 
 .publications-section h3 {
@@ -258,39 +186,7 @@ export default {
   gap: 0.5rem;
 }
 
-.help-section {
-  margin-top: 3rem;
-  background: var(--bg-white);
-  padding: 2rem;
-  border-radius: 8px;
-  border: 1px solid var(--border-light-gray);
-}
-
-.help-section h3 {
-  margin-top: 0;
-  color: var(--text-primary-charcoal);
-}
-
-.feature-list {
-  margin: 1rem 0;
-  padding-left: 1.5rem;
-}
-
-.feature-list li {
-  margin-bottom: 0.75rem;
-  line-height: 1.5;
-  color: var(--text-secondary-cool-gray);
-}
-
-.feature-list strong {
-  color: var(--text-primary-charcoal);
-}
-
 @media (max-width: 768px) {
-  .features-grid {
-    grid-template-columns: 1fr;
-  }
-  
   .publications-grid {
     grid-template-columns: 1fr;
   }
