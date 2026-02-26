@@ -222,6 +222,54 @@
         </div>
       </div>
 
+    <div v-if="showReviewModal" class="review-modal-backdrop" @click.self="closeReviewModal">
+      <div class="review-modal" role="dialog" aria-modal="true" aria-label="Request review">
+        <div class="review-modal-header">
+          <h3>Submit for Review</h3>
+          <button type="button" class="close-btn" @click="closeReviewModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="review-modal-body">
+          <p class="review-topic-title">{{ selectedTopicForReview?.title }}</p>
+
+          <div class="review-form-group">
+            <label for="reviewer-select">Reviewer</label>
+            <select id="reviewer-select" v-model="selectedReviewerId" class="filter-input">
+              <option value="">Select reviewer...</option>
+              <option v-for="reviewer in availableReviewers" :key="reviewer.id" :value="reviewer.id">
+                {{ reviewer.name }} ({{ reviewer.role || 'reviewer' }})
+              </option>
+            </select>
+          </div>
+
+          <div class="review-form-group">
+            <label for="review-priority">Priority</label>
+            <select id="review-priority" v-model="reviewPriority" class="filter-input">
+              <option value="low">Low</option>
+              <option value="medium">Medium</option>
+              <option value="high">High</option>
+              <option value="urgent">Urgent</option>
+            </select>
+          </div>
+
+          <div class="review-form-group">
+            <label for="review-due-days">Due (days)</label>
+            <input id="review-due-days" v-model.number="reviewDueInDays" type="number" min="1" max="30" class="filter-input" />
+          </div>
+
+          <div class="review-form-group">
+            <label for="review-message">Message (optional)</label>
+            <textarea id="review-message" v-model="reviewMessage" class="filter-input" rows="3" placeholder="Add guidance for the reviewer"></textarea>
+          </div>
+        </div>
+        <div class="review-modal-actions">
+          <button type="button" class="btn btn-secondary" @click="closeReviewModal" :disabled="submittingReview">Cancel</button>
+          <button type="button" class="btn btn-primary" @click="confirmSubmitForReview" :disabled="submittingReview || !selectedReviewerId">
+            {{ submittingReview ? 'Submitting...' : 'Request Review' }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <!-- Loading State -->
     <div
       v-if="loading"
@@ -303,6 +351,14 @@ export default {
       searchQuery: '',
       statusFilter: '',
       collectionFilter: '',
+      showReviewModal: false,
+      submittingReview: false,
+      selectedTopicForReview: null,
+      availableReviewers: [],
+      selectedReviewerId: '',
+      reviewPriority: 'medium',
+      reviewDueInDays: 7,
+      reviewMessage: '',
   recentTopics: [], /* deprecated after removing Recent Work */
   sortKey: 'updated',
   sortDir: 'desc', // 'asc' | 'desc'
@@ -451,24 +507,78 @@ export default {
     },
 
     async submitForReview(id) {
+      const topic = this.myTopics.find(t => t.id === id)
+      if (!topic) {
+        toast.error('Topic not found')
+        return
+      }
+
+      this.selectedTopicForReview = topic
+      this.selectedReviewerId = ''
+      this.reviewPriority = 'medium'
+      this.reviewDueInDays = 7
+      this.reviewMessage = ''
+      this.showReviewModal = true
+
+      await this.loadReviewers()
+    },
+
+    closeReviewModal() {
+      this.showReviewModal = false
+      this.submittingReview = false
+      this.selectedTopicForReview = null
+      this.selectedReviewerId = ''
+      this.reviewPriority = 'medium'
+      this.reviewDueInDays = 7
+      this.reviewMessage = ''
+    },
+
+    async loadReviewers() {
+      if (this.availableReviewers.length) return
       try {
-        const topic = this.myTopics.find(t => t.id === id)
-        const res = await fetch(`/api/topics/${id}/review`, {
+        const res = await fetch('/api/reviews/reviewers')
+        if (!res.ok) throw new Error(`Failed to fetch reviewers (${res.status})`)
+        const reviewers = await res.json()
+        this.availableReviewers = Array.isArray(reviewers) ? reviewers : []
+      } catch (err) {
+        console.error('Failed to load reviewers:', err)
+        toast.error('Unable to load reviewers')
+      }
+    },
+
+    async confirmSubmitForReview() {
+      if (!this.selectedTopicForReview || !this.selectedReviewerId) {
+        toast.error('Please select a reviewer')
+        return
+      }
+
+      this.submittingReview = true
+      try {
+        const res = await fetch(`/api/topics/${this.selectedTopicForReview.id}/review`, {
           method: 'POST',
           headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'in_review' })
+          body: JSON.stringify({
+            reviewer_id: Number(this.selectedReviewerId),
+            priority: this.reviewPriority,
+            due_in_days: Number(this.reviewDueInDays) || 7,
+            message: this.reviewMessage || ''
+          })
         })
 
         const payload = await res.json().catch(() => null)
         if (!res.ok) throw new Error(payload?.error || 'Failed to submit for review')
 
+        const topicTitle = this.selectedTopicForReview.title
         await this.loadMyTopics()
         await this.loadStats()
-        toast.success(`"${topic?.title || `Topic #${id}`}" submitted for review.`)
+        this.closeReviewModal()
+        toast.success(`"${topicTitle}" submitted for review.`)
         this.$router.push({ name: 'ReviewsHome' })
       } catch (err) {
         console.error('Submit for review failed:', err)
         toast.error(err.message || 'Failed to submit for review')
+      } finally {
+        this.submittingReview = false
       }
     },
 
@@ -600,6 +710,78 @@ export default {
 
 .content-grid .full-width {
   grid-column: 1 / -1;
+}
+
+.review-modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1200;
+}
+
+.review-modal {
+  width: min(560px, 92vw);
+  background: #fff;
+  border-radius: 10px;
+  box-shadow: 0 10px 24px rgba(0, 0, 0, 0.2);
+  overflow: hidden;
+}
+
+.review-modal-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 0.9rem 1rem;
+  border-bottom: 1px solid #e5e7eb;
+}
+
+.review-modal-header h3 {
+  margin: 0;
+  color: var(--primary-deep-teal);
+  font-size: 1.1rem;
+}
+
+.close-btn {
+  border: none;
+  background: transparent;
+  font-size: 1.4rem;
+  line-height: 1;
+  color: #6b7280;
+  cursor: pointer;
+}
+
+.review-modal-body {
+  padding: 1rem;
+}
+
+.review-topic-title {
+  margin: 0 0 0.9rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.review-form-group {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+  margin-bottom: 0.85rem;
+}
+
+.review-form-group label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: var(--text-dark-gray);
+}
+
+.review-modal-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.6rem;
+  padding: 0.9rem 1rem;
+  border-top: 1px solid #e5e7eb;
 }
 
 /* Dashboard Sections */
