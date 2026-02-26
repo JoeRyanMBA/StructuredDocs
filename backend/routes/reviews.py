@@ -67,7 +67,7 @@ def request_review():
         data = request.get_json()
         
         # Validate required fields
-        required_fields = ['topic_id', 'reviewer_id', 'requested_by']
+        required_fields = ['topic_id', 'reviewer_id']
         for field in required_fields:
             if field not in data:
                 return jsonify({'error': f'Missing required field: {field}'}), 400
@@ -80,8 +80,27 @@ def request_review():
         if not reviewer.can_review:
             return jsonify({'error': 'Selected stakeholder cannot perform reviews'}), 400
             
-        # Check if requester exists
-        requester = Stakeholder.query.get_or_404(data['requested_by'])
+        # Resolve requester stakeholder (supports legacy requested_by and email/name fallbacks)
+        requester = None
+        requested_by = data.get('requested_by')
+        if requested_by is not None:
+            requester = Stakeholder.query.get(requested_by)
+
+        if not requester:
+            requester_email = (data.get('requester_email') or '').strip()
+            if requester_email:
+                requester = Stakeholder.query.filter(Stakeholder.email.ilike(requester_email)).first()
+
+        if not requester:
+            requester_name = (data.get('requester_name') or '').strip()
+            if requester_name:
+                requester = Stakeholder.query.filter(Stakeholder.name == requester_name).first()
+
+        if not requester:
+            requester = Stakeholder.query.filter(Stakeholder.active == True).order_by(Stakeholder.id.asc()).first()
+
+        if not requester:
+            return jsonify({'error': 'No valid requester stakeholder found. Please create an active stakeholder first.'}), 400
         
         # Calculate due date (default to 7 days from now if not specified)
         due_date = None
@@ -93,7 +112,7 @@ def request_review():
         # Create review request
         review = Review(
             topic_id=data['topic_id'],
-            requested_by=data['requested_by'],
+            requested_by=requester.id,
             reviewer_id=data['reviewer_id'],
             priority=data.get('priority', 'medium'),
             due_date=due_date,
@@ -138,13 +157,19 @@ def request_review():
             )
             
             if email_sent:
+                review.email_delivery_unavailable = False
+                db.session.commit()
                 print(f"✅ Email notification sent successfully to {reviewer.email}")
                 print(f"📄 Review token: {token.token}")
                 print(f"🔗 Review URL: http://localhost:5173/review/{token.token}")
             else:
+                review.email_delivery_unavailable = True
+                db.session.commit()
                 print(f"⚠️ Failed to send email notification to {reviewer.email}")
                 
         except Exception as email_error:
+            review.email_delivery_unavailable = True
+            db.session.commit()
             print(f"❌ Email notification error: {str(email_error)}")
             import traceback
             print(f"🔍 Full traceback: {traceback.format_exc()}")
@@ -379,24 +404,39 @@ def follow_up_review(review_id):
                 is_follow_up=True  # This will modify the subject line
             )
             
+            # Always record follow-up attempt so UI reflects action.
+            review.follow_up_sent_at = datetime.utcnow()
+            review.email_delivery_unavailable = not email_sent
+            db.session.commit()
+
             if email_sent:
                 print(f"✅ Follow-up reminder sent successfully to {reviewer.email}")
-                
-                # Update the review to track that a follow-up was sent
-                review.follow_up_sent_at = datetime.utcnow()
-                db.session.commit()
-                
                 return jsonify({
                     'message': 'Follow-up reminder sent successfully',
-                    'review': review.to_dict()
+                    'review': review.to_dict(),
+                    'email_sent': True
                 }), 200
-            else:
-                print(f"⚠️ Failed to send follow-up reminder to {reviewer.email}")
-                return jsonify({'error': 'Failed to send follow-up reminder'}), 500
+
+            print(f"⚠️ Follow-up recorded but email delivery failed for {reviewer.email}")
+            return jsonify({
+                'message': 'Follow-up recorded, but email delivery failed',
+                'review': review.to_dict(),
+                'email_sent': False,
+                'warning': 'Email delivery is unavailable. Check email service configuration.'
+            }), 200
                 
         except Exception as email_error:
             print(f"❌ Follow-up email error: {str(email_error)}")
-            return jsonify({'error': 'Failed to send follow-up reminder'}), 500
+            # Preserve action result even if email transport fails.
+            review.follow_up_sent_at = datetime.utcnow()
+            review.email_delivery_unavailable = True
+            db.session.commit()
+            return jsonify({
+                'message': 'Follow-up recorded, but email delivery failed',
+                'review': review.to_dict(),
+                'email_sent': False,
+                'warning': str(email_error)
+            }), 200
         
     except Exception as e:
         return jsonify({'error': str(e)}), 500

@@ -547,6 +547,13 @@ export default {
 
       this.submittingReview = true
       try {
+        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
+        const requesterPayload = {
+          requested_by: Number(currentUser.id) || null,
+          requester_email: currentUser.email || '',
+          requester_name: currentUser.name || ''
+        }
+
         const reviewPromises = this.selectedReviewerIds.map(async (reviewerId) => {
           const res = await fetch('/api/reviews/request', {
             method: 'POST',
@@ -554,7 +561,7 @@ export default {
             body: JSON.stringify({
               topic_id: this.selectedTopicForReview.id,
               reviewer_id: Number(reviewerId),
-              requested_by: 1,
+              ...requesterPayload,
               priority: this.reviewPriority,
               due_date: this.reviewDueDate || null,
               message: this.reviewMessage || `Review requested for: ${this.selectedTopicForReview.title}`
