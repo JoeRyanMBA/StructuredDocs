@@ -132,6 +132,7 @@
           <div class="col-dimensions">Dimensions</div>
           <div class="col-date">Date Added</div>
           <div class="col-topics">Topics</div>
+          <div class="col-tags">Tags</div>
           <div class="col-actions">Actions</div>
         </div>
         <div 
@@ -163,6 +164,9 @@
               label="topic"
               :items="imageUsage[image.public_url]?.topics || []"
             />
+          </div>
+          <div class="col-tags" @click.stop>
+            <TagEditor entity-type="image" :entity-id="image.id" />
           </div>
           <div class="col-actions">
             <button class="btn-icon" @click.stop="viewImageDetails(image)" title="View Details"><i class="bi bi-zoom-in"></i></button>
@@ -252,10 +256,11 @@
 import { toast } from '@/composables/useToast'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import UsageBadge from '@/components/UsageBadge.vue'
+import TagEditor from '@/components/TagEditor.vue'
 
 export default {
   name: 'AllImagesView',
-  components: { UsageBadge },
+  components: { UsageBadge, TagEditor },
   data() {
     return {
       allImages: [],
@@ -826,7 +831,7 @@ export default {
 
 .list-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 120px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 160px 120px;
   gap: 1rem;
   padding: 1rem;
   background: #f8f9fa;
@@ -836,7 +841,7 @@ export default {
 
 .list-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 120px;
+  grid-template-columns: 2fr 1fr 1fr 1fr 160px 120px;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #eee;

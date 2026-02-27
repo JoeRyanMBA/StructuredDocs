@@ -47,6 +47,12 @@
           </div>
         </div>
 
+        <!-- Tags -->
+        <div v-if="topicId" class="form-group tags-group">
+          <label>Tags</label>
+          <TagEditor entity-type="topic" :entity-id="Number(topicId)" />
+        </div>
+
         <!-- Editor Mode Toggle -->
     <div class="editor-mode-toggle" role="tablist" aria-label="Select editor mode">
           <button
@@ -393,10 +399,11 @@ import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE } from '@/api/base'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
+import TagEditor from '@/components/TagEditor.vue'
 
 export default {
   name: 'TopicEditor',
-  components: { RequestReviewModal },
+  components: { RequestReviewModal, TagEditor },
   props: {
     topicId: {
       type: [String, Number],

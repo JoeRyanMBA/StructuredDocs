@@ -54,6 +54,14 @@
                 <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
               </select>
             </div>
+            <div class="form-group">
+              <label>Tags:</label>
+              <TagEditor
+                v-if="currentCollection?.id"
+                entity-type="collection"
+                :entity-id="currentCollection.id"
+              />
+            </div>
           </div>
         </div>
         
@@ -369,6 +377,7 @@ import { getProjects } from '@/api/projects.js'
 import { getTopics } from '@/api/topics.js' // You may need to implement this
 import TopicEditor from '@/components/TopicEditor.vue'
 import { toast } from '@/composables/useToast'
+import TagEditor from '@/components/TagEditor.vue'
 import VariableSelectionModal from '@/components/VariableSelectionModal.vue'
 
 export default {
@@ -379,7 +388,7 @@ export default {
       required: true
     }
   },
-  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal },
+  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal, TagEditor },
   data() {
     return {
       currentCollection: null, // The specific collection being organized

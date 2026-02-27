@@ -244,6 +244,10 @@
               </label>
             </div>
           </form>
+          <div v-if="isEditing && stakeholderForm.id" class="form-group tags-section">
+            <label>Tags</label>
+            <TagEditor entity-type="stakeholder" :entity-id="stakeholderForm.id" />
+          </div>
         </div>
         
         <div class="modal-footer">
@@ -279,9 +283,11 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import TagEditor from '@/components/TagEditor.vue'
 
 export default {
   name: 'AllStakeholdersView',
+  components: { TagEditor },
   data() {
     return {
       stakeholders: [],

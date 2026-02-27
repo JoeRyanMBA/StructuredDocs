@@ -306,6 +306,10 @@
               <small class="form-help">Check if this is an internal company/organization link</small>
             </div>
           </form>
+          <div v-if="editingLink?.id" class="form-group" style="padding: 0 1.5rem 1rem;">
+            <label>Tags</label>
+            <TagEditor entity-type="link" :entity-id="editingLink.id" />
+          </div>
         </div>
         <div class="modal-footer">
           <button @click="saveLink" class="btn btn-primary" :disabled="!linkForm.title || !linkForm.url">
@@ -325,10 +329,11 @@ import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { apiRequest } from '../api/base.js'
 import UsageBadge from '@/components/UsageBadge.vue'
+import TagEditor from '@/components/TagEditor.vue'
 
 export default {
   name: 'AllLinksView',
-  components: { UsageBadge },
+  components: { UsageBadge, TagEditor },
   mixins: [unsavedChangesGuard],
   data() {
     return {

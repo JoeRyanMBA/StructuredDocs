@@ -8,7 +8,7 @@ from sqlalchemy import desc
 import json
 
 # Import models
-from ..models import db, Tag, Task
+from ..models import db, Tag, Task, EntityTag
 
 tags_bp = Blueprint('tags', __name__, url_prefix='/api/tags')
 
@@ -169,33 +169,78 @@ def delete_tag(tag_id):
 
 @tags_bp.route('/usage', methods=['GET'])
 def tag_usage():
-    """Get tag usage statistics"""
+    """Get tag usage statistics across all entity types and tasks."""
     try:
-        tags = Tag.query.all()
+        from sqlalchemy import func as sqlfunc
+        tags = Tag.query.order_by(Tag.name).all()
+
+        # Count entity_tags rows per tag
+        entity_counts = dict(
+            db.session.query(EntityTag.tag_id, sqlfunc.count(EntityTag.id))
+            .group_by(EntityTag.tag_id)
+            .all()
+        )
+
         usage_stats = []
-        
         for tag in tags:
+            # Count task references (legacy JSON field)
             task_count = 0
-            tasks = Task.query.all()
-            for task in tasks:
+            for task in Task.query.all():
                 try:
-                    task_tags = json.loads(task.tags or '[]')
-                    if tag.name in task_tags:
+                    if tag.name in json.loads(task.tags or '[]'):
                         task_count += 1
-                except:
-                    continue
-                    
+                except Exception:
+                    pass
+
+            entity_count = entity_counts.get(tag.id, 0)
             usage_stats.append({
-                "id": tag.id,
-                "name": tag.name,
-                "task_count": task_count,
-                "created_at": tag.created_at.isoformat() if tag.created_at else None
+                'id': tag.id,
+                'name': tag.name,
+                'task_count': task_count,
+                'entity_count': entity_count,
+                'total_count': task_count + entity_count,
+                'created_at': tag.created_at.isoformat() if tag.created_at else None,
             })
-            
-        # Sort by usage count (descending) then by name
-        usage_stats.sort(key=lambda x: (-x['task_count'], x['name']))
-        
+
+        usage_stats.sort(key=lambda x: (-x['total_count'], x['name']))
         return jsonify(usage_stats)
-        
+
     except Exception as e:
-        return jsonify({"error": str(e)}), 500
+        return jsonify({'error': str(e)}), 500
+
+
+@tags_bp.route('/entity/<string:entity_type>/<int:entity_id>', methods=['GET'])
+def get_entity_tags(entity_type, entity_id):
+    """Return tags assigned to a specific entity."""
+    if entity_type not in EntityTag.VALID_TYPES:
+        return jsonify({'error': f'Invalid entity type: {entity_type}'}), 400
+    rows = EntityTag.query.filter_by(entity_type=entity_type, entity_id=entity_id).all()
+    return jsonify([r.to_dict() for r in rows])
+
+
+@tags_bp.route('/entity/<string:entity_type>/<int:entity_id>', methods=['PUT'])
+def set_entity_tags(entity_type, entity_id):
+    """Replace the full tag set for an entity. Body: {"tag_ids": [1,2,3]}"""
+    if entity_type not in EntityTag.VALID_TYPES:
+        return jsonify({'error': f'Invalid entity type: {entity_type}'}), 400
+    data = request.get_json(silent=True) or {}
+    tag_ids = data.get('tag_ids', [])
+
+    try:
+        # Validate all tag_ids exist
+        valid_ids = {t.id for t in Tag.query.filter(Tag.id.in_(tag_ids)).all()}
+        invalid = [tid for tid in tag_ids if tid not in valid_ids]
+        if invalid:
+            return jsonify({'error': f'Unknown tag ids: {invalid}'}), 400
+
+        # Replace existing assignments
+        EntityTag.query.filter_by(entity_type=entity_type, entity_id=entity_id).delete()
+        for tid in valid_ids:
+            db.session.add(EntityTag(entity_type=entity_type, entity_id=entity_id, tag_id=tid))
+        db.session.commit()
+
+        rows = EntityTag.query.filter_by(entity_type=entity_type, entity_id=entity_id).all()
+        return jsonify([r.to_dict() for r in rows])
+    except Exception as e:
+        db.session.rollback()
+        return jsonify({'error': str(e)}), 500

@@ -403,6 +403,16 @@
           </div>
         </div>
 
+        <!-- Tags -->
+        <div class="form-section">
+          <h3>Tags</h3>
+          <TagEditor
+            v-if="editingProject?.id"
+            entity-type="project"
+            :entity-id="editingProject.id"
+          />
+        </div>
+
         <!-- Stakeholders Section -->
         <div class="form-section">
           <h3>Stakeholders</h3>
@@ -571,11 +581,12 @@ import { createStakeholder, addStakeholderToProject } from '../api/stakeholders'
 import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
 import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
+import TagEditor from '@/components/TagEditor.vue'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { toast } from '@/composables/useToast'
 
 export default {
-  components: { CalendarWidget, CompactToolbar, ArchiveToggleButton },
+  components: { CalendarWidget, CompactToolbar, ArchiveToggleButton, TagEditor },
   mixins: [unsavedChangesGuard],
   props: {
     notifications: {

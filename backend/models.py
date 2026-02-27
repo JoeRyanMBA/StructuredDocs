@@ -892,6 +892,32 @@ class Tag(db.Model):
         }
 
 
+class EntityTag(db.Model):
+    """Polymorphic tag assignments — links any entity type to a Tag."""
+    __tablename__ = 'entity_tags'
+
+    VALID_TYPES = ('project', 'collection', 'topic', 'stakeholder', 'image', 'link')
+
+    id = db.Column(db.Integer, primary_key=True)
+    entity_type = db.Column(db.String(50), nullable=False)
+    entity_id = db.Column(db.Integer, nullable=False)
+    tag_id = db.Column(db.Integer, db.ForeignKey('tags.id', ondelete='CASCADE'), nullable=False)
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+
+    tag = db.relationship('Tag', backref=db.backref('entity_tags', passive_deletes=True))
+
+    __table_args__ = (
+        db.UniqueConstraint('entity_type', 'entity_id', 'tag_id', name='uq_entity_tag'),
+        db.Index('ix_entity_tags_lookup', 'entity_type', 'entity_id'),
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.tag_id,
+            'name': self.tag.name if self.tag else None,
+        }
+
+
 ###############################################
 # Variable / Token Substitution Models
 ###############################################
