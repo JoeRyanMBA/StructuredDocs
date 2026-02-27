@@ -69,26 +69,6 @@ def update_topic(topic_id):
         current_app.logger.exception("Failed to update topic")
         return jsonify({'error': str(e)}), 500
 
-# POST /api/topics/<id>/publish → Publish a draft
-@topics_bp.route('/<int:topic_id>/publish', methods=['POST'])
-def publish_topic(topic_id):
-    topic = Topic.query.get(topic_id)
-    if not topic:
-        return jsonify({'error': 'Topic not found'}), 404
-
-    if topic.status == 'published':
-        return jsonify({'error': 'Already published'}), 400
-
-    try:
-        topic.status = 'published'
-        db.session.commit()
-        return jsonify(topic.to_dict()), 200
-
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.exception("Failed to publish topic")
-        return jsonify({'error': str(e)}), 500
-
 # POST /api/topics/<id>/review → Convenience wrapper to create a review request
 @topics_bp.route('/<int:topic_id>/review', methods=['POST'])
 def create_topic_review(topic_id):

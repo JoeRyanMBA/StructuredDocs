@@ -123,15 +123,6 @@
                 <i class="bi bi-arrow-right-circle"></i>
               </button>
 
-              <button
-                v-if="t.status === 'draft'"
-                @click="publish(t.id)"
-                class="btn-icon btn-publish"
-                title="Publish topic"
-                aria-label="Publish topic"
-              >
-                <i class="bi bi-share"></i>
-              </button>
             </div>
           </td>
         </tr>
@@ -600,24 +591,6 @@ export default {
         this.reviewData.assigned_stakeholder_ids = []
       }
       console.log('Project stakeholders after change:', this.projectStakeholders)
-    },
-
-    async publish(id) {
-      console.log('🔥 publish called with ID:', id)
-  toast.info(`Publish clicked (Topic #${id})`)
-      
-      try {
-        const res = await fetch(`/api/topics/${id}/publish`, {
-          method: 'POST'
-        })
-        if (!res.ok) throw new Error(`Publish failed (${res.status})`)
-  await this.fetchTopics()
-  toast.success('Topic published successfully!')
-      } catch (err) {
-        console.error(err)
-  this.error = 'Publish action failed'
-  toast.error('Publish failed - backend not available')
-      }
     },
 
     async submitForReview(id) {

@@ -202,16 +202,6 @@
                         <i class="bi bi-arrow-right-circle"></i>
                       </button>
 
-                      <button
-                        v-if="topic.status === 'draft'"
-                        @click.stop="publish(topic.id)"
-                        class="btn-icon btn-publish"
-                        title="Publish topic"
-                        aria-label="Publish topic"
-                        type="button"
-                      >
-                        <i class="bi bi-share"></i>
-                      </button>
                     </div>
                   </td>
                 </tr>
@@ -485,16 +475,6 @@ export default {
 
     viewPublished(topic) {
       this.$router.push(`/topics/${topic.id}`)
-    },
-
-    async publish(id) {
-      try {
-        const res = await fetch(`/api/topics/${id}/publish`, { method: 'POST' })
-        if (!res.ok) throw new Error(`Publish failed (${res.status})`)
-        await this.loadMyTopics()
-      } catch (err) {
-        console.error('Publish failed:', err)
-      }
     },
 
     async submitForReview(id) {

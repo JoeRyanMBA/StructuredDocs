@@ -160,6 +160,15 @@
           </button>
 
           <button
+            v-if="topicId"
+            type="button"
+            @click="showReviewModal = true"
+            class="btn btn-secondary"
+          >
+            Send for Review
+          </button>
+
+          <button
             type="button"
             @click="$router.go(-1)"
             class="btn btn-secondary"
@@ -168,6 +177,16 @@
           </button>
         </div>
       </div>
+
+      <!-- Request Review Modal -->
+      <RequestReviewModal
+        v-if="topicId"
+        :topic="{ id: topicId, title: title }"
+        :isVisible="showReviewModal"
+        :currentUser="currentUserData"
+        @close="showReviewModal = false"
+        @review-requested="showReviewModal = false"
+      />
 
       <!-- Link Modal -->
   <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
@@ -373,9 +392,11 @@
 import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE } from '@/api/base'
+import RequestReviewModal from '@/components/RequestReviewModal.vue'
 
 export default {
   name: 'TopicEditor',
+  components: { RequestReviewModal },
   props: {
     topicId: {
       type: [String, Number],
@@ -409,6 +430,7 @@ export default {
       showImageModal: false,
       showLinkModal: false,
       showTableModal: false,
+      showReviewModal: false,
       editorMode: 'wysiwyg',
       wysiwygUpdateTimeout: null,
       tableRows: 3,
@@ -446,6 +468,9 @@ export default {
     }
   },
   computed: {
+    currentUserData() {
+      return JSON.parse(localStorage.getItem('user') || '{}')
+    },
     apiBase() {
       return API_BASE || ''
     },
