@@ -8,7 +8,7 @@ from alembic import op
 import sqlalchemy as sa
 
 # revision identifiers, used by Alembic.
-revision = 'add_variables_tables'
+revision = 'var_implementation_stub'
 down_revision = 'b95a3c29dcb3'
 branch_labels = None
 depends_on = None
