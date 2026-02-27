@@ -6,6 +6,37 @@
       Manage all tags used throughout the system. Tags help categorize and organize tasks and other content.
     </p>
 
+    <div class="info-panel">
+      <h2>How Tags Work</h2>
+      <p>
+        Tags are reusable labels that help you categorize and filter <strong>tasks</strong> across your projects,
+        collections, and topics. A tag can be applied to any number of tasks, making it easy to find related
+        work regardless of where it lives in the hierarchy.
+      </p>
+      <div class="info-columns">
+        <div class="info-col">
+          <h3>Creating Tags</h3>
+          <p>Click <strong>Create New Tag</strong> to define a tag. Tag names must be unique. Once created,
+          a tag is available to select on any task in the system.</p>
+        </div>
+        <div class="info-col">
+          <h3>Applying Tags to Tasks</h3>
+          <p>Open any task (from a project, collection, or topic) and select one or more tags from the tag
+          field. A single task can carry multiple tags.</p>
+        </div>
+        <div class="info-col">
+          <h3>Filtering by Tag</h3>
+          <p>On the Tasks view, use the tag filter to show only tasks carrying a specific tag — giving you
+          a cross-project view of related work at a glance.</p>
+        </div>
+        <div class="info-col">
+          <h3>Renaming &amp; Deleting</h3>
+          <p>Renaming a tag updates it everywhere it is used. Deleting a tag removes it from all tasks.
+          The <strong>Usage</strong> column below shows how many tasks currently use each tag.</p>
+        </div>
+      </div>
+    </div>
+
     <div class="page-actions">
       <button @click="openCreateModal" class="btn btn-primary">
   <span class="icon-plus">➕︎</span> Create New Tag
@@ -380,6 +411,47 @@ export default {
   padding: 2rem;
   max-width: 1200px;
   margin: 0 auto;
+}
+
+.info-panel {
+  background: #f8f9fa;
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  padding: 1.5rem;
+  margin-bottom: 2rem;
+}
+
+.info-panel h2 {
+  font-size: 1.1rem;
+  font-weight: 600;
+  margin: 0 0 0.75rem;
+  color: #333;
+}
+
+.info-panel > p {
+  color: #555;
+  margin-bottom: 1.25rem;
+  line-height: 1.6;
+}
+
+.info-columns {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+  gap: 1.25rem;
+}
+
+.info-col h3 {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: #444;
+  margin: 0 0 0.4rem;
+}
+
+.info-col p {
+  font-size: 0.875rem;
+  color: #666;
+  line-height: 1.5;
+  margin: 0;
 }
 
 .guidance-text {

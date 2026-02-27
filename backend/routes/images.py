@@ -340,8 +340,11 @@ def images_usage_summary():
             url = img.public_url
             if not url:
                 continue
+            # Normalize to relative path so it matches what's embedded in topic content
+            if not url.startswith('/images/imports/') and img.document_id and img.filename:
+                url = f"/images/imports/{img.document_id}/{img.filename}"
             referencing = {t.id for t in topics if t.content and url in t.content}
-            image_topic_map[url] = referencing
+            image_topic_map[img.public_url] = referencing
 
         # For each image, look up collections/projects for those topic_ids
         col_cache = {}   # collection_id → (name, proj_id, proj_name)

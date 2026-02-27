@@ -617,19 +617,22 @@ export default {
   gap: 0.5rem;
   flex: 1;
   min-width: 300px;
+  align-items: center;
 }
 
 .search-input {
   flex: 1;
-  padding: 0.75rem;
+  padding: 0.25rem 0.75rem;
   border: 1px solid #ddd;
   border-radius: 6px;
-  font-size: 1rem;
+  font-size: 0.875rem;
+  height: calc(1.5em + 0.5rem + 2px); /* matches btn-sm height */
 }
 
 .view-controls {
   display: flex;
   gap: 0.5rem;
+  align-items: center;
 }
 
 /* Use global button styles from assets/style.css */
