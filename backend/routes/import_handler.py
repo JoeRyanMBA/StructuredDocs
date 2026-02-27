@@ -1582,7 +1582,9 @@ def _import_as_collection(file, source):
                             context=(imp_link.context or '')[:200] or None,
                         ))
 
-    # Commit everything
+    # Commit everything — mark the staging doc as approved so it's not shown as pending
+    temp_imp_doc.status = 'approved'
+    temp_imp_doc.review_step = 'final_approved'
     db.session.commit()
     print(f"COLLECTION_IMPORT: Successfully committed collection import and cleaned up temporary data")
     
@@ -1824,6 +1826,8 @@ def delete_staging(doc_id):
     from sqlalchemy import text
     try:
         doc = ImportDocument.query.get_or_404(doc_id)
+        if doc.status == 'approved':
+            return jsonify({'error': 'Cannot delete a committed import. The topics and links it created are still in use.'}), 409
         # Use raw SQL so the DB-level CASCADE handles child tables
         # (ImportItems, ImportLinks, ImportImages all have ondelete='CASCADE')
         db.session.execute(text("DELETE FROM import_documents WHERE id = :doc_id"), {"doc_id": doc_id})
