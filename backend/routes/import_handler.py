@@ -409,6 +409,13 @@ def _clean_markdown_content(content):
     return cleaned_content
 
 
+def _strip_fragment_links(content):
+    """Replace [text](#anchor) bookmark links with plain text."""
+    if not content:
+        return content
+    return re.sub(r'\[([^\]]+)\]\(#[^)]*\)', r'\1', content)
+
+
 def _extract_and_store_links(document_id, content, position=0):
     """Extract links from content and store in database
     
@@ -436,6 +443,10 @@ def _extract_and_store_links(document_id, content, position=0):
         title = match.group(1).strip()
         url = match.group(2).strip()
         description = match.group(3).strip() if match.group(3) else None
+
+        # Skip fragment-only URLs (Word document bookmarks — meaningless outside the source doc)
+        if url.startswith('#'):
+            continue
         
         # Truncate title to 200 characters (database column limit)
         if len(title) > 200:
@@ -1510,7 +1521,7 @@ def _import_as_collection(file, source):
 
     # Pass 1: Create all topics first so every index is available
     for i, item in enumerate(hierarchical_items):
-        content = _clean_topic_content(item['content']) if item['content'] else ''
+        content = _strip_fragment_links(_clean_topic_content(item['content']) if item['content'] else '')
         topic = Topic(title=item['title'], content=content)
         db.session.add(topic)
         db.session.flush()  # get topic.id
@@ -1744,7 +1755,7 @@ def commit_import(doc_id):
                 if len(parts) == 3:
                     title = parts[2]
 
-            topic = Topic(title=title, content=item.content)
+            topic = Topic(title=title, content=_strip_fragment_links(item.content))
             db.session.add(topic)
             db.session.flush()  # get topic.id before commit
 
@@ -1810,15 +1821,18 @@ def commit_import(doc_id):
 @import_bp.route('/staging/<int:doc_id>', methods=['DELETE'])
 def delete_staging(doc_id):
     """Delete a staging import document and all its items."""
+    from sqlalchemy import text
     try:
         doc = ImportDocument.query.get_or_404(doc_id)
-        db.session.delete(doc)
+        # Use raw SQL so the DB-level CASCADE handles child tables
+        # (ImportItems, ImportLinks, ImportImages all have ondelete='CASCADE')
+        db.session.execute(text("DELETE FROM import_documents WHERE id = :doc_id"), {"doc_id": doc_id})
         db.session.commit()
         return jsonify({'message': 'Import deleted'}), 200
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f'Error deleting import {doc_id}: {str(e)}')
-        return jsonify({'error': 'Failed to delete import'}), 500
+        return jsonify({'error': f'Failed to delete import: {str(e)}'}), 500
 
 
 @import_bp.route('/staging/<int:doc_id>/reprocess', methods=['POST'])
