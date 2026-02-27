@@ -1351,8 +1351,7 @@ a.btn > .bi {
 }
 
 /* Canonical colored icon variants used across Topics/Author dashboards */
-.btn-icon.btn-publish { background-color: var(--success-mint-green); color: #fff; }
-.btn-icon.btn-publish:hover:not(:disabled) { background-color: var(--success-dark-mint); }
+
 
 .btn-icon.btn-seq-review { background-color: var(--extended-plum); color: #fff; }
 .btn-icon.btn-seq-review:hover:not(:disabled) { background-color: #7a3aa0; }
