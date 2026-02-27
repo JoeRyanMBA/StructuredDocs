@@ -1,13 +1,18 @@
 // Reviews API service
+async function throwApiError(res, fallbackMessage = 'Request failed') {
+  const payload = await res.json().catch(() => null)
+  throw new Error(payload?.error || payload?.message || res.statusText || fallbackMessage)
+}
+
 export async function getReviews() {
   const res = await fetch('/api/reviews/')
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to load reviews')
   return res.json()
 }
 
 export async function getReviewers() {
   const res = await fetch('/api/reviews/reviewers')
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to load reviewers')
   return res.json()
 }
 
@@ -17,7 +22,7 @@ export async function requestReview(reviewData) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(reviewData)
   })
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to request review')
   return res.json()
 }
 
@@ -26,7 +31,7 @@ export async function startReview(reviewId) {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' }
   })
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to start review')
   return res.json()
 }
 
@@ -36,7 +41,7 @@ export async function submitReview(reviewId, reviewData) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(reviewData)
   })
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to submit review')
   return res.json()
 }
 
@@ -46,25 +51,25 @@ export async function getPendingReviews(reviewerId = null) {
     : '/api/reviews/pending'
   
   const res = await fetch(url)
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to load pending reviews')
   return res.json()
 }
 
 export async function getMyReviews(requesterId) {
   const res = await fetch(`/api/reviews/my-reviews?requester_id=${requesterId}`)
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to load my reviews')
   return res.json()
 }
 
 export async function getTopicReviews(topicId) {
   const res = await fetch(`/api/reviews/topic/${topicId}/reviews`)
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to load topic reviews')
   return res.json()
 }
 
 export async function getReviewStats() {
   const res = await fetch('/api/reviews/stats')
-  if (!res.ok) throw new Error(res.statusText)
+  if (!res.ok) await throwApiError(res, 'Failed to load review stats')
   return res.json()
 }
 
@@ -75,9 +80,6 @@ export async function sendFollowUpReminder(reviewId) {
       'Content-Type': 'application/json'
     }
   })
-  if (!res.ok) {
-    const payload = await res.json().catch(() => null)
-    throw new Error(payload?.error || res.statusText || 'Failed to send follow-up reminder')
-  }
+  if (!res.ok) await throwApiError(res, 'Failed to send follow-up reminder')
   return res.json()
 }
