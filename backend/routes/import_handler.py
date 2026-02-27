@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree
+from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree, Link, TopicLink
 from ..utils.image_handler import ImageHandler
 import re
 from docx import Document
@@ -1437,7 +1437,7 @@ def _parse_hierarchical_structure(file, source):
 def _import_as_collection(file, source):
     """Import document as a collection with hierarchical structure"""
     # Use package-relative import to avoid importing backend.models twice
-    from ..models import Collection, Topic, collection_topic_tree, Project, ImportDocument
+    from ..models import Collection, Topic, collection_topic_tree, Project, ImportDocument, ImportLink, Link, TopicLink
     from werkzeug.utils import secure_filename
     
     # Get collection details from form
@@ -1541,7 +1541,36 @@ def _import_as_collection(file, source):
             linked += 1
 
     print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics; linked {linked} with parents")
-    
+
+    # Pass 3: Associate ImportLinks with their topics based on URL presence in content
+    import_links = ImportLink.query.filter_by(document_id=temp_imp_doc.id).all()
+    if import_links:
+        for i, item in enumerate(hierarchical_items):
+            content = item.get('content') or ''
+            topic_id = topic_id_map[i]
+            for imp_link in import_links:
+                if imp_link.url and imp_link.url in content:
+                    link_obj = Link.query.filter_by(url=imp_link.url).first()
+                    if not link_obj:
+                        link_obj = Link(
+                            title=imp_link.title or imp_link.url,
+                            url=imp_link.url,
+                            description=imp_link.description,
+                            link_type=imp_link.link_type,
+                            is_internal=imp_link.is_internal,
+                        )
+                        db.session.add(link_obj)
+                        db.session.flush()
+                    exists = TopicLink.query.filter_by(
+                        topic_id=topic_id, link_id=link_obj.id
+                    ).first()
+                    if not exists:
+                        db.session.add(TopicLink(
+                            topic_id=topic_id,
+                            link_id=link_obj.id,
+                            context=imp_link.context,
+                        ))
+
     # Commit everything
     db.session.commit()
     print(f"COLLECTION_IMPORT: Successfully committed collection import and cleaned up temporary data")
@@ -1728,6 +1757,34 @@ def commit_import(doc_id):
                         parent_topic_id=None
                     )
                 )
+
+            # Associate any ImportLinks whose URL appears in this topic's content
+            if item.content:
+                for imp_link in doc.links:
+                    if imp_link.url and imp_link.url in item.content:
+                        # Find or create the canonical Link record
+                        link_obj = Link.query.filter_by(url=imp_link.url).first()
+                        if not link_obj:
+                            link_obj = Link(
+                                title=imp_link.title or imp_link.url,
+                                url=imp_link.url,
+                                description=imp_link.description,
+                                link_type=imp_link.link_type,
+                                is_internal=imp_link.is_internal,
+                            )
+                            db.session.add(link_obj)
+                            db.session.flush()
+                        # Create the TopicLink if it doesn't already exist
+                        exists = TopicLink.query.filter_by(
+                            topic_id=topic.id, link_id=link_obj.id
+                        ).first()
+                        if not exists:
+                            db.session.add(TopicLink(
+                                topic_id=topic.id,
+                                link_id=link_obj.id,
+                                context=imp_link.context,
+                            ))
+
             created_topics.append(topic)
 
         doc.status = 'approved'
