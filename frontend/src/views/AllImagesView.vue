@@ -131,6 +131,8 @@
           <div class="col-size">Size</div>
           <div class="col-dimensions">Dimensions</div>
           <div class="col-date">Date Added</div>
+          <div class="col-collections">Collections</div>
+          <div class="col-projects">Projects</div>
           <div class="col-actions">Actions</div>
         </div>
         <div 
@@ -156,6 +158,20 @@
             {{ image.width && image.height ? `${image.width}×${image.height}` : 'N/A' }}
           </div>
           <div class="col-date">{{ formatDate(image.created_at) }}</div>
+          <div class="col-collections" @click.stop>
+            <UsageBadge
+              :count="(imageUsage[image.public_url]?.collections || []).length"
+              label="collection"
+              :items="imageUsage[image.public_url]?.collections || []"
+            />
+          </div>
+          <div class="col-projects" @click.stop>
+            <UsageBadge
+              :count="(imageUsage[image.public_url]?.projects || []).length"
+              label="project"
+              :items="imageUsage[image.public_url]?.projects || []"
+            />
+          </div>
           <div class="col-actions">
             <button class="btn-icon" @click.stop="copyImagePath(image)" title="Copy Path">📋</button>
             <button class="btn-icon" @click.stop="viewImageDetails(image)" title="View Details">👁️</button>
@@ -229,12 +245,15 @@
 <script>
 import { toast } from '@/composables/useToast'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
+import UsageBadge from '@/components/UsageBadge.vue'
 
 export default {
   name: 'AllImagesView',
+  components: { UsageBadge },
   data() {
     return {
       allImages: [],
+      imageUsage: {},
       filteredImages: [],
       loading: false,
       error: null,
@@ -363,6 +382,9 @@ export default {
           })),
             ...importImages
         ]
+
+        const usageRes = await fetch('/api/images/usage-summary')
+        if (usageRes.ok) this.imageUsage = await usageRes.json()
 
         this.applyFilters()
 

@@ -131,7 +131,12 @@
           </div>
           <div v-else class="action-list">
             <div v-for="action in pendingActions" :key="action.id" class="action-item" @click="handleActionClick(action)">
-              <div class="action-icon">⚡</div>
+              <div class="action-icon">
+                <span v-if="action.type === 'review'">📋</span>
+                <span v-else-if="action.type === 'feedback'">💬</span>
+                <span v-else-if="action.type === 'import'">📥</span>
+                <span v-else>⚡</span>
+              </div>
               <div class="action-content">
                 <div class="action-title">{{ action.title || action.name }}</div>
                 <div class="action-description">{{ action.description }}</div>

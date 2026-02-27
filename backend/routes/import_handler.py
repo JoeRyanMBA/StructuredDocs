@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
 from werkzeug.utils import secure_filename
-from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic
+from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree
 from ..utils.image_handler import ImageHandler
 import re
 from docx import Document
@@ -1673,54 +1673,95 @@ def get_staging(doc_id):
 
 @import_bp.route('/staging/<int:doc_id>/sme_approve', methods=['POST'])
 def sme_approve(doc_id):
-    """Approve an import document by SME"""
-    try:
-        doc = ImportDocument.query.get_or_404(doc_id)
-        doc.status = 'approved'  # Changed from 'sme_approved' to 'approved'
-        doc.review_step = 'sme_approved'  # Set the review step for frontend
-        db.session.commit()
-        current_app.logger.info(f"Import document {doc_id} approved by SME")
-        return jsonify({'message': 'Import approved successfully'}), 200
-    except Exception as e:
-        db.session.rollback()
-        current_app.logger.error(f"Error approving import {doc_id}: {str(e)}")
-        return jsonify({'error': 'Failed to approve import'}), 500
+    """Deprecated two-step approval — kept for backwards compatibility, now a no-op redirect to commit."""
+    return jsonify({'message': 'Use /commit directly'}), 200
 
 
 @import_bp.route('/staging/<int:doc_id>/commit', methods=['POST'])
 def commit_import(doc_id):
-    """Commit an approved import to create actual topics"""
+    """Commit a staged import: create topics and optionally add them to a collection."""
     try:
         doc = ImportDocument.query.get_or_404(doc_id)
-        if doc.status != 'approved':  # Changed from 'sme_approved' to 'approved'
-            return jsonify({'error': 'Import must be approved before commit'}), 400
-        
-        # Create topics from import items
-        for item in doc.items:
-            # Check if this item has encoded level information and decode it
+
+        data = request.get_json(silent=True) or {}
+        collection_id = data.get('collection_id')
+
+        # Validate collection if provided
+        collection = None
+        if collection_id:
+            collection = Collection.query.get(collection_id)
+            if not collection:
+                return jsonify({'error': 'Collection not found'}), 404
+
+        if not doc.items:
+            return jsonify({'error': 'No items to commit'}), 400
+
+        # Determine starting position in collection
+        start_position = 0
+        if collection:
+            from sqlalchemy import func as sqlfunc
+            max_pos = db.session.execute(
+                db.select(sqlfunc.max(collection_topic_tree.c.position))
+                .where(collection_topic_tree.c.collection_id == collection_id)
+            ).scalar()
+            start_position = (max_pos + 1) if max_pos is not None else 0
+
+        created_topics = []
+        for idx, item in enumerate(sorted(doc.items, key=lambda i: i.heading_order)):
             title = item.title
-            if title.startswith("LEVEL:"):
-                # Decode level information: "LEVEL:3:Actual Title"
-                parts = title.split(":", 2)
+            # Strip encoded level prefix if present (e.g. "LEVEL:3:Actual Title")
+            if title.startswith('LEVEL:'):
+                parts = title.split(':', 2)
                 if len(parts) == 3:
-                    title = parts[2]  # Extract the actual title
-            
-            # Create topic from import item (Topic has no heading_order field)
-            topic = Topic(
-                title=title,
-                content=item.content
-            )
+                    title = parts[2]
+
+            topic = Topic(title=title, content=item.content)
             db.session.add(topic)
-        
-        # Update status and review step to show final approval
+            db.session.flush()  # get topic.id before commit
+
+            if collection:
+                db.session.execute(
+                    collection_topic_tree.insert().values(
+                        collection_id=collection_id,
+                        topic_id=topic.id,
+                        position=start_position + idx,
+                        parent_topic_id=None
+                    )
+                )
+            created_topics.append(topic)
+
+        doc.status = 'approved'
         doc.review_step = 'final_approved'
         db.session.commit()
-        current_app.logger.info(f"Import document {doc_id} committed successfully")
-        return jsonify({'message': 'Import committed successfully'}), 200
+
+        current_app.logger.info(
+            f'Import {doc_id} committed: {len(created_topics)} topics'
+            + (f' → collection {collection_id}' if collection_id else ' (no collection)')
+        )
+        return jsonify({
+            'message': 'Import committed successfully',
+            'topics_created': len(created_topics),
+            'collection_id': collection_id
+        }), 200
+
     except Exception as e:
         db.session.rollback()
-        current_app.logger.error(f"Error committing import {doc_id}: {str(e)}")
+        current_app.logger.error(f'Error committing import {doc_id}: {str(e)}')
         return jsonify({'error': 'Failed to commit import'}), 500
+
+
+@import_bp.route('/staging/<int:doc_id>', methods=['DELETE'])
+def delete_staging(doc_id):
+    """Delete a staging import document and all its items."""
+    try:
+        doc = ImportDocument.query.get_or_404(doc_id)
+        db.session.delete(doc)
+        db.session.commit()
+        return jsonify({'message': 'Import deleted'}), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.error(f'Error deleting import {doc_id}: {str(e)}')
+        return jsonify({'error': 'Failed to delete import'}), 500
 
 
 @import_bp.route('/staging/<int:doc_id>/reprocess', methods=['POST'])

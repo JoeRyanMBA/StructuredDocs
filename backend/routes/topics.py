@@ -1,7 +1,8 @@
 # backend/routes/topics.py
 
 from flask import Blueprint, request, jsonify, current_app
-from ..models import db, Topic, Link, TopicLink, User, Review, Stakeholder, ReviewToken
+from sqlalchemy import select
+from ..models import db, Topic, Link, TopicLink, User, Review, Stakeholder, ReviewToken, Collection, Project, collection_topic_tree
 from datetime import datetime, timedelta
 from ..utils.email_service import email_service
 from flask_jwt_extended import jwt_required, get_jwt_identity
@@ -17,6 +18,44 @@ def list_topics():
         return jsonify([t.to_dict() for t in all_topics]), 200
     except Exception as e:
         current_app.logger.exception("Failed to list topics")
+        return jsonify({'error': str(e)}), 500
+
+
+# GET /api/topics/usage-summary → Per-topic collection + project usage counts
+@topics_bp.route('/usage-summary', methods=['GET'])
+def topics_usage_summary():
+    try:
+        rows = db.session.execute(
+            select(
+                collection_topic_tree.c.topic_id,
+                Collection.id.label('col_id'),
+                Collection.name.label('col_name'),
+                Project.id.label('proj_id'),
+                Project.name.label('proj_name'),
+            )
+            .join(Collection, collection_topic_tree.c.collection_id == Collection.id)
+            .outerjoin(Project, Collection.project_id == Project.id)
+        ).fetchall()
+
+        usage = {}
+        for row in rows:
+            tid = str(row.topic_id)
+            if tid not in usage:
+                usage[tid] = {'collections': {}, 'projects': {}}
+            usage[tid]['collections'][row.col_id] = row.col_name
+            if row.proj_id:
+                usage[tid]['projects'][row.proj_id] = row.proj_name
+
+        result = {
+            tid: {
+                'collections': [{'id': k, 'name': v} for k, v in d['collections'].items()],
+                'projects':    [{'id': k, 'name': v} for k, v in d['projects'].items()],
+            }
+            for tid, d in usage.items()
+        }
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.exception("Failed to build topic usage summary")
         return jsonify({'error': str(e)}), 500
 
 # POST /api/topics → Create a new topic (defaults to draft)

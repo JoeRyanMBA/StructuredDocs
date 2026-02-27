@@ -385,3 +385,46 @@ def search_link_references_in_content():
     except Exception as e:
         current_app.logger.error(f"Error searching link references: {str(e)}")
         return jsonify({'error': f'Failed to search link references: {str(e)}'}), 500
+
+
+@links_bp.route('/usage-summary', methods=['GET'])
+def links_usage_summary():
+    """Per-link collection + project usage, via topic_links → collection_topic_tree."""
+    try:
+        from sqlalchemy import select as sa_select
+        from ..models import Collection, Project, collection_topic_tree
+
+        # Fetch all topic-link associations with collection/project info in one query
+        rows = db.session.execute(
+            sa_select(
+                TopicLink.link_id,
+                Collection.id.label('col_id'),
+                Collection.name.label('col_name'),
+                Project.id.label('proj_id'),
+                Project.name.label('proj_name'),
+            )
+            .join(collection_topic_tree, collection_topic_tree.c.topic_id == TopicLink.topic_id)
+            .join(Collection, collection_topic_tree.c.collection_id == Collection.id)
+            .outerjoin(Project, Collection.project_id == Project.id)
+        ).fetchall()
+
+        usage = {}
+        for row in rows:
+            lid = str(row.link_id)
+            if lid not in usage:
+                usage[lid] = {'collections': {}, 'projects': {}}
+            usage[lid]['collections'][row.col_id] = row.col_name
+            if row.proj_id:
+                usage[lid]['projects'][row.proj_id] = row.proj_name
+
+        result = {
+            lid: {
+                'collections': [{'id': k, 'name': v} for k, v in d['collections'].items()],
+                'projects':    [{'id': k, 'name': v} for k, v in d['projects'].items()],
+            }
+            for lid, d in usage.items()
+        }
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.exception("Failed to build link usage summary")
+        return jsonify({'error': str(e)}), 500
