@@ -145,6 +145,8 @@
                   <th>Title</th>
                   <th>Status</th>
                   <th>Collection</th>
+                  <th>Collections</th>
+                  <th>Projects</th>
                   <th>Words</th>
                   <th class="sortable" @click="toggleSort('updated')" :aria-sort="updatedSortStateAria">Updated <span class="sort-indicator" :class="updatedSortState"></span></th>
                   <th>Actions</th>
@@ -166,6 +168,20 @@
                     <span class="status-badge" :class="topic.status">{{ formatStatus(topic.status) }}</span>
                   </td>
                   <td class="collection-cell">{{ topic.collection_name || 'None' }}</td>
+                  <td class="usage-cell" @click.stop>
+                    <UsageBadge
+                      :count="(topicUsage[String(topic.id)]?.collections || []).length"
+                      label="collection"
+                      :items="topicUsage[String(topic.id)]?.collections || []"
+                    />
+                  </td>
+                  <td class="usage-cell" @click.stop>
+                    <UsageBadge
+                      :count="(topicUsage[String(topic.id)]?.projects || []).length"
+                      label="project"
+                      :items="topicUsage[String(topic.id)]?.projects || []"
+                    />
+                  </td>
                   <td class="word-count">{{ topic.word_count || 0 }}</td>
                   <td class="updated-cell">{{ formatRelativeTime(topic.updated_at) }}</td>
                   <td class="actions-cell">
@@ -271,13 +287,15 @@
 import CompactToolbar from '../components/CompactToolbar.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
 import { toast } from '@/composables/useToast'
+import UsageBadge from '@/components/UsageBadge.vue'
 
 export default {
   name: 'AuthorDashboard',
   
   components: {
     CompactToolbar,
-    IconPlus
+    IconPlus,
+    UsageBadge
   },
   
   props: {
@@ -328,6 +346,7 @@ export default {
         createdThisWeek: 0
       },
   myTopics: [],
+  topicUsage: {},
   filteredMyTopics: [],
       searchQuery: '',
       statusFilter: '',
@@ -367,16 +386,20 @@ export default {
 
     async loadMyTopics() {
       try {
-        const res = await fetch('/api/topics/')
+        const [res, usageRes] = await Promise.all([
+          fetch('/api/topics/'),
+          fetch('/api/topics/usage-summary')
+        ])
         if (res.ok) {
           const allTopics = await res.json()
-          // Filter to current user's topics (in real app, this would be done server-side)
           this.myTopics = allTopics
-          // Get recent topics (last 5, sorted by updated_at)
           this.recentTopics = [...this.myTopics]
             .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
             .slice(0, 5)
-          this.applyFilters() // Initialize filtered data
+          this.applyFilters()
+        }
+        if (usageRes.ok) {
+          this.topicUsage = await usageRes.json()
         }
       } catch (error) {
         console.error('Failed to load topics:', error)

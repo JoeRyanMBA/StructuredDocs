@@ -71,6 +71,8 @@
           <th>ID</th>
           <th>Title</th>
           <th>Status</th>
+          <th>Collections</th>
+          <th>Projects</th>
           <th>Actions</th>
         </tr>
       </thead>
@@ -91,6 +93,20 @@
             <span :class="`badge badge--${t.status}`">
               {{ formatStatus(t.status) }}
             </span>
+          </td>
+          <td class="usage-cell" @click.stop>
+            <UsageBadge
+              :count="(topicUsage[String(t.id)]?.collections || []).length"
+              label="collection"
+              :items="topicUsage[String(t.id)]?.collections || []"
+            />
+          </td>
+          <td class="usage-cell" @click.stop>
+            <UsageBadge
+              :count="(topicUsage[String(t.id)]?.projects || []).length"
+              label="project"
+              :items="topicUsage[String(t.id)]?.projects || []"
+            />
           </td>
           <td class="actions-cell">
             <div class="action-buttons">
@@ -221,11 +237,12 @@
 
 <script>
 import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
+import UsageBadge from '@/components/UsageBadge.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TopicListView',
-  components: { SequentialReviewModal },
+  components: { SequentialReviewModal, UsageBadge },
   props: {
     globalNotifications: {
       type: Array,
@@ -240,6 +257,7 @@ export default {
   data() {
     return {
       topics: [],
+      topicUsage: {},
       filteredTopics: [],
       searchQuery: '',
       statusFilter: '',
@@ -330,10 +348,14 @@ export default {
       this.error = null
 
       try {
-        const res = await fetch('/api/topics/')
+        const [res, usageRes] = await Promise.all([
+          fetch('/api/topics/'),
+          fetch('/api/topics/usage-summary')
+        ])
         if (!res.ok) throw new Error(`Status ${res.status}`)
         this.topics = await res.json()
-        this.applyFilters() // Initialize filtered data
+        if (usageRes.ok) this.topicUsage = await usageRes.json()
+        this.applyFilters()
       } catch (err) {
         console.error('API fetch failed, using sample data:', err)
         // Provide mock data when backend is unavailable

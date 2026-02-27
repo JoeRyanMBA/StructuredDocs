@@ -1,94 +1,84 @@
 <template>
   <div class="import-review-view">
-    <!-- Loading -->
     <div v-if="loading" class="loading">Loading…</div>
+    <div v-else-if="error" class="error-banner">{{ error }}</div>
 
-    <!-- Error -->
-    <div v-else-if="error" class="error">{{ error }}</div>
-
-    <!-- Data Loaded -->
     <div v-else>
-      <h2>Review Import: {{ doc.filename }}</h2>
-      <div class="status-row">
-        <span>Status: {{ doc.status }}</span>
-        <span class="topics-count">Total Topics: {{ doc.topics_count || (doc.items ? doc.items.length : 0) }}</span>
+      <!-- Header -->
+      <div class="review-header">
+        <div>
+          <h2>Review Import</h2>
+          <p class="filename">{{ doc.filename }}</p>
+        </div>
+        <span class="status-badge" :class="doc.review_step">
+          {{ stepLabel }}
+        </span>
       </div>
 
-      <table class="items-table" v-if="doc.items && doc.items.length > 0">
-        <thead>
-          <tr>
-            <th>#</th><th>Title</th><th>Content</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="item in doc.items" :key="item.id">
-            <td>{{ item.heading_order + 1 }}</td>
-            <td><input v-model="item.title" placeholder="Edit title" /></td>
-            <td>
-              <div class="content-cell">
-                <textarea
-                  v-model="item.content"
-                  rows="8"
-                  placeholder="Edit content"
-                  class="content-textarea"
-                ></textarea>
-                <div class="content-info">
-                  {{ item.content ? item.content.length : 0 }} characters
-                </div>
-              </div>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      
-      <!-- Show message if no items -->
-      <div v-else class="no-items">
-        <strong>No content items found for this import.</strong><br>
-        This document may need to be re-imported with proper parsing, or the original file may not have had recognizable headings.
+      <!-- Already committed -->
+      <div v-if="doc.review_step === 'final_approved'" class="completed-banner">
+        ✅ This import has been committed successfully.
+        <router-link :to="{ name: 'ImportHistory' }">Back to history</router-link>
       </div>
 
-      <!-- Review Step Information -->
-      <div class="review-status">
-        <strong>Current Review Step:</strong> 
-        <span v-if="doc.review_step === 'pending'" class="status-pending">Pending Review</span>
-        <span v-else-if="doc.review_step === 'sme_approved'" class="status-approved">Approved - Ready for Final Commit</span>
-        <span v-else-if="doc.review_step === 'final_approved'" class="status-final">Final Approved</span>
-        <span v-else class="status-unknown">{{ doc.review_step }}</span>
-      </div>
-
-      <div class="actions">
-        <!-- Review Step -->
-        <button
-          v-if="doc.review_step === 'pending'"
-          @click="smeApprove"
-          class="primary-action"
-        >
-          Submit for Review
-        </button>
-
-        <!-- Final Commit Step -->
-        <button
-          v-else-if="doc.review_step === 'sme_approved'"
-          @click="commitImport"
-          class="primary-action"
-        >
-          Final Commit
-        </button>
-
-        <!-- Already Final Approved -->
-        <div v-else-if="doc.review_step === 'final_approved'" class="completed-message">
-          This import has been completed and committed.
+      <template v-else>
+        <!-- No items: offer delete -->
+        <div v-if="!doc.items || doc.items.length === 0" class="no-items-warning">
+          <strong>No content items found.</strong>
+          The original file may not have contained recognizable headings, or parsing failed.
+          You can delete this import and try uploading again.
+          <div class="actions" style="margin-top:1rem">
+            <button @click="deleteImport" class="btn-danger">Delete Import</button>
+            <router-link :to="{ name: 'ImportHistory' }" class="btn-secondary-link">Cancel</router-link>
+          </div>
         </div>
 
-        <!-- Reject button (always available unless final approved) -->
-        <button 
-          v-if="doc.review_step !== 'final_approved'"
-          @click="rejectImport"
-          class="reject-action"
-        >
-          Reject Import
-        </button>
-      </div>
+        <template v-else>
+          <!-- Collection selector -->
+          <div class="collection-selector">
+            <label for="collection-select">
+              Add topics to a collection <span class="optional">(optional)</span>
+            </label>
+            <select id="collection-select" v-model="selectedCollectionId" class="collection-select">
+              <option value="">— No collection (create as unassigned topics) —</option>
+              <optgroup v-for="group in collectionGroups" :key="group.project" :label="group.project">
+                <option v-for="col in group.collections" :key="col.id" :value="col.id">
+                  {{ col.name }}
+                </option>
+              </optgroup>
+            </select>
+          </div>
+
+          <!-- Topics table -->
+          <div class="topics-count">{{ doc.items.length }} topic{{ doc.items.length !== 1 ? 's' : '' }} to import</div>
+
+          <table class="items-table">
+            <thead>
+              <tr><th>#</th><th>Title</th><th>Content preview</th></tr>
+            </thead>
+            <tbody>
+              <tr v-for="(item, idx) in doc.items" :key="item.id">
+                <td class="order-cell">{{ idx + 1 }}</td>
+                <td><input v-model="item.title" class="title-input" placeholder="Title" /></td>
+                <td class="preview-cell">{{ truncate(item.content, 120) }}</td>
+              </tr>
+            </tbody>
+          </table>
+
+          <!-- Actions -->
+          <div class="actions">
+            <button
+              @click="commitImport"
+              :disabled="committing"
+              class="btn-primary"
+            >
+              {{ committing ? 'Committing…' : 'Commit Import' }}
+            </button>
+            <button @click="rejectImport" :disabled="committing" class="btn-danger">Reject</button>
+            <button @click="deleteImport" :disabled="committing" class="btn-secondary">Delete</button>
+          </div>
+        </template>
+      </template>
     </div>
   </div>
 </template>
@@ -98,22 +88,44 @@ export default {
   name: 'ImportReviewView',
 
   props: {
-    id: {
-      type: [String, Number],
-      required: true
-    }
+    id: { type: [String, Number], required: true }
   },
 
   data() {
     return {
       doc: null,
       loading: false,
-      error: null
+      error: null,
+      committing: false,
+      collections: [],
+      selectedCollectionId: ''
+    }
+  },
+
+  computed: {
+    stepLabel() {
+      const labels = { pending: 'Pending Review', sme_approved: 'Approved', final_approved: 'Committed' }
+      return labels[this.doc?.review_step] || this.doc?.review_step || ''
+    },
+    // Group collections by project name for the dropdown
+    collectionGroups() {
+      const groups = {}
+      const flatten = (cols) => {
+        for (const col of cols) {
+          const project = col.projectName || 'No Project'
+          if (!groups[project]) groups[project] = []
+          groups[project].push({ id: col.id, name: col.name })
+          if (col.children?.length) flatten(col.children)
+        }
+      }
+      flatten(this.collections)
+      return Object.entries(groups).map(([project, collections]) => ({ project, collections }))
     }
   },
 
   created() {
     this.fetchImport()
+    this.fetchCollections()
   },
 
   methods: {
@@ -122,65 +134,72 @@ export default {
       this.error = null
       try {
         const res = await fetch(`/api/import/staging/${this.id}`)
-        
-        if (!res.ok) {
-          const errorText = await res.text()
-          throw new Error(`HTTP ${res.status}: ${errorText}`)
-        }
-        
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
         this.doc = await res.json()
       } catch (err) {
-        console.error('❌ Error fetching import:', err)
-        this.error = `Failed to load import data: ${err.message}`
+        this.error = `Failed to load import: ${err.message}`
       } finally {
         this.loading = false
       }
     },
 
-    // SME Approve method (renamed for clarity)
-    async smeApprove() {
-      this.error = null
+    async fetchCollections() {
       try {
-        console.log('Approve Import clicked')  // debug log
-        const res = await fetch(
-          `/api/import/staging/${this.id}/sme_approve`,
-          { method: 'POST' }
-        )
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        this.$router.push({ name: 'ImportHistory' })
-      } catch (err) {
-        console.error(err)
-        this.error = 'Import approval failed'
-      }
+        const res = await fetch('/api/collections')
+        if (res.ok) this.collections = await res.json()
+      } catch { /* non-fatal */ }
+    },
+
+    truncate(text, len) {
+      if (!text) return '(no content)'
+      const plain = text.replace(/<[^>]+>/g, ' ').trim()
+      return plain.length > len ? plain.slice(0, len) + '…' : plain
     },
 
     async commitImport() {
+      this.committing = true
       this.error = null
       try {
-        const res = await fetch(
-          `/api/import/staging/${this.id}/commit`,
-          { method: 'POST' }
-        )
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        this.$router.push({ name: 'ImportHistory' })
+        const res = await fetch(`/api/import/staging/${this.id}/commit`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ collection_id: this.selectedCollectionId || null })
+        })
+        if (!res.ok) {
+          const body = await res.json().catch(() => ({}))
+          throw new Error(body.error || `HTTP ${res.status}`)
+        }
+        const result = await res.json()
+        const dest = this.selectedCollectionId
+          ? ` into the selected collection`
+          : ` as unassigned topics`
+        this.$router.push({ name: 'ImportHistory', query: { success: `${result.topics_created} topics committed${dest}` } })
       } catch (err) {
-        console.error(err)
-        this.error = 'Commit failed'
+        this.error = `Commit failed: ${err.message}`
+      } finally {
+        this.committing = false
       }
     },
 
     async rejectImport() {
-      this.error = null
+      if (!confirm('Reject this import? It will be marked as rejected but not deleted.')) return
       try {
-        const res = await fetch(
-          `/api/import/staging/${this.id}/reject`,
-          { method: 'POST' }
-        )
+        const res = await fetch(`/api/import/staging/${this.id}/reject`, { method: 'POST' })
         if (!res.ok) throw new Error(`HTTP ${res.status}`)
         this.$router.push({ name: 'ImportHistory' })
       } catch (err) {
-        console.error(err)
-        this.error = 'Reject failed'
+        this.error = `Reject failed: ${err.message}`
+      }
+    },
+
+    async deleteImport() {
+      if (!confirm('Permanently delete this import document? This cannot be undone.')) return
+      try {
+        const res = await fetch(`/api/import/staging/${this.id}`, { method: 'DELETE' })
+        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        this.$router.push({ name: 'ImportHistory' })
+      } catch (err) {
+        this.error = `Delete failed: ${err.message}`
       }
     }
   }
@@ -188,110 +207,109 @@ export default {
 </script>
 
 <style scoped>
-.import-review-view { padding: 2rem; background-color: var(--bg-white); }
-.loading { font-style: italic; }
-.error { color: var(--error-coral-red); margin-bottom: 1rem; font-weight: bold; }
+.import-review-view { padding: 2rem; background: var(--bg-white); }
 
-.status-row {
+.review-header {
   display: flex;
   justify-content: space-between;
-  align-items: center;
+  align-items: flex-start;
   margin-bottom: 1.5rem;
+}
+.review-header h2 { margin: 0 0 0.25rem; color: var(--primary-deep-teal); }
+.filename { margin: 0; color: var(--text-secondary-cool-gray); font-size: 0.9rem; }
+
+.status-badge {
+  padding: 0.3rem 0.75rem;
+  border-radius: 999px;
+  font-size: 0.8rem;
+  font-weight: 600;
+}
+.status-badge.pending { background: var(--extended-warm-taupe); color: var(--warning-amber); }
+.status-badge.sme_approved { background: var(--extended-cool-mint); color: var(--success-dark-green); }
+.status-badge.final_approved { background: var(--extended-sky-blue); color: var(--primary-deep-teal); }
+
+.completed-banner {
+  background: var(--extended-cool-mint);
+  border-left: 4px solid var(--success-mint-green);
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+  color: var(--primary-deep-teal);
   font-weight: 500;
+  display: flex;
+  gap: 1rem;
+  align-items: center;
+}
+
+.error-banner {
+  background: #fff0f0;
+  border-left: 4px solid var(--error-coral-red);
+  padding: 1rem;
+  color: var(--error-coral-red);
+  margin-bottom: 1rem;
+  border-radius: 4px;
+}
+
+.no-items-warning {
+  background: var(--extended-warm-taupe);
+  border-left: 4px solid var(--warning-amber);
+  padding: 1rem 1.5rem;
+  border-radius: 4px;
+  color: var(--text-primary-dark-navy);
+}
+
+.collection-selector {
+  margin-bottom: 1.25rem;
+}
+.collection-selector label {
+  display: block;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+  color: var(--text-primary-dark-navy);
+}
+.optional { font-weight: 400; color: var(--text-secondary-cool-gray); font-size: 0.85rem; }
+.collection-select {
+  width: 100%;
+  max-width: 480px;
+  padding: 0.5rem 0.75rem;
+  border: 1px solid var(--border-gray);
+  border-radius: 4px;
+  font-size: 0.95rem;
 }
 
 .topics-count {
+  font-size: 0.9rem;
   color: var(--text-secondary-cool-gray);
-  font-size: 0.95em;
+  margin-bottom: 0.75rem;
 }
 
-.review-status {
-  background: var(--bg-white);
-  border: 1px solid var(--extended-lavender-gray);
-  padding: 1rem;
-  margin-bottom: 1.5rem;
-  border-radius: 4px;
-}
+.items-table { width: 100%; border-collapse: collapse; margin-bottom: 1.5rem; font-size: 0.9rem; }
+.items-table th, .items-table td { border: 1px solid var(--border-gray); padding: 0.5rem 0.75rem; }
+.items-table th { background: var(--bg-light-gray); font-weight: 600; text-align: left; }
+.order-cell { width: 3rem; text-align: center; color: var(--text-secondary-cool-gray); }
+.title-input { width: 100%; border: none; padding: 0.2rem; font-size: 0.9rem; background: transparent; }
+.title-input:focus { outline: 1px solid var(--primary-deep-teal); border-radius: 2px; }
+.preview-cell { color: var(--text-secondary-cool-gray); font-size: 0.85rem; max-width: 400px; }
 
-.status-pending { color: var(--warning-amber); background: var(--extended-warm-taupe); padding: 0.25rem 0.5rem; border-radius: 3px; }
-.status-approved { color: var(--success-mint-green); background: var(--extended-cool-mint); padding: 0.25rem 0.5rem; border-radius: 3px; }
-.status-final { color: var(--primary-deep-teal); background: var(--extended-sky-blue); padding: 0.25rem 0.5rem; border-radius: 3px; }
-.status-unknown { color: var(--text-secondary-cool-gray); background: var(--extended-lavender-gray); padding: 0.25rem 0.5rem; border-radius: 3px; }
-
-.items-table { width:100%; border-collapse:collapse; margin-bottom:1rem; }
-.items-table th, .items-table td { border:1px solid var(--border-gray); padding:0.5rem; }
-.items-table th:first-child, .items-table td:first-child { width: 5%; }
-.items-table th:nth-child(2), .items-table td:nth-child(2) { width: 25%; }
-.items-table th:nth-child(3), .items-table td:nth-child(3) { width: 70%; }
-.items-table input, .items-table textarea {
-  width:100%; box-sizing:border-box; padding:0.25rem;
+.actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
+.btn-primary {
+  padding: 0.6rem 1.4rem; border: none; background: var(--primary-deep-teal);
+  color: #fff; cursor: pointer; border-radius: 4px; font-weight: 600;
 }
-
-.content-textarea {
-  min-height: 120px;
-  resize: vertical;
-  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
-  font-size: 14px;
-  line-height: 1.4;
+.btn-primary:hover:not(:disabled) { background: var(--primary-teal-hover, #1a6b6b); }
+.btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-danger {
+  padding: 0.6rem 1.4rem; border: none; background: var(--error-coral-red);
+  color: #fff; cursor: pointer; border-radius: 4px;
 }
-
-.content-cell {
-  position: relative;
+.btn-danger:hover:not(:disabled) { background: #c0392b; }
+.btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
+.btn-secondary {
+  padding: 0.6rem 1.4rem; border: 1px solid var(--border-gray); background: #fff;
+  color: var(--text-primary-dark-navy); cursor: pointer; border-radius: 4px;
 }
-
-.content-info {
-  font-size: 12px;
-  color: var(--text-secondary-cool-gray);
-  text-align: right;
-  margin-top: 4px;
+.btn-secondary:hover:not(:disabled) { background: var(--bg-light-gray); }
+.btn-secondary-link {
+  padding: 0.6rem 1rem; color: var(--text-secondary-cool-gray); text-decoration: none; font-size: 0.9rem;
 }
-
-.actions {
-  display:flex;
-  gap:1rem;
-  align-items: center;
-}
-
-.primary-action {
-  padding:0.75rem 1.5rem;
-  border:none;
-  background:var(--success-mint-green);
-  color:#fff;
-  cursor:pointer;
-  border-radius:4px;
-  font-weight: bold;
-}
-
-.primary-action:hover {
-  background: #25a25a;
-}
-
-.reject-action {
-  padding:0.75rem 1.5rem;
-  border:none;
-  background:var(--error-coral-red);
-  color:#fff;
-  cursor:pointer;
-  border-radius:4px;
-}
-
-.reject-action:hover {
-  background:#c0392b;
-}
-
-.completed-message {
-  color: var(--success-mint-green);
-  background: var(--extended-cool-mint);
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-weight: bold;
-}
-
-.no-items {
-  background: var(--extended-warm-taupe);
-  padding: 1rem;
-  margin: 1rem 0;
-  border-radius: 4px;
-  color: var(--warning-amber);
-}
+.loading { font-style: italic; color: var(--text-secondary-cool-gray); }
 </style>

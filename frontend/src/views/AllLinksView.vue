@@ -97,6 +97,8 @@
           <div class="col-reference">Reference</div>
           <div class="col-type">Type</div>
           <div class="col-usage">Usage</div>
+          <div class="col-collections">Collections</div>
+          <div class="col-projects">Projects</div>
           <div class="col-status">Status</div>
           <div class="col-actions">Actions</div>
         </div>
@@ -135,6 +137,20 @@
               {{ link.usage_count }} {{ link.usage_count === 1 ? 'topic' : 'topics' }}
             </span>
             <span v-else class="usage-unknown">-</span>
+          </div>
+          <div class="col-collections" @click.stop>
+            <UsageBadge
+              :count="(linkUsage[String(link.id)]?.collections || []).length"
+              label="collection"
+              :items="linkUsage[String(link.id)]?.collections || []"
+            />
+          </div>
+          <div class="col-projects" @click.stop>
+            <UsageBadge
+              :count="(linkUsage[String(link.id)]?.projects || []).length"
+              label="project"
+              :items="linkUsage[String(link.id)]?.projects || []"
+            />
           </div>
           <div class="col-status">
             <span :class="['status-badge', link.is_active ? 'status-active' : 'status-inactive']">
@@ -324,13 +340,16 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { apiRequest } from '../api/base.js'
+import UsageBadge from '@/components/UsageBadge.vue'
 
 export default {
   name: 'AllLinksView',
+  components: { UsageBadge },
   mixins: [unsavedChangesGuard],
   data() {
     return {
       allLinks: [],
+      linkUsage: {},
       filteredLinks: [],
       loading: false,
       error: null,
@@ -386,12 +405,15 @@ export default {
       this.error = null
       
       try {
-        const data = await apiRequest('/api/links/?include_usage=true')
+        const [data, usageRes] = await Promise.all([
+          apiRequest('/api/links/?include_usage=true'),
+          fetch('/api/links/usage-summary')
+        ])
         this.allLinks = data.links || []
+        if (usageRes.ok) this.linkUsage = await usageRes.json()
         this.applyFilters()
       } catch (error) {
         console.error('Failed to load links:', error)
-        // Fall back to empty state UX rather than a blocking error
         this.allLinks = []
         this.applyFilters()
       } finally {

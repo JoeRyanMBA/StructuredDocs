@@ -316,3 +316,72 @@ def delete_image(image_id):
     except Exception as e:
         current_app.logger.error(f"Error deleting image: {str(e)}")
         return jsonify({'error': 'Failed to delete image'}), 500
+
+
+@images_bp.route('/usage-summary', methods=['GET'])
+def images_usage_summary():
+    """For each ImportImage, find which topics reference its public_url in content,
+    then return per-image collection + project usage."""
+    try:
+        from sqlalchemy import select as sa_select
+        from ..models import Collection, Project, collection_topic_tree, Topic
+
+        images = ImportImage.query.filter(ImportImage.public_url.isnot(None)).all()
+        if not images:
+            return jsonify({}), 200
+
+        # Load all topics with content once
+        topics = Topic.query.with_entities(Topic.id, Topic.content).all()
+
+        # Build map: image public_url → list of topic_ids that reference it
+        image_topic_map = {}  # public_url → set of topic_ids
+        for img in images:
+            url = img.public_url
+            if not url:
+                continue
+            referencing = {t.id for t in topics if t.content and url in t.content}
+            image_topic_map[url] = referencing
+
+        # For each image, look up collections/projects for those topic_ids
+        col_cache = {}   # collection_id → (name, proj_id, proj_name)
+
+        def get_col_info(col_id):
+            if col_id not in col_cache:
+                col = Collection.query.get(col_id)
+                if col:
+                    col_cache[col_id] = (
+                        col.name,
+                        col.project_id,
+                        col.project.name if col.project else None
+                    )
+                else:
+                    col_cache[col_id] = (None, None, None)
+            return col_cache[col_id]
+
+        result = {}
+        for img in images:
+            url = img.public_url
+            topic_ids = image_topic_map.get(url, set())
+            collections = {}
+            projects = {}
+            for tid in topic_ids:
+                rows = db.session.execute(
+                    sa_select(collection_topic_tree.c.collection_id)
+                    .where(collection_topic_tree.c.topic_id == tid)
+                ).fetchall()
+                for row in rows:
+                    cname, pid, pname = get_col_info(row.collection_id)
+                    if cname:
+                        collections[row.collection_id] = cname
+                    if pid and pname:
+                        projects[pid] = pname
+
+            result[url] = {
+                'collections': [{'id': k, 'name': v} for k, v in collections.items()],
+                'projects':    [{'id': k, 'name': v} for k, v in projects.items()],
+            }
+
+        return jsonify(result), 200
+    except Exception as e:
+        current_app.logger.exception("Failed to build image usage summary")
+        return jsonify({'error': str(e)}), 500
