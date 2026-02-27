@@ -429,6 +429,10 @@ class Link(db.Model):
         if include_usage:
             base['usage_count'] = len(self.topic_links)
             base['used_in_topics'] = [tl.topic.title for tl in self.topic_links if tl.topic]
+            base['used_in_topics_detail'] = [
+                {'id': tl.topic.id, 'name': tl.topic.title}
+                for tl in self.topic_links if tl.topic
+            ]
         return base
 
 class TopicLink(db.Model):

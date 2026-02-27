@@ -187,7 +187,7 @@ export default {
           name: 'Outline',
           classes: 'btn btn-outline',
           text: 'Preview',
-          icon: 'bi bi-eye',
+          icon: 'bi bi-zoom-in',
           stylesheet: 'assets/style.css (.btn-outline)',
           usedIn: [
             'ReviewPortal.vue (Preview Changes)'
@@ -345,7 +345,7 @@ export default {
           name: 'Card Action',
           classes: 'card-action-btn',
           text: 'View',
-          icon: 'bi bi-eye',
+          icon: 'bi bi-zoom-in',
           stylesheet: 'assets/style.css (.card-action-btn)',
           usedIn: [
             'ImportDashboard.vue (cards)',

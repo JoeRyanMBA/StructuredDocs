@@ -80,7 +80,7 @@
       @click="editorMode = 'preview'"
       title="Preview rendered content"
           >
-            <i class="bi bi-eye" aria-hidden="true"></i> <span class="label-text">Preview</span>
+            <i class="bi bi-zoom-in" aria-hidden="true"></i> <span class="label-text">Preview</span>
           </button>
         </div>
 

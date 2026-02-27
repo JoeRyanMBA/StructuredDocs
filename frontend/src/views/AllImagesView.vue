@@ -16,9 +16,9 @@
           placeholder="Search images by filename..." 
           @keyup.enter="loadImages"
         />
-  <button @click="loadImages" class="btn btn-secondary btn-sm" type="button">
-    <i class="bi bi-search" aria-hidden="true"></i>
-    <span>Search</span>
+        <button @click="loadImages" class="btn btn-secondary btn-sm" type="button">
+          <i class="bi bi-search" aria-hidden="true"></i>
+          <span>Search</span>
         </button>
       </div>
       <div class="view-controls">
@@ -40,11 +40,11 @@
           <i class="bi bi-list" aria-hidden="true"></i>
           List
         </button>
+        <button @click="refreshImages" class="btn btn-primary btn-sm" type="button">
+          <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
+          <span>Refresh</span>
+        </button>
       </div>
-    <button @click="refreshImages" class="btn btn-primary btn-sm" type="button">
-      <i class="bi bi-arrow-clockwise" aria-hidden="true"></i>
-      <span>Refresh</span>
-      </button>
     </div>
 
     <div v-if="loading" class="loading">
@@ -106,11 +106,11 @@
               loading="lazy"
             />
             <div class="image-overlay">
-              <button class="btn-overlay" @click.stop="copyImagePath(image)" title="Copy Path">
-                📋
+              <button class="btn-overlay btn-icon" @click.stop="viewImageDetails(image)" title="View Details">
+                <i class="bi bi-zoom-in"></i>
               </button>
-              <button class="btn-overlay" @click.stop="viewImageDetails(image)" title="View Details">
-                👁️
+              <button class="btn-overlay btn-icon" @click.stop="copyImagePath(image)" title="Copy URL">
+                <i class="bi bi-clipboard"></i>
               </button>
             </div>
           </div>
@@ -131,8 +131,7 @@
           <div class="col-size">Size</div>
           <div class="col-dimensions">Dimensions</div>
           <div class="col-date">Date Added</div>
-          <div class="col-collections">Collections</div>
-          <div class="col-projects">Projects</div>
+          <div class="col-topics">Topics</div>
           <div class="col-actions">Actions</div>
         </div>
         <div 
@@ -158,23 +157,16 @@
             {{ image.width && image.height ? `${image.width}×${image.height}` : 'N/A' }}
           </div>
           <div class="col-date">{{ formatDate(image.created_at) }}</div>
-          <div class="col-collections" @click.stop>
+          <div class="col-topics" @click.stop>
             <UsageBadge
-              :count="(imageUsage[image.public_url]?.collections || []).length"
-              label="collection"
-              :items="imageUsage[image.public_url]?.collections || []"
-            />
-          </div>
-          <div class="col-projects" @click.stop>
-            <UsageBadge
-              :count="(imageUsage[image.public_url]?.projects || []).length"
-              label="project"
-              :items="imageUsage[image.public_url]?.projects || []"
+              :count="(imageUsage[image.public_url]?.topics || []).length"
+              label="topic"
+              :items="imageUsage[image.public_url]?.topics || []"
             />
           </div>
           <div class="col-actions">
-            <button class="btn-icon" @click.stop="copyImagePath(image)" title="Copy Path">📋</button>
-            <button class="btn-icon" @click.stop="viewImageDetails(image)" title="View Details">👁️</button>
+            <button class="btn-icon" @click.stop="viewImageDetails(image)" title="View Details"><i class="bi bi-zoom-in"></i></button>
+            <button class="btn-icon" @click.stop="copyImagePath(image)" title="Copy URL"><i class="bi bi-clipboard"></i></button>
           </div>
         </div>
       </div>
@@ -207,7 +199,7 @@
                 <label>File Path:</label>
                 <div class="path-display">
                   <code>{{ selectedImage.public_url }}</code>
-                  <button @click="copyImagePath(selectedImage)" class="btn-copy">📋 Copy</button>
+                  <button @click="copyImagePath(selectedImage)" class="btn btn-secondary btn-sm"><i class="bi bi-clipboard"></i> Copy</button>
                 </div>
               </div>
               <div class="detail-group" v-if="selectedImage.size">
@@ -226,12 +218,26 @@
                 <label>Alt Text:</label>
                 <span>{{ selectedImage.alt_text }}</span>
               </div>
+              <div class="detail-group">
+                <label>Used In:</label>
+                <div v-if="imageTopics(selectedImage).length > 0" class="topic-usage-list">
+                  <span class="usage-count-badge">{{ imageTopics(selectedImage).length }} topic{{ imageTopics(selectedImage).length === 1 ? '' : 's' }}</span>
+                  <ul class="topic-usage-links">
+                    <li v-for="topic in imageTopics(selectedImage)" :key="topic.id">
+                      <router-link :to="{ name: 'EditTopic', params: { id: topic.id } }" @click="closeDetailsModal">
+                        {{ topic.name }}
+                      </router-link>
+                    </li>
+                  </ul>
+                </div>
+                <span v-else class="usage-none">Not used in any topics</span>
+              </div>
             </div>
           </div>
         </div>
         <div class="modal-footer">
           <button @click="copyImagePath(selectedImage)" class="btn btn-primary">
-            📋 Copy Image Path
+            <i class="bi bi-clipboard"></i> Copy Image Path
           </button>
           <button @click="closeDetailsModal" class="btn btn-secondary">Close</button>
         </div>
@@ -311,6 +317,9 @@ export default {
     await this.loadImages()
   },
   methods: {
+    imageTopics(image) {
+      return this.imageUsage[image?.public_url]?.topics || []
+    },
     async loadImages() {
       this.loading = true
       this.error = null
@@ -764,19 +773,25 @@ export default {
 }
 
 .btn-overlay {
-  background: rgba(255, 255, 255, 0.9);
+  background: rgba(255, 255, 255, 0.92);
   border: none;
   border-radius: 50%;
   width: 40px;
   height: 40px;
   cursor: pointer;
-  font-size: 1.2rem;
+  font-size: 1rem;
+  display: flex;
+  align-items: center;
+  justify-content: center;
   transition: all 0.2s ease;
+  color: var(--primary-deep-teal, #1a6b6b);
+  box-shadow: 0 1px 4px rgba(0,0,0,0.15);
 }
 
 .btn-overlay:hover {
   background: white;
   transform: scale(1.1);
+  box-shadow: 0 2px 8px rgba(0,0,0,0.2);
 }
 
 .image-info {
@@ -953,18 +968,40 @@ export default {
   white-space: nowrap;
 }
 
-.btn-copy {
-  background: #2196f3;
-  color: white;
-  border: none;
-  border-radius: 4px;
-  padding: 0.5rem 1rem;
-  cursor: pointer;
+.usage-count-badge {
+  display: inline-block;
+  background: var(--extended-sky-blue, #d0eaf9);
+  color: var(--primary-deep-teal, #1a6b6b);
+  border-radius: 999px;
+  padding: 0.15rem 0.6rem;
+  font-size: 0.8rem;
+  font-weight: 600;
+  margin-bottom: 0.4rem;
+}
+
+.topic-usage-links {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 0.25rem;
+}
+
+.topic-usage-links li a {
+  color: var(--primary-deep-teal, #1a6b6b);
+  text-decoration: none;
   font-size: 0.875rem;
 }
 
-.btn-copy:hover {
-  background: #1976d2;
+.topic-usage-links li a:hover {
+  text-decoration: underline;
+}
+
+.usage-none {
+  font-size: 0.875rem;
+  color: #888;
+  font-style: italic;
 }
 
 /* Removed legacy .message-toast styles; using global ToastContainer */
