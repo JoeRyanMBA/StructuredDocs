@@ -25,6 +25,17 @@
             @keyup.enter="applyFilters"
           />
         </div>
+        <div class="filter-group">
+          <label>Sort by:</label>
+          <select v-model="sortBy" @change="applyFilters" class="filter-input">
+            <option value="name_asc">Name A→Z</option>
+            <option value="name_desc">Name Z→A</option>
+            <option value="usage_desc">Most used</option>
+            <option value="usage_asc">Least used</option>
+            <option value="newest">Newest</option>
+            <option value="oldest">Oldest</option>
+          </select>
+        </div>
         <div class="filter-group actions-group">
           <div class="button-group">
             <button @click="applyFilters" class="btn btn-primary btn-sm">
@@ -37,7 +48,7 @@
     </div>
 
   <div v-if="loading" class="loading">Loading tags...</div>
-  <div v-else-if="error && tags.length > 0" class="error">{{ error }}</div>
+  <div v-else-if="error" class="error">{{ error }}</div>
 
     <div v-else class="tags-content">
       <p class="table-instruction">Select a tag to edit.</p>
@@ -151,6 +162,7 @@ export default {
       tags: [],
       filteredTags: [],
       searchQuery: '',
+      sortBy: 'name_asc',
       loading: false,
       error: null,
       showModal: false,
@@ -205,7 +217,6 @@ export default {
       } catch (error) {
         console.error('Failed to fetch tags:', error)
         this.error = 'Failed to load tags. Please try again.'
-        toast.error(this.error)
       } finally {
         this.loading = false
       }
@@ -221,12 +232,23 @@ export default {
           return name.toLowerCase().includes(query)
         })
       }
-      
+
+      const sorts = {
+        name_asc:   (a, b) => a.name.localeCompare(b.name),
+        name_desc:  (a, b) => b.name.localeCompare(a.name),
+        usage_desc: (a, b) => (b.usage_count || 0) - (a.usage_count || 0),
+        usage_asc:  (a, b) => (a.usage_count || 0) - (b.usage_count || 0),
+        newest:     (a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0),
+        oldest:     (a, b) => new Date(a.created_at || 0) - new Date(b.created_at || 0),
+      }
+      filtered.sort(sorts[this.sortBy] || sorts.name_asc)
+
       this.filteredTags = filtered
     },
     
     clearFilters() {
       this.searchQuery = ''
+      this.sortBy = 'name_asc'
       this.applyFilters()
     },
     
