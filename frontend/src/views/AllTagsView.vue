@@ -9,30 +9,29 @@
     <div class="info-panel">
       <h2>How Tags Work</h2>
       <p>
-        Tags are reusable labels that help you categorize and filter <strong>tasks</strong> across your projects,
-        collections, and topics. A tag can be applied to any number of tasks, making it easy to find related
-        work regardless of where it lives in the hierarchy.
+        Tags are reusable labels you can assign to <strong>projects, collections, topics, stakeholders,
+        images, and links</strong> to categorize and filter content across the system.
       </p>
       <div class="info-columns">
         <div class="info-col">
           <h3>Creating Tags</h3>
-          <p>Click <strong>Create New Tag</strong> to define a tag. Tag names must be unique. Once created,
-          a tag is available to select on any task in the system.</p>
+          <p>Click <strong>Create New Tag</strong> below. Tag names must be unique. Once created, a tag
+          is available on any entity in the system.</p>
         </div>
         <div class="info-col">
-          <h3>Applying Tags to Tasks</h3>
-          <p>Open any task (from a project, collection, or topic) and select one or more tags from the tag
-          field. A single task can carry multiple tags.</p>
+          <h3>Assigning Tags</h3>
+          <p>Open any project, collection, topic, stakeholder, image, or link and use the
+          <strong>Tags</strong> field — type to search existing tags or create a new one inline.</p>
         </div>
         <div class="info-col">
           <h3>Filtering by Tag</h3>
-          <p>On the Tasks view, use the tag filter to show only tasks carrying a specific tag — giving you
-          a cross-project view of related work at a glance.</p>
+          <p>Each list view (Topics, Links, Images, etc.) supports tag filtering so you can quickly
+          surface all items sharing a label regardless of where they live.</p>
         </div>
         <div class="info-col">
           <h3>Renaming &amp; Deleting</h3>
-          <p>Renaming a tag updates it everywhere it is used. Deleting a tag removes it from all tasks.
-          The <strong>Usage</strong> column below shows how many tasks currently use each tag.</p>
+          <p>Renaming a tag updates it everywhere it is used. Deleting a tag removes it from all
+          entities. The <strong>Usage</strong> column shows total assignments per tag.</p>
         </div>
       </div>
     </div>
@@ -109,7 +108,7 @@
                 <div class="tag-name-display">{{ formatTagName(tag.name) }}</div>
               </td>
               <td class="created-date">{{ formatDate(tag.created_at) }}</td>
-              <td class="usage-count">{{ tag.usage_count || 0 }} topics</td>
+              <td class="usage-count">{{ tag.total_count || tag.usage_count || 0 }}</td>
               <td class="actions-cell">
                 <div class="tag-actions">
                   <button @click="editTag(tag)" class="btn btn-sm btn-secondary">
@@ -228,7 +227,7 @@ export default {
               id: item.id ?? null,
               name: item.name ?? String(item.tag || item.title || ''),
               created_at: item.created_at ?? null,
-              usage_count: item.usage_count ?? item.task_count ?? 0
+              usage_count: item.total_count ?? item.usage_count ?? item.task_count ?? 0
             }
           }
           return { id: null, name: String(item), created_at: null, usage_count: 0 }
