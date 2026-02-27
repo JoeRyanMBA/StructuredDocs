@@ -313,6 +313,12 @@ export default {
       if (!this.filteredTopics || this.filteredTopics.length === 0) return false
       const idsOnPage = this.filteredTopics.map(t => t.id)
       return idsOnPage.every(id => this.selectedTopicIds.includes(id))
+    },
+    uniqueCollections() {
+      const names = this.topics
+        .map(t => t.collection_name)
+        .filter(name => name != null && name !== '')
+      return [...new Set(names)].sort()
     }
   },
 
