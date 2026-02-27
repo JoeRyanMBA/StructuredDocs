@@ -1568,7 +1568,7 @@ def _import_as_collection(file, source):
                         db.session.add(TopicLink(
                             topic_id=topic_id,
                             link_id=link_obj.id,
-                            context=imp_link.context,
+                            context=(imp_link.context or '')[:200] or None,
                         ))
 
     # Commit everything
@@ -1782,7 +1782,7 @@ def commit_import(doc_id):
                             db.session.add(TopicLink(
                                 topic_id=topic.id,
                                 link_id=link_obj.id,
-                                context=imp_link.context,
+                                context=(imp_link.context or '')[:200] or None,
                             ))
 
             created_topics.append(topic)
