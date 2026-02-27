@@ -283,7 +283,7 @@
               <span class="topic-title">{{ element.title }}</span>
               <div style="margin-left: auto; display: flex; align-items: center;">
                 <button class="icon-btn" @click.stop="previewTopic(element)" title="Preview this topic" aria-label="Preview topic">
-                  <i class="bi bi-eye" aria-hidden="true"></i>
+                  <i class="bi bi-zoom-in" aria-hidden="true"></i>
                 </button>
               </div>
             </div>

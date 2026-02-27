@@ -331,7 +331,8 @@ def images_usage_summary():
             return jsonify({}), 200
 
         # Load all topics with content once
-        topics = Topic.query.with_entities(Topic.id, Topic.content).all()
+        topics = Topic.query.with_entities(Topic.id, Topic.title, Topic.content).all()
+        topic_title_map = {t.id: t.title for t in topics}
 
         # Build map: image public_url → list of topic_ids that reference it
         image_topic_map = {}  # public_url → set of topic_ids
@@ -377,6 +378,7 @@ def images_usage_summary():
                         projects[pid] = pname
 
             result[url] = {
+                'topics':      [{'id': tid, 'name': topic_title_map.get(tid, f'Topic {tid}')} for tid in topic_ids],
                 'collections': [{'id': k, 'name': v} for k, v in collections.items()],
                 'projects':    [{'id': k, 'name': v} for k, v in projects.items()],
             }

@@ -35,8 +35,8 @@
         <button @click="createNewLink" class="btn btn-primary">
           <span class="action-icon"><IconPlus size="28" /></span> Create Link
         </button>
-  <button @click="refreshLinks" class="btn btn-secondary btn-sm">
-          🔄 Refresh
+        <button @click="refreshLinks" class="btn btn-secondary btn-sm">
+          <i class="bi bi-arrow-clockwise"></i> Refresh
         </button>
       </div>
     </div>
@@ -85,8 +85,8 @@
           <span class="stat-label">Total Available</span>
         </div>
         <div class="stat-item">
-          <span class="stat-number">{{ linkTypesInUse.length }}</span>
-          <span class="stat-label">Types</span>
+          <span class="stat-number" :class="{ 'stat-warning': unusedLinksCount > 0 }">{{ unusedLinksCount }}</span>
+          <span class="stat-label">Unused</span>
         </div>
       </div>
 
@@ -96,9 +96,7 @@
           <div class="col-title">Title & URL</div>
           <div class="col-reference">Reference</div>
           <div class="col-type">Type</div>
-          <div class="col-usage">Usage</div>
-          <div class="col-collections">Collections</div>
-          <div class="col-projects">Projects</div>
+          <div class="col-topics">Topics</div>
           <div class="col-status">Status</div>
           <div class="col-actions">Actions</div>
         </div>
@@ -132,24 +130,11 @@
               {{ formatLinkType(link.link_type) }}
             </span>
           </div>
-          <div class="col-usage">
-            <span v-if="link.usage_count !== undefined" class="usage-count">
-              {{ link.usage_count }} {{ link.usage_count === 1 ? 'topic' : 'topics' }}
-            </span>
-            <span v-else class="usage-unknown">-</span>
-          </div>
-          <div class="col-collections" @click.stop>
+          <div class="col-topics" @click.stop>
             <UsageBadge
-              :count="(linkUsage[String(link.id)]?.collections || []).length"
-              label="collection"
-              :items="linkUsage[String(link.id)]?.collections || []"
-            />
-          </div>
-          <div class="col-projects" @click.stop>
-            <UsageBadge
-              :count="(linkUsage[String(link.id)]?.projects || []).length"
-              label="project"
-              :items="linkUsage[String(link.id)]?.projects || []"
+              :count="link.usage_count || 0"
+              label="topic"
+              :items="link.used_in_topics_detail || []"
             />
           </div>
           <div class="col-status">
@@ -158,10 +143,10 @@
             </span>
           </div>
           <div class="col-actions">
-            <button class="btn-icon" @click.stop="copyLinkReference(link)" title="Copy Reference">📋</button>
-            <button class="btn-icon" @click.stop="viewLinkDetails(link)" title="View Details">👁️</button>
-            <button class="btn-icon" @click.stop="editLink(link)" title="Edit Link">✏️</button>
-            <button class="btn-icon" @click.stop="openUrl(link)" title="Open URL" v-if="link.url">🔗</button>
+            <button class="btn-icon" @click.stop="copyLinkReference(link)" title="Copy Reference"><i class="bi bi-clipboard"></i></button>
+            <button class="btn-icon" @click.stop="viewLinkDetails(link)" title="View Details"><i class="bi bi-zoom-in"></i></button>
+            <button class="btn-icon" @click.stop="editLink(link)" title="Edit Link"><i class="bi bi-pencil-square"></i></button>
+            <button class="btn-icon" @click.stop="openUrl(link)" title="Open URL" v-if="link.url"><i class="bi bi-box-arrow-up-right"></i></button>
           </div>
         </div>
       </div>
@@ -185,7 +170,7 @@
                 <label>URL:</label>
                 <div class="url-display">
                   <a :href="selectedLink.url" target="_blank" rel="noopener noreferrer">{{ selectedLink.url }}</a>
-                  <button @click="openUrl(selectedLink)" class="btn-icon" title="Open URL">🔗</button>
+                  <button @click="openUrl(selectedLink)" class="btn-icon" title="Open URL"><i class="bi bi-box-arrow-up-right"></i></button>
                 </div>
               </div>
               <div class="detail-group" v-if="selectedLink.description">
@@ -197,7 +182,7 @@
                 <div class="reference-display">
                   <code v-if="selectedLink.reference_code">{{ selectedLink.reference_code }}</code>
                   <span v-else class="no-reference">No reference code</span>
-                  <button v-if="selectedLink.reference_code" @click="copyLinkReference(selectedLink)" class="btn-copy">📋 Copy</button>
+                  <button v-if="selectedLink.reference_code" @click="copyLinkReference(selectedLink)" class="btn btn-secondary btn-sm"><i class="bi bi-clipboard"></i> Copy</button>
                 </div>
               </div>
               <div class="detail-group">
@@ -239,13 +224,13 @@
         </div>
         <div class="modal-footer">
           <button @click="copyLinkReference(selectedLink)" class="btn btn-secondary" v-if="selectedLink.reference_code">
-            📋 Copy Reference
+            <i class="bi bi-clipboard"></i> Copy Reference
           </button>
           <button @click="openUrl(selectedLink)" class="btn btn-secondary" v-if="selectedLink.url">
-            🔗 Open URL
+            <i class="bi bi-box-arrow-up-right"></i> Open URL
           </button>
           <button @click="editLink(selectedLink)" class="btn btn-primary">
-            ✏️ Edit Link
+            <i class="bi bi-pencil-square"></i> Edit Link
           </button>
           <button @click="closeDetailsModal" class="btn btn-secondary">Close</button>
         </div>
@@ -349,7 +334,6 @@ export default {
   data() {
     return {
       allLinks: [],
-      linkUsage: {},
       filteredLinks: [],
       loading: false,
       error: null,
@@ -391,9 +375,8 @@ export default {
       return this.filteredLinks.filter(link => link.source !== 'import').length
     },
     
-    linkTypesInUse() {
-      const types = new Set(this.filteredLinks.map(link => link.link_type))
-      return Array.from(types)
+    unusedLinksCount() {
+      return this.filteredLinks.filter(link => !link.usage_count || link.usage_count === 0).length
     }
   },
   async created() {
@@ -405,12 +388,8 @@ export default {
       this.error = null
       
       try {
-        const [data, usageRes] = await Promise.all([
-          apiRequest('/api/links/?include_usage=true'),
-          fetch('/api/links/usage-summary')
-        ])
+        const data = await apiRequest('/api/links/?include_usage=true')
         this.allLinks = data.links || []
-        if (usageRes.ok) this.linkUsage = await usageRes.json()
         this.applyFilters()
       } catch (error) {
         console.error('Failed to load links:', error)
@@ -727,6 +706,10 @@ export default {
   color: var(--primary-medium-teal);
 }
 
+.stat-number.stat-warning {
+  color: #b45309;
+}
+
 .stat-label {
   display: block;
   font-size: 0.875rem;
@@ -739,7 +722,7 @@ export default {
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  overflow: hidden;
+  overflow: visible;
 }
 
 .list-header {
@@ -1091,10 +1074,10 @@ export default {
 @media (max-width: 1200px) {
   .list-header,
   .link-row {
-    grid-template-columns: 2fr 120px 100px 100px 140px;
+    grid-template-columns: 2fr 130px 110px 80px 130px;
   }
-  
-  .col-usage {
+
+  .col-reference {
     display: none;
   }
 }
@@ -1119,7 +1102,7 @@ export default {
 
   .list-header,
   .link-row {
-    grid-template-columns: 1fr 120px;
+    grid-template-columns: 1fr 80px 120px;
     font-size: 0.875rem;
   }
 
