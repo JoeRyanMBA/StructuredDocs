@@ -1,5 +1,5 @@
 from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response, current_app
-from ..models import db, Publication, PublicationNode, Topic
+from ..models import db, Publication, PublicationNode, Topic, Snippet, EntityTag
 from datetime import datetime
 import re
 import os
@@ -8,7 +8,48 @@ import mimetypes
 import io
 import json
 import traceback
+from bs4 import BeautifulSoup
 from reportlab.lib.pagesizes import letter, A4
+
+
+def resolve_snippets(content, selected_tag_ids):
+    """Replace <div class="sd-snippet-ref" data-snippet-id="X"> placeholders.
+
+    If the snippet's tags intersect with selected_tag_ids, the placeholder is
+    replaced with the snippet's HTML content. Otherwise it is removed.
+    If selected_tag_ids is empty, all placeholders are removed.
+    """
+    if not content:
+        return content
+    soup = BeautifulSoup(content, 'html.parser')
+    placeholders = soup.find_all('div', class_='sd-snippet-ref')
+    if not placeholders:
+        return content
+
+    selected = set(int(t) for t in selected_tag_ids if str(t).isdigit()) if selected_tag_ids else set()
+
+    for placeholder in placeholders:
+        raw_id = placeholder.get('data-snippet-id')
+        if not raw_id or not str(raw_id).isdigit() or not selected:
+            placeholder.decompose()
+            continue
+
+        snippet_id = int(raw_id)
+        snippet_tag_ids = {
+            et.tag_id for et in EntityTag.query.filter_by(entity_type='snippet', entity_id=snippet_id).all()
+        }
+
+        if snippet_tag_ids & selected:
+            snippet = Snippet.query.get(snippet_id)
+            if snippet and snippet.content:
+                placeholder.replace_with(BeautifulSoup(snippet.content, 'html.parser'))
+            else:
+                placeholder.decompose()
+        else:
+            placeholder.decompose()
+
+    return str(soup)
+
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, NextPageTemplate, Flowable
@@ -758,12 +799,14 @@ def save_nodes(pub_id):
 def export_mobile_knowledge_base(pub_id):
     """Export publication as mobile-first knowledge base HTML"""
     pub = Publication.query.get_or_404(pub_id)
-    
+    tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
+
     # Build the hierarchical structure
     def serialize_node(node):
         # Prefer snapshots captured at publish time; fallback to current topic
         title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
         content = node.content_snapshot or (node.topic.content if node.topic else '')
+        content = resolve_snippets(content, tag_ids)
         return {
             'id': node.id,
             'topic_id': node.topic_id,
@@ -790,11 +833,13 @@ def export_mobile_knowledge_base(pub_id):
 def preview_mobile_knowledge_base(pub_id):
     """Preview publication as mobile-first knowledge base HTML in browser"""
     pub = Publication.query.get_or_404(pub_id)
-    
+    tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
+
     # Build the hierarchical structure (same as export)
     def serialize_node(node):
         title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
         content = node.content_snapshot or (node.topic.content if node.topic else '')
+        content = resolve_snippets(content, tag_ids)
         return {
             'id': node.id,
             'topic_id': node.topic_id,
@@ -1600,7 +1645,10 @@ def export_pdf(pub_id):
         valid_configs = ['default', 'corporate', 'academic', 'compact', 'organization']
         if config_type not in valid_configs:
             config_type = 'default'
-        
+
+        # Audience tag IDs for snippet filtering
+        tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
+
         # Build the hierarchical structure
         def serialize_node(node):
             # Prefer snapshots captured at publish time; fall back to live topic
@@ -1627,6 +1675,8 @@ def export_pdf(pub_id):
                 else:
                     title = title if title not in (None, '') else 'Unknown'
                     content = content if content is not None else ''
+
+            content = resolve_snippets(content, tag_ids)
 
             return {
                 'id': node.id,

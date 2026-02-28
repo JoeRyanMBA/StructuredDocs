@@ -581,6 +581,7 @@ p { color: #666; }
                 'reviews': ('reviews', 'reviews_bp'),
                 'sequences': ('sequences', 'sequences_bp'),
                 'stakeholders': ('stakeholders', 'stakeholders_bp'),
+                'snippets': ('snippets', 'snippets_bp'),
                 'tags': ('tags', 'tags_bp'),
                 'tasks': ('tasks', 'tasks_bp'),
                 'topics': ('topics', 'topics_bp'),
@@ -636,6 +637,7 @@ p { color: #666; }
                 review_tokens,
                 reviews,
                 sequences,
+                snippets,
                 stakeholders,
                 tags,
                 tasks,
@@ -662,6 +664,7 @@ p { color: #666; }
             app.register_blueprint(reviews.reviews_bp)
             app.register_blueprint(sequences.sequences_bp)
             app.register_blueprint(stakeholders.stakeholders_bp)
+            app.register_blueprint(snippets.snippets_bp)
             app.register_blueprint(tags.tags_bp)
             app.register_blueprint(tasks.tasks_bp)
             app.register_blueprint(topics.topics_bp)

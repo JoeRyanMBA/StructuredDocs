@@ -115,6 +115,7 @@
               <button @click="insertMarkdown('1. ', '')" class="toolbar-btn">1. List</button>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
+              <button @click="openSnippetSelector" class="toolbar-btn">📎 Snippet</button>
             </div>
             <textarea 
               ref="markdownEditor"
@@ -138,6 +139,7 @@
               <button @click="execCommand('insertOrderedList')" class="toolbar-btn">1. List</button>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
+              <button @click="openSnippetSelector" class="toolbar-btn">📎 Snippet</button>
             </div>
             <div 
               ref="wysiwygEditor"
@@ -391,6 +393,13 @@
         </div>
       </div>
     </template>
+
+    <!-- Snippet Selector Modal -->
+    <SnippetSelector
+      v-if="showSnippetSelector"
+      @select="insertSnippet"
+      @close="showSnippetSelector = false"
+    />
   </div>
 </template>
 
@@ -400,10 +409,11 @@ import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services
 import { API_BASE } from '@/api/base'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
+import SnippetSelector from '@/components/SnippetSelector.vue'
 
 export default {
   name: 'TopicEditor',
-  components: { RequestReviewModal, TagEditor },
+  components: { RequestReviewModal, TagEditor, SnippetSelector },
   props: {
     topicId: {
       type: [String, Number],
@@ -471,7 +481,8 @@ export default {
   normalizePastedLineBreaks: true,
   selectedExistingImage: null,
   selectedExistingLink: null,
-  savedWysiwygRange: null
+  savedWysiwygRange: null,
+  showSnippetSelector: false,
     }
   },
   computed: {
@@ -1253,6 +1264,34 @@ export default {
       this.savedWysiwygRange = null
       this.imageInsertMode = 'url'
       this.showImageModal = false
+    },
+
+    openSnippetSelector() {
+      this.saveWysiwygSelection()
+      this.showSnippetSelector = true
+    },
+
+    insertSnippet(snippet) {
+      this.showSnippetSelector = false
+      const placeholder = `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;padding:0.5rem 0.75rem;margin:0.5rem 0;background:#f0f4ff;color:#205493;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''}</div>`
+
+      if (this.editorMode === 'wysiwyg') {
+        this.restoreWysiwygSelection()
+        document.execCommand('insertHTML', false, placeholder)
+        this.updateContentFromWysiwyg()
+      } else {
+        // In markdown mode, insert as raw HTML block
+        const ta = this.$refs.markdownEditor
+        if (ta) {
+          const start = ta.selectionStart
+          const before = this.content.slice(0, start)
+          const after = this.content.slice(start)
+          this.content = before + '\n' + placeholder + '\n' + after
+        } else {
+          this.content += '\n' + placeholder + '\n'
+        }
+      }
+      this.savedWysiwygRange = null
     },
 
     updateContentFromWysiwyg() {

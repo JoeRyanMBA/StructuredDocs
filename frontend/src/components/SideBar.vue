@@ -81,6 +81,12 @@ export default {
           route: 'TopicsList'
         },
         {
+          key: 'snippets',
+          label: 'Snippets',
+          icon: '📎',
+          route: 'SnippetsLibrary'
+        },
+        {
           key: 'reviews',
           label: 'Reviews',
           icon: '✅',
