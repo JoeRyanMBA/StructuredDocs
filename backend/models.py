@@ -896,7 +896,7 @@ class EntityTag(db.Model):
     """Polymorphic tag assignments — links any entity type to a Tag."""
     __tablename__ = 'entity_tags'
 
-    VALID_TYPES = ('project', 'collection', 'topic', 'stakeholder', 'image', 'link')
+    VALID_TYPES = ('project', 'collection', 'topic', 'stakeholder', 'image', 'link', 'snippet')
 
     id = db.Column(db.Integer, primary_key=True)
     entity_type = db.Column(db.String(50), nullable=False)
@@ -1443,4 +1443,28 @@ class FeedbackReport(db.Model):
             "metadata": self.metadata_json,
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+class Snippet(db.Model):
+    """Reusable audience-specific content blocks inserted into topics via placeholders."""
+    __tablename__ = 'snippets'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

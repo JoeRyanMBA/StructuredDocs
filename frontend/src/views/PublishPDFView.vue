@@ -4,7 +4,19 @@
       <h1>Publish PDF</h1>
       <p class="subtitle">Generate and download PDF documents</p>
     </div>
-    
+
+    <!-- Audience tag selector -->
+    <div class="audience-bar">
+      <label class="audience-label">🎯 Audience Tags:</label>
+      <div class="tag-checkboxes">
+        <label v-for="tag in allTags" :key="tag.id" class="tag-check">
+          <input type="checkbox" :value="tag.id" v-model="selectedTagIds" />
+          {{ tag.name }}
+        </label>
+        <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
+      </div>
+      <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the export.</span>
+    </div>
 
     <div class="publications-section">
       <h3>Select Publication to Export as PDF</h3>
@@ -43,20 +55,20 @@ export default {
   data() {
     return {
       publications: [],
+      allTags: [],
+      selectedTagIds: [],
       loading: true,
       error: null
     }
   },
   async created() {
-    await this.loadPublications()
+    await Promise.all([this.loadPublications(), this.loadTags()])
   },
   methods: {
     async loadPublications() {
       try {
         const res = await fetch('/api/publications')
-        if (!res.ok) {
-          throw new Error(`Failed to fetch publications: ${res.statusText}`)
-        }
+        if (!res.ok) throw new Error(`Failed to fetch publications: ${res.statusText}`)
         this.publications = await res.json()
       } catch (err) {
         console.error('Failed to fetch publications:', err)
@@ -65,11 +77,20 @@ export default {
         this.loading = false
       }
     },
+    async loadTags() {
+      try {
+        const res = await fetch('/api/tags/')
+        if (res.ok) {
+          const data = await res.json()
+          this.allTags = Array.isArray(data) ? data : (data.tags || [])
+        }
+      } catch (e) {
+        console.error('Failed to load tags', e)
+      }
+    },
     downloadPDF(pub) {
-      // Create a direct download link for PDF
-      const pdfUrl = `/api/publications/${pub.id}/export/pdf`
-      
-      // Create temporary link element to trigger download
+      const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+      const pdfUrl = `/api/publications/${pub.id}/export/pdf${params ? '?' + params : ''}`
       const link = document.createElement('a')
       link.href = pdfUrl
       link.download = `${pub.title || 'publication'}.pdf`
@@ -90,6 +111,29 @@ export default {
 </script>
 
 <style scoped>
+.audience-bar {
+  background: #f0f4ff;
+  border: 1px solid #c5d3f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.audience-label { font-weight: 600; font-size: 0.88rem; color: #205493; white-space: nowrap; padding-top: 2px; }
+.tag-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1; }
+.tag-check {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.85rem; cursor: pointer;
+  background: #fff; border: 1px solid #c5d3f0; border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+}
+.tag-check input { cursor: pointer; }
+.no-tags-hint { color: #6c757d; font-size: 0.82rem; font-style: italic; }
+.audience-hint { width: 100%; color: #6c757d; font-size: 0.78rem; margin-top: 0.25rem; }
+
 .publish-pdf {
   margin: 0 auto;
   padding: 2rem;
