@@ -64,18 +64,7 @@
 
           <div class="form-group">
             <label>Content</label>
-            <div class="wysiwyg-toolbar">
-              <button type="button" @click="execCmd('bold')" class="tb-btn" title="Bold">𝐁</button>
-              <button type="button" @click="execCmd('italic')" class="tb-btn" title="Italic">𝐼</button>
-              <button type="button" @click="execCmd('insertUnorderedList')" class="tb-btn" title="Bullet list">•</button>
-              <button type="button" @click="execCmd('insertOrderedList')" class="tb-btn" title="Numbered list">1.</button>
-            </div>
-            <div
-              ref="contentEditor"
-              class="content-editor"
-              contenteditable="true"
-              @input="onContentInput"
-            ></div>
+            <RichTextEditor v-model="form.content" />
           </div>
 
           <div class="form-actions">
@@ -106,10 +95,11 @@
 <script>
 import { listSnippets, createSnippet, updateSnippet, deleteSnippet } from '@/api/snippets.js'
 import TagEditor from '@/components/TagEditor.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 
 export default {
   name: 'SnippetsLibrary',
-  components: { TagEditor },
+  components: { TagEditor, RichTextEditor },
   data() {
     return {
       snippets: [],
@@ -143,33 +133,16 @@ export default {
       this.creating = false
       this.selected = s
       this.form = { title: s.title, content: s.content || '' }
-      this.$nextTick(() => {
-        if (this.$refs.contentEditor) {
-          this.$refs.contentEditor.innerHTML = this.form.content
-        }
-      })
     },
     startNew() {
       this.creating = true
       this.selected = null
       this.form = { title: '', content: '' }
-      this.$nextTick(() => {
-        if (this.$refs.contentEditor) this.$refs.contentEditor.innerHTML = ''
-      })
     },
     cancel() {
       this.creating = false
       this.selected = null
       this.form = { title: '', content: '' }
-    },
-    onContentInput() {
-      if (this.$refs.contentEditor) {
-        this.form.content = this.$refs.contentEditor.innerHTML
-      }
-    },
-    execCmd(cmd) {
-      document.execCommand(cmd, false, null)
-      this.onContentInput()
     },
     async save() {
       if (!this.form.title.trim()) return
@@ -313,37 +286,19 @@ export default {
 .hint { color: #6c757d; font-size: 0.82rem; margin: 0; }
 .required { color: #dc3545; }
 
-.wysiwyg-toolbar {
-  display: flex;
-  gap: 0.25rem;
-  padding: 0.35rem;
-  background: #f8f9fa;
-  border: 1px solid #dee2e6;
-  border-bottom: none;
-  border-radius: 6px 6px 0 0;
-}
-.tb-btn {
-  background: none;
-  border: 1px solid transparent;
-  border-radius: 4px;
-  padding: 0.2rem 0.45rem;
-  cursor: pointer;
-  font-size: 0.9rem;
-}
-.tb-btn:hover { background: #e9ecef; border-color: #ced4da; }
-
-.content-editor {
-  min-height: 200px;
-  border: 1px solid #dee2e6;
-  border-radius: 0 0 6px 6px;
-  padding: 0.75rem;
-  font-size: 0.9rem;
-  outline: none;
-  line-height: 1.6;
-}
-.content-editor:focus { border-color: #205493; }
-
 .form-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; }
+
+/* Give RichTextEditor a fixed height in snippet forms */
+.form-group :deep(.rte-wysiwyg-editor) {
+  height: auto;
+  min-height: 0;
+}
+.form-group :deep(.wysiwyg-content) {
+  min-height: 200px;
+  height: auto;
+  border-radius: 0 0 6px 6px;
+  font-size: 0.9rem;
+}
 .btn-save {
   background: #205493; color: #fff; border: none;
   border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.9rem; cursor: pointer;
