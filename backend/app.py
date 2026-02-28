@@ -484,6 +484,15 @@ p { color: #666; }
                     ImportLink.__table__.create(bind=db.engine, checkfirst=True)
                 except Exception as _imp_e:
                     print(f"⚠️ Could not create import_links fallback table: {_imp_e}")
+
+            # Safety net: ensure snippets table exists
+            if 'snippets' not in existing_tables:
+                try:
+                    from backend.models import Snippet
+                    print("🛠  Creating missing table: snippets (fallback until migration applied)")
+                    Snippet.__table__.create(bind=db.engine, checkfirst=True)
+                except Exception as _snip_e:
+                    print(f"⚠️ Could not create snippets fallback table: {_snip_e}")
         except Exception as _crit_e:
             print(f"⚠️ Could not ensure critical tables: {_crit_e}")
         
