@@ -64,7 +64,16 @@
 
           <div class="form-group">
             <label>Content</label>
-            <RichTextEditor v-model="form.content" />
+            <div class="editor-mode-toggle">
+              <button type="button" :class="['mode-btn', editorMode === 'markdown' ? 'active' : '']" @click="editorMode = 'markdown'">📝 Markdown</button>
+              <button type="button" :class="['mode-btn', editorMode === 'wysiwyg' ? 'active' : '']" @click="editorMode = 'wysiwyg'">📄 WYSIWYG</button>
+              <button type="button" :class="['mode-btn', editorMode === 'preview' ? 'active' : '']" @click="editorMode = 'preview'">🔍 Preview</button>
+            </div>
+            <div v-if="editorMode === 'markdown'" class="markdown-editor-wrap">
+              <textarea v-model="form.content" class="markdown-textarea" rows="12" placeholder="Write content in Markdown…"></textarea>
+            </div>
+            <RichTextEditor v-else-if="editorMode === 'wysiwyg'" v-model="form.content" />
+            <div v-else class="preview-content" v-html="renderedContent"></div>
           </div>
 
           <div class="form-actions">
@@ -94,6 +103,7 @@
 
 <script>
 import { listSnippets, createSnippet, updateSnippet, deleteSnippet } from '@/api/snippets.js'
+import { marked } from 'marked'
 import TagEditor from '@/components/TagEditor.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
@@ -110,12 +120,17 @@ export default {
       saving: false,
       saveMsg: '',
       showDeleteConfirm: false,
+      editorMode: 'wysiwyg',
     }
   },
   computed: {
     filtered() {
       const q = this.search.toLowerCase()
       return this.snippets.filter(s => s.title.toLowerCase().includes(q))
+    },
+    renderedContent() {
+      if (!this.form.content) return ''
+      try { return marked(this.form.content) } catch { return this.form.content }
     },
   },
   async mounted() {
@@ -133,16 +148,19 @@ export default {
       this.creating = false
       this.selected = s
       this.form = { title: s.title, content: s.content || '' }
+      this.editorMode = 'wysiwyg'
     },
     startNew() {
       this.creating = true
       this.selected = null
       this.form = { title: '', content: '' }
+      this.editorMode = 'wysiwyg'
     },
     cancel() {
       this.creating = false
       this.selected = null
       this.form = { title: '', content: '' }
+      this.editorMode = 'wysiwyg'
     },
     async save() {
       if (!this.form.title.trim()) return
@@ -298,6 +316,43 @@ export default {
   height: auto;
   border-radius: 0 0 6px 6px;
   font-size: 0.9rem;
+}
+
+.editor-mode-toggle {
+  display: flex;
+  gap: 0.35rem;
+  margin-bottom: 0.5rem;
+}
+.mode-btn {
+  background: none;
+  border: 1px solid #ced4da;
+  border-radius: 5px;
+  padding: 0.25rem 0.65rem;
+  font-size: 0.82rem;
+  cursor: pointer;
+  color: #495057;
+}
+.mode-btn:hover { background: #e9ecef; }
+.mode-btn.active { background: #205493; color: #fff; border-color: #205493; }
+.markdown-editor-wrap { display: flex; flex-direction: column; }
+.markdown-textarea {
+  width: 100%;
+  padding: 0.6rem 0.75rem;
+  border: 1px solid #ced4da;
+  border-radius: 6px;
+  font-family: monospace;
+  font-size: 0.88rem;
+  resize: vertical;
+  box-sizing: border-box;
+}
+.markdown-textarea:focus { outline: none; border-color: #205493; }
+.preview-content {
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  padding: 0.75rem 1rem;
+  min-height: 200px;
+  font-size: 0.9rem;
+  line-height: 1.6;
 }
 .btn-save {
   background: #205493; color: #fff; border: none;

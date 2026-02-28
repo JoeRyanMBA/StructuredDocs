@@ -32,10 +32,12 @@ export const API_BASE = computeApiBase();
 export async function apiRequest(endpoint, options = {}) {
   const url = `${API_BASE}${endpoint}`;
   
+  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
   const defaultOptions = {
-    credentials: 'include', // Include HTTP Basic Auth credentials
+    credentials: 'include',
     headers: {
       'Content-Type': 'application/json',
+      ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options.headers,
     },
     ...options,
