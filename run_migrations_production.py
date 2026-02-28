@@ -180,6 +180,39 @@ def run_migrations():
                     return True
                 return False
 
+            def ensure_table(table: str, create_sql: str, create_sql_sqlite: str = None):
+                existing = inspector.get_table_names()
+                if table not in existing:
+                    print(f"➕ Creating missing table '{table}' ...")
+                    dialect = db.engine.dialect.name
+                    sql = (create_sql_sqlite if create_sql_sqlite and dialect == 'sqlite' else create_sql)
+                    db.session.execute(db.text(sql))
+                    db.session.commit()
+                    # Refresh inspector after DDL
+                    inspector.__init__(db.engine)
+                    print(f"✅ Created table '{table}'")
+                    return True
+                return False
+
+            # Ensure snippets table exists
+            ensure_table(
+                'snippets',
+                """CREATE TABLE snippets (
+                    id SERIAL PRIMARY KEY,
+                    title VARCHAR(200) NOT NULL,
+                    content TEXT,
+                    created_at TIMESTAMP NOT NULL DEFAULT NOW(),
+                    updated_at TIMESTAMP NOT NULL DEFAULT NOW()
+                )""",
+                """CREATE TABLE snippets (
+                    id INTEGER PRIMARY KEY AUTOINCREMENT,
+                    title VARCHAR(200) NOT NULL,
+                    content TEXT,
+                    created_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP,
+                    updated_at TIMESTAMP NOT NULL DEFAULT CURRENT_TIMESTAMP
+                )"""
+            )
+
             # Expected boolean columns we defensively backfill if missing
             added_collections_archived = ensure_boolean_column('collections', 'archived', 'FALSE')
             added_projects_archived = ensure_boolean_column('projects', 'archived', 'FALSE')
