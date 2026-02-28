@@ -12,6 +12,38 @@
       <div class="error-icon">⚠️</div>
       <h2>Unable to Load Review</h2>
       <p>{{ error }}</p>
+      <div class="error-explanation">
+        <p v-if="error === 'Invalid review token'">
+          This link is no longer valid. The most common reasons are:
+        </p>
+        <p v-else-if="error === 'Token has expired'">
+          Your review link has expired. Review links are valid for a limited time after they are sent. Common reasons include:
+        </p>
+        <p v-else-if="error === 'Token access limit exceeded'">
+          This review link has been opened the maximum number of times allowed. Common reasons include:
+        </p>
+        <p v-else-if="error === 'Token has been deactivated'">
+          This review link has been deactivated by the document owner. This may happen when:
+        </p>
+        <ul v-if="error === 'Invalid review token'">
+          <li>The review was deleted or the system database was reset.</li>
+          <li>The link in the email was incomplete or altered.</li>
+          <li>The review was reassigned or replaced with a new link.</li>
+        </ul>
+        <ul v-else-if="error === 'Token has expired'">
+          <li>The review deadline has passed.</li>
+          <li>Too much time elapsed between when the email was sent and when this link was opened.</li>
+        </ul>
+        <ul v-else-if="error === 'Token access limit exceeded'">
+          <li>The link was forwarded and opened by multiple people.</li>
+          <li>You refreshed or reopened the link more times than the limit allows.</li>
+        </ul>
+        <ul v-else-if="error === 'Token has been deactivated'">
+          <li>The review was cancelled or reassigned.</li>
+          <li>A new review link was issued to replace this one.</li>
+        </ul>
+        <p class="error-contact-note">Please contact the person who sent you this link for a new invitation.</p>
+      </div>
       <div class="error-actions">
         <button @click="retryLoad" class="btn btn-primary">Try Again</button>
         <a href="mailto:support@yourorganization.com" class="btn btn-secondary">Contact Support</a>
@@ -632,6 +664,32 @@ export default {
 .error-container p {
     color: var(--text-medium-gray);
     margin-bottom: 1.5rem;
+}
+
+.error-explanation {
+  text-align: left;
+  background-color: var(--bg-light-gray, #f8f9fa);
+  border: 1px solid var(--border-light-gray, #dee2e6);
+  border-radius: var(--border-radius-md, 0.375rem);
+  padding: 1rem 1.25rem;
+  margin: 0 auto 1.5rem;
+  max-width: 480px;
+}
+
+.error-explanation ul {
+  margin: 0.5rem 0 0.75rem 1.25rem;
+  padding: 0;
+  color: var(--text-medium-gray);
+}
+
+.error-explanation li {
+  margin-bottom: 0.25rem;
+}
+
+.error-contact-note {
+  font-style: italic;
+  margin-bottom: 0 !important;
+  color: var(--text-medium-gray);
 }
 
 .error-actions {
