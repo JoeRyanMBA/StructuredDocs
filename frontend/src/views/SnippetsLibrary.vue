@@ -75,7 +75,6 @@
               class="content-editor"
               contenteditable="true"
               @input="onContentInput"
-              v-html="form.content"
             ></div>
           </div>
 
