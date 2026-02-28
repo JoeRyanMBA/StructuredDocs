@@ -128,27 +128,18 @@
           </div>
 
           <!-- WYSIWYG Mode -->
-          <div v-if="editorMode === 'wysiwyg'" class="wysiwyg-editor">
-            <div class="toolbar">
-              <button @click="execCommand('bold')" class="toolbar-btn">𝐁 Bold</button>
-              <button @click="execCommand('italic')" class="toolbar-btn">𝐼 Italic</button>
-              <button @click="execCommand('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
-              <button @click="execCommand('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
-              <button @click="execCommand('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
-              <button @click="execCommand('insertUnorderedList')" class="toolbar-btn">• List</button>
-              <button @click="execCommand('insertOrderedList')" class="toolbar-btn">1. List</button>
+          <RichTextEditor
+            v-if="editorMode === 'wysiwyg'"
+            ref="richEditor"
+            @update:model-value="onRichEditorUpdate"
+            @paste="handleWysiwygPaste"
+          >
+            <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📎 Snippet</button>
-            </div>
-            <div 
-              ref="wysiwygEditor"
-              @input="onWysiwygInput"
-              @paste="handleWysiwygPaste"
-              contenteditable="true" 
-              class="wysiwyg-content"
-            ></div>
-          </div>
+            </template>
+          </RichTextEditor>
 
           <!-- Preview Mode -->
           <div v-if="editorMode === 'preview'" class="preview-mode">
@@ -410,10 +401,11 @@ import { API_BASE } from '@/api/base'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
 import SnippetSelector from '@/components/SnippetSelector.vue'
+import RichTextEditor from '@/components/RichTextEditor.vue'
 
 export default {
   name: 'TopicEditor',
-  components: { RequestReviewModal, TagEditor, SnippetSelector },
+  components: { RequestReviewModal, TagEditor, SnippetSelector, RichTextEditor },
   props: {
     topicId: {
       type: [String, Number],
@@ -609,9 +601,7 @@ export default {
     editorMode(newMode) {
       if (newMode === 'wysiwyg') {
         this.$nextTick(() => {
-          if (this.$refs.wysiwygEditor) {
-            this.$refs.wysiwygEditor.innerHTML = this.renderedMarkdown
-          }
+          this.$refs.richEditor?.setContent(this.renderedMarkdown)
         })
       }
     },
@@ -635,8 +625,10 @@ export default {
   this.loadRecentVariables()
   this.loadPastePreferences()
     // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
-    if(this.editorMode === 'wysiwyg' && this.$refs.wysiwygEditor){
-      this.$refs.wysiwygEditor.innerHTML = this.renderedMarkdown
+    if(this.editorMode === 'wysiwyg'){
+      this.$nextTick(() => {
+        this.$refs.richEditor?.setContent(this.renderedMarkdown)
+      })
     }
   },
   unmounted() {
@@ -730,30 +722,10 @@ export default {
       this.showImageModal = true
     },
     captureWysiwygSelection() {
-      const editor = this.$refs.wysiwygEditor
-      if (!editor) {
-        this.savedWysiwygRange = null
-        return
-      }
-      const selection = window.getSelection()
-      if (selection && selection.rangeCount > 0) {
-        const range = selection.getRangeAt(0)
-        if (editor.contains(range.startContainer)) {
-          this.savedWysiwygRange = range.cloneRange()
-          return
-        }
-      }
-      this.savedWysiwygRange = null
+      this.$refs.richEditor?.saveSelection()
     },
     restoreWysiwygSelection() {
-      const editor = this.$refs.wysiwygEditor
-      if (!editor || !this.savedWysiwygRange) return false
-      editor.focus()
-      const selection = window.getSelection()
-      if (!selection) return false
-      selection.removeAllRanges()
-      selection.addRange(this.savedWysiwygRange)
-      return true
+      return this.$refs.richEditor?.restoreSelection() || false
     },
     async loadVariables(){
       try {
@@ -826,7 +798,7 @@ export default {
           this.content += token
         }
       } else if(this.editorMode === 'wysiwyg') {
-        const el = this.$refs.wysiwygEditor
+        const el = this.$refs.richEditor?.getEditorEl()
         if(el){
           const sel = window.getSelection()
           if(sel && sel.rangeCount){
@@ -1163,8 +1135,7 @@ export default {
 
     execCommand(command, value = null) {
       if (this.editorMode === 'wysiwyg') {
-        document.execCommand(command, false, value)
-        this.updateContentFromWysiwyg()
+        this.$refs.richEditor?.exec(command, value)
       }
     },
 
@@ -1186,7 +1157,7 @@ export default {
         this.insertMarkdown(linkMarkdown, '')
       } else if (this.editorMode === 'wysiwyg') {
         this.restoreWysiwygSelection()
-        const editor = this.$refs.wysiwygEditor
+        const editor = this.$refs.richEditor?.getEditorEl()
         if (editor) {
           const selection = window.getSelection()
           let insertedAtCaret = false
@@ -1267,7 +1238,7 @@ export default {
     },
 
     openSnippetSelector() {
-      this.saveWysiwygSelection()
+      this.captureWysiwygSelection()
       this.showSnippetSelector = true
     },
 
@@ -1294,9 +1265,16 @@ export default {
       this.savedWysiwygRange = null
     },
 
+    onRichEditorUpdate(html) {
+      const md = this.htmlToMarkdown(html)
+      if (md !== this.content) {
+        this.content = md
+      }
+    },
+
     updateContentFromWysiwyg() {
-      if (this.$refs.wysiwygEditor) {
-        const html = this.$refs.wysiwygEditor.innerHTML
+      const html = this.$refs.richEditor?.getContent()
+      if (html !== undefined) {
         const md = this.htmlToMarkdown(html)
         if (md !== this.content) {
           this.content = md
@@ -1456,7 +1434,7 @@ export default {
           const src = uploaded.public_url || uploaded.file_path
           if (!src) throw new Error('Upload succeeded but no image URL returned')
 
-          const editor = this.$refs.wysiwygEditor
+          const editor = this.$refs.richEditor?.getEditorEl()
           if (editor) {
             const selection = window.getSelection()
             let insertedAtCaret = false
