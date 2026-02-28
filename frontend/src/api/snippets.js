@@ -32,3 +32,7 @@ export async function setSnippetTags(id, tagIds) {
     body: JSON.stringify({ tag_ids: tagIds }),
   })
 }
+
+export async function getSnippetUsage(id) {
+  return apiRequest(`/api/snippets/${id}/usage`)
+}

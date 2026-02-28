@@ -398,6 +398,7 @@
 import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE } from '@/api/base'
+import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
 import SnippetSelector from '@/components/SnippetSelector.vue'
@@ -576,6 +577,21 @@ export default {
         rendered += '<div class="image-warning" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>📝 Formatting Note:</strong> This topic contains Pandoc-style attributes that aren\'t displayed in the editor. For size control, use HTML: &lt;img src="/images/file.png" width="500"&gt;</div>'
       }
       
+      // Post-process: in preview, replace snippet placeholders with just their content (no wrapper)
+      if (rendered.includes('sd-snippet-ref')) {
+        const tmp = document.createElement('div')
+        tmp.innerHTML = rendered
+        tmp.querySelectorAll('.sd-snippet-ref').forEach(el => {
+          const body = el.querySelector('.sd-snippet-body')
+          if (body) {
+            el.replaceWith(...Array.from(body.childNodes))
+          } else {
+            el.remove()
+          }
+        })
+        rendered = tmp.innerHTML
+      }
+
       return rendered
     },
     pageTitle() {
@@ -1077,8 +1093,8 @@ export default {
         const result = await response.json()
         
         if (!this.topicId && result.id) {
-          // New topic created, emit the ID
-          this.$emit('update:topicId', result.id)
+          // New topic created, emit the full result so parent can preserve content
+          this.$emit('update:topicId', result)
         } else {
           // Existing topic updated
           this.$emit('save', result)
@@ -1244,22 +1260,24 @@ export default {
 
     insertSnippet(snippet) {
       this.showSnippetSelector = false
-      const placeholder = `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;padding:0.5rem 0.75rem;margin:0.5rem 0;background:#f0f4ff;color:#205493;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''}</div>`
+      const snippetHtml = snippet.content ? marked.parse(snippet.content) : '<em>(empty snippet)</em>'
+      const tagInfo = snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''
+      const placeholder = `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
 
       if (this.editorMode === 'wysiwyg') {
         this.restoreWysiwygSelection()
         document.execCommand('insertHTML', false, placeholder)
         this.updateContentFromWysiwyg()
       } else {
-        // In markdown mode, insert as raw HTML block
+        // In markdown mode, insert as raw HTML block; blank lines ensure block-level treatment
         const ta = this.$refs.markdownEditor
         if (ta) {
           const start = ta.selectionStart
           const before = this.content.slice(0, start)
           const after = this.content.slice(start)
-          this.content = before + '\n' + placeholder + '\n' + after
+          this.content = before + '\n\n' + placeholder + '\n\n' + after
         } else {
-          this.content += '\n' + placeholder + '\n'
+          this.content += '\n\n' + placeholder + '\n\n'
         }
       }
       this.savedWysiwygRange = null
@@ -1283,116 +1301,7 @@ export default {
     },
 
     htmlToMarkdown(html) {
-      const parser = new DOMParser()
-      const doc = parser.parseFromString(html || '', 'text/html')
-
-      const normalizeSoftWrappedText = (text) => {
-        const lines = text.split('\n')
-        const out = []
-        let buffer = []
-
-        const flushBuffer = () => {
-          if (!buffer.length) return
-          const merged = buffer
-            .join(' ')
-            .replace(/\s{2,}/g, ' ')
-            .trim()
-          if (merged) out.push(merged)
-          buffer = []
-        }
-
-        const isStructuralLine = (line) => {
-          const t = line.trim()
-          if (!t) return true
-          return /^(#{1,6}\s+|[-*+]\s+|\d+\.\s+|>\s*|```|\|.*\||-{3,}$|!\[|\[[^\]]+\]:)/.test(t)
-        }
-
-        lines.forEach(line => {
-          if (!line.trim()) {
-            flushBuffer()
-            out.push('')
-            return
-          }
-
-          if (isStructuralLine(line)) {
-            flushBuffer()
-            out.push(line.trimEnd())
-            return
-          }
-
-          buffer.push(line.trim())
-        })
-
-        flushBuffer()
-
-        return out
-          .join('\n')
-          .replace(/\n{3,}/g, '\n\n')
-      }
-
-      const renderChildren = (node) => {
-        let out = ''
-        node.childNodes.forEach(child => {
-          out += renderNode(child)
-        })
-        return out
-      }
-
-      const renderList = (listNode, isOrdered) => {
-        let index = 1
-        const lines = []
-        listNode.childNodes.forEach(child => {
-          if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== 'li') return
-          const item = renderChildren(child).replace(/\n+/g, ' ').trim()
-          if (!item) return
-          const marker = isOrdered ? `${index}. ` : '- '
-          lines.push(`${marker}${item}`)
-          index += 1
-        })
-        return lines.join('\n') + '\n\n'
-      }
-
-      const renderNode = (node) => {
-        if (node.nodeType === Node.TEXT_NODE) {
-          return node.textContent || ''
-        }
-
-        if (!(node instanceof HTMLElement)) return ''
-
-        const tag = node.tagName.toLowerCase()
-
-        if (tag === 'br') return '\n'
-        if (tag === 'h1') return `# ${renderChildren(node).trim()}\n\n`
-        if (tag === 'h2') return `## ${renderChildren(node).trim()}\n\n`
-        if (tag === 'h3') return `### ${renderChildren(node).trim()}\n\n`
-        if (tag === 'strong' || tag === 'b') return `**${renderChildren(node)}**`
-        if (tag === 'em' || tag === 'i') return `*${renderChildren(node)}*`
-        if (tag === 'code') return `\`${renderChildren(node).replace(/\n/g, ' ').trim()}\``
-        if (tag === 'a') {
-          const href = node.getAttribute('href') || ''
-          const text = renderChildren(node).trim() || href
-          return href ? `[${text}](${href})` : text
-        }
-        if (tag === 'img') {
-          const src = node.getAttribute('src') || ''
-          const alt = node.getAttribute('alt') || 'Image'
-          return src ? `![${alt}](${src})` : ''
-        }
-        if (tag === 'ul') return renderList(node, false)
-        if (tag === 'ol') return renderList(node, true)
-        if (tag === 'li') return `${renderChildren(node).trim()}\n`
-        if (tag === 'p' || tag === 'div') return `${renderChildren(node).trim()}\n\n`
-
-        return renderChildren(node)
-      }
-
-      const markdown = renderChildren(doc.body)
-        .replace(/\u00a0/g, ' ')
-        .replace(/[ \t]+\n/g, '\n')
-        .replace(/\n{3,}/g, '\n\n')
-
-      return normalizeSoftWrappedText(markdown)
-        .trim()
+      return htmlToMarkdown(html)
     },
 
     async handleWysiwygPaste(event) {
