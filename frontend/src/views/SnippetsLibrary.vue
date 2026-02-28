@@ -20,7 +20,10 @@
             :class="{ active: selected && selected.id === s.id }"
             @click="selectSnippet(s)"
           >
-            <div class="snippet-name">{{ s.title }}</div>
+            <div class="snippet-name">
+                {{ s.title }}
+                <span v-if="s.usage_count > 0" class="usage-badge" :title="`Used in ${s.usage_count} topic(s)`">{{ s.usage_count }}</span>
+              </div>
             <div class="snippet-tag-row">
               <span v-for="tag in s.tags" :key="tag.id" class="tag-badge">{{ tag.name }}</span>
               <span v-if="!s.tags || s.tags.length === 0" class="no-tags">No audience tags</span>
@@ -42,7 +45,10 @@
           <div class="form-header">
             <h2>{{ creating ? 'New Snippet' : 'Edit Snippet' }}</h2>
             <div class="form-header-actions">
-              <button v-if="!creating" type="button" class="btn-delete" @click="confirmDelete">🗑 Delete</button>
+              <button v-if="!creating" type="button" class="btn-delete"
+                :disabled="selected && selected.usage_count > 0"
+                :title="selected && selected.usage_count > 0 ? 'Cannot delete: used in topics' : 'Delete snippet'"
+                @click="confirmDelete">🗑 Delete</button>
             </div>
           </div>
 
@@ -72,7 +78,7 @@
             <div v-if="editorMode === 'markdown'" class="markdown-editor-wrap">
               <textarea v-model="form.content" class="markdown-textarea" rows="12" placeholder="Write content in Markdown…"></textarea>
             </div>
-            <RichTextEditor v-else-if="editorMode === 'wysiwyg'" v-model="form.content" />
+            <RichTextEditor v-else-if="editorMode === 'wysiwyg'" ref="richEditor" @update:model-value="onRichEditorUpdate" />
             <div v-else class="preview-content" v-html="renderedContent"></div>
           </div>
 
@@ -82,6 +88,17 @@
             </button>
             <button type="button" class="btn-cancel" @click="cancel">Cancel</button>
             <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
+          </div>
+
+          <div v-if="!creating && usageTopics.length > 0" class="usage-section">
+            <h4 class="usage-title">Used in {{ usageTopics.length }} topic{{ usageTopics.length > 1 ? 's' : '' }}</h4>
+            <ul class="usage-list">
+              <li v-for="t in usageTopics" :key="t.id" class="usage-item">
+                <span v-if="t.project" class="usage-breadcrumb">{{ t.project }} › {{ t.collection }} › </span>
+                <span v-else-if="t.collection" class="usage-breadcrumb">{{ t.collection }} › </span>
+                <strong>{{ t.title }}</strong>
+              </li>
+            </ul>
           </div>
         </form>
       </section>
@@ -102,8 +119,9 @@
 </template>
 
 <script>
-import { listSnippets, createSnippet, updateSnippet, deleteSnippet } from '@/api/snippets.js'
+import { listSnippets, createSnippet, updateSnippet, deleteSnippet, getSnippetUsage } from '@/api/snippets.js'
 import { marked } from 'marked'
+import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import TagEditor from '@/components/TagEditor.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
@@ -120,7 +138,8 @@ export default {
       saving: false,
       saveMsg: '',
       showDeleteConfirm: false,
-      editorMode: 'wysiwyg',
+      editorMode: 'markdown',
+      usageTopics: [],
     }
   },
   computed: {
@@ -136,6 +155,16 @@ export default {
   async mounted() {
     await this.loadSnippets()
   },
+  watch: {
+    editorMode(newMode) {
+      if (newMode === 'wysiwyg') {
+        this.$nextTick(() => {
+          const html = this.renderedContent
+          this.$refs.richEditor?.setContent(html)
+        })
+      }
+    },
+  },
   methods: {
     async loadSnippets() {
       try {
@@ -148,19 +177,36 @@ export default {
       this.creating = false
       this.selected = s
       this.form = { title: s.title, content: s.content || '' }
-      this.editorMode = 'wysiwyg'
+      this.editorMode = 'markdown'
+      this.usageTopics = []
+      this.loadUsage(s.id)
     },
     startNew() {
       this.creating = true
       this.selected = null
       this.form = { title: '', content: '' }
-      this.editorMode = 'wysiwyg'
+      this.editorMode = 'markdown'
+      this.usageTopics = []
     },
     cancel() {
       this.creating = false
       this.selected = null
       this.form = { title: '', content: '' }
-      this.editorMode = 'wysiwyg'
+      this.editorMode = 'markdown'
+      this.usageTopics = []
+    },
+    async loadUsage(snippetId) {
+      try {
+        this.usageTopics = await getSnippetUsage(snippetId)
+      } catch (e) {
+        console.error('Failed to load snippet usage', e)
+      }
+    },
+    onRichEditorUpdate(html) {
+      const md = htmlToMarkdown(html)
+      if (md !== this.form.content) {
+        this.form.content = md
+      }
     },
     async save() {
       if (!this.form.title.trim()) return
@@ -172,6 +218,7 @@ export default {
           this.snippets.unshift(created)
           this.creating = false
           this.selected = created
+          this.loadUsage(created.id)
         } else {
           const updated = await updateSnippet(this.selected.id, { title: this.form.title, content: this.form.content })
           const idx = this.snippets.findIndex(s => s.id === this.selected.id)
@@ -269,7 +316,15 @@ export default {
 }
 .snippet-list-item:hover { background: #e9ecef; }
 .snippet-list-item.active { background: #e8eef7; border-left-color: #205493; }
-.snippet-name { font-size: 0.88rem; font-weight: 500; color: #212529; }
+.snippet-name {
+  font-size: 0.88rem; font-weight: 500; color: #212529;
+  display: flex; align-items: center; gap: 0.4rem;
+}
+.usage-badge {
+  background: #205493; color: #fff;
+  border-radius: 10px; padding: 0.05rem 0.45rem;
+  font-size: 0.7rem; font-weight: 600; line-height: 1.4;
+}
 .snippet-tag-row { margin-top: 0.2rem; display: flex; flex-wrap: wrap; gap: 0.2rem; }
 .tag-badge {
   background: #e3f2fd; color: #1565c0; border: 1px solid #bbdefb;
@@ -369,9 +424,20 @@ export default {
   background: #dc3545; color: #fff; border: none;
   border-radius: 6px; padding: 0.4rem 0.75rem; font-size: 0.85rem; cursor: pointer;
 }
-.btn-delete:hover { background: #b02a37; }
+.btn-delete:hover:not(:disabled) { background: #b02a37; }
+.btn-delete:disabled { opacity: 0.45; cursor: not-allowed; }
 .save-msg { color: #198754; font-size: 0.85rem; }
 .form-header-actions { display: flex; gap: 0.5rem; }
+
+.usage-section {
+  border-top: 1px solid #dee2e6;
+  padding-top: 0.75rem;
+  margin-top: 0.5rem;
+}
+.usage-title { margin: 0 0 0.4rem; font-size: 0.85rem; color: #495057; font-weight: 600; }
+.usage-list { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; gap: 0.25rem; }
+.usage-item { font-size: 0.85rem; color: #212529; }
+.usage-breadcrumb { color: #6c757d; font-size: 0.8rem; }
 
 /* Delete confirm modal */
 .modal-overlay {

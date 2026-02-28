@@ -85,8 +85,15 @@ export default {
   },
 
   methods: {
-    // Called when TopicEditor emits a new ID (POST)
-    onTopicCreated(newId) {
+    // Called when TopicEditor emits a new ID (POST); result may be the full topic object or just an ID
+    onTopicCreated(result) {
+      const newId = result?.id ?? result
+      // Populate topic so the edit view shows the just-created content without a blank flash
+      this.topic = {
+        title: result?.title || '',
+        content: result?.content || '',
+        frontmatter: result?.frontmatter || ''
+      }
       this.topicId = newId
       this.showConfirmation(`✅ Topic ${newId} created successfully`)
       this.$router.replace({ name: 'EditTopic', params: { id: newId } })

@@ -1,16 +1,49 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from backend.extensions import db
-from backend.models import Snippet, EntityTag, Tag
+from backend.models import Snippet, EntityTag, Tag, Topic
 
 snippets_bp = Blueprint('snippets', __name__, url_prefix='/api/snippets')
 
 
 def _attach_tags(snippet_dict, snippet_id):
-    """Attach tag list to a snippet dict."""
+    """Attach tag list and usage count to a snippet dict."""
     entity_tags = EntityTag.query.filter_by(entity_type='snippet', entity_id=snippet_id).all()
     snippet_dict['tags'] = [et.to_dict() for et in entity_tags]
+    snippet_dict['usage_count'] = _count_usage(snippet_id)
     return snippet_dict
+
+
+def _count_usage(snippet_id):
+    """Count topics whose content references this snippet."""
+    return Topic.query.filter(
+        Topic.content.like(f'%data-snippet-id="{snippet_id}"%')
+    ).count()
+
+
+def _get_usage_topics(snippet_id):
+    """Return list of topics that reference this snippet."""
+    from backend.models import Collection, Project
+    topics = Topic.query.filter(
+        Topic.content.like(f'%data-snippet-id="{snippet_id}"%')
+    ).all()
+    result = []
+    for t in topics:
+        entry = {'id': t.id, 'title': t.title}
+        # Try to attach collection/project breadcrumb
+        try:
+            if t.collection_id:
+                col = Collection.query.get(t.collection_id)
+                if col:
+                    entry['collection'] = col.name
+                    if col.project_id:
+                        proj = Project.query.get(col.project_id)
+                        if proj:
+                            entry['project'] = proj.name
+        except Exception:
+            pass
+        result.append(entry)
+    return result
 
 
 @snippets_bp.route('', methods=['GET'])
@@ -58,10 +91,19 @@ def update_snippet(snippet_id):
 @jwt_required()
 def delete_snippet(snippet_id):
     snippet = Snippet.query.get_or_404(snippet_id)
+    if _count_usage(snippet_id) > 0:
+        return jsonify({'error': 'Cannot delete: snippet is used in one or more topics.'}), 409
     EntityTag.query.filter_by(entity_type='snippet', entity_id=snippet_id).delete()
     db.session.delete(snippet)
     db.session.commit()
     return jsonify({'message': 'Snippet deleted'}), 200
+
+
+@snippets_bp.route('/<int:snippet_id>/usage', methods=['GET'])
+@jwt_required()
+def snippet_usage(snippet_id):
+    Snippet.query.get_or_404(snippet_id)
+    return jsonify(_get_usage_topics(snippet_id))
 
 
 @snippets_bp.route('/<int:snippet_id>/tags', methods=['PUT'])
