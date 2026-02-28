@@ -493,6 +493,17 @@ p { color: #666; }
                     Snippet.__table__.create(bind=db.engine, checkfirst=True)
                 except Exception as _snip_e:
                     print(f"⚠️ Could not create snippets fallback table: {_snip_e}")
+
+            # Safety net: ensure tags / entity_tags tables exist (used by snippets, topics, etc.)
+            for _model_name, _table_name in [('Tag', 'tags'), ('EntityTag', 'entity_tags')]:
+                if _table_name not in existing_tables:
+                    try:
+                        from backend import models as _models
+                        _model_cls = getattr(_models, _model_name)
+                        print(f"🛠  Creating missing table: {_table_name} (fallback until migration applied)")
+                        _model_cls.__table__.create(bind=db.engine, checkfirst=True)
+                    except Exception as _tag_e:
+                        print(f"⚠️ Could not create {_table_name} fallback table: {_tag_e}")
         except Exception as _crit_e:
             print(f"⚠️ Could not ensure critical tables: {_crit_e}")
         
