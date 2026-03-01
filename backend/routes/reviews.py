@@ -30,7 +30,9 @@ def get_review_details(review_id):
     """Get details for a specific review"""
     try:
         review = Review.query.get_or_404(review_id)
-        return jsonify(review.to_dict())
+        data = review.to_dict()
+        data['feedback_items'] = [item.to_dict() for item in review.feedback_items]
+        return jsonify(data)
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
