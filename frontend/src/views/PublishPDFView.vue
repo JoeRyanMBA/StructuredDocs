@@ -39,7 +39,7 @@
           <p class="publication-description">{{ pub.description || 'No description' }}</p>
           <div class="card-actions">
             <button @click.stop="downloadPDF(pub)" class="export-btn">
-              📄 Download PDF
+              📄 Export PDF
             </button>
           </div>
         </div>

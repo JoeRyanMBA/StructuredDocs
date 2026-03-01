@@ -34,7 +34,7 @@
           </div>
           <div class="recent-actions">
             <button @click.stop="previewMobileKB(pub.id)" class="btn-preview btn-compact">Preview</button>
-            <button @click.stop="exportMobileKB(pub.id)" class="btn-export btn-compact">Download</button>
+            <button @click.stop="exportMobileKB(pub.id)" class="btn-export btn-compact">Export KB</button>
           </div>
         </div>
       </div>
