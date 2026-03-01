@@ -50,6 +50,54 @@
         </div>
       </div>
 
+      <!-- Structured Feedback Items -->
+      <div v-if="review?.feedback_items?.length" class="card mb-4">
+        <div class="card-header bg-danger text-white">
+          <h4 class="card-title mb-0">
+            <i class="bi bi-list-check me-2"></i>
+            Requested Changes ({{ review.feedback_items.length }})
+          </h4>
+        </div>
+        <div class="card-body p-0">
+          <div
+            v-for="(item, index) in review.feedback_items"
+            :key="item.id"
+            class="feedback-item"
+            :class="'priority-border-' + item.priority"
+          >
+            <div class="feedback-item-header">
+              <span class="feedback-index">#{{ index + 1 }}</span>
+              <span class="feedback-type-badge">{{ formatFeedbackType(item.feedback_type) }}</span>
+              <span v-if="item.section_title" class="feedback-section">
+                <i class="bi bi-bookmark me-1"></i>{{ item.section_title }}
+              </span>
+              <span class="ms-auto d-flex gap-2">
+                <span class="priority-pill" :class="'priority-' + item.priority">{{ item.priority }}</span>
+                <span class="impact-pill" :class="'impact-' + item.impact">{{ item.impact }}</span>
+              </span>
+            </div>
+
+            <div v-if="item.original_text || item.suggested_text" class="text-comparison">
+              <div v-if="item.original_text" class="text-block original">
+                <div class="text-block-label">Original</div>
+                <div class="text-block-content">{{ item.original_text }}</div>
+              </div>
+              <div v-if="item.suggested_text" class="text-block suggested">
+                <div class="text-block-label">Suggested</div>
+                <div class="text-block-content">{{ item.suggested_text }}</div>
+              </div>
+            </div>
+
+            <div v-if="item.comment" class="feedback-comment">
+              <strong>Comment:</strong> {{ item.comment }}
+            </div>
+            <div v-if="item.rationale" class="feedback-rationale">
+              <strong>Rationale:</strong> {{ item.rationale }}
+            </div>
+          </div>
+        </div>
+      </div>
+
       <!-- Review Feedback -->
       <div class="card mb-4">
         <div class="card-header bg-warning text-dark">
@@ -197,6 +245,19 @@ export default {
       }
     },
 
+    formatFeedbackType(type) {
+      const labels = {
+        'general_comment': 'General Comment',
+        'text_edit': 'Text Edit',
+        'text_addition': 'Addition',
+        'text_deletion': 'Deletion',
+        'structural_change': 'Structural Change',
+        'technical_correction': 'Technical Correction',
+        'style_suggestion': 'Style Suggestion'
+      }
+      return labels[type] || type
+    },
+
     formatStatus(status) {
       if (!status) return 'Unknown'
       return status.split('_').map(word => 
@@ -224,8 +285,7 @@ export default {
     },
 
     editTopic() {
-      // Navigate to topic edit page
-      this.$router.push(`/topics/${this.topicId}/edit`)
+      this.$router.push(`/topics/${this.topicId}/edit?reviewId=${this.reviewId}`)
     },
 
     goBack() {
@@ -241,6 +301,87 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.feedback-item {
+  border-bottom: 1px solid #dee2e6;
+  padding: 1rem 1.25rem;
+}
+.feedback-item:last-child { border-bottom: none; }
+.priority-border-critical { border-left: 4px solid #dc3545; }
+.priority-border-high     { border-left: 4px solid #fd7e14; }
+.priority-border-medium   { border-left: 4px solid #ffc107; }
+.priority-border-low      { border-left: 4px solid #198754; }
+
+.feedback-item-header {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+.feedback-index {
+  font-weight: 700;
+  color: #6c757d;
+  font-size: 0.85rem;
+}
+.feedback-type-badge {
+  background: #e9ecef;
+  color: #495057;
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.55rem;
+  border-radius: 4px;
+}
+.feedback-section {
+  font-size: 0.82rem;
+  color: #0d6efd;
+}
+.priority-pill, .impact-pill {
+  font-size: 0.7rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.15rem 0.45rem;
+  border-radius: 3px;
+}
+.priority-critical { background:#f8d7da; color:#842029; }
+.priority-high     { background:#ffe5d0; color:#7c3a00; }
+.priority-medium   { background:#fff3cd; color:#664d03; }
+.priority-low      { background:#d1e7dd; color:#0a3622; }
+.impact-major    { background:#f8d7da; color:#842029; }
+.impact-moderate { background:#fff3cd; color:#664d03; }
+.impact-minor    { background:#d1e7dd; color:#0a3622; }
+
+.text-comparison {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+@media (max-width: 600px) { .text-comparison { grid-template-columns: 1fr; } }
+
+.text-block { border-radius: 4px; overflow: hidden; }
+.text-block-label {
+  font-size: 0.72rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  padding: 0.2rem 0.6rem;
+}
+.text-block-content {
+  padding: 0.5rem 0.75rem;
+  font-size: 0.88rem;
+  white-space: pre-wrap;
+  word-break: break-word;
+}
+.text-block.original .text-block-label  { background:#f8d7da; color:#842029; }
+.text-block.original .text-block-content { background:#fff5f5; border: 1px solid #f5c2c7; }
+.text-block.suggested .text-block-label { background:#d1e7dd; color:#0a3622; }
+.text-block.suggested .text-block-content { background:#f0fff4; border: 1px solid #badbcc; }
+
+.feedback-comment, .feedback-rationale {
+  font-size: 0.88rem;
+  margin-top: 0.4rem;
+  color: #343a40;
 }
 
 .feedback-content h5,
