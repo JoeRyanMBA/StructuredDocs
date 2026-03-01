@@ -4,6 +4,7 @@ Flask-Migrate
 Flask-CORS
 python-docx
 beautifulsoup4
+mistune
 Flask
 reportlab
 psutil
