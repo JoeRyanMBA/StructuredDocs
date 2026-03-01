@@ -25,7 +25,7 @@
               v-model="searchQuery"
               type="text"
               class="filter-input"
-              placeholder="Search milestones..."
+              placeholder="Search milestones or #id..."
               @input="applyFilters"
             />
           </div>
@@ -280,12 +280,17 @@ export default {
       let filtered = [...this.milestones]
       
       if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(milestone => 
-          milestone.name.toLowerCase().includes(query) ||
-          (milestone.description && milestone.description.toLowerCase().includes(query)) ||
-          (milestone.project_name && milestone.project_name.toLowerCase().includes(query))
-        )
+        const query = this.searchQuery.toLowerCase().trim()
+        const idMatch = query.match(/^#?(\d+)$/)
+        if (idMatch) {
+          filtered = filtered.filter(milestone => milestone.id === parseInt(idMatch[1]))
+        } else {
+          filtered = filtered.filter(milestone => 
+            milestone.name.toLowerCase().includes(query) ||
+            (milestone.description && milestone.description.toLowerCase().includes(query)) ||
+            (milestone.project_name && milestone.project_name.toLowerCase().includes(query))
+          )
+        }
       }
       
       if (this.projectFilter) {

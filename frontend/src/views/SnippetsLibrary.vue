@@ -9,7 +9,7 @@
       <!-- List panel -->
       <aside class="snippet-list-panel">
         <div class="panel-toolbar">
-          <input v-model="search" type="text" class="search-input" placeholder="Search snippets…" />
+          <input v-model="search" type="text" class="search-input" placeholder="Search snippets or #id…" />
           <button class="btn-new" @click="startNew">+ New Snippet</button>
         </div>
         <ul class="snippet-list">
@@ -22,6 +22,7 @@
           >
             <div class="snippet-name">
                 {{ s.title }}
+                <span class="snippet-id-pill">#{{ s.id }}</span>
                 <span v-if="s.usage_count > 0" class="usage-badge" :title="`Used in ${s.usage_count} topic(s)`">{{ s.usage_count }}</span>
               </div>
             <div class="snippet-tag-row">
@@ -43,7 +44,10 @@
 
         <form v-else @submit.prevent="save" class="editor-form">
           <div class="form-header">
-            <h2>{{ creating ? 'New Snippet' : 'Edit Snippet' }}</h2>
+            <h2>
+              {{ creating ? 'New Snippet' : 'Edit Snippet' }}
+              <span v-if="!creating && selected" class="object-id-badge" title="Snippet ID">#{{ selected.id }}</span>
+            </h2>
             <div class="form-header-actions">
               <button v-if="!creating" type="button" class="btn-delete"
                 :disabled="selected && selected.usage_count > 0"
@@ -144,7 +148,11 @@ export default {
   },
   computed: {
     filtered() {
-      const q = this.search.toLowerCase()
+      const q = this.search.toLowerCase().trim()
+      if (!q) return this.snippets
+      // Support search by ID with # prefix (e.g. "#42") or plain number
+      const idMatch = q.match(/^#?(\d+)$/)
+      if (idMatch) return this.snippets.filter(s => s.id === parseInt(idMatch[1]))
       return this.snippets.filter(s => s.title.toLowerCase().includes(q))
     },
     renderedContent() {
@@ -452,4 +460,29 @@ export default {
 .confirm-modal h3 { margin: 0 0 0.5rem; }
 .confirm-modal p { margin: 0 0 1rem; font-size: 0.9rem; color: #495057; }
 .confirm-actions { display: flex; gap: 0.75rem; }
+
+.object-id-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5a6a8a;
+  background: #e8eef7;
+  border: 1px solid #c5d3f0;
+  border-radius: 10px;
+  padding: 0.1rem 0.5rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  letter-spacing: 0.01em;
+}
+.snippet-id-pill {
+  display: inline-block;
+  font-size: 0.7rem;
+  color: #8a9bb5;
+  background: #f0f4ff;
+  border: 1px solid #d0d9f0;
+  border-radius: 8px;
+  padding: 0.05rem 0.35rem;
+  margin-left: 0.25rem;
+  vertical-align: middle;
+}
 </style>

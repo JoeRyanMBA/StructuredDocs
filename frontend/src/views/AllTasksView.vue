@@ -24,7 +24,7 @@
               v-model="searchQuery"
               type="text"
               class="search-input"
-              placeholder="Search tasks..."
+              placeholder="Search tasks or #id..."
               @keyup.enter="applyFilters"
             />
             <span class="search-icon" @click="applyFilters">🔍</span>
@@ -434,11 +434,16 @@ export default {
       let filtered = [...this.tasks]
       
       if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(task => 
-          task.title.toLowerCase().includes(query) ||
-          (task.description && task.description.toLowerCase().includes(query))
-        )
+        const query = this.searchQuery.toLowerCase().trim()
+        const idMatch = query.match(/^#?(\d+)$/)
+        if (idMatch) {
+          filtered = filtered.filter(task => task.id === parseInt(idMatch[1]))
+        } else {
+          filtered = filtered.filter(task => 
+            task.title.toLowerCase().includes(query) ||
+            (task.description && task.description.toLowerCase().includes(query))
+          )
+        }
       }
       
       if (this.statusFilter) {
