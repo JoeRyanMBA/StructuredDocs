@@ -9,6 +9,7 @@ import io
 import json
 import traceback
 from bs4 import BeautifulSoup
+import mistune
 from reportlab.lib.pagesizes import letter, A4
 
 
@@ -42,7 +43,8 @@ def resolve_snippets(content, selected_tag_ids):
         if snippet_tag_ids & selected:
             snippet = Snippet.query.get(snippet_id)
             if snippet and snippet.content:
-                placeholder.replace_with(BeautifulSoup(snippet.content, 'html.parser'))
+                snippet_html = mistune.html(snippet.content)
+                placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
             else:
                 placeholder.decompose()
         else:
