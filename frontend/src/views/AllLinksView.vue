@@ -164,6 +164,10 @@
           <div class="link-details">
             <div class="detail-main">
               <div class="detail-group">
+                <label>ID:</label>
+                <span class="text-muted">#{{ selectedLink.id }}</span>
+              </div>
+              <div class="detail-group">
                 <label>Title:</label>
                 <span>{{ selectedLink.title }}</span>
               </div>

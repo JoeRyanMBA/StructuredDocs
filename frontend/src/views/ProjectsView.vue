@@ -364,7 +364,7 @@
   <div v-if="showEditModal" class="modal-overlay" @click.self="showEditModal = false">
     <div class="modal large-modal" @click.stop>
       <div class="modal-header-row modal-header">
-        <h2>Edit Project: {{ editingProject.name || 'Loading...' }}</h2>
+        <h2>Edit Project: {{ editingProject.name || 'Loading...' }} <small class="text-muted" style="font-size:0.6em;font-weight:normal;">#{{ editingProject.id }}</small></h2>
         <button @click="showEditModal = false" class="plain-close close-btn">×</button>
       </div>
       <form @submit.prevent="handleUpdateProject" class="modal-body">
