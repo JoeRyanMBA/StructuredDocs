@@ -98,6 +98,12 @@ export function htmlToMarkdown(html) {
     if (tag === 'ul') return renderList(node, false)
     if (tag === 'ol') return renderList(node, true)
     if (tag === 'li') return `${renderChildren(node).trim()}\n`
+    if (tag === 'div' && node.classList.contains('sd-snippet-ref')) {
+      const snippetId = node.getAttribute('data-snippet-id')
+      if (snippetId) {
+        return `<div class="sd-snippet-ref" data-snippet-id="${snippetId}"></div>\n\n`
+      }
+    }
     if (tag === 'p' || tag === 'div') return `${renderChildren(node).trim()}\n\n`
 
     return renderChildren(node)
