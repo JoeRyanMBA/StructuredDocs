@@ -76,8 +76,8 @@
               <td>
                 <button @click="viewPublication(publication)" class="table-btn">View</button>
                 <button @click="editPublication(publication)" class="table-btn">Edit</button>
-                <button @click="downloadMobileKB(publication)" class="table-btn">Download KB</button>
-                <button @click="downloadPDF(publication)" class="table-btn">Download PDF</button>
+                <button @click="downloadMobileKB(publication)" class="table-btn">Export KB</button>
+                <button @click="downloadPDF(publication)" class="table-btn">Export PDF</button>
               </td>
             </tr>
           </tbody>
@@ -143,8 +143,8 @@
               <div class="card-footer">
                 <span class="card-date">Updated {{ formatRelativeTime(publication.updated_at || publication.created_at) }}</span>
                 <div class="card-actions">
-                  <button v-if="publication.status === 'published'" @click.stop="downloadPublication(publication)" class="card-action-btn primary">Download</button>
-                  <button v-else-if="publication.status === 'draft'" @click.stop="publishNow(publication)" class="card-action-btn primary">Publish</button>
+                  <button v-if="publication.status === 'published'" @click.stop="downloadPublication(publication)" class="card-action-btn primary">Export PDF</button>
+                  <button v-else-if="publication.status === 'draft'" @click.stop="publishNow(publication)" class="card-action-btn primary">Save Snapshot</button>
                   <button @click.stop="editPublication(publication)" class="card-action-btn">Edit</button>
                 </div>
               </div>
