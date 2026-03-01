@@ -219,13 +219,13 @@
                 @click="goPublishHtml(currentCollection.id, $event)"
                 class="publish-btn publish-html"
               >
-                🔗 Publish HTML
+                🔗 Save & Export HTML
               </button>
               <button
                 @click="goPublishPdf(currentCollection.id, $event)"
                 class="publish-btn publish-pdf"
               >
-                📋 Publish PDF
+                📋 Save & Export PDF
               </button>
             </div>
             <div v-else class="empty-collection">
@@ -236,14 +236,14 @@
                   class="publish-btn-disabled"
                   title="This will create an empty HTML publication"
                 >
-                  🔗 Publish Empty HTML
-                </button>
+                  🔗 Save & Export Empty HTML
+                 </button>
                 <button
                   @click="goPublishPdf(currentCollection.id, $event)"
                   class="publish-btn-disabled"
                   title="This will create an empty PDF publication"
                 >
-                  📋 Publish Empty PDF
+                  📋 Save & Export Empty PDF
                 </button>
               </div>
             </div>
@@ -1298,7 +1298,7 @@ export default {
         
         if (button) {
           button.disabled = false
-          button.textContent = '🔗 Publish HTML'
+          button.textContent = '🔗 Save & Export HTML'
         }
       }
     },
@@ -1346,7 +1346,7 @@ export default {
         
         if (button) {
           button.disabled = false
-          button.textContent = '📋 Publish PDF'
+          button.textContent = '📋 Save & Export PDF'
         }
       }
   },
@@ -1355,8 +1355,8 @@ export default {
         const btn = this.pendingPublishAction.button
         const type = this.pendingPublishAction.type
         btn.disabled = false
-        if (type === 'html') btn.textContent = '🔗 Publish HTML'
-        else if (type === 'pdf') btn.textContent = ' Publish PDF'
+        if (type === 'html') btn.textContent = '🔗 Save & Export HTML'
+        else if (type === 'pdf') btn.textContent = '📋 Save & Export PDF'
         else if (type === 'configure-only') btn.textContent = '⚙️ Configure Variables'
       }
       this.showVariableModal = false

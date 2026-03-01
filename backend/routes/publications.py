@@ -16,9 +16,10 @@ from reportlab.lib.pagesizes import letter, A4
 def resolve_snippets(content, selected_tag_ids):
     """Replace <div class="sd-snippet-ref" data-snippet-id="X"> placeholders.
 
-    If the snippet's tags intersect with selected_tag_ids, the placeholder is
-    replaced with the snippet's HTML content. Otherwise it is removed.
-    If selected_tag_ids is empty, all placeholders are removed.
+    If selected_tag_ids is empty, all snippet placeholders are replaced with
+    their content (no filtering). If selected_tag_ids is provided, only
+    snippets whose tags intersect with selected_tag_ids are included; others
+    are removed.
     """
     if not content:
         return content
@@ -31,11 +32,22 @@ def resolve_snippets(content, selected_tag_ids):
 
     for placeholder in placeholders:
         raw_id = placeholder.get('data-snippet-id')
-        if not raw_id or not str(raw_id).isdigit() or not selected:
+        if not raw_id or not str(raw_id).isdigit():
             placeholder.decompose()
             continue
 
         snippet_id = int(raw_id)
+
+        # When no audience tags are selected, include all snippets unconditionally
+        if not selected:
+            snippet = Snippet.query.get(snippet_id)
+            if snippet and snippet.content:
+                snippet_html = mistune.html(snippet.content)
+                placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
+            else:
+                placeholder.decompose()
+            continue
+
         snippet_tag_ids = {
             et.tag_id for et in EntityTag.query.filter_by(entity_type='snippet', entity_id=snippet_id).all()
         }
