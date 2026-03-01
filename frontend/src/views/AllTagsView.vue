@@ -51,7 +51,7 @@
             v-model="searchQuery"
             type="text"
             class="filter-input"
-            placeholder="Search tags..."
+            placeholder="Search tags or #id..."
             @keyup.enter="applyFilters"
           />
         </div>
@@ -256,11 +256,16 @@ export default {
       let filtered = Array.isArray(this.tags) ? [...this.tags] : this.normalizeTags(this.tags)
       
       if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(tag => {
-          const name = (tag && tag.name) ? String(tag.name) : ''
-          return name.toLowerCase().includes(query)
-        })
+        const query = this.searchQuery.toLowerCase().trim()
+        const idMatch = query.match(/^#?(\d+)$/)
+        if (idMatch) {
+          filtered = filtered.filter(tag => tag && tag.id === parseInt(idMatch[1]))
+        } else {
+          filtered = filtered.filter(tag => {
+            const name = (tag && tag.name) ? String(tag.name) : ''
+            return name.toLowerCase().includes(query)
+          })
+        }
       }
 
       const sorts = {

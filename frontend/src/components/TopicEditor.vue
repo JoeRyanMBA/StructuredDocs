@@ -10,7 +10,10 @@
       <!-- Topic Editor UI -->
       <div class="editor-container">
         <div class="editor-header">
-          <h2 class="page-heading">{{ pageTitle }}</h2>
+          <h2 class="page-heading">
+            {{ pageTitle }}
+            <span v-if="topicId" class="object-id-badge" title="Topic ID">#{{ topicId }}</span>
+          </h2>
           
           <!-- Save Status -->
           <div v-if="saveSuccess" class="save-status success">
@@ -2640,6 +2643,20 @@ export default {
 
 .btn-secondary:hover {
   background: #545b62;
+}
+
+.object-id-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5a6a8a;
+  background: #e8eef7;
+  border: 1px solid #c5d3f0;
+  border-radius: 10px;
+  padding: 0.1rem 0.5rem;
+  margin-left: 0.5rem;
+  vertical-align: middle;
+  letter-spacing: 0.01em;
 }
 
 /* Active Snippets Bar */

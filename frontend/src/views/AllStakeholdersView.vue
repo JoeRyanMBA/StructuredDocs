@@ -24,7 +24,7 @@
             <input
               v-model="searchQuery"
               type="text"
-              placeholder="Type your search term and press Enter..."
+              placeholder="Search stakeholders or #id..."
               class="filter-input"
               @input="applyFilters"
             />
@@ -356,15 +356,20 @@ export default {
       let filtered = [...this.stakeholders]
       
       if (this.searchQuery) {
-        const query = this.searchQuery.toLowerCase()
-        filtered = filtered.filter(stakeholder => 
-          stakeholder.name.toLowerCase().includes(query) ||
-          stakeholder.email.toLowerCase().includes(query) ||
-          (stakeholder.title && stakeholder.title.toLowerCase().includes(query)) ||
-          (stakeholder.organization && stakeholder.organization.toLowerCase().includes(query)) ||
-          (stakeholder.division && stakeholder.division.toLowerCase().includes(query)) ||
-          (stakeholder.department && stakeholder.department.toLowerCase().includes(query))
-        )
+        const query = this.searchQuery.toLowerCase().trim()
+        const idMatch = query.match(/^#?(\d+)$/)
+        if (idMatch) {
+          filtered = filtered.filter(stakeholder => stakeholder.id === parseInt(idMatch[1]))
+        } else {
+          filtered = filtered.filter(stakeholder => 
+            stakeholder.name.toLowerCase().includes(query) ||
+            stakeholder.email.toLowerCase().includes(query) ||
+            (stakeholder.title && stakeholder.title.toLowerCase().includes(query)) ||
+            (stakeholder.organization && stakeholder.organization.toLowerCase().includes(query)) ||
+            (stakeholder.division && stakeholder.division.toLowerCase().includes(query)) ||
+            (stakeholder.department && stakeholder.department.toLowerCase().includes(query))
+          )
+        }
       }
       
       if (this.statusFilter) {
