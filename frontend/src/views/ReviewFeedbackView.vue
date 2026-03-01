@@ -40,11 +40,11 @@
               <p><strong>Status:</strong> 
                 <span :class="statusBadgeClass">{{ formatStatus(topic?.status) }}</span>
               </p>
-              <p><strong>Author:</strong> {{ topic?.author_name }}</p>
+              <p><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
             </div>
             <div class="col-md-6">
               <p><strong>Last Updated:</strong> {{ formatDate(topic?.updated_at) }}</p>
-              <p><strong>Content Type:</strong> {{ topic?.content_type }}</p>
+              <p><strong>Priority:</strong> {{ review?.priority || '—' }}</p>
             </div>
           </div>
         </div>
