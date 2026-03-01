@@ -342,7 +342,10 @@ export default {
     },
 
     viewReview(review) {
-      if (review.topic_id) {
+      if (!review.topic_id) return
+      if (review.status === 'completed') {
+        this.$router.push(`/topics/${review.topic_id}/review-feedback/${review.id}`)
+      } else {
         this.$router.push(`/topics/${review.topic_id}/edit`)
       }
     },
