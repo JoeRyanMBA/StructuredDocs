@@ -115,7 +115,8 @@
               <button @click="insertMarkdown('1. ', '')" class="toolbar-btn">1. List</button>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
-              <button @click="openSnippetSelector" class="toolbar-btn">📎 Snippet</button>
+              <button @click="openSnippetSelector" class="toolbar-btn">📎 Insert Snippet</button>
+              <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
             </div>
             <textarea 
               ref="markdownEditor"
@@ -137,13 +138,26 @@
             <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
-              <button @click="openSnippetSelector" class="toolbar-btn">📎 Snippet</button>
+              <button @click="openSnippetSelector" class="toolbar-btn">📎 Insert Snippet</button>
+              <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
             </template>
           </RichTextEditor>
 
           <!-- Preview Mode -->
           <div v-if="editorMode === 'preview'" class="preview-mode">
             <div class="preview-content" v-html="renderedMarkdown"></div>
+          </div>
+        </div>
+
+        <!-- Active Snippets Bar -->
+        <div v-if="activeSnippets.length > 0" class="active-snippets-bar">
+          <div class="active-snippets-label">📎 Snippets in this topic:</div>
+          <div class="active-snippets-list">
+            <div v-for="s in activeSnippets" :key="s.id" class="active-snippet-item">
+              <span class="active-snippet-title">{{ s.title }}</span>
+              <button @click="openEditSnippet(s.id)" class="snip-action-btn snip-edit-btn" title="Edit snippet">✏️ Edit</button>
+              <button @click="removeSnippetFromContent(s.id)" class="snip-action-btn snip-remove-btn" title="Remove from topic">✕ Remove</button>
+            </div>
           </div>
         </div>
 
@@ -391,6 +405,77 @@
       @select="insertSnippet"
       @close="showSnippetSelector = false"
     />
+
+    <!-- Create Snippet Modal -->
+    <div v-if="showCreateSnippetModal" class="modal-overlay" @click.self="showCreateSnippetModal = false">
+      <div class="modal-content snippet-modal">
+        <div class="modal-header">
+          <h3>✂️ Create Snippet</h3>
+          <button class="close-btn" @click="showCreateSnippetModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Title <span class="required">*</span></label>
+          <input
+            v-model="createSnippetForm.title"
+            type="text"
+            class="form-control mb-3"
+            placeholder="Snippet title…"
+            autofocus
+          />
+          <label class="form-label">Content (Markdown)</label>
+          <textarea
+            v-model="createSnippetForm.content"
+            class="form-control snippet-content-area"
+            placeholder="Snippet content in Markdown…"
+            rows="8"
+          ></textarea>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-primary"
+            :disabled="!createSnippetForm.title.trim() || createSnippetSaving"
+            @click="submitCreateSnippet"
+          >{{ createSnippetSaving ? 'Creating…' : 'Create Snippet' }}</button>
+          <button class="btn btn-secondary" @click="showCreateSnippetModal = false">Cancel</button>
+          <span v-if="createSnippetError" class="text-danger ms-2">{{ createSnippetError }}</span>
+        </div>
+      </div>
+    </div>
+
+    <!-- Edit Snippet Modal -->
+    <div v-if="showEditSnippetModal && editSnippetData" class="modal-overlay" @click.self="showEditSnippetModal = false">
+      <div class="modal-content snippet-modal">
+        <div class="modal-header">
+          <h3>✏️ Edit Snippet</h3>
+          <button class="close-btn" @click="showEditSnippetModal = false">×</button>
+        </div>
+        <div class="modal-body">
+          <label class="form-label">Title <span class="required">*</span></label>
+          <input
+            v-model="editSnippetData.title"
+            type="text"
+            class="form-control mb-3"
+            placeholder="Snippet title…"
+          />
+          <label class="form-label">Content (Markdown)</label>
+          <textarea
+            v-model="editSnippetData.content"
+            class="form-control snippet-content-area"
+            placeholder="Snippet content in Markdown…"
+            rows="8"
+          ></textarea>
+        </div>
+        <div class="modal-footer">
+          <button
+            class="btn btn-primary"
+            :disabled="!editSnippetData.title.trim() || editSnippetSaving"
+            @click="submitEditSnippet"
+          >{{ editSnippetSaving ? 'Saving…' : 'Save Snippet' }}</button>
+          <button class="btn btn-secondary" @click="showEditSnippetModal = false">Cancel</button>
+          <span v-if="editSnippetError" class="text-danger ms-2">{{ editSnippetError }}</span>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -399,6 +484,7 @@ import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE } from '@/api/base'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
+import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
 import SnippetSelector from '@/components/SnippetSelector.vue'
@@ -476,6 +562,15 @@ export default {
   selectedExistingLink: null,
   savedWysiwygRange: null,
   showSnippetSelector: false,
+  showCreateSnippetModal: false,
+  showEditSnippetModal: false,
+  createSnippetForm: { title: '', content: '' },
+  createSnippetBounds: null,
+  createSnippetSaving: false,
+  createSnippetError: '',
+  editSnippetData: null,
+  editSnippetSaving: false,
+  editSnippetError: '',
     }
   },
   computed: {
@@ -596,6 +691,23 @@ export default {
     },
     pageTitle() {
       return this.topicId ? 'Edit Topic' : 'Create a New Topic'
+    },
+    activeSnippets() {
+      // Extract unique snippets referenced in the current content
+      const seen = new Set()
+      const result = []
+      const titleMap = {}
+      for (const m of this.content.matchAll(/data-snippet-id="(\d+)"[\s\S]*?<strong>([^<]+)<\/strong>/g)) {
+        if (!titleMap[m[1]]) titleMap[m[1]] = m[2]
+      }
+      for (const m of this.content.matchAll(/data-snippet-id="(\d+)"/g)) {
+        const id = parseInt(m[1])
+        if (!seen.has(id)) {
+          seen.add(id)
+          result.push({ id, title: titleMap[String(id)] || `Snippet #${id}` })
+        }
+      }
+      return result
     },
     abbreviatedHtml() {
       const text = this.content || ''
@@ -1260,9 +1372,7 @@ export default {
 
     insertSnippet(snippet) {
       this.showSnippetSelector = false
-      const snippetHtml = snippet.content ? marked.parse(snippet.content) : '<em>(empty snippet)</em>'
-      const tagInfo = snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''
-      const placeholder = `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
+      const placeholder = this._buildSnippetPlaceholder(snippet)
 
       if (this.editorMode === 'wysiwyg') {
         this.restoreWysiwygSelection()
@@ -1281,6 +1391,111 @@ export default {
         }
       }
       this.savedWysiwygRange = null
+    },
+
+    _buildSnippetPlaceholder(snippet) {
+      const snippetHtml = snippet.content ? marked.parse(snippet.content) : '<em>(empty snippet)</em>'
+      const tagInfo = snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''
+      return `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
+    },
+
+    openCreateSnippet() {
+      // Capture selection before modal opens (losing focus clears it)
+      let selectedText = ''
+      this.createSnippetBounds = null
+      if (this.editorMode === 'markdown') {
+        const ta = this.$refs.markdownEditor
+        if (ta && ta.selectionStart !== ta.selectionEnd) {
+          selectedText = this.content.slice(ta.selectionStart, ta.selectionEnd)
+          this.createSnippetBounds = { start: ta.selectionStart, end: ta.selectionEnd }
+        }
+      } else if (this.editorMode === 'wysiwyg') {
+        selectedText = window.getSelection()?.toString() || ''
+        this.captureWysiwygSelection()
+      }
+      this.createSnippetForm = { title: '', content: selectedText }
+      this.createSnippetError = ''
+      this.showCreateSnippetModal = true
+    },
+
+    async submitCreateSnippet() {
+      if (!this.createSnippetForm.title.trim()) return
+      this.createSnippetSaving = true
+      this.createSnippetError = ''
+      try {
+        const snippet = await createSnippet({
+          title: this.createSnippetForm.title.trim(),
+          content: this.createSnippetForm.content
+        })
+        const placeholder = this._buildSnippetPlaceholder(snippet)
+        const bounds = this.createSnippetBounds
+        if (this.editorMode === 'wysiwyg') {
+          this.restoreWysiwygSelection()
+          document.execCommand('insertHTML', false, placeholder)
+          this.updateContentFromWysiwyg()
+        } else if (bounds) {
+          // Replace selected text with the snippet placeholder
+          const before = this.content.slice(0, bounds.start)
+          const after = this.content.slice(bounds.end)
+          this.content = before + '\n\n' + placeholder + '\n\n' + after
+        } else {
+          this.insertSnippet(snippet)
+          return  // insertSnippet handles modal-close-equivalent
+        }
+        this.showCreateSnippetModal = false
+        this.createSnippetForm = { title: '', content: '' }
+        this.createSnippetBounds = null
+      } catch (e) {
+        console.error('Failed to create snippet', e)
+        this.createSnippetError = 'Error saving snippet.'
+      } finally {
+        this.createSnippetSaving = false
+      }
+    },
+
+    async openEditSnippet(snippetId) {
+      this.editSnippetError = ''
+      try {
+        const snippet = await getSnippet(snippetId)
+        this.editSnippetData = { id: snippet.id, title: snippet.title, content: snippet.content || '', tags: snippet.tags || [] }
+        this.showEditSnippetModal = true
+      } catch (e) {
+        console.error('Failed to load snippet', e)
+      }
+    },
+
+    async submitEditSnippet() {
+      if (!this.editSnippetData?.title?.trim()) return
+      this.editSnippetSaving = true
+      this.editSnippetError = ''
+      try {
+        const updated = await updateSnippet(this.editSnippetData.id, {
+          title: this.editSnippetData.title.trim(),
+          content: this.editSnippetData.content
+        })
+        // Refresh the placeholder in the topic content
+        const newPlaceholder = this._buildSnippetPlaceholder({ ...updated, tags: this.editSnippetData.tags })
+        const rx = new RegExp(
+          `<div class="sd-snippet-ref" data-snippet-id="${updated.id}"[\\s\\S]*?</div>\\s*</div>`,
+          'g'
+        )
+        this.content = this.content.replace(rx, newPlaceholder)
+        this.showEditSnippetModal = false
+        this.editSnippetData = null
+      } catch (e) {
+        console.error('Failed to update snippet', e)
+        this.editSnippetError = 'Error saving snippet.'
+      } finally {
+        this.editSnippetSaving = false
+      }
+    },
+
+    removeSnippetFromContent(snippetId) {
+      const rx = new RegExp(
+        `\\n*<div class="sd-snippet-ref" data-snippet-id="${snippetId}"[\\s\\S]*?</div>\\s*</div>\\n*`,
+        'g'
+      )
+      this.content = this.content.replace(rx, '\n')
     },
 
     onRichEditorUpdate(html) {
@@ -2425,5 +2640,112 @@ export default {
 
 .btn-secondary:hover {
   background: #545b62;
+}
+
+/* Active Snippets Bar */
+.active-snippets-bar {
+  margin: 0.5rem 0 0.25rem;
+  padding: 0.5rem 0.75rem;
+  background: #f8f9ff;
+  border: 1px solid #d0d9f0;
+  border-radius: 6px;
+  font-size: 0.85rem;
+}
+.active-snippets-label {
+  font-weight: 600;
+  color: #205493;
+  margin-bottom: 0.35rem;
+}
+.active-snippets-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+.active-snippet-item {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
+  background: #fff;
+  border: 1px solid #c5d3f0;
+  border-radius: 20px;
+  padding: 0.15rem 0.5rem 0.15rem 0.65rem;
+}
+.active-snippet-title {
+  color: #212529;
+  font-size: 0.82rem;
+}
+.snip-action-btn {
+  background: none;
+  border: none;
+  cursor: pointer;
+  font-size: 0.75rem;
+  padding: 0.1rem 0.25rem;
+  border-radius: 3px;
+  line-height: 1;
+}
+.snip-edit-btn { color: #205493; }
+.snip-edit-btn:hover { background: #e8eef7; }
+.snip-remove-btn { color: #dc3545; }
+.snip-remove-btn:hover { background: #fde8ea; }
+
+/* Snippet modals */
+.modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(0,0,0,0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 2000;
+}
+.snippet-modal {
+  background: #fff;
+  border-radius: 8px;
+  width: 540px;
+  max-width: 95vw;
+  box-shadow: 0 8px 32px rgba(0,0,0,0.18);
+  display: flex;
+  flex-direction: column;
+}
+.modal-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 1rem 1.25rem 0.75rem;
+  border-bottom: 1px solid #e9ecef;
+}
+.modal-header h3 { margin: 0; font-size: 1.05rem; }
+.close-btn {
+  background: none;
+  border: none;
+  font-size: 1.4rem;
+  cursor: pointer;
+  color: #6c757d;
+  line-height: 1;
+  padding: 0;
+}
+.close-btn:hover { color: #333; }
+.modal-body {
+  padding: 1rem 1.25rem;
+}
+.modal-footer {
+  display: flex;
+  align-items: center;
+  padding: 0.75rem 1.25rem 1rem;
+  border-top: 1px solid #e9ecef;
+  gap: 0.5rem;
+}
+.form-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 500;
+  color: #495057;
+  margin-bottom: 0.35rem;
+}
+.required { color: #dc3545; }
+.snippet-content-area {
+  font-family: 'Courier New', Courier, monospace;
+  font-size: 0.85rem;
+  resize: vertical;
 }
 </style>
