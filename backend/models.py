@@ -294,6 +294,7 @@ class Publication(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     title       = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    form_number = db.Column(db.String(100), nullable=True)
     created_at  = db.Column(
         db.DateTime,
         server_default=func.now(),
@@ -311,6 +312,7 @@ class Publication(db.Model):
             "id":          self.id,
             "title":       self.title,
             "description": self.description,
+            "form_number": self.form_number,
             "created_at":  self.created_at.isoformat(),
             "topics_count": len(self.nodes),  # Count of publication nodes (topics)
         }
@@ -320,7 +322,7 @@ class Publication(db.Model):
 
     if TYPE_CHECKING:
         # Hint constructor parameters for static analysis (SQLAlchemy supplies these dynamically at runtime)
-        def __init__(self, id: int | None = None, title: str = ..., description: str | None = None, created_at: datetime | None = None): ...
+        def __init__(self, id: int | None = None, title: str = ..., description: str | None = None, form_number: str | None = None, created_at: datetime | None = None): ...
 
 class PublicationNode(db.Model):
     __tablename__ = 'publication_nodes'
