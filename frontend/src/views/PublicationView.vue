@@ -17,6 +17,19 @@
         :nodes="tree"
       />
 
+      <!-- Audience tag selector -->
+      <div class="audience-bar">
+        <label class="audience-label">🎯 Audience Tags:</label>
+        <div class="tag-checkboxes">
+          <label v-for="tag in allTags" :key="tag.id" class="tag-check">
+            <input type="checkbox" :value="tag.id" v-model="selectedTagIds" />
+            {{ tag.name }}
+          </label>
+          <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
+        </div>
+        <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the export.</span>
+      </div>
+
       <div class="actions">
         <button @click="downloadPDF">Download PDF</button>
         <button @click="exportMobileKB" class="mobile-kb-btn">📱 Export Mobile Knowledge Base</button>
@@ -43,19 +56,25 @@ export default {
       pub: null,
       tree: [],
       loading: true,
-      error: null
+      error: null,
+      allTags: [],
+      selectedTagIds: []
     }
   },
   async created() {
     try {
-      // now this.id is defined
-      const res  = await fetch(`/api/publications/${this.id}`)
-      if (!res.ok) {
-        throw new Error(`Failed to fetch publication: ${res.status}`)
-      }
-      const json = await res.json()
+      const [pubRes, tagsRes] = await Promise.all([
+        fetch(`/api/publications/${this.id}`),
+        fetch('/api/tags/')
+      ])
+      if (!pubRes.ok) throw new Error(`Failed to fetch publication: ${pubRes.status}`)
+      const json = await pubRes.json()
       this.pub  = { title: json.title, description: json.description }
       this.tree = json.tree
+      if (tagsRes.ok) {
+        const tagsData = await tagsRes.json()
+        this.allTags = Array.isArray(tagsData) ? tagsData : (tagsData.tags || [])
+      }
     } catch (error) {
       console.error('Error loading publication:', error)
       this.error = 'Failed to load publication'
@@ -64,11 +83,12 @@ export default {
     }
   },
   methods: {
+    _tagParams() {
+      return this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+    },
     downloadPDF() {
-      // Create a direct download link for PDF
-      const pdfUrl = `/api/publications/${this.id}/export/pdf`
-      
-      // Create temporary link element to trigger download
+      const params = this._tagParams()
+      const pdfUrl = `/api/publications/${this.id}/export/pdf${params ? '?' + params : ''}`
       const link = document.createElement('a')
       link.href = pdfUrl
       link.download = `${this.pub?.title || 'publication'}.pdf`
@@ -77,12 +97,12 @@ export default {
       document.body.removeChild(link)
     },
     exportMobileKB() {
-      // Download the mobile knowledge base HTML file
-      window.open(`/api/publications/${this.id}/export/mobile-kb`, '_blank')
+      const params = this._tagParams()
+      window.open(`/api/publications/${this.id}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
     },
     previewMobileKB() {
-      // Open preview in a new window/tab using the preview endpoint
-      const previewUrl = `/api/publications/${this.id}/preview/mobile-kb`
+      const params = this._tagParams()
+      const previewUrl = `/api/publications/${this.id}/preview/mobile-kb${params ? '?' + params : ''}`
       const previewWindow = window.open(previewUrl, '_blank', 'width=375,height=812,scrollbars=yes,resizable=yes')
       if (previewWindow) {
         previewWindow.focus()
@@ -133,11 +153,34 @@ export default {
 }
 
 .actions { 
-  margin-top: 2rem; 
+  margin-top: 1rem; 
   display: flex; 
   gap: 1rem; 
   flex-wrap: wrap; 
 }
+
+.audience-bar {
+  background: #f0f4ff;
+  border: 1px solid #c5d3f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-top: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.audience-label { font-weight: 600; font-size: 0.88rem; color: #205493; white-space: nowrap; padding-top: 2px; }
+.tag-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1; }
+.tag-check {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.85rem; cursor: pointer;
+  background: #fff; border: 1px solid #c5d3f0; border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+}
+.tag-check input { cursor: pointer; }
+.no-tags-hint { color: #6c757d; font-size: 0.82rem; font-style: italic; }
+.audience-hint { width: 100%; color: #6c757d; font-size: 0.78rem; margin-top: 0.25rem; }
 
 .actions button {
   padding: 0.75rem 1.25rem; 

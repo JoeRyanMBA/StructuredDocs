@@ -44,6 +44,18 @@
         </div>
       </template>
     </CompactToolbar>
+    <!-- Audience tag selector -->
+    <div class="audience-bar">
+      <label class="audience-label">🎯 Audience Tags:</label>
+      <div class="tag-checkboxes">
+        <label v-for="tag in allTags" :key="tag.id" class="tag-check">
+          <input type="checkbox" :value="tag.id" v-model="selectedTagIds" />
+          {{ tag.name }}
+        </label>
+        <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
+      </div>
+      <span class="audience-hint">Only snippets tagged with the selected audiences will be included in exports.</span>
+    </div>
     <!-- Publications Table (replaces quick actions) -->
     <div class="dashboard-section publications-table-section">
       <h2>Manage Publications</h2>
@@ -192,7 +204,9 @@ export default {
         publishedThisMonth: 0
       },
       publications: [],
-      recentPublications: []
+      recentPublications: [],
+      allTags: [],
+      selectedTagIds: []
     }
   },
   
@@ -212,6 +226,7 @@ export default {
   
   async created() {
     await this.loadDashboardData()
+    await this.loadTags()
   },
   methods: {
     async loadDashboardData() {
@@ -300,16 +315,32 @@ export default {
       }
     },
     downloadMobileKB(publication) {
-      window.open(`/api/publications/${publication.id}/export/mobile-kb`, '_blank')
+      const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+      window.open(`/api/publications/${publication.id}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
     },
     downloadPDF(publication) {
-      const pdfUrl = `/api/publications/${publication.id}/export/pdf`
+      const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+      const pdfUrl = `/api/publications/${publication.id}/export/pdf${params ? '?' + params : ''}`
       const link = document.createElement('a')
       link.href = pdfUrl
       link.download = `${publication.title || 'publication'}.pdf`
       document.body.appendChild(link)
       link.click()
       document.body.removeChild(link)
+    },
+    downloadPublication(publication) {
+      this.downloadPDF(publication)
+    },
+    async loadTags() {
+      try {
+        const res = await fetch('/api/tags/')
+        if (res.ok) {
+          const data = await res.json()
+          this.allTags = Array.isArray(data) ? data : (data.tags || [])
+        }
+      } catch (e) {
+        console.error('Failed to load tags', e)
+      }
     },
     navigateTo(path) {
       this.$router.push(path)
@@ -357,6 +388,28 @@ export default {
 </script>
 
 <style scoped>
+.audience-bar {
+  background: #f0f4ff;
+  border: 1px solid #c5d3f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.audience-label { font-weight: 600; font-size: 0.88rem; color: #205493; white-space: nowrap; padding-top: 2px; }
+.tag-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1; }
+.tag-check {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.85rem; cursor: pointer;
+  background: #fff; border: 1px solid #c5d3f0; border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+}
+.tag-check input { cursor: pointer; }
+.no-tags-hint { color: #6c757d; font-size: 0.82rem; font-style: italic; }
+.audience-hint { width: 100%; color: #6c757d; font-size: 0.78rem; margin-top: 0.25rem; }
 .publish-dashboard {
   margin: 0 auto;
   padding: 0 2rem 2rem; /* remove top space before header */
