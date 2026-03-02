@@ -16,10 +16,9 @@ from reportlab.lib.pagesizes import letter, A4
 def resolve_snippets(content, selected_tag_ids):
     """Replace <div class="sd-snippet-ref" data-snippet-id="X"> placeholders.
 
-    If selected_tag_ids is empty, all snippet placeholders are replaced with
-    their content (no filtering). If selected_tag_ids is provided, only
-    snippets whose tags intersect with selected_tag_ids are included; others
-    are removed.
+    Snippets with no tags are universal and always included.
+    Snippets with tags are only included when at least one of their tags
+    appears in selected_tag_ids; otherwise the placeholder is removed.
     """
     if not content:
         return content
@@ -38,27 +37,20 @@ def resolve_snippets(content, selected_tag_ids):
 
         snippet_id = int(raw_id)
 
-        # When no audience tags are selected, include all snippets unconditionally
-        if not selected:
-            snippet = Snippet.query.get(snippet_id)
-            if snippet and snippet.content:
-                snippet_html = mistune.html(snippet.content)
-                placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
-            else:
-                placeholder.decompose()
-            continue
-
         snippet_tag_ids = {
             et.tag_id for et in EntityTag.query.filter_by(entity_type='snippet', entity_id=snippet_id).all()
         }
 
-        if snippet_tag_ids & selected:
-            snippet = Snippet.query.get(snippet_id)
-            if snippet and snippet.content:
-                snippet_html = mistune.html(snippet.content)
-                placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
-            else:
-                placeholder.decompose()
+        # Untagged snippets are universal — always include.
+        # Tagged snippets only appear when at least one of their tags is selected.
+        if snippet_tag_ids and not (snippet_tag_ids & selected):
+            placeholder.decompose()
+            continue
+
+        snippet = Snippet.query.get(snippet_id)
+        if snippet and snippet.content:
+            snippet_html = mistune.html(snippet.content)
+            placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
         else:
             placeholder.decompose()
 
