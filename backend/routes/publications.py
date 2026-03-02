@@ -2028,6 +2028,35 @@ def convert_markdown_to_pdf_paragraphs(text):
     
     # Normalize line endings and strip non-breaking spaces that can confuse parser
     safe_text = text.replace('\r\n', '\n').replace('\r', '\n').replace('\u00A0', ' ')
+
+    # Pre-process HTML structural tags produced by snippet resolution (mistune output)
+    # into markdown / ReportLab-compatible format before the line-by-line pass below.
+    # Convert <strong>/<em> to ReportLab-supported <b>/<i>
+    safe_text = re.sub(r'<strong>(.*?)</strong>', r'<b>\1</b>', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    safe_text = re.sub(r'<em>(.*?)</em>', r'<i>\1</i>', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Convert HTML headings (h1–h6) to markdown heading syntax
+    for _lvl in range(6, 0, -1):
+        safe_text = re.sub(
+            r'<h' + str(_lvl) + r'[^>]*>(.*?)</h' + str(_lvl) + r'>',
+            '\n' + '#' * _lvl + r' \1\n',
+            safe_text, flags=re.IGNORECASE | re.DOTALL
+        )
+    # Convert ordered lists to numbered markdown items
+    def _convert_ol_block(m):
+        items = re.findall(r'<li[^>]*>(.*?)</li>', m.group(1), re.IGNORECASE | re.DOTALL)
+        return '\n' + '\n'.join(f'{i + 1}. {item.strip()}' for i, item in enumerate(items)) + '\n'
+    safe_text = re.sub(r'<ol[^>]*>(.*?)</ol>', _convert_ol_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Convert unordered lists to markdown bullet items
+    def _convert_ul_block(m):
+        items = re.findall(r'<li[^>]*>(.*?)</li>', m.group(1), re.IGNORECASE | re.DOTALL)
+        return '\n' + '\n'.join(f'- {item.strip()}' for item in items) + '\n'
+    safe_text = re.sub(r'<ul[^>]*>(.*?)</ul>', _convert_ul_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip any stray <li> tags not caught above
+    safe_text = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip <p> wrappers, preserving inner content with a trailing newline
+    safe_text = re.sub(r'<p[^>]*>', '', safe_text, flags=re.IGNORECASE)
+    safe_text = re.sub(r'</p>', '\n', safe_text, flags=re.IGNORECASE)
+
     lines = safe_text.split('\n')
     paragraphs = []
     current_paragraph = []
