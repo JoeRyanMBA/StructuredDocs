@@ -55,6 +55,15 @@
               </select>
             </div>
             <div class="form-group">
+              <label>Subtitle:</label>
+              <input 
+                v-model="currentCollection.description" 
+                @blur="saveCollectionProperty('description')"
+                class="edit-input"
+                placeholder="Subtitle (optional — appears on PDF cover page)"
+              />
+            </div>
+            <div class="form-group">
               <label>Tags:</label>
               <TagEditor
                 v-if="currentCollection?.id"
