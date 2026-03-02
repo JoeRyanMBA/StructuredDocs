@@ -2010,10 +2010,23 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 # Convert markdown-like content to paragraphs
                 content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
                 for para in content_paragraphs:
+                    if not para:
+                        continue
+                    # Standalone image sentinel — emit as a proper Image flowable so
+                    # ReportLab can handle page breaks correctly (inline img in Paragraph
+                    # causes overflow/overlap).
+                    if para.startswith('__PDF_IMG__:'):
+                        try:
+                            _, img_src, img_w, img_h = para.split(':', 3)
+                            story.append(Spacer(1, 4))
+                            story.append(Image(img_src, width=int(img_w), height=int(img_h)))
+                            story.append(Spacer(1, 4))
+                        except Exception:
+                            pass  # skip broken image sentinel
+                        continue
                     # Create content style that matches the hierarchy level
                     level_content_style = config.create_content_style(base_styles, level)
-                    if para:
-                        story.append(Paragraph(para, level_content_style))
+                    story.append(Paragraph(para, level_content_style))
             
             # Add spacing after content
             story.append(Spacer(1, 8))
@@ -2315,9 +2328,34 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         clean_attrs.append(f'height="{h}"')
                     if not clean_attrs:
                         return ''
-                    return f'<img {" ".join(clean_attrs)}/>'
+                    # Return a sentinel so the caller can emit a standalone Image flowable
+                    # instead of embedding inside a Paragraph (which causes overflow issues).
+                    return f'__PDF_IMG__:{src}:{w}:{h}'
                 
                 formatted_line = re.sub(r'<img[^>]*>', clean_img_tag, formatted_line)
+                # If this line contains an image sentinel, flush surrounding text and
+                # emit the image as its own paragraph entry so generate_pdf can use
+                # a proper Image flowable (not a Paragraph).
+                img_sentinel_re = re.compile(r'__PDF_IMG__:([^:]+):(\d+):(\d+)')
+                if img_sentinel_re.search(formatted_line):
+                    # Flush any accumulated paragraph text first
+                    if current_paragraph:
+                        paragraphs.append(' '.join(current_paragraph))
+                        current_paragraph = []
+                    # Emit each image sentinel as a standalone entry; emit surrounding text too
+                    parts = img_sentinel_re.split(formatted_line)
+                    # parts: [pre, src, w, h, post, src2, w2, h2, post2, ...]
+                    idx = 0
+                    while idx < len(parts):
+                        chunk = parts[idx].strip()
+                        if chunk:
+                            paragraphs.append(chunk)
+                        idx += 1
+                        if idx + 2 < len(parts):
+                            img_src, img_w, img_h = parts[idx], parts[idx+1], parts[idx+2]
+                            paragraphs.append(f'__PDF_IMG__:{img_src}:{img_w}:{img_h}')
+                            idx += 3
+                    formatted_line = ''  # already handled
             
             # Escape stray ampersands and clean up extra whitespace
             formatted_line = escape_unescaped_ampersands(formatted_line)
