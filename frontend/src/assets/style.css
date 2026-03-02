@@ -1404,7 +1404,7 @@ input:focus, select:focus, textarea:focus {
 
 .quick-actions-grid {
   --quick-action-min-width: 300px;
-  --quick-action-gap: 1.5rem;
+  --quick-action-gap: 0.25rem;
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(var(--quick-action-min-width), 1fr));
   gap: var(--quick-action-gap);
@@ -1588,7 +1588,7 @@ input:focus, select:focus, textarea:focus {
 
 /* Reusable Quick Action Card (matches Start Page look) */
 .quick-action-card {
-  --quick-action-padding: 1.25rem 1.5rem;
+  --quick-action-padding: 0;
   --quick-action-border: 1px solid var(--border-light-gray);
   --quick-action-radius: var(--border-radius-lg);
   --quick-action-shadow: var(--box-shadow-sm);
@@ -1660,12 +1660,12 @@ input:focus, select:focus, textarea:focus {
 
 @media (max-width: 768px) {
   .quick-actions-grid {
-    --quick-action-gap: 1rem;
+    --quick-action-gap: 0.25rem;
     grid-template-columns: 1fr;
   }
 
   .quick-action-card {
-    --quick-action-padding: 1rem;
+    --quick-action-padding: 0;
     --quick-action-icon-size: 48px;
   }
 }
