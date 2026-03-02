@@ -8,6 +8,9 @@ import mimetypes
 import io
 import json
 import traceback
+import tempfile
+import shutil
+import requests as _http
 from bs4 import BeautifulSoup
 import mistune
 from reportlab.lib.pagesizes import letter, A4
@@ -1779,6 +1782,7 @@ def export_pdf(pub_id):
 def generate_pdf(publication, tree, config_type='default', background_image_path=None):
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
     buffer = io.BytesIO()
+    _pdf_temp_dir = tempfile.mkdtemp(prefix='sd_pdf_imgs_')
     
     # Ensure config_type is always defined
     if not config_type:
@@ -2004,7 +2008,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             # Add content with proper indentation for hierarchy
             if node['content']:
                 # Convert markdown-like content to paragraphs
-                content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']))
+                content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
                 for para in content_paragraphs:
                     # Create content style that matches the hierarchy level
                     level_content_style = config.create_content_style(base_styles, level)
@@ -2025,11 +2029,51 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     add_content_nodes(tree)
     
     # Build PDF
-    doc.build(story)
+    try:
+        doc.build(story)
+    finally:
+        shutil.rmtree(_pdf_temp_dir, ignore_errors=True)
     buffer.seek(0)
     return buffer
 
-def convert_markdown_to_pdf_paragraphs(text):
+def _download_image_for_pdf(url: str, temp_dir: str) -> str:
+    """Download an external image URL to *temp_dir* and return the local path.
+
+    Returns an empty string if the download fails or the image cannot be
+    validated, so the caller can safely skip the image without crashing.
+    """
+    try:
+        resp = _http.get(url, timeout=10, stream=True)
+        if resp.status_code != 200:
+            return ''
+        content_type = resp.headers.get('content-type', '')
+        if 'png' in content_type:
+            ext = '.png'
+        elif 'gif' in content_type:
+            ext = '.gif'
+        elif 'webp' in content_type:
+            ext = '.webp'
+        else:
+            # Try to guess from URL, default to jpg
+            url_lower = url.lower().split('?')[0]
+            if url_lower.endswith('.png'):
+                ext = '.png'
+            elif url_lower.endswith('.gif'):
+                ext = '.gif'
+            elif url_lower.endswith('.webp'):
+                ext = '.webp'
+            else:
+                ext = '.jpg'
+        tmp_path = os.path.join(temp_dir, f'img_{abs(hash(url)) % 10**9}{ext}')
+        with open(tmp_path, 'wb') as f:
+            for chunk in resp.iter_content(8192):
+                f.write(chunk)
+        return tmp_path
+    except Exception:
+        return ''
+
+
+def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     """Convert markdown-like text to PDF paragraphs with better hierarchy support"""
     if not text:
         return [""]
@@ -2172,10 +2216,17 @@ def convert_markdown_to_pdf_paragraphs(text):
             formatted_line = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2">', formatted_line)
             
             # Clean up HTML tags that ReportLab doesn't support
-            # Remove div, span, p, and a tags but keep their content
+            # Remove div, span, p tags but keep their content
             formatted_line = re.sub(r'</?div[^>]*>', '', formatted_line)
             formatted_line = re.sub(r'</?span[^>]*>', '', formatted_line)
             formatted_line = re.sub(r'</?p[^>]*>', '', formatted_line)
+            # Convert <a href="...">text</a> to "text (url)" so the destination is
+            # visible in the PDF; then strip any remaining bare <a> tags (anchors etc.)
+            formatted_line = re.sub(
+                r'<a\s[^>]*href="([^"]*)"[^>]*>(.*?)</a>',
+                lambda m: f'{m.group(2)} ({m.group(1)})',
+                formatted_line, flags=re.IGNORECASE | re.DOTALL
+            )
             formatted_line = re.sub(r'</?a[^>]*>', '', formatted_line)
             
             # Handle images - ReportLab only supports specific img attributes
@@ -2191,12 +2242,18 @@ def convert_markdown_to_pdf_paragraphs(text):
                     # Convert relative image paths to absolute paths
                     if src:
                         if src.startswith('http://') or src.startswith('https://'):
-                            # Skip external images in PDF generation to avoid build failures
-                            return ''
-                        if src.startswith('data:'):
+                            # Download external image (e.g. DigitalOcean Spaces) to temp dir
+                            if temp_dir:
+                                src = _download_image_for_pdf(src, temp_dir)
+                                if not src:
+                                    return ''
+                                # src is now an absolute local temp path; skip path conversion
+                            else:
+                                return ''
+                        elif src.startswith('data:'):
                             # Skip data URIs as reportlab Paragraph img doesn't handle them
                             return ''
-                        if src.startswith('/images/'):
+                        elif src.startswith('/images/'):
                             # Convert /images/ path to absolute path
                             image_filename = src[8:]  # Remove /images/ prefix
                             static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
