@@ -29,9 +29,23 @@ def resolve_snippets(content, selected_tag_ids):
 
     selected = set(int(t) for t in selected_tag_ids if str(t).isdigit()) if selected_tag_ids else set()
 
+    def remove_adjacent_brs(element):
+        """Remove <br> siblings (and blank text nodes) immediately before/after element."""
+        nxt = element.next_sibling
+        while nxt and (getattr(nxt, 'name', None) == 'br' or (isinstance(nxt, str) and not nxt.strip())):
+            to_remove = nxt
+            nxt = nxt.next_sibling
+            to_remove.extract()
+        prev = element.previous_sibling
+        while prev and (getattr(prev, 'name', None) == 'br' or (isinstance(prev, str) and not prev.strip())):
+            to_remove = prev
+            prev = prev.previous_sibling
+            to_remove.extract()
+
     for placeholder in placeholders:
         raw_id = placeholder.get('data-snippet-id')
         if not raw_id or not str(raw_id).isdigit():
+            remove_adjacent_brs(placeholder)
             placeholder.decompose()
             continue
 
@@ -44,6 +58,7 @@ def resolve_snippets(content, selected_tag_ids):
         # Untagged snippets are universal — always include.
         # Tagged snippets only appear when at least one of their tags is selected.
         if snippet_tag_ids and not (snippet_tag_ids & selected):
+            remove_adjacent_brs(placeholder)
             placeholder.decompose()
             continue
 
@@ -52,6 +67,7 @@ def resolve_snippets(content, selected_tag_ids):
             snippet_html = mistune.html(snippet.content)
             placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
         else:
+            remove_adjacent_brs(placeholder)
             placeholder.decompose()
 
     return str(soup)
@@ -2249,35 +2265,65 @@ def convert_markdown_to_pdf_paragraphs(text):
     return [p for p in paragraphs if p.strip()]
 
 def convert_image_to_base64(image_src):
-    """Convert image path to base64 data URL for standalone HTML"""
+    """Convert an image reference to a base64 data URL for embedding in standalone HTML.
+
+    - Absolute http/https URLs are returned as-is (they work from any browser).
+    - /images/<filename> paths and bare filenames are resolved by searching all
+      known local image directories; if found, the file is embedded as base64.
+    - Falls back to the original src if the image cannot be found.
+    """
     try:
-        # Handle both /images/ paths and direct paths
+        # Absolute URLs work fine in a downloaded HTML file — leave them alone.
+        if image_src.startswith('http://') or image_src.startswith('https://') or image_src.startswith('data:'):
+            return image_src
+
+        # Strip well-known prefixes to get the bare filename / relative path.
         if image_src.startswith('/images/'):
-            image_path = image_src[8:]  # Remove /images/ prefix
+            rel_path = image_src[8:]
+        elif image_src.startswith('/static/images/'):
+            rel_path = image_src[15:]
         else:
-            image_path = image_src
-            
-        # Build full path to image file
-        static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-        full_image_path = os.path.join(static_images_dir, image_path)
-        
-        if os.path.exists(full_image_path):
-            # Get mime type
-            mime_type, _ = mimetypes.guess_type(full_image_path)
-            if not mime_type:
-                mime_type = 'image/jpeg'  # Default fallback
-                
-            # Read and encode image
-            with open(full_image_path, 'rb') as image_file:
-                image_data = base64.b64encode(image_file.read()).decode('utf-8')
-                return f"data:{mime_type};base64,{image_data}"
-        else:
-            print(f"Warning: Image not found at {full_image_path}")
-            return image_src  # Return original if file not found
-            
+            rel_path = image_src  # bare filename or unknown relative path
+
+        # Search all directories the backend serves images from.
+        candidate_roots = []
+        try:
+            candidate_roots.append(os.path.join(current_app.config['STATIC_FOLDER'], 'images'))
+        except Exception:
+            pass
+        try:
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            candidate_roots += [
+                os.path.join(root_dir, 'frontend', 'dist', 'images'),
+                os.path.join(root_dir, 'frontend', 'public', 'images'),
+                os.path.join(root_dir, 'backend', 'static', 'images'),
+            ]
+        except Exception:
+            pass
+        candidate_roots.append('/app/data/images')
+
+        full_image_path = None
+        for root in candidate_roots:
+            candidate = os.path.join(root, rel_path)
+            if os.path.exists(candidate):
+                full_image_path = candidate
+                break
+
+        if not full_image_path:
+            print(f"Warning: Image not found for '{image_src}' (searched {len(candidate_roots)} directories)")
+            return image_src  # Return original — broken but at least doesn't crash
+
+        mime_type, _ = mimetypes.guess_type(full_image_path)
+        if not mime_type:
+            mime_type = 'image/jpeg'
+
+        with open(full_image_path, 'rb') as image_file:
+            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+            return f"data:{mime_type};base64,{image_data}"
+
     except Exception as e:
         print(f"Error converting image {image_src} to base64: {str(e)}")
-        return image_src  # Return original on error
+        return image_src
 
 def convert_markdown_to_html(markdown_text):
     """Basic markdown to HTML conversion for mobile display"""
