@@ -162,6 +162,7 @@
               <button @click="removeSnippetFromContent(s.id)" class="snip-action-btn snip-remove-btn" title="Remove from topic">✕ Remove</button>
             </div>
           </div>
+          <span v-if="editSnippetError && !showEditSnippetModal" class="text-danger ms-2 small">{{ editSnippetError }}</span>
         </div>
 
         <!-- Actions -->
@@ -732,7 +733,7 @@ export default {
     editorMode(newMode) {
       if (newMode === 'wysiwyg') {
         this.$nextTick(() => {
-          this.$refs.richEditor?.setContent(this.renderedMarkdown)
+          this.$refs.richEditor?.setContent(this._rawMarkdownToHtml())
         })
       }
     },
@@ -758,7 +759,7 @@ export default {
     // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
     if(this.editorMode === 'wysiwyg'){
       this.$nextTick(() => {
-        this.$refs.richEditor?.setContent(this.renderedMarkdown)
+        this.$refs.richEditor?.setContent(this._rawMarkdownToHtml())
       })
     }
   },
@@ -1396,6 +1397,12 @@ export default {
       this.savedWysiwygRange = null
     },
 
+    _rawMarkdownToHtml() {
+      // Renders this.content to HTML keeping sd-snippet-ref wrappers intact (for WYSIWYG init).
+      // Unlike renderedMarkdown, does NOT strip snippet wrappers so htmlToMarkdown can round-trip them.
+      return marked.parse(this.content || '', { breaks: false, gfm: true })
+    },
+
     _buildSnippetPlaceholder(snippet) {
       const snippetHtml = snippet.content ? marked.parse(snippet.content) : '<em>(empty snippet)</em>'
       const tagInfo = snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''
@@ -1464,6 +1471,7 @@ export default {
         this.showEditSnippetModal = true
       } catch (e) {
         console.error('Failed to load snippet', e)
+        this.editSnippetError = 'Failed to load snippet. Please try again.'
       }
     },
 
