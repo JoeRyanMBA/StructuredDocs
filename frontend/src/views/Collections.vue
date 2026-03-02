@@ -30,6 +30,14 @@
         />
         <button type="submit" class="form-button">Add Collection</button>
       </div>
+      <div class="form-row" style="margin-top: 8px;">
+        <input 
+          v-model="newCollection.subtitle" 
+          placeholder="Subtitle (optional — appears on PDF cover page)" 
+          class="form-input"
+          style="flex: 1;"
+        />
+      </div>
       <small class="form-help">
         Select a project for this collection. Collection ID is a unique alphanumeric identifier for this document (e.g., FORM-001, DOC-ABC-123)
       </small>
@@ -71,7 +79,8 @@ export default {
       newCollection: {
         name: '',
         form_number: '',
-        projectId: ''
+        projectId: '',
+        subtitle: ''
       }
     }
   },
@@ -97,7 +106,8 @@ export default {
         body: JSON.stringify({ 
           name: this.newCollection.name,
           form_number: this.newCollection.form_number,
-          projectId: this.newCollection.projectId ? Number(this.newCollection.projectId) : null
+          projectId: this.newCollection.projectId ? Number(this.newCollection.projectId) : null,
+          description: this.newCollection.subtitle || null
         })
       });
       if (res.ok) {
@@ -105,6 +115,7 @@ export default {
         this.newCollection.name = '';
         this.newCollection.form_number = '';
         this.newCollection.projectId = '';
+        this.newCollection.subtitle = '';
   toast.success('Collection created successfully.')
       } else {
         const error = await res.json();
