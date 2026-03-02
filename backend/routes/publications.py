@@ -2284,19 +2284,35 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     # Build clean img tag with only supported attributes
                     clean_attrs = []
                     if src and os.path.exists(src):
-                        # Validate image can be opened to avoid ReportLab failures
+                        # Validate image and read natural dimensions for scaling
                         try:
                             from PIL import Image as PILImage
                             with open(src, 'rb') as _f:
-                                img = PILImage.open(_f)
-                                img.verify()
+                                pil_img = PILImage.open(_f)
+                                pil_img.verify()
+                            with open(src, 'rb') as _f:
+                                pil_img = PILImage.open(_f)
+                                natural_w, natural_h = pil_img.size
                         except Exception:
                             return ''
                         clean_attrs.append(f'src="{src}"')
-                    if width_match:
-                        clean_attrs.append(f'width="{width_match.group(1)}"')
-                    if height_match:
-                        clean_attrs.append(f'height="{height_match.group(1)}"')
+                        # Constrain to fit within the content column (~400pt ≈ 5.5 inches).
+                        # Use explicit width/height from the original tag if provided,
+                        # otherwise scale the natural image size down as needed.
+                        MAX_WIDTH = 400
+                        if width_match:
+                            try:
+                                w = int(width_match.group(1))
+                                h = int(height_match.group(1)) if height_match else int(natural_h * w / natural_w)
+                            except (ValueError, ZeroDivisionError):
+                                w, h = natural_w, natural_h
+                        else:
+                            w, h = natural_w, natural_h
+                        if w > MAX_WIDTH and w > 0:
+                            h = int(h * MAX_WIDTH / w)
+                            w = MAX_WIDTH
+                        clean_attrs.append(f'width="{w}"')
+                        clean_attrs.append(f'height="{h}"')
                     if not clean_attrs:
                         return ''
                     return f'<img {" ".join(clean_attrs)}/>'
