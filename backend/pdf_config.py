@@ -193,6 +193,25 @@ class PDFConfig:
             rightIndent=0,
             textColor=cls.COLORS['text']
         )
+
+    @classmethod
+    def create_bullet_style(cls, base_styles, level=0):
+        """Create bullet list item style with hanging indent"""
+        base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        bullet_hang = 14  # points: bullet hangs this far to the left of the text
+
+        return ParagraphStyle(
+            f'BulletItem{level}',
+            parent=base_styles['Normal'],
+            fontName=cls.FONTS['body'],
+            fontSize=cls.FONT_SIZES['body'],
+            spaceAfter=3,
+            alignment=TA_LEFT,
+            leftIndent=base_indent + bullet_hang,
+            firstLineIndent=-bullet_hang,
+            rightIndent=0,
+            textColor=cls.COLORS['text']
+        )
     
     @classmethod
     def create_toc_style(cls, base_styles, level=0):

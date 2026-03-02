@@ -2024,6 +2024,12 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         except Exception:
                             pass  # skip broken image sentinel
                         continue
+                    # Bullet list item — use hanging-indent bullet style
+                    if para.startswith('__BULLET__:'):
+                        bullet_text = '• ' + para[len('__BULLET__:'):]
+                        bullet_style = config.create_bullet_style(base_styles, level)
+                        story.append(Paragraph(bullet_text, bullet_style))
+                        continue
                     # Create content style that matches the hierarchy level
                     level_content_style = config.create_content_style(base_styles, level)
                     story.append(Paragraph(para, level_content_style))
@@ -2144,8 +2150,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                 current_paragraph = []
             if in_list:
                 # Create a proper list paragraph
-                list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                paragraphs.append(list_content)
+                for item in list_items:
+                    paragraphs.append(f'__BULLET__:{item}')
                 list_items = []
                 in_list = False
             
@@ -2185,8 +2191,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                 current_paragraph = []
             if in_list and list_items:
                 # Finish the bullet list first
-                list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                paragraphs.append(list_content)
+                for item in list_items:
+                    paragraphs.append(f'__BULLET__:{item}')
                 list_items = []
             
             numbered_text = stripped[3:].strip()  # Remove "1. " etc.
@@ -2201,8 +2207,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             if in_list:
                 # Finish the current list
                 if list_items:
-                    list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                    paragraphs.append(list_content)
+                    for item in list_items:
+                        paragraphs.append(f'__BULLET__:{item}')
                     list_items = []
                 in_list = False
                 
@@ -2211,8 +2217,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             if in_list:
                 # Finish the current list first
                 if list_items:
-                    list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                    paragraphs.append(list_content)
+                    for item in list_items:
+                        paragraphs.append(f'__BULLET__:{item}')
                     list_items = []
                 in_list = False
             
@@ -2370,8 +2376,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     if current_paragraph:
         paragraphs.append(' '.join(current_paragraph))
     if in_list and list_items:
-        list_content = '<br/>'.join([f"• {item}" for item in list_items])
-        paragraphs.append(list_content)
+        for item in list_items:
+            paragraphs.append(f'__BULLET__:{item}')
     
     return [p for p in paragraphs if p.strip()]
 
