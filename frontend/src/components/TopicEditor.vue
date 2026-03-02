@@ -1603,13 +1603,17 @@ export default {
           title: this.editSnippetData.title.trim(),
           content: this.editSnippetData.content
         })
-        // Refresh the placeholder in the topic content
-        const newPlaceholder = this._buildSnippetPlaceholder({ ...updated, tags: this.editSnippetData.tags })
-        const rx = new RegExp(
-          `<div class="sd-snippet-ref" data-snippet-id="${updated.id}"[\\s\\S]*?</div>\\s*</div>`,
-          'g'
-        )
-        this.content = this.content.replace(rx, newPlaceholder)
+        // Update the snippet cache so _initWysiwygContent / _renderPreview pick up the new data.
+        if (!this._snippetCache) this._snippetCache = {}
+        this._snippetCache[updated.id] = { ...updated, tags: this.editSnippetData.tags }
+
+        // Refresh the visible editor so the updated snippet content is shown immediately.
+        if (this.editorMode === 'wysiwyg') {
+          await this._initWysiwygContent()
+        } else if (this.editorMode === 'preview') {
+          await this._renderPreview()
+        }
+
         this.showEditSnippetModal = false
         this.editSnippetData = null
       } catch (e) {

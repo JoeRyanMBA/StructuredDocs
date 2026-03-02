@@ -29,7 +29,7 @@
 
       <!-- Topic Info -->
       <div class="card mb-4">
-        <div class="card-header bg-primary text-white">
+        <div class="card-header bg-primary-subtle text-primary-emphasis">
           <h3 class="card-title mb-0">
             <i class="bi bi-file-text me-2"></i>{{ topic?.title }}
           </h3>
@@ -52,7 +52,7 @@
 
       <!-- Structured Feedback Items -->
       <div v-if="review?.feedback_items?.length" class="card mb-4">
-        <div class="card-header bg-danger text-white">
+        <div class="card-header bg-danger-subtle text-danger-emphasis">
           <h4 class="card-title mb-0">
             <i class="bi bi-list-check me-2"></i>
             Requested Changes ({{ review.feedback_items.length }})
@@ -100,7 +100,7 @@
 
       <!-- Review Feedback -->
       <div class="card mb-4">
-        <div class="card-header bg-warning text-dark">
+        <div class="card-header bg-warning-subtle text-warning-emphasis">
           <h4 class="card-title mb-0">
             <i class="bi bi-chat-square-text me-2"></i>Reviewer Feedback
           </h4>
@@ -301,6 +301,10 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
+}
+
+.badge {
+  color: #000 !important;
 }
 
 .feedback-item {
