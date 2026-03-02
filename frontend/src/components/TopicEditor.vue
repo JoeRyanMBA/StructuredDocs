@@ -733,7 +733,7 @@ export default {
     editorMode(newMode) {
       if (newMode === 'wysiwyg') {
         this.$nextTick(() => {
-          this.$refs.richEditor?.setContent(this._rawMarkdownToHtml())
+          this._initWysiwygContent()
         })
       }
     },
@@ -759,7 +759,7 @@ export default {
     // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
     if(this.editorMode === 'wysiwyg'){
       this.$nextTick(() => {
-        this.$refs.richEditor?.setContent(this._rawMarkdownToHtml())
+        this._initWysiwygContent()
       })
     }
   },
@@ -1401,6 +1401,41 @@ export default {
       // Renders this.content to HTML keeping sd-snippet-ref wrappers intact (for WYSIWYG init).
       // Unlike renderedMarkdown, does NOT strip snippet wrappers so htmlToMarkdown can round-trip them.
       return marked.parse(this.content || '', { breaks: false, gfm: true })
+    },
+
+    async _initWysiwygContent() {
+      // Parse markdown → HTML, then re-expand any snippet stubs into full visual placeholders.
+      const html = this._rawMarkdownToHtml()
+      const tmp = document.createElement('div')
+      tmp.innerHTML = html
+
+      const els = [...tmp.querySelectorAll('.sd-snippet-ref[data-snippet-id]')]
+      if (els.length > 0) {
+        // Fetch snippet data for every referenced ID (cache to avoid redundant requests).
+        if (!this._snippetCache) this._snippetCache = {}
+        const ids = [...new Set(els.map(el => parseInt(el.dataset.snippetId)))]
+        await Promise.all(ids.map(async id => {
+          if (!this._snippetCache[id]) {
+            try { this._snippetCache[id] = await getSnippet(id) }
+            catch (e) { console.warn(`Could not load snippet ${id}`, e) }
+          }
+        }))
+
+        // Replace each stub/stale placeholder with a fresh full visual block.
+        els.forEach(el => {
+          const id = parseInt(el.dataset.snippetId)
+          const snippet = this._snippetCache?.[id]
+          if (snippet) {
+            el.insertAdjacentHTML('afterend', this._buildSnippetPlaceholder(snippet))
+          } else {
+            el.insertAdjacentHTML('afterend',
+              `<div class="sd-snippet-ref" data-snippet-id="${id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;padding:0.4rem 0.75rem;color:#205493;font-style:italic;">📎 Snippet #${id}</div>`)
+          }
+          el.remove()
+        })
+      }
+
+      this.$refs.richEditor?.setContent(tmp.innerHTML)
     },
 
     _buildSnippetPlaceholder(snippet) {
