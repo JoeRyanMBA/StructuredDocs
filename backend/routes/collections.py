@@ -284,7 +284,7 @@ def publish_collection(collection_id):
                     'message': f'This collection contains {len(unresolved_in_use)} variable(s) that need to be configured before publishing.'
                 }), 400
             print(f"🎯 PUBLISH: Updating existing publication")
-            existing_pub.description = f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
+            existing_pub.description = collection.description or f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
             # Use naive UTC to match DB column
             existing_pub.created_at = datetime.utcnow()
             print(f"🎯 PUBLISH: Deleting existing publication nodes")
@@ -386,7 +386,7 @@ def publish_collection(collection_id):
         print(f"🎯 PUBLISH: Creating new publication object")
         publication = Publication(
             title=f"{collection.name}",
-            description=f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
+            description=collection.description or f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
         )
         db.session.add(publication)
         db.session.flush()

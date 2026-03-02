@@ -90,7 +90,7 @@ class PDFConfig:
     SPACING = {
         'title_after': 30,
         'subtitle_after': 20,
-        'heading_before': 20,
+        'heading_before': 10,
         'heading_after': 12,
         'paragraph_after': 12,
         'section_after': 16,
@@ -328,7 +328,7 @@ class AcademicConfig(PDFConfig):
     SPACING = {
         'title_after': 40,
         'subtitle_after': 25,
-        'heading_before': 25,
+        'heading_before': 12,
         'heading_after': 15,
         'paragraph_after': 15,  # More spacing between paragraphs
         'section_after': 20,
@@ -352,7 +352,7 @@ class CompactConfig(PDFConfig):
     SPACING = {
         'title_after': 20,
         'subtitle_after': 15,
-        'heading_before': 15,
+        'heading_before': 8,
         'heading_after': 8,
         'paragraph_after': 8,
         'section_after': 12,
