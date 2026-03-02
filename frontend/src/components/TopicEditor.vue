@@ -148,6 +148,14 @@
 
           <!-- Preview Mode -->
           <div v-if="editorMode === 'preview'" class="preview-mode">
+            <div v-if="allTags.length > 0" class="preview-audience-bar">
+              <span class="preview-audience-label">🎯 Audience:</span>
+              <label v-for="tag in allTags" :key="tag.id" class="preview-tag-check">
+                <input type="checkbox" :value="tag.id" v-model="selectedTagIds" />
+                {{ tag.name }}
+              </label>
+              <span class="preview-audience-hint">Select tags to preview audience-specific content</span>
+            </div>
             <div class="preview-content" v-html="renderedMarkdown"></div>
           </div>
         </div>
@@ -533,6 +541,8 @@ export default {
       showReviewModal: false,
       editorMode: 'wysiwyg',
       wysiwygUpdateTimeout: null,
+      allTags: [],
+      selectedTagIds: [],
       tableRows: 3,
       tableCols: 3,
   imageInsertMode: 'url',
@@ -676,14 +686,21 @@ export default {
         rendered += '<div class="image-warning" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>📝 Formatting Note:</strong> This topic contains Pandoc-style attributes that aren\'t displayed in the editor. For size control, use HTML: &lt;img src="/images/file.png" width="500"&gt;</div>'
       }
       
-      // Post-process: in preview, replace snippet placeholders with just their content (no wrapper)
+      // Post-process: in preview, filter snippet placeholders by selected audience tags,
+      // matching the same rules as the PDF/KB export backend.
       if (rendered.includes('sd-snippet-ref')) {
         const tmp = document.createElement('div')
         tmp.innerHTML = rendered
+        const selected = new Set(this.selectedTagIds.map(Number))
         tmp.querySelectorAll('.sd-snippet-ref').forEach(el => {
-          const body = el.querySelector('.sd-snippet-body')
-          if (body) {
-            el.replaceWith(...Array.from(body.childNodes))
+          const rawTagIds = el.dataset.tagIds
+          const snippetTagIds = rawTagIds ? rawTagIds.split(',').map(Number).filter(Boolean) : []
+          // Untagged snippets are universal; tagged snippets require an audience match.
+          const visible = snippetTagIds.length === 0 || snippetTagIds.some(id => selected.has(id))
+          if (visible) {
+            const body = el.querySelector('.sd-snippet-body')
+            if (body) el.replaceWith(...Array.from(body.childNodes))
+            else el.remove()
           } else {
             el.remove()
           }
@@ -756,6 +773,7 @@ export default {
   this.loadVariables()
   this.loadRecentVariables()
   this.loadPastePreferences()
+  this.loadTags()
     // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
     if(this.editorMode === 'wysiwyg'){
       this.$nextTick(() => {
@@ -859,8 +877,19 @@ export default {
     restoreWysiwygSelection() {
       return this.$refs.richEditor?.restoreSelection() || false
     },
-    async loadVariables(){
+    async loadTags() {
       try {
+        const res = await fetch('/api/tags/')
+        if (res.ok) {
+          const data = await res.json()
+          this.allTags = Array.isArray(data) ? data : (data.tags || [])
+        }
+      } catch (e) {
+        console.warn('Failed to load tags for preview', e)
+      }
+    },
+
+    async loadVariables(){      try {
         const res = await fetch('/api/variables')
         if(res.ok){
           const arr = await res.json()
@@ -1441,7 +1470,8 @@ export default {
     _buildSnippetPlaceholder(snippet) {
       const snippetHtml = snippet.content ? marked.parse(snippet.content) : '<em>(empty snippet)</em>'
       const tagInfo = snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''
-      return `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
+      const tagIds = snippet.tags && snippet.tags.length ? snippet.tags.map(t => t.id).join(',') : ''
+      return `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" data-tag-ids="${tagIds}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
     },
 
     openCreateSnippet() {
@@ -1702,6 +1732,27 @@ export default {
   display: flex;
   flex-direction: column;
 }
+
+.preview-audience-bar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.4rem;
+  background: #f0f4ff;
+  border: 1px solid #c5d3f0;
+  border-radius: 6px;
+  padding: 0.5rem 0.75rem;
+  margin-bottom: 0.75rem;
+  font-size: 0.85rem;
+}
+.preview-audience-label { font-weight: 600; color: #205493; white-space: nowrap; }
+.preview-tag-check {
+  display: flex; align-items: center; gap: 0.25rem; cursor: pointer;
+  background: #fff; border: 1px solid #c5d3f0; border-radius: 10px;
+  padding: 0.15rem 0.5rem;
+}
+.preview-tag-check input { cursor: pointer; }
+.preview-audience-hint { color: #6c757d; font-size: 0.78rem; width: 100%; margin-top: 0.1rem; }
 
 /* Variable insertion UI */
 .variable-insert { display:flex; gap:.4rem; align-items:center; margin-top:.4rem; flex-wrap:wrap; }
