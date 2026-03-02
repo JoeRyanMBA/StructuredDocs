@@ -210,13 +210,13 @@
           </div>
           
           <div class="form-group">
-            <label for="collectionDescription">Description</label>
-            <textarea
+            <label for="collectionDescription">Subtitle</label>
+            <input
               id="collectionDescription"
               v-model="newCollection.description"
-              rows="3"
-              placeholder="Describe what this collection will contain"
-            ></textarea>
+              type="text"
+              placeholder="Subtitle (optional — appears on PDF cover page)"
+            />
           </div>
           
           <div class="form-group">
