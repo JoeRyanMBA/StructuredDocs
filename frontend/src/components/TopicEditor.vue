@@ -156,7 +156,7 @@
               </label>
               <span class="preview-audience-hint">Select tags to preview audience-specific content</span>
             </div>
-            <div class="preview-content" v-html="renderedMarkdown"></div>
+            <div class="preview-content" v-html="previewHtml"></div>
           </div>
         </div>
 
@@ -543,6 +543,7 @@ export default {
       wysiwygUpdateTimeout: null,
       allTags: [],
       selectedTagIds: [],
+      previewHtml: '',
       tableRows: 3,
       tableCols: 3,
   imageInsertMode: 'url',
@@ -686,25 +687,12 @@ export default {
         rendered += '<div class="image-warning" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>📝 Formatting Note:</strong> This topic contains Pandoc-style attributes that aren\'t displayed in the editor. For size control, use HTML: &lt;img src="/images/file.png" width="500"&gt;</div>'
       }
       
-      // Post-process: in preview, filter snippet placeholders by selected audience tags,
-      // matching the same rules as the PDF/KB export backend.
+      // Post-process: in preview mode we use previewHtml (async, tag-aware).
+      // Strip any snippet placeholders that may appear if content is used elsewhere.
       if (rendered.includes('sd-snippet-ref')) {
         const tmp = document.createElement('div')
         tmp.innerHTML = rendered
-        const selected = new Set(this.selectedTagIds.map(Number))
-        tmp.querySelectorAll('.sd-snippet-ref').forEach(el => {
-          const rawTagIds = el.dataset.tagIds
-          const snippetTagIds = rawTagIds ? rawTagIds.split(',').map(Number).filter(Boolean) : []
-          // Untagged snippets are universal; tagged snippets require an audience match.
-          const visible = snippetTagIds.length === 0 || snippetTagIds.some(id => selected.has(id))
-          if (visible) {
-            const body = el.querySelector('.sd-snippet-body')
-            if (body) el.replaceWith(...Array.from(body.childNodes))
-            else el.remove()
-          } else {
-            el.remove()
-          }
-        })
+        tmp.querySelectorAll('.sd-snippet-ref').forEach(el => el.remove())
         rendered = tmp.innerHTML
       }
 
@@ -752,6 +740,13 @@ export default {
         this.$nextTick(() => {
           this._initWysiwygContent()
         })
+      } else if (newMode === 'preview') {
+        this._renderPreview()
+      }
+    },
+    selectedTagIds() {
+      if (this.editorMode === 'preview') {
+        this._renderPreview()
       }
     },
     // Remove content->HTML sync in wysiwyg to avoid caret jumping.
@@ -1465,6 +1460,65 @@ export default {
       }
 
       this.$refs.richEditor?.setContent(tmp.innerHTML)
+    },
+
+    async _renderPreview() {
+      // Build a base render from renderedMarkdown (handles image renderer, warnings, etc.)
+      // then re-expand snippet stubs and apply audience-tag filtering.
+      let html = this.renderedMarkdown  // stubs already stripped by renderedMarkdown
+
+      // Re-parse from content to get the raw stubs back, then process them
+      const rawHtml = this._rawMarkdownToHtml()
+      const tmp = document.createElement('div')
+      tmp.innerHTML = rawHtml
+
+      const els = [...tmp.querySelectorAll('.sd-snippet-ref[data-snippet-id]')]
+      if (els.length === 0) {
+        this.previewHtml = html
+        return
+      }
+
+      // Ensure snippet data is cached
+      if (!this._snippetCache) this._snippetCache = {}
+      const ids = [...new Set(els.map(el => parseInt(el.dataset.snippetId)))]
+      await Promise.all(ids.map(async id => {
+        if (!this._snippetCache[id]) {
+          try { this._snippetCache[id] = await getSnippet(id) }
+          catch (e) { console.warn(`Could not load snippet ${id}`, e) }
+        }
+      }))
+
+      // Apply tag filtering: expand visible snippets, remove hidden ones
+      const selected = new Set(this.selectedTagIds.map(Number))
+      els.forEach(el => {
+        const id = parseInt(el.dataset.snippetId)
+        const snippet = this._snippetCache?.[id]
+        if (!snippet) { el.remove(); return }
+
+        const snippetTagIds = snippet.tags?.map(t => t.id) || []
+        // Untagged = universal; tagged = only if a tag matches
+        const visible = snippetTagIds.length === 0 || snippetTagIds.some(tid => selected.has(tid))
+        if (visible) {
+          const bodyHtml = snippet.content ? marked.parse(snippet.content) : ''
+          const frag = document.createElement('div')
+          frag.innerHTML = bodyHtml
+          el.replaceWith(...Array.from(frag.childNodes))
+        } else {
+          el.remove()
+        }
+      })
+
+      // Merge the snippet-processed HTML back over the base rendered HTML.
+      // The base (renderedMarkdown) already has image warnings appended;
+      // rebuild from the processed tmp and re-append those warnings.
+      const base = document.createElement('div')
+      base.innerHTML = html
+      // Remove any leftover stripped stubs from the base (renderedMarkdown stripped them)
+      // and replace body with tmp's output + re-append warning banners
+      const warnings = [...base.querySelectorAll('.image-warning')]
+      let finalHtml = tmp.innerHTML
+      warnings.forEach(w => { finalHtml += w.outerHTML })
+      this.previewHtml = finalHtml
     },
 
     _buildSnippetPlaceholder(snippet) {
