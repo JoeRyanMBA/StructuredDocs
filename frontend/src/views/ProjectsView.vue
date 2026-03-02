@@ -49,7 +49,7 @@
     <!-- Dashboard Header -->
     <div class="dashboard-header">
       <h1>Projects Dashboard</h1>
-      <p class="subtitle">Manage projects, stakeholders, and review workflows</p>
+      <p class="subtitle">Manage projects, stakeholders, milestones, and tasks</p>
     </div>
 
     <!-- Quick Actions -->
@@ -71,12 +71,32 @@
             <h3>View Active</h3>
           </div>
         </button>
-        
-        
-        <button @click="exportProjects" class="quick-action-card" :disabled="exporting">
-          <div class="action-icon">📤</div>
-          <div class="action-content" :title="exporting ? 'Exporting...' : 'Download comprehensive project reports & analytics'">
-            <h3>Export Data</h3>
+
+        <button @click="$router.push({ name: 'AllTasks' })" class="quick-action-card">
+          <div class="action-icon">✅</div>
+          <div class="action-content" title="View and manage all tasks">
+            <h3>Tasks</h3>
+          </div>
+        </button>
+
+        <button @click="$router.push({ name: 'AllMilestones' })" class="quick-action-card">
+          <div class="action-icon">🏁</div>
+          <div class="action-content" title="View and manage all milestones">
+            <h3>Milestones</h3>
+          </div>
+        </button>
+
+        <button @click="$router.push({ name: 'AllStakeholders' })" class="quick-action-card">
+          <div class="action-icon">👥</div>
+          <div class="action-content" title="View and manage all stakeholders">
+            <h3>Stakeholders</h3>
+          </div>
+        </button>
+
+        <button @click="$router.push({ name: 'AllTags' })" class="quick-action-card">
+          <div class="action-icon">🏷️</div>
+          <div class="action-content" title="View and manage all tags">
+            <h3>Tags</h3>
           </div>
         </button>
       </div>
@@ -663,7 +683,6 @@ export default {
       projectStakeholders: [],
       newMilestones: [{ name: '', date: '', status: 'planned' }],
       creatingProject: false,
-      exporting: false,
   
   createProjectSnapshot: '',
   editProjectSnapshot: '',
@@ -1029,103 +1048,6 @@ export default {
       // Filters are automatically applied through computed property
     },
 
-    exportProjects() {
-      this.exporting = true;
-      
-      try {
-        // Create comprehensive project data export
-        const exportData = {
-          exportDate: new Date().toISOString(),
-          totalProjects: this.projects.length,
-          filteredProjects: this.filteredProjects.length,
-          projects: this.filteredProjects.map(project => ({
-            id: project.id,
-            name: project.name,
-            description: project.description,
-            status: project.status,
-            created_at: project.created_at,
-            updated_at: project.updated_at,
-            stakeholders_count: project.stakeholders?.length || 0,
-            collections_count: project.collections?.length || 0,
-            milestones_count: project.milestones?.length || 0,
-            topics_count: project.topics_count || 0
-          })),
-          summary: {
-            byStatus: this.getProjectsByStatus(),
-            recentActivity: this.getRecentActivity(),
-            stakeholderStats: this.getStakeholderStats()
-          }
-        };
-
-        // Convert to JSON and create download
-        const dataStr = JSON.stringify(exportData, null, 2);
-        const dataBlob = new Blob([dataStr], { type: 'application/json' });
-        const url = URL.createObjectURL(dataBlob);
-        
-        const link = document.createElement('a');
-        link.href = url;
-        link.download = `projects-export-${new Date().toISOString().split('T')[0]}.json`;
-        document.body.appendChild(link);
-        link.click();
-        document.body.removeChild(link);
-        
-        URL.revokeObjectURL(url);
-        
-        // Show success message
-  toast.success(`Successfully exported ${this.filteredProjects.length} projects with comprehensive data!`)
-        
-      } catch (error) {
-        console.error('Export failed:', error);
-  toast.error('Export failed. Please try again.');
-      } finally {
-        this.exporting = false;
-      }
-    },
-
-    getProjectsByStatus() {
-      const statusCounts = {};
-      this.filteredProjects.forEach(project => {
-        statusCounts[project.status] = (statusCounts[project.status] || 0) + 1;
-      });
-      return statusCounts;
-    },
-
-    getRecentActivity() {
-      // Get projects created/updated in last 30 days
-      const thirtyDaysAgo = new Date();
-      thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
-      
-      return this.filteredProjects
-        .filter(project => new Date(project.updated_at) > thirtyDaysAgo)
-        .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
-        .slice(0, 10)
-        .map(project => ({
-          name: project.name,
-          status: project.status,
-          lastUpdated: project.updated_at
-        }));
-    },
-
-    getStakeholderStats() {
-      const stats = {
-        totalStakeholders: 0,
-        roles: {}
-      };
-      
-      this.filteredProjects.forEach(project => {
-        if (project.stakeholders) {
-          stats.totalStakeholders += project.stakeholders.length;
-          project.stakeholders.forEach(stakeholder => {
-            const role = stakeholder.role || 'unknown';
-            stats.roles[role] = (stats.roles[role] || 0) + 1;
-          });
-        }
-      });
-      
-      return stats;
-    },
-
-    
     
     resetNewProject() {
       this.newProject = {
