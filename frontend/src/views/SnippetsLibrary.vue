@@ -82,11 +82,16 @@
             <div v-if="editorMode === 'markdown'" class="markdown-editor-wrap">
               <div class="markdown-toolbar">
                 <button type="button" class="md-btn" @click="insertMarkdown('link')" title="Insert link">🔗 Link</button>
-                <button type="button" class="md-btn" @click="insertMarkdown('image')" title="Insert image">🖼 Image</button>
+                <button type="button" class="md-btn" @click="insertMarkdown('image')" title="Insert image">🖼️ Image</button>
               </div>
               <textarea v-model="form.content" ref="mdTextarea" class="markdown-textarea" rows="12" placeholder="Write content in Markdown…"></textarea>
             </div>
-            <RichTextEditor v-else-if="editorMode === 'wysiwyg'" ref="richEditor" @update:model-value="onRichEditorUpdate" />
+            <RichTextEditor v-else-if="editorMode === 'wysiwyg'" ref="richEditor" @update:model-value="onRichEditorUpdate">
+              <template #toolbar-extra>
+                <button type="button" @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
+                <button type="button" @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
+              </template>
+            </RichTextEditor>
             <div v-else class="preview-content" v-html="renderedContent"></div>
           </div>
 
@@ -123,6 +128,113 @@
         </div>
       </div>
     </div>
+
+    <!-- Link Modal -->
+    <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Insert Link</h3>
+          <button @click="showLinkModal = false" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="segmented-control" role="tablist" aria-label="Insert link mode" style="margin-bottom:.75rem">
+            <button type="button" role="tab" :aria-selected="(linkInsertMode === 'manual').toString()" :tabindex="linkInsertMode === 'manual' ? 0 : -1" :class="['segmented-btn','btn','btn-sm', linkInsertMode === 'manual' ? 'btn-primary active' : 'btn-secondary']" @click="linkInsertMode = 'manual'">Manual</button>
+            <button type="button" role="tab" :aria-selected="(linkInsertMode === 'existing').toString()" :tabindex="linkInsertMode === 'existing' ? 0 : -1" :class="['segmented-btn','btn','btn-sm', linkInsertMode === 'existing' ? 'btn-primary active' : 'btn-secondary']" @click="openExistingLinks">Existing</button>
+          </div>
+          <div v-if="linkInsertMode === 'manual'">
+            <div class="form-group">
+              <label>Link Text</label>
+              <input v-model="linkText" type="text" class="form-input" placeholder="Display text">
+            </div>
+            <div class="form-group">
+              <label>URL</label>
+              <input v-model="linkUrl" type="url" class="form-input" placeholder="https://example.com">
+            </div>
+          </div>
+          <div v-else>
+            <div class="form-group">
+              <label>Search Links</label>
+              <input v-model="linkSearch" type="text" class="form-input" placeholder="Search by title, description, reference, or URL" @input="debouncedFetchLinks">
+            </div>
+            <div class="resource-list" v-if="availableLinks && availableLinks.length">
+              <div v-for="link in availableLinks" :key="link.id" class="resource-item" :class="{ selected: selectedExistingLink && selectedExistingLink.id === link.id }" @click="selectExistingLink(link)">
+                <div class="resource-title">{{ link.title }} <span v-if="link.reference_code" class="muted">({{ link.reference_code }})</span></div>
+                <div class="resource-sub">{{ link.url }}</div>
+              </div>
+            </div>
+            <div class="empty-state" v-else>No links found.</div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="insertLink" class="btn btn-primary">Insert Link</button>
+          <button @click="showLinkModal = false" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Image Modal -->
+    <div v-if="showImageModal" class="modal-overlay" @click.self="showImageModal = false">
+      <div class="modal-content" @click.stop>
+        <div class="modal-header">
+          <h3>Insert Image</h3>
+          <button @click="showImageModal = false" class="close-btn">&times;</button>
+        </div>
+        <div class="modal-body">
+          <div class="segmented-control" role="tablist" aria-label="Insert image mode" style="margin-bottom:.75rem">
+            <button type="button" role="tab" :aria-selected="(imageInsertMode === 'url').toString()" :tabindex="imageInsertMode === 'url' ? 0 : -1" :class="['segmented-btn','btn','btn-sm', imageInsertMode === 'url' ? 'btn-primary active' : 'btn-secondary']" @click="imageInsertMode = 'url'">By URL</button>
+            <button type="button" role="tab" :aria-selected="(imageInsertMode === 'existing').toString()" :tabindex="imageInsertMode === 'existing' ? 0 : -1" :class="['segmented-btn','btn','btn-sm', imageInsertMode === 'existing' ? 'btn-primary active' : 'btn-secondary']" @click="openExistingImages">Browse</button>
+            <button type="button" role="tab" :aria-selected="(imageInsertMode === 'upload').toString()" :tabindex="imageInsertMode === 'upload' ? 0 : -1" :class="['segmented-btn','btn','btn-sm', imageInsertMode === 'upload' ? 'btn-primary active' : 'btn-secondary']" @click="imageInsertMode = 'upload'">Upload</button>
+          </div>
+          <div v-if="imageInsertMode === 'url'">
+            <div class="form-group">
+              <label>Image URL</label>
+              <input v-model="imageUrl" type="url" class="form-input" placeholder="https://example.com/image.jpg">
+            </div>
+            <div class="form-group">
+              <label>Alt Text</label>
+              <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
+            </div>
+          </div>
+          <div v-else-if="imageInsertMode === 'existing'">
+            <div class="form-group">
+              <label>Search Images</label>
+              <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
+            </div>
+            <div class="image-grid" v-if="filteredImages && filteredImages.length">
+              <div v-for="img in filteredImages" :key="img.id" class="image-item" :class="{ selected: selectedExistingImage && selectedExistingImage.id === img.id }" @click="selectExistingImage(img)">
+                <img :src="imageDisplayUrl(img)" :alt="img.alt_text || img.filename" @error="handleImageError">
+                <div class="image-caption">{{ img.filename }}</div>
+              </div>
+            </div>
+            <div class="empty-state" v-else>No images found.</div>
+          </div>
+          <div v-else>
+            <div class="form-group">
+              <label>Upload Image</label>
+              <input type="file" accept="image/*" @change="onImageUploadSelect">
+            </div>
+            <div class="upload-status" v-if="imageUploadMessage">{{ imageUploadMessage }}</div>
+            <div class="upload-actions">
+              <button class="btn btn-primary" :disabled="imageUploadUploading || !imageUploadFile" @click="uploadImageFile">
+                {{ imageUploadUploading ? 'Uploading...' : 'Upload & Use' }}
+              </button>
+            </div>
+            <div class="form-group" v-if="imageUrl">
+              <label>Resulting URL</label>
+              <input v-model="imageUrl" type="url" class="form-input">
+            </div>
+            <div class="form-group">
+              <label>Alt Text</label>
+              <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
+            </div>
+          </div>
+        </div>
+        <div class="modal-footer">
+          <button @click="insertImage" class="btn btn-primary">Insert Image</button>
+          <button @click="showImageModal = false" class="btn btn-secondary">Cancel</button>
+        </div>
+      </div>
+    </div>
   </div>
 </template>
 
@@ -148,6 +260,27 @@ export default {
       showDeleteConfirm: false,
       editorMode: 'markdown',
       usageTopics: [],
+      // Link modal
+      showLinkModal: false,
+      linkInsertMode: 'manual',
+      linkText: '',
+      linkUrl: '',
+      linkSearch: '',
+      availableLinks: [],
+      selectedExistingLink: null,
+      _linkDebounceTimer: null,
+      // Image modal
+      showImageModal: false,
+      imageInsertMode: 'url',
+      imageUrl: '',
+      imageAlt: '',
+      imageSearch: '',
+      availableImages: [],
+      filteredImages: [],
+      selectedExistingImage: null,
+      imageUploadFile: null,
+      imageUploadUploading: false,
+      imageUploadMessage: '',
     }
   },
   computed: {
@@ -283,6 +416,158 @@ export default {
         const urlStart = start + insertion.indexOf('url')
         ta.setSelectionRange(urlStart, urlStart + 3)
       })
+    },
+    // --- Link modal ---
+    openLinkModal() {
+      this.$refs.richEditor?.saveSelection()
+      this.linkInsertMode = 'manual'
+      this.linkText = ''
+      this.linkUrl = ''
+      this.linkSearch = ''
+      this.availableLinks = []
+      this.selectedExistingLink = null
+      this.showLinkModal = true
+    },
+    async openExistingLinks() {
+      this.linkInsertMode = 'existing'
+      await this.fetchLinks()
+    },
+    async fetchLinks() {
+      try {
+        const qs = this.linkSearch ? `?search=${encodeURIComponent(this.linkSearch)}&include_usage=true` : '?include_usage=true'
+        const res = await fetch(`/api/links/${qs}`)
+        if (res.ok) {
+          const data = await res.json()
+          this.availableLinks = data.links || []
+        }
+      } catch (e) { console.error('Failed to fetch links', e) }
+    },
+    debouncedFetchLinks() {
+      clearTimeout(this._linkDebounceTimer)
+      this._linkDebounceTimer = setTimeout(() => this.fetchLinks(), 300)
+    },
+    selectExistingLink(link) {
+      this.selectedExistingLink = link
+      this.linkText = link.title || link.reference_code || 'Link'
+      this.linkUrl = link.url
+    },
+    insertLink() {
+      if (!this.linkUrl) return
+      const editor = this.$refs.richEditor?.getEditorEl()
+      if (editor) {
+        const restored = this.$refs.richEditor?.restoreSelection()
+        const anchor = document.createElement('a')
+        anchor.href = this.linkUrl
+        anchor.textContent = this.linkText || this.linkUrl
+        anchor.target = '_blank'
+        anchor.rel = 'noopener noreferrer'
+        if (restored) {
+          const sel = window.getSelection()
+          if (sel && sel.rangeCount > 0) {
+            const range = sel.getRangeAt(0)
+            range.deleteContents()
+            range.insertNode(anchor)
+            range.setStartAfter(anchor)
+            range.collapse(true)
+            sel.removeAllRanges()
+            sel.addRange(range)
+          } else {
+            editor.appendChild(anchor)
+          }
+        } else {
+          editor.appendChild(anchor)
+        }
+        this.$refs.richEditor?.emitUpdate()
+      }
+      this.showLinkModal = false
+      this.linkText = ''
+      this.linkUrl = ''
+      this.selectedExistingLink = null
+    },
+    // --- Image modal ---
+    openImageModal() {
+      this.$refs.richEditor?.saveSelection()
+      this.imageInsertMode = 'url'
+      this.imageUrl = ''
+      this.imageAlt = ''
+      this.imageSearch = ''
+      this.availableImages = []
+      this.filteredImages = []
+      this.selectedExistingImage = null
+      this.imageUploadFile = null
+      this.imageUploadMessage = ''
+      this.showImageModal = true
+    },
+    async openExistingImages() {
+      this.imageInsertMode = 'existing'
+      await this.fetchImages()
+      this.filterImages()
+    },
+    async fetchImages() {
+      try {
+        const res = await fetch('/api/images')
+        if (res.ok) {
+          this.availableImages = await res.json()
+          this.filteredImages = [...this.availableImages]
+        }
+      } catch (e) { console.error('Failed to fetch images', e) }
+    },
+    filterImages() {
+      const q = (this.imageSearch || '').toLowerCase()
+      this.filteredImages = q
+        ? this.availableImages.filter(img => (img.filename || '').toLowerCase().includes(q))
+        : [...this.availableImages]
+    },
+    selectExistingImage(img) {
+      this.selectedExistingImage = img
+      this.imageUrl = img.public_url || img.file_path || ''
+      this.imageAlt = img.alt_text || img.filename || ''
+    },
+    imageDisplayUrl(img) {
+      return img.public_url || img.file_path || ''
+    },
+    handleImageError(event) {
+      event.target.style.opacity = '0.3'
+    },
+    onImageUploadSelect(event) {
+      this.imageUploadFile = event.target.files[0] || null
+      this.imageUploadMessage = this.imageUploadFile ? `Selected: ${this.imageUploadFile.name}` : ''
+    },
+    async uploadImageFile() {
+      if (!this.imageUploadFile) return
+      this.imageUploadUploading = true
+      this.imageUploadMessage = 'Uploading...'
+      try {
+        const formData = new FormData()
+        formData.append('image', this.imageUploadFile)
+        const res = await fetch('/api/images/upload', { method: 'POST', body: formData })
+        if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
+        const uploaded = await res.json()
+        this.imageUrl = uploaded.public_url || uploaded.file_path || ''
+        this.imageAlt = uploaded.alt_text || uploaded.filename || ''
+        this.imageUploadMessage = '✅ Upload successful'
+      } catch (e) {
+        this.imageUploadMessage = `❌ ${e.message}`
+      } finally {
+        this.imageUploadUploading = false
+      }
+    },
+    insertImage() {
+      if (!this.imageUrl) return
+      const editor = this.$refs.richEditor?.getEditorEl()
+      if (editor) {
+        this.$refs.richEditor?.restoreSelection()
+        const alt = this.imageAlt || 'Image'
+        document.execCommand('insertHTML', false, `<img src="${this.imageUrl}" alt="${alt}" />`)
+        this.$refs.richEditor?.emitUpdate()
+      }
+      this.showImageModal = false
+      this.imageUrl = ''
+      this.imageAlt = ''
+      this.selectedExistingImage = null
+      this.imageInsertMode = 'url'
+      this.imageUploadFile = null
+      this.imageUploadMessage = ''
     },
   },
 }
@@ -486,7 +771,10 @@ export default {
 .usage-item { font-size: 0.85rem; color: #212529; }
 .usage-breadcrumb { color: #6c757d; font-size: 0.8rem; }
 
-/* Delete confirm modal */
+.upload-status { font-size: 0.85rem; margin: 0.35rem 0; color: #495057; }
+.upload-actions { margin: 0.5rem 0; }
+
+
 .modal-overlay {
   position: fixed; inset: 0; background: rgba(0,0,0,0.4);
   display: flex; align-items: center; justify-content: center; z-index: 2000;

@@ -8,23 +8,7 @@
       <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
       <button type="button" @click="exec('insertUnorderedList')" class="toolbar-btn">• List</button>
       <button type="button" @click="exec('insertOrderedList')" class="toolbar-btn">1. List</button>
-      <button type="button" @click="openLinkDialog" class="toolbar-btn">🔗 Link</button>
-      <button type="button" @click="openImgDialog" class="toolbar-btn">🖼 Image</button>
       <slot name="toolbar-extra" />
-    </div>
-    <div v-if="linkDialogVisible" class="rte-inline-dialog">
-      <span class="rte-dialog-label">URL:</span>
-      <input v-model="dialogUrl" type="url" placeholder="https://…" class="rte-dialog-input" @keydown.enter="confirmLink" @keydown.esc="cancelDialog" ref="linkInput" />
-      <button type="button" class="rte-dialog-btn" @click="confirmLink">Insert</button>
-      <button type="button" class="rte-dialog-btn rte-dialog-cancel" @click="cancelDialog">✕</button>
-    </div>
-    <div v-if="imgDialogVisible" class="rte-inline-dialog">
-      <span class="rte-dialog-label">URL:</span>
-      <input v-model="dialogUrl" type="url" placeholder="https://…" class="rte-dialog-input" @keydown.enter="confirmImg" @keydown.esc="cancelDialog" ref="imgInput" />
-      <span class="rte-dialog-label">Alt:</span>
-      <input v-model="dialogAlt" type="text" placeholder="Alt text" class="rte-dialog-input rte-dialog-alt" @keydown.enter="confirmImg" @keydown.esc="cancelDialog" />
-      <button type="button" class="rte-dialog-btn" @click="confirmImg">Insert</button>
-      <button type="button" class="rte-dialog-btn rte-dialog-cancel" @click="cancelDialog">✕</button>
     </div>
     <div
       ref="editorEl"
@@ -46,10 +30,6 @@ export default {
   emits: ['update:modelValue', 'paste'],
   data() {
     return {
-      linkDialogVisible: false,
-      imgDialogVisible: false,
-      dialogUrl: '',
-      dialogAlt: '',
     }
   },
   watch: {
@@ -125,49 +105,6 @@ export default {
     focus() {
       this.$refs.editorEl?.focus()
     },
-    openLinkDialog() {
-      this.saveSelection()
-      this.dialogUrl = ''
-      this.imgDialogVisible = false
-      this.linkDialogVisible = true
-      this.$nextTick(() => this.$refs.linkInput?.focus())
-    },
-    openImgDialog() {
-      this.dialogUrl = ''
-      this.dialogAlt = ''
-      this.linkDialogVisible = false
-      this.imgDialogVisible = true
-      this.$nextTick(() => this.$refs.imgInput?.focus())
-    },
-    confirmLink() {
-      const url = this.dialogUrl.trim()
-      if (!url) { this.cancelDialog(); return }
-      this.restoreSelection()
-      document.execCommand('createLink', false, url)
-      this.emitUpdate()
-      this.cancelDialog()
-    },
-    confirmImg() {
-      const url = this.dialogUrl.trim()
-      if (!url) { this.cancelDialog(); return }
-      document.execCommand('insertImage', false, url)
-      if (this.dialogAlt.trim()) {
-        const el = this.$refs.editorEl
-        if (el) {
-          const imgs = el.querySelectorAll('img')
-          const last = imgs[imgs.length - 1]
-          if (last && !last.alt) last.alt = this.dialogAlt.trim()
-        }
-      }
-      this.emitUpdate()
-      this.cancelDialog()
-    },
-    cancelDialog() {
-      this.linkDialogVisible = false
-      this.imgDialogVisible = false
-      this.dialogUrl = ''
-      this.dialogAlt = ''
-    },
   },
 }
 </script>
@@ -238,46 +175,6 @@ export default {
   background: #dee2e6;
   color: #000;
 }
-
-.rte-inline-dialog {
-  display: flex;
-  align-items: center;
-  flex-wrap: wrap;
-  gap: 0.35rem;
-  padding: 0.4rem 0.5rem;
-  background: #f0f4ff;
-  border: 1px solid #c5d3f0;
-  border-top: none;
-  border-bottom: none;
-}
-.rte-dialog-label {
-  font-size: 0.8rem;
-  color: #495057;
-  white-space: nowrap;
-}
-.rte-dialog-input {
-  flex: 1;
-  min-width: 160px;
-  padding: 0.25rem 0.5rem;
-  border: 1px solid #ced4da;
-  border-radius: 4px;
-  font-size: 0.82rem;
-}
-.rte-dialog-input:focus { outline: none; border-color: #205493; }
-.rte-dialog-alt { max-width: 140px; flex: 0 1 140px; }
-.rte-dialog-btn {
-  padding: 0.25rem 0.65rem;
-  background: #205493;
-  color: #fff;
-  border: none;
-  border-radius: 4px;
-  font-size: 0.82rem;
-  cursor: pointer;
-  white-space: nowrap;
-}
-.rte-dialog-btn:hover { background: #1a4376; }
-.rte-dialog-cancel { background: #6c757d; }
-.rte-dialog-cancel:hover { background: #5a6268; }
 
 /* wysiwyg-content is defined globally in TopicEditor but included here for standalone pages */
 .rte-wysiwyg-editor .wysiwyg-content {
