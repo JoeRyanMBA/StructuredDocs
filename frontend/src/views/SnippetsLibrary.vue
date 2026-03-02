@@ -80,7 +80,11 @@
               <button type="button" :class="['mode-btn', editorMode === 'preview' ? 'active' : '']" @click="editorMode = 'preview'">🔍 Preview</button>
             </div>
             <div v-if="editorMode === 'markdown'" class="markdown-editor-wrap">
-              <textarea v-model="form.content" class="markdown-textarea" rows="12" placeholder="Write content in Markdown…"></textarea>
+              <div class="markdown-toolbar">
+                <button type="button" class="md-btn" @click="insertMarkdown('link')" title="Insert link">🔗 Link</button>
+                <button type="button" class="md-btn" @click="insertMarkdown('image')" title="Insert image">🖼 Image</button>
+              </div>
+              <textarea v-model="form.content" ref="mdTextarea" class="markdown-textarea" rows="12" placeholder="Write content in Markdown…"></textarea>
             </div>
             <RichTextEditor v-else-if="editorMode === 'wysiwyg'" ref="richEditor" @update:model-value="onRichEditorUpdate" />
             <div v-else class="preview-content" v-html="renderedContent"></div>
@@ -264,6 +268,22 @@ export default {
         if (idx !== -1) this.snippets.splice(idx, 1, this.selected)
       }
     },
+    insertMarkdown(type) {
+      const ta = this.$refs.mdTextarea
+      if (!ta) return
+      const start = ta.selectionStart
+      const end = ta.selectionEnd
+      const selected = this.form.content.substring(start, end)
+      const insertion = type === 'link'
+        ? (selected ? `[${selected}](url)` : '[link text](url)')
+        : (selected ? `![${selected}](url)` : '![alt text](url)')
+      this.form.content = this.form.content.substring(0, start) + insertion + this.form.content.substring(end)
+      this.$nextTick(() => {
+        ta.focus()
+        const urlStart = start + insertion.indexOf('url')
+        ta.setSelectionRange(urlStart, urlStart + 3)
+      })
+    },
   },
 }
 </script>
@@ -398,11 +418,30 @@ export default {
 .mode-btn:hover { background: #e9ecef; }
 .mode-btn.active { background: #205493; color: #fff; border-color: #205493; }
 .markdown-editor-wrap { display: flex; flex-direction: column; }
+.markdown-toolbar {
+  display: flex;
+  gap: 0.3rem;
+  padding: 0.3rem 0.4rem;
+  background: #f8f9fa;
+  border: 1px solid #ced4da;
+  border-bottom: none;
+  border-radius: 6px 6px 0 0;
+}
+.md-btn {
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  padding: 0.2rem 0.55rem;
+  font-size: 0.8rem;
+  cursor: pointer;
+  color: #495057;
+}
+.md-btn:hover { background: #e9ecef; border-color: #adb5bd; }
 .markdown-textarea {
   width: 100%;
   padding: 0.6rem 0.75rem;
   border: 1px solid #ced4da;
-  border-radius: 6px;
+  border-radius: 0 0 6px 6px;
   font-family: monospace;
   font-size: 0.88rem;
   resize: vertical;
