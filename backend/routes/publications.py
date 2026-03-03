@@ -1107,6 +1107,116 @@ def generate_mobile_kb_html_inline(publication, tree):
             cursor: pointer;
         }
         .hamburger-btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
+
+        .search-btn {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .search-btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
+
+        /* Search overlay */
+        .search-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 600;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .search-overlay.active { display: flex; }
+        .search-box {
+            width: 100%;
+            max-width: 620px;
+            margin-top: 3.5rem;
+        }
+        .search-input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .search-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            outline: none;
+        }
+        .search-close-btn {
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .search-close-btn:hover { background: rgba(255,255,255,0.25); }
+        .search-hint {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.78rem;
+            margin-top: 0.4rem;
+            padding-left: 0.25rem;
+        }
+        .search-results {
+            width: 100%;
+            max-width: 620px;
+            margin-top: 1rem;
+        }
+        .search-result-item {
+            background: #fff;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .search-result-item:hover { background: #eef3ff; }
+        .search-result-title {
+            font-weight: 600;
+            color: #005a9c;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+        .search-result-snippet {
+            font-size: 0.85rem;
+            color: #444;
+            line-height: 1.45;
+        }
+        .search-result-snippet mark {
+            background: #fff3cd;
+            padding: 0 2px;
+            border-radius: 2px;
+            font-style: normal;
+        }
+        .search-no-results {
+            color: rgba(255,255,255,0.75);
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.95rem;
+        }
+        .search-result-count {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            padding-left: 0.25rem;
+        }
         
         .kb-title {
             font-size: 1.25rem;
@@ -1547,7 +1657,88 @@ def generate_mobile_kb_html_inline(publication, tree):
             const btn = document.getElementById('hamburger-btn');
             if (btn) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); btn.textContent = open ? '✕' : '☰'; }
         }
-        
+
+        // ── Search ────────────────────────────────────────────────────────────
+        let _searchIndex = null;
+
+        function _buildIndex() {
+            _searchIndex = [];
+            document.querySelectorAll('.content-section').forEach(sec => {
+                const h = sec.querySelector('h1,h2,h3');
+                const title = h ? h.textContent.trim() : sec.id;
+                // innerText gives plain text respecting visibility; fall back to textContent
+                const raw = (sec.innerText || sec.textContent || '').trim();
+                _searchIndex.push({ id: sec.id, title, text: raw });
+            });
+        }
+
+        function _escapeRe(s) { return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+
+        function _highlight(text, query) {
+            if (!query) return text;
+            return text.replace(new RegExp('(' + _escapeRe(query) + ')', 'gi'), '<mark>$1</mark>');
+        }
+
+        function _snippet(text, query, maxLen) {
+            maxLen = maxLen || 160;
+            const lo = text.toLowerCase(), lq = query.toLowerCase();
+            const idx = lo.indexOf(lq);
+            if (idx === -1) return text.slice(0, maxLen) + (text.length > maxLen ? '\\u2026' : '');
+            const s = Math.max(0, idx - 70), e = Math.min(text.length, idx + query.length + 90);
+            return (s > 0 ? '\\u2026' : '') + text.slice(s, e) + (e < text.length ? '\\u2026' : '');
+        }
+
+        function performSearch(query) {
+            const countEl   = document.getElementById('search-result-count');
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.innerHTML = '';
+            countEl.textContent = '';
+            if (!query || query.length < 2) return;
+            if (!_searchIndex) _buildIndex();
+
+            const lq = query.toLowerCase();
+            const hits = _searchIndex.filter(item =>
+                item.title.toLowerCase().includes(lq) || item.text.toLowerCase().includes(lq)
+            );
+            // Title matches first
+            hits.sort((a, b) => {
+                const at = a.title.toLowerCase().includes(lq);
+                const bt = b.title.toLowerCase().includes(lq);
+                return (bt ? 1 : 0) - (at ? 1 : 0);
+            });
+
+            if (hits.length === 0) {
+                resultsEl.innerHTML = '<div class="search-no-results">No results found for \\u201c' + query + '\\u201d</div>';
+                return;
+            }
+            countEl.textContent = hits.length + (hits.length === 1 ? ' result' : ' results');
+            hits.slice(0, 15).forEach(item => {
+                const snippet  = _snippet(item.text, query);
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML =
+                    '<div class="search-result-title">' + _highlight(item.title, query) + '</div>' +
+                    '<div class="search-result-snippet">' + _highlight(snippet, query) + '</div>';
+                div.addEventListener('click', function() { closeSearch(); showSection(item.id); });
+                resultsEl.appendChild(div);
+            });
+        }
+
+        function openSearch() {
+            closeNav();
+            document.getElementById('search-overlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function() { document.getElementById('search-input').focus(); }, 50);
+        }
+        function closeSearch() {
+            document.getElementById('search-overlay').classList.remove('active');
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-result-count').textContent = '';
+            document.body.style.overflow = '';
+        }
+        // ── End Search ────────────────────────────────────────────────────────
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Default: show first section if available, keep drawer closed
@@ -1558,7 +1749,32 @@ def generate_mobile_kb_html_inline(publication, tree):
             if (hb) hb.addEventListener('click', toggleNav);
             const bd = document.getElementById('drawer-backdrop');
             if (bd) bd.addEventListener('click', closeNav);
-            document.addEventListener('keyup', (e) => { if (e.key === 'Escape') closeNav(); });
+            const sb = document.getElementById('search-btn');
+            if (sb) sb.addEventListener('click', openSearch);
+            const sc = document.getElementById('search-close-btn');
+            if (sc) sc.addEventListener('click', closeSearch);
+            const si = document.getElementById('search-input');
+            if (si) {
+                si.addEventListener('input', function() { performSearch(this.value.trim()); });
+                // Allow Enter to navigate to first result
+                si.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        const first = document.querySelector('.search-result-item');
+                        if (first) first.click();
+                    }
+                });
+            }
+            document.addEventListener('keydown', function(e) {
+                const overlay = document.getElementById('search-overlay');
+                if (e.key === 'Escape') { closeNav(); closeSearch(); }
+                // '/' opens search when not already typing in an input
+                if (e.key === '/' && document.activeElement.tagName !== 'INPUT' &&
+                        document.activeElement.tagName !== 'TEXTAREA') {
+                    if (!overlay.classList.contains('active')) { e.preventDefault(); openSearch(); }
+                }
+            });
+            // Pre-build search index after page settles
+            setTimeout(_buildIndex, 200);
         });
     </script>
     """
@@ -1628,10 +1844,25 @@ def generate_mobile_kb_html_inline(publication, tree):
                     <h1 class="kb-title">{publication.title}</h1>
                     <p class="kb-subtitle">Mobile Knowledge Base</p>
                 </div>
+                <button id="search-btn" class="search-btn" aria-label="Search">🔍</button>
             </div>
         </header>
         
         <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+
+        <!-- Search overlay -->
+        <div id="search-overlay" class="search-overlay" role="dialog" aria-label="Search">
+            <div class="search-box">
+                <div class="search-input-row">
+                    <input id="search-input" class="search-input" type="search"
+                           placeholder="Search topics and content…" autocomplete="off" spellcheck="false">
+                    <button id="search-close-btn" class="search-close-btn">✕ Close</button>
+                </div>
+                <div class="search-hint">Press <kbd style="color:#fff;border:1px solid rgba(255,255,255,0.4);padding:0 4px;border-radius:3px;font-size:0.75rem">/</kbd> to search · <kbd style="color:#fff;border:1px solid rgba(255,255,255,0.4);padding:0 4px;border-radius:3px;font-size:0.75rem">Esc</kbd> to close</div>
+            </div>
+            <div id="search-result-count" class="search-result-count"></div>
+            <div id="search-results" class="search-results"></div>
+        </div>
         <nav class="navigation nav-drawer" id="kb-nav" role="navigation" aria-label="Topics menu">
             <div class="nav-section">
                 <div class="nav-title">Topics</div>
