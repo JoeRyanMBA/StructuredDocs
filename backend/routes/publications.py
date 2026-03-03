@@ -2100,6 +2100,10 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     # Normalize line endings and strip non-breaking spaces that can confuse parser
     safe_text = text.replace('\r\n', '\n').replace('\r', '\n').replace('\u00A0', ' ')
 
+    # Unescape Pandoc/Markdown backslash-escaped characters (e.g. \$ -> $, \* -> *)
+    # Pandoc escapes $ and other chars to prevent LaTeX/Markdown interpretation
+    safe_text = re.sub(r'\\([\\`*_{}\[\]()\#+\-.!$|~^])', r'\1', safe_text)
+
     # Pre-process HTML structural tags produced by snippet resolution (mistune output)
     # into markdown / ReportLab-compatible format before the line-by-line pass below.
     # Convert <strong>/<em> to ReportLab-supported <b>/<i>
