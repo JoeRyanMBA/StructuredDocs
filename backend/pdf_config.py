@@ -197,10 +197,11 @@ class PDFConfig:
     @classmethod
     def create_bullet_style(cls, base_styles, level=0):
         """Create bullet list item style with hanging indent"""
+        from reportlab.pdfbase.pdfmetrics import stringWidth
         base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
-        # bullet_hang must match the rendered width of '• ' (bullet + two spaces)
-        # at body font size so that wrapped lines align with the text start.
-        bullet_hang = 18  # points: aligns with '•  ' (bullet + 2 spaces) at ~11pt
+        # Measure the exact rendered width of the bullet prefix so wrapped lines
+        # align precisely with the text that follows the bullet.
+        bullet_hang = stringWidth('•  ', cls.FONTS['body'], cls.FONT_SIZES['body'])
 
         return ParagraphStyle(
             f'BulletItem{level}',
@@ -218,10 +219,11 @@ class PDFConfig:
     @classmethod
     def create_numbered_style(cls, base_styles, level=0):
         """Create numbered list item style with hanging indent"""
+        from reportlab.pdfbase.pdfmetrics import stringWidth
         base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
-        # num_hang must match the rendered width of 'N.  ' (number + dot + 2 spaces)
-        # at body font size so that wrapped lines align with the text start.
-        num_hang = 22  # points: aligns with single-digit '1.  ' prefix at ~11pt
+        # Measure the exact rendered width of a single-digit number prefix so
+        # wrapped lines align precisely with the text that follows the number.
+        num_hang = stringWidth('1.  ', cls.FONTS['body'], cls.FONT_SIZES['body'])
 
         return ParagraphStyle(
             f'NumberedItem{level}',
