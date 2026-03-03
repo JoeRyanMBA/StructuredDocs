@@ -2074,7 +2074,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         continue
                     # Bullet list item — use hanging-indent bullet style
                     if para.startswith('__BULLET__:'):
-                        bullet_text = '•  ' + para[len('__BULLET__:'):]
+                        # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
+                        bullet_text = '•&nbsp;&nbsp;' + para[len('__BULLET__:'):]
                         bullet_style = config.create_bullet_style(base_styles, level)
                         story.append(Paragraph(bullet_text, bullet_style))
                         continue
@@ -2082,7 +2083,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                     if re.match(r'^__ORDERED__\d+__:', para):
                         m = re.match(r'^__ORDERED__(\d+)__:(.*)', para, re.DOTALL)
                         if m:
-                            num_text = f'{m.group(1)}.  {m.group(2)}'
+                            # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
+                            num_text = f'{m.group(1)}.&nbsp;&nbsp;{m.group(2)}'
                             num_style = config.create_numbered_style(base_styles, level)
                             story.append(Paragraph(num_text, num_style))
                         continue
