@@ -180,6 +180,16 @@ def run_migrations():
                     return True
                 return False
 
+            def ensure_varchar_column(table: str, column: str, length: int = 100):
+                cols = [c['name'] for c in inspector.get_columns(table)]
+                if column not in cols:
+                    print(f"➕ Adding missing column {table}.{column} ...")
+                    db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {column} VARCHAR({length})"))
+                    db.session.commit()
+                    print(f"✅ Added column {table}.{column}")
+                    return True
+                return False
+
             def ensure_table(table: str, create_sql: str, create_sql_sqlite: str = None):
                 existing = inspector.get_table_names()
                 if table not in existing:
@@ -216,9 +226,10 @@ def run_migrations():
             # Expected boolean columns we defensively backfill if missing
             added_collections_archived = ensure_boolean_column('collections', 'archived', 'FALSE')
             added_projects_archived = ensure_boolean_column('projects', 'archived', 'FALSE')
+            added_publications_form_number = ensure_varchar_column('publications', 'form_number', 100)
 
             # Summarize drift outcome
-            if not (added_collections_archived or added_projects_archived):
+            if not (added_collections_archived or added_projects_archived or added_publications_form_number):
                 print("✅ No hot-fix column additions required")
             else:
                 print("ℹ️ One or more columns were added directly (consider verifying Alembic revisions are stamped correctly)")
