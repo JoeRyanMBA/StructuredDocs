@@ -504,6 +504,21 @@ p { color: #666; }
                         _model_cls.__table__.create(bind=db.engine, checkfirst=True)
                     except Exception as _tag_e:
                         print(f"⚠️ Could not create {_table_name} fallback table: {_tag_e}")
+
+            # Safety net: ensure publications.form_number column exists
+            if 'publications' in existing_tables:
+                try:
+                    _pub_cols = {c['name'] for c in inspector.get_columns('publications')}
+                    if 'form_number' not in _pub_cols:
+                        print("🛠  Adding missing column: publications.form_number")
+                        db.session.execute(db.text(
+                            "ALTER TABLE publications ADD COLUMN form_number VARCHAR(100)"
+                        ))
+                        db.session.commit()
+                        print("✅ Added publications.form_number")
+                except Exception as _fn_e:
+                    print(f"⚠️ Could not add publications.form_number: {_fn_e}")
+                    db.session.rollback()
         except Exception as _crit_e:
             print(f"⚠️ Could not ensure critical tables: {_crit_e}")
         
