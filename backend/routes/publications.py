@@ -1793,13 +1793,12 @@ def export_pdf(pub_id):
 
 def generate_pdf(publication, tree, config_type='default', background_image_path=None):
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
-    buffer = io.BytesIO()
     _pdf_temp_dir = tempfile.mkdtemp(prefix='sd_pdf_imgs_')
-    
+
     # Ensure config_type is always defined
     if not config_type:
         config_type = 'default'
-    
+
     # Select configuration based on type
     if config_type == 'corporate':
         config = CorporateConfig
@@ -1811,303 +1810,326 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         config = OrganizationConfig
     else:
         config = PDFConfig
-    
+
     # If no background image is specified, use the default SC Cover Background.png
     if not background_image_path:
         default_bg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'SC Cover Background.png')
         if os.path.exists(default_bg_path):
             background_image_path = default_bg_path
             print(f"DEBUG: Using default background image: {background_image_path}")
-    
-    # Create PDF document with background image support
-    print(f"DEBUG: Creating PDF document for publication: {publication.title}, id: {publication.id}")
-    if background_image_path and os.path.exists(background_image_path):
-        print("DEBUG: Using BackgroundImageDocTemplate")
-        doc = BackgroundImageDocTemplate(
-            buffer,
-            background_image_path=background_image_path,
-            publication=publication,
-            pagesize=config.PAGE_SIZE,
-            rightMargin=config.MARGINS['right'],
-            leftMargin=config.MARGINS['left'],
-            topMargin=config.MARGINS['top'],
-            bottomMargin=config.MARGINS['bottom']
-        )
-    else:
-        # Use HeaderDocTemplate for PDFs with headers but no background image
-        print("DEBUG: Using HeaderDocTemplate")
-        doc = HeaderDocTemplate(
-            buffer,
-            publication=publication,
-            pagesize=config.PAGE_SIZE,
-            rightMargin=config.MARGINS['right'],
-            leftMargin=config.MARGINS['left'],
-            topMargin=config.MARGINS['top'],
-            bottomMargin=config.MARGINS['bottom']
-        )
-    
-    # Build content
-    story = []
+
+    def _make_doc(buf):
+        """Create a fresh doc template writing to the given buffer."""
+        if background_image_path and os.path.exists(background_image_path):
+            print("DEBUG: Using BackgroundImageDocTemplate")
+            return BackgroundImageDocTemplate(
+                buf,
+                background_image_path=background_image_path,
+                publication=publication,
+                pagesize=config.PAGE_SIZE,
+                rightMargin=config.MARGINS['right'],
+                leftMargin=config.MARGINS['left'],
+                topMargin=config.MARGINS['top'],
+                bottomMargin=config.MARGINS['bottom']
+            )
+        else:
+            print("DEBUG: Using HeaderDocTemplate")
+            return HeaderDocTemplate(
+                buf,
+                publication=publication,
+                pagesize=config.PAGE_SIZE,
+                rightMargin=config.MARGINS['right'],
+                leftMargin=config.MARGINS['left'],
+                topMargin=config.MARGINS['top'],
+                bottomMargin=config.MARGINS['bottom']
+            )
+
     base_styles = config.get_base_styles()
+
+    def _make_story(anchor_pages):
+        """Build and return the complete story list.
+
+        anchor_pages: dict mapping anchor_id → actual page number collected from a
+        prior dry-run build.  Pass an empty dict on the first (measurement) pass.
+        """
+        story = []
     
-    # Start with title page template
-    story.append(NextPageTemplate('title_page'))
+        story.append(NextPageTemplate('title_page'))
+        # Create styles using configuration
+        title_style = config.create_title_style(base_styles)
+        subtitle_style = config.create_subtitle_style(base_styles)
     
-    # Create styles using configuration
-    title_style = config.create_title_style(base_styles)
-    subtitle_style = config.create_subtitle_style(base_styles)
+        # Title page content - move title down about 1" and align to right margin
+        story.append(Spacer(1, 84))  # Move down ~1" (72pt)
     
-    # Title page content - move title down about 1" and align to right margin
-    story.append(Spacer(1, 84))  # Move down ~1" (72pt)
+        if background_image_path and os.path.exists(background_image_path):
+            # For background image docs, use white text for visibility on blue background
+            enhanced_title_style = ParagraphStyle(
+                'EnhancedTitle',
+                parent=title_style,
+                textColor=colors.white,  # White text for visibility on blue background
+                fontSize=title_style.fontSize + 4,  # Make title larger
+                leading=title_style.fontSize + 8,
+                alignment=TA_RIGHT,  # Right-align title
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            enhanced_subtitle_style = ParagraphStyle(
+                'EnhancedSubtitle',
+                parent=subtitle_style,
+                textColor=colors.white,  # White text for visibility on blue background
+                fontSize=subtitle_style.fontSize + 3,
+                alignment=TA_RIGHT,  # Right-align subtitle
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            story.append(Paragraph(publication.title, enhanced_title_style))
+            if publication.description:
+                story.append(Paragraph(publication.description, enhanced_subtitle_style))
+        else:
+            # Regular title page without background - also right-aligned
+            enhanced_title_style = ParagraphStyle(
+                'EnhancedTitle',
+                parent=title_style,
+                alignment=TA_RIGHT,  # Right-align title
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            enhanced_subtitle_style = ParagraphStyle(
+                'EnhancedSubtitle',
+                parent=subtitle_style,
+                alignment=TA_RIGHT,  # Right-align subtitle
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            story.append(Paragraph(publication.title, enhanced_title_style))
+            if publication.description:
+                story.append(Paragraph(publication.description, enhanced_subtitle_style))
     
-    if getattr(doc, 'background_image_path', None):
-        # For background image docs, use white text for visibility on blue background
-        enhanced_title_style = ParagraphStyle(
-            'EnhancedTitle',
-            parent=title_style,
-            textColor=colors.white,  # White text for visibility on blue background
-            fontSize=title_style.fontSize + 4,  # Make title larger
-            leading=title_style.fontSize + 8,
-            alignment=TA_RIGHT,  # Right-align title
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        enhanced_subtitle_style = ParagraphStyle(
-            'EnhancedSubtitle',
-            parent=subtitle_style,
-            textColor=colors.white,  # White text for visibility on blue background
-            fontSize=subtitle_style.fontSize + 3,
-            alignment=TA_RIGHT,  # Right-align subtitle
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        story.append(Paragraph(publication.title, enhanced_title_style))
-        if publication.description:
-            story.append(Paragraph(publication.description, enhanced_subtitle_style))
-    else:
-        # Regular title page without background - also right-aligned
-        enhanced_title_style = ParagraphStyle(
-            'EnhancedTitle',
-            parent=title_style,
-            alignment=TA_RIGHT,  # Right-align title
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        enhanced_subtitle_style = ParagraphStyle(
-            'EnhancedSubtitle',
-            parent=subtitle_style,
-            alignment=TA_RIGHT,  # Right-align subtitle
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        story.append(Paragraph(publication.title, enhanced_title_style))
-        if publication.description:
-            story.append(Paragraph(publication.description, enhanced_subtitle_style))
+        # Page break to TOC (switches to TOC page template)
+        story.append(NextPageTemplate('toc_page'))
+        story.append(PageBreak())
     
-    # Page break to TOC (switches to TOC page template)
-    story.append(NextPageTemplate('toc_page'))
-    story.append(PageBreak())
-    
-    # Table of contents
-    # Create TOC heading with forced left alignment to overcome any ReportLab frame margins
-    page_width, page_height = config.PAGE_SIZE
-    total_margins = config.MARGINS['left'] + config.MARGINS['right']
-    usable_width = page_width - total_margins
-    
-    # Create TOC heading aligned exactly to the 1-inch margin (same as TOC entries)
-    toc_heading_style = ParagraphStyle(
-        'TOCHeading',
-        fontName=config.FONTS['heading'],
-        fontSize=config.FONT_SIZES['h1'],
-        textColor=config.COLORS['heading'],
-        leftIndent=-6,  # Compensate for ReportLab's apparent 6pt default offset
-        rightIndent=0,
-        firstLineIndent=0,
-        spaceBefore=0,
-        spaceAfter=12,
-        alignment=TA_LEFT,
-        bulletIndent=0,
-        listIndent=0
-    )
-    story.append(Paragraph("Table of Contents", toc_heading_style))
-    story.append(Spacer(1, 12))
-    
-    # Build TOC with perfect alignment using consistent table approach
-    def add_toc_entries(nodes, level=0, page_counter={'value': 1}):
-        # Calculate page dimensions once for all entries
+        # Table of contents
+        # Create TOC heading with forced left alignment to overcome any ReportLab frame margins
         page_width, page_height = config.PAGE_SIZE
         total_margins = config.MARGINS['left'] + config.MARGINS['right']
         usable_width = page_width - total_margins
-        page_num_width = 50  # Fixed width for page numbers
-        title_width = usable_width - page_num_width  # Remaining width for titles
+    
+        # Create TOC heading aligned exactly to the 1-inch margin (same as TOC entries)
+        toc_heading_style = ParagraphStyle(
+            'TOCHeading',
+            fontName=config.FONTS['heading'],
+            fontSize=config.FONT_SIZES['h1'],
+            textColor=config.COLORS['heading'],
+            leftIndent=-6,  # Compensate for ReportLab's apparent 6pt default offset
+            rightIndent=0,
+            firstLineIndent=0,
+            spaceBefore=0,
+            spaceAfter=12,
+            alignment=TA_LEFT,
+            bulletIndent=0,
+            listIndent=0
+        )
+        story.append(Paragraph("Table of Contents", toc_heading_style))
+        story.append(Spacer(1, 12))
+    
+        # Build TOC with perfect alignment using consistent table approach
+        def add_toc_entries(nodes, level=0, page_counter={'value': 1}):
+            # Calculate page dimensions once for all entries
+            page_width, page_height = config.PAGE_SIZE
+            total_margins = config.MARGINS['left'] + config.MARGINS['right']
+            usable_width = page_width - total_margins
+            page_num_width = 50  # Fixed width for page numbers
+            title_width = usable_width - page_num_width  # Remaining width for titles
         
-        for node in nodes:
-            # Estimate page number (simplified - in real implementation would need actual page tracking)
-            page_num = page_counter['value']
-            page_counter['value'] += max(1, len(node.get('content', '')) // 2000)  # Rough page estimation
+            for node in nodes:
+                anchor_id = f'node_{node["id"]}'
+                # Use actual page number from dry-run build; fall back to rough estimate
+                estimated = page_counter['value']
+                page_counter['value'] += max(1, len(node.get('content', '')) // 2000)
+                page_num = anchor_pages.get(anchor_id, estimated)
             
-            anchor_id = f'node_{node["id"]}'
-            title_text = node['title']
-            font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
+                title_text = node['title']
+                font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
             
-            if level == 0:
-                # Level 0: bold heading style, linked title and linked page number
-                title_style = ParagraphStyle(
-                    'TOCTitle0',
-                    fontName=config.FONTS['heading'],
-                    fontSize=config.FONT_SIZES['toc'],
-                    textColor=config.COLORS['heading'],
-                    alignment=TA_LEFT,
-                    leftIndent=0,
-                    spaceAfter=0,
-                    spaceBefore=0,
-                    leading=config.FONT_SIZES['toc'] + 4,
-                )
-                page_style = ParagraphStyle(
-                    'TOCPage0',
-                    fontName=config.FONTS['body'],
-                    fontSize=config.FONT_SIZES['toc'],
-                    textColor=config.COLORS['heading'],
-                    alignment=TA_RIGHT,
-                    spaceAfter=0,
-                    spaceBefore=0,
-                    leading=config.FONT_SIZES['toc'] + 4,
-                )
-                title_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{title_text}</link>', title_style)
-                page_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{page_num}</link>', page_style)
-                toc_data = [[title_para, page_para]]
+                if level == 0:
+                    # Level 0: bold heading style, linked title and linked page number
+                    title_style = ParagraphStyle(
+                        'TOCTitle0',
+                        fontName=config.FONTS['heading'],
+                        fontSize=config.FONT_SIZES['toc'],
+                        textColor=config.COLORS['heading'],
+                        alignment=TA_LEFT,
+                        leftIndent=0,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=config.FONT_SIZES['toc'] + 4,
+                    )
+                    page_style = ParagraphStyle(
+                        'TOCPage0',
+                        fontName=config.FONTS['body'],
+                        fontSize=config.FONT_SIZES['toc'],
+                        textColor=config.COLORS['heading'],
+                        alignment=TA_RIGHT,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=config.FONT_SIZES['toc'] + 4,
+                    )
+                    title_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{title_text}</link>', title_style)
+                    page_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{page_num}</link>', page_style)
+                    toc_data = [[title_para, page_para]]
                 
-                # Create table with proper margin alignment
-                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
-                toc_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                ]))
+                    # Create table with proper margin alignment
+                    toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                    toc_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ]))
                 
-            else:
-                # Nested levels: indented entries with consistent right alignment
-                indent_width = level * config.INDENTS['toc_per_level']
-                spaces_for_indent = " " * int(indent_width / 4)
+                else:
+                    # Nested levels: indented entries with consistent right alignment
+                    indent_width = level * config.INDENTS['toc_per_level']
+                    spaces_for_indent = " " * int(indent_width / 4)
                 
-                title_style = ParagraphStyle(
-                    f'TOCTitle{level}',
-                    fontName=config.FONTS['body'],
-                    fontSize=font_size,
-                    textColor=config.COLORS['text'],
-                    alignment=TA_LEFT,
-                    leftIndent=0,
-                    spaceAfter=0,
-                    spaceBefore=0,
-                    leading=font_size + 4,
-                )
-                page_style = ParagraphStyle(
-                    f'TOCPage{level}',
-                    fontName=config.FONTS['body'],
-                    fontSize=font_size,
-                    textColor=config.COLORS['text'],
-                    alignment=TA_RIGHT,
-                    spaceAfter=0,
-                    spaceBefore=0,
-                    leading=font_size + 4,
-                )
-                link_color = _color_hex(config.COLORS['text'])
-                title_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{spaces_for_indent}{title_text}</link>', title_style)
-                page_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{page_num}</link>', page_style)
-                toc_data = [[title_para, page_para]]
+                    title_style = ParagraphStyle(
+                        f'TOCTitle{level}',
+                        fontName=config.FONTS['body'],
+                        fontSize=font_size,
+                        textColor=config.COLORS['text'],
+                        alignment=TA_LEFT,
+                        leftIndent=0,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=font_size + 4,
+                    )
+                    page_style = ParagraphStyle(
+                        f'TOCPage{level}',
+                        fontName=config.FONTS['body'],
+                        fontSize=font_size,
+                        textColor=config.COLORS['text'],
+                        alignment=TA_RIGHT,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=font_size + 4,
+                    )
+                    link_color = _color_hex(config.COLORS['text'])
+                    title_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{spaces_for_indent}{title_text}</link>', title_style)
+                    page_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{page_num}</link>', page_style)
+                    toc_data = [[title_para, page_para]]
                 
-                # Use SAME column widths as level 0 to ensure page numbers align to right margin
-                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
-                toc_table.setStyle(TableStyle([
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                ]))
+                    # Use SAME column widths as level 0 to ensure page numbers align to right margin
+                    toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                    toc_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ]))
             
-            story.append(toc_table)
+                story.append(toc_table)
             
-            if node['children']:
-                add_toc_entries(node['children'], level + 1, page_counter)
+                if node['children']:
+                    add_toc_entries(node['children'], level + 1, page_counter)
     
-    add_toc_entries(tree)
+        add_toc_entries(tree)
     
-    # Switch to normal page template for content sections
-    story.append(NextPageTemplate('normal_page'))
-    story.append(PageBreak())
+        # Switch to normal page template for content sections
+        story.append(NextPageTemplate('normal_page'))
+        story.append(PageBreak())
     
-    # Content sections
-    def add_content_nodes(nodes, level=0):
-        for node in nodes:
-            # Named anchor so TOC links can navigate directly to this section
-            story.append(AnchorFlowable(f'node_{node["id"]}'))
+        # Content sections
+        def add_content_nodes(nodes, level=0):
+            for node in nodes:
+                # Named anchor so TOC links can navigate directly to this section
+                story.append(AnchorFlowable(f'node_{node["id"]}'))
 
-            # Create proper heading hierarchy based on collection structure
-            heading_text = _pdf_sanitize_text(node['title'])
+                # Create proper heading hierarchy based on collection structure
+                heading_text = _pdf_sanitize_text(node['title'])
             
-            # Use config-based heading styles
-            current_heading_style = config.create_heading_style(base_styles, level)
+                # Use config-based heading styles
+                current_heading_style = config.create_heading_style(base_styles, level)
             
-            story.append(Paragraph(heading_text, current_heading_style))
+                story.append(Paragraph(heading_text, current_heading_style))
             
-            # Add content with proper indentation for hierarchy
-            if node['content']:
-                # Convert markdown-like content to paragraphs
-                content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
-                for para in content_paragraphs:
-                    if not para:
-                        continue
-                    # Standalone image sentinel — emit as a proper Image flowable so
-                    # ReportLab can handle page breaks correctly (inline img in Paragraph
-                    # causes overflow/overlap).
-                    if para.startswith('__PDF_IMG__:'):
-                        try:
-                            _, img_src, img_w, img_h = para.split(':', 3)
-                            story.append(Spacer(1, 4))
-                            story.append(Image(img_src, width=int(img_w), height=int(img_h)))
-                            story.append(Spacer(1, 4))
-                        except Exception:
-                            pass  # skip broken image sentinel
-                        continue
-                    # Bullet list item — use hanging-indent bullet style
-                    if para.startswith('__BULLET__:'):
-                        # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
-                        bullet_text = '•&nbsp;&nbsp;' + para[len('__BULLET__:'):]
-                        bullet_style = config.create_bullet_style(base_styles, level)
-                        story.append(Paragraph(bullet_text, bullet_style))
-                        continue
-                    # Numbered list item — use hanging-indent numbered style
-                    if re.match(r'^__ORDERED__\d+__:', para):
-                        m = re.match(r'^__ORDERED__(\d+)__:(.*)', para, re.DOTALL)
-                        if m:
+                # Add content with proper indentation for hierarchy
+                if node['content']:
+                    # Convert markdown-like content to paragraphs
+                    content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
+                    for para in content_paragraphs:
+                        if not para:
+                            continue
+                        # Standalone image sentinel — emit as a proper Image flowable so
+                        # ReportLab can handle page breaks correctly (inline img in Paragraph
+                        # causes overflow/overlap).
+                        if para.startswith('__PDF_IMG__:'):
+                            try:
+                                _, img_src, img_w, img_h = para.split(':', 3)
+                                story.append(Spacer(1, 4))
+                                story.append(Image(img_src, width=int(img_w), height=int(img_h)))
+                                story.append(Spacer(1, 4))
+                            except Exception:
+                                pass  # skip broken image sentinel
+                            continue
+                        # Bullet list item — use hanging-indent bullet style
+                        if para.startswith('__BULLET__:'):
                             # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
-                            num_text = f'{m.group(1)}.&nbsp;&nbsp;{m.group(2)}'
-                            num_style = config.create_numbered_style(base_styles, level)
-                            story.append(Paragraph(num_text, num_style))
-                        continue
-                    # Create content style that matches the hierarchy level
-                    level_content_style = config.create_content_style(base_styles, level)
-                    story.append(Paragraph(para, level_content_style))
+                            bullet_text = '•&nbsp;&nbsp;' + para[len('__BULLET__:'):]
+                            bullet_style = config.create_bullet_style(base_styles, level)
+                            story.append(Paragraph(bullet_text, bullet_style))
+                            continue
+                        # Numbered list item — use hanging-indent numbered style
+                        if re.match(r'^__ORDERED__\d+__:', para):
+                            m = re.match(r'^__ORDERED__(\d+)__:(.*)', para, re.DOTALL)
+                            if m:
+                                # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
+                                num_text = f'{m.group(1)}.&nbsp;&nbsp;{m.group(2)}'
+                                num_style = config.create_numbered_style(base_styles, level)
+                                story.append(Paragraph(num_text, num_style))
+                            continue
+                        # Create content style that matches the hierarchy level
+                        level_content_style = config.create_content_style(base_styles, level)
+                        story.append(Paragraph(para, level_content_style))
             
-            # Add spacing after content
-            story.append(Spacer(1, 8))
+                # Add spacing after content
+                story.append(Spacer(1, 8))
             
-            # Recursively add children with increased level
-            if node['children']:
-                add_content_nodes(node['children'], level + 1)
+                # Recursively add children with increased level
+                if node['children']:
+                    add_content_nodes(node['children'], level + 1)
                 
-                # Add extra spacing after a section with children
-                if level < 2:  # Only for top-level sections
-                    story.append(Spacer(1, 16))
+                    # Add extra spacing after a section with children
+                    if level < 2:  # Only for top-level sections
+                        story.append(Spacer(1, 16))
     
-    add_content_nodes(tree)
+        add_content_nodes(tree)
     
-    # Build PDF
+        return story
+
+    # Two-pass PDF build: pass 1 measures actual page numbers for the TOC;
+    # pass 2 uses those numbers so TOC links and displayed numbers are correct.
+    anchor_pages = {}
+
+    def _capture_anchors(flowable):
+        if isinstance(flowable, AnchorFlowable):
+            anchor_pages[flowable._name] = dry_doc.page
+
     try:
-        doc.build(story)
+        dry_buf = io.BytesIO()
+        dry_doc = _make_doc(dry_buf)
+        dry_doc.afterFlowable = _capture_anchors
+        dry_doc.build(_make_story(anchor_pages))
+    except Exception as _e:
+        print(f"DEBUG: PDF dry-run pass failed (page numbers may be estimates): {_e}")
+
+    buffer = io.BytesIO()
+    doc = _make_doc(buffer)
+    try:
+        doc.build(_make_story(anchor_pages))
     finally:
         shutil.rmtree(_pdf_temp_dir, ignore_errors=True)
     buffer.seek(0)
@@ -2570,37 +2592,45 @@ def convert_markdown_to_html(markdown_text):
     # Links
     html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', html)
     
-    # Lists
+    # Lists — handle both markdown (- / 1.) and already-HTML content from TinyMCE
     lines = html.split('\n')
     in_list = False
+    list_type = None   # 'ul' or 'ol'
     result_lines = []
-    
+
+    # Regex to detect a line that is already an HTML tag (open or close).
+    # Such lines must be passed through as-is so existing <ul>/<li> structure is preserved.
+    _html_tag_re = re.compile(r'^</?[a-zA-Z][a-zA-Z0-9]*[\s>/]', re.IGNORECASE)
+
     for line in lines:
         stripped = line.strip()
         if stripped.startswith('- ') or stripped.startswith('* '):
             if not in_list:
                 result_lines.append('<ul>')
                 in_list = True
+                list_type = 'ul'
             result_lines.append(f'<li>{stripped[2:]}</li>')
-        elif stripped.startswith(('1. ', '2. ', '3. ', '4. ', '5. ', '6. ', '7. ', '8. ', '9. ')):
+        elif re.match(r'^\d+\. ', stripped):
             if not in_list:
                 result_lines.append('<ol>')
                 in_list = True
-            result_lines.append(f'<li>{stripped[3:]}</li>')
+                list_type = 'ol'
+            result_lines.append(f'<li>{stripped[stripped.index(". ") + 2:]}</li>')
         else:
             if in_list:
-                result_lines.append('</ul>' if result_lines[-2].startswith('<li>') else '</ol>')
+                result_lines.append(f'</{list_type}>')
                 in_list = False
+                list_type = None
             if stripped:
-                # Don't wrap images in paragraphs
-                if stripped.startswith('<img') or '<img' in stripped:
+                # Pass HTML block-level tags through as-is (TinyMCE content is already HTML)
+                if stripped.startswith('<img') or '<img' in stripped or _html_tag_re.match(stripped):
                     result_lines.append(stripped)
                 else:
                     result_lines.append(f'<p>{stripped}</p>')
             else:
-                result_lines.append('<br>')
-    
+                result_lines.append('')
+
     if in_list:
-        result_lines.append('</ul>')
+        result_lines.append(f'</{list_type}>')
     
     return '\n'.join(result_lines)
