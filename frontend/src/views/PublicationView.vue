@@ -174,7 +174,7 @@ export default {
 .tag-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1; }
 .tag-check {
   display: flex; align-items: center; gap: 0.3rem;
-  font-size: 0.85rem; cursor: pointer;
+  font-size: 0.85rem; cursor: pointer; white-space: nowrap;
   background: #fff; border: 1px solid #c5d3f0; border-radius: 12px;
   padding: 0.2rem 0.6rem;
 }
