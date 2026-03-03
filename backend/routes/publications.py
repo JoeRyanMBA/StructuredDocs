@@ -78,12 +78,24 @@ def resolve_snippets(content, selected_tag_ids):
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, NextPageTemplate, Flowable
+from reportlab.platypus.flowables import AnchorFlowable
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY, TA_RIGHT
 from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
 from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
+
+
+def _color_hex(color) -> str:
+    """Convert a ReportLab Color to a CSS hex string for use in Paragraph XML link tags."""
+    try:
+        r = int(color.red * 255)
+        g = int(color.green * 255)
+        b = int(color.blue * 255)
+        return f'#{r:02x}{g:02x}{b:02x}'
+    except Exception:
+        return '#000000'
 
 
 # ReportLab-safe text sanitization: strip unsupported tags and fix entities
@@ -1934,53 +1946,86 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             page_num = page_counter['value']
             page_counter['value'] += max(1, len(node.get('content', '')) // 2000)  # Rough page estimation
             
+            anchor_id = f'node_{node["id"]}'
             title_text = node['title']
             font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
             
             if level == 0:
-                # Level 0: Simple title and page number, bold styling, aligned to 1-inch margin
-                toc_data = [[title_text, str(page_num)]]
+                # Level 0: bold heading style, linked title and linked page number
+                title_style = ParagraphStyle(
+                    'TOCTitle0',
+                    fontName=config.FONTS['heading'],
+                    fontSize=config.FONT_SIZES['toc'],
+                    textColor=config.COLORS['heading'],
+                    alignment=TA_LEFT,
+                    leftIndent=0,
+                    spaceAfter=0,
+                    spaceBefore=0,
+                    leading=config.FONT_SIZES['toc'] + 4,
+                )
+                page_style = ParagraphStyle(
+                    'TOCPage0',
+                    fontName=config.FONTS['body'],
+                    fontSize=config.FONT_SIZES['toc'],
+                    textColor=config.COLORS['heading'],
+                    alignment=TA_RIGHT,
+                    spaceAfter=0,
+                    spaceBefore=0,
+                    leading=config.FONT_SIZES['toc'] + 4,
+                )
+                title_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{title_text}</link>', title_style)
+                page_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{page_num}</link>', page_style)
+                toc_data = [[title_para, page_para]]
                 
                 # Create table with proper margin alignment
                 toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
                 toc_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (0, 0), config.FONTS['heading']),
-                    ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
-                    ('FONTSIZE', (0, 0), (-1, -1), config.FONT_SIZES['toc']),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['heading']),
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # No padding - align to document margin
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
                     ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                 ]))
                 
             else:
-                # Nested levels: Clean indented entries with consistent right alignment
+                # Nested levels: indented entries with consistent right alignment
                 indent_width = level * config.INDENTS['toc_per_level']
+                spaces_for_indent = " " * int(indent_width / 4)
                 
-                # Create indented title using spaces
-                spaces_for_indent = " " * int(indent_width / 4)  # Space-based left indentation
-                clean_title = f"{spaces_for_indent}{title_text}"
-                
-                toc_data = [[clean_title, str(page_num)]]
+                title_style = ParagraphStyle(
+                    f'TOCTitle{level}',
+                    fontName=config.FONTS['body'],
+                    fontSize=font_size,
+                    textColor=config.COLORS['text'],
+                    alignment=TA_LEFT,
+                    leftIndent=0,
+                    spaceAfter=0,
+                    spaceBefore=0,
+                    leading=font_size + 4,
+                )
+                page_style = ParagraphStyle(
+                    f'TOCPage{level}',
+                    fontName=config.FONTS['body'],
+                    fontSize=font_size,
+                    textColor=config.COLORS['text'],
+                    alignment=TA_RIGHT,
+                    spaceAfter=0,
+                    spaceBefore=0,
+                    leading=font_size + 4,
+                )
+                link_color = _color_hex(config.COLORS['text'])
+                title_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{spaces_for_indent}{title_text}</link>', title_style)
+                page_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{page_num}</link>', page_style)
+                toc_data = [[title_para, page_para]]
                 
                 # Use SAME column widths as level 0 to ensure page numbers align to right margin
                 toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
                 toc_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (0, 0), config.FONTS['body']),
-                    ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
-                    ('FONTSIZE', (0, 0), (-1, -1), font_size),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['text']),
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Page numbers right-aligned to same position as level 0
                     ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
                     ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
                     ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # No padding - maintain document margin alignment
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),  # No extra right padding to maintain alignment
+                    ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
                 ]))
             
             story.append(toc_table)
@@ -1997,6 +2042,9 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     # Content sections
     def add_content_nodes(nodes, level=0):
         for node in nodes:
+            # Named anchor so TOC links can navigate directly to this section
+            story.append(AnchorFlowable(f'node_{node["id"]}'))
+
             # Create proper heading hierarchy based on collection structure
             heading_text = _pdf_sanitize_text(node['title'])
             
@@ -2026,9 +2074,17 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         continue
                     # Bullet list item — use hanging-indent bullet style
                     if para.startswith('__BULLET__:'):
-                        bullet_text = '• ' + para[len('__BULLET__:'):]
+                        bullet_text = '•  ' + para[len('__BULLET__:'):]
                         bullet_style = config.create_bullet_style(base_styles, level)
                         story.append(Paragraph(bullet_text, bullet_style))
+                        continue
+                    # Numbered list item — use hanging-indent numbered style
+                    if re.match(r'^__ORDERED__\d+__:', para):
+                        m = re.match(r'^__ORDERED__(\d+)__:(.*)', para, re.DOTALL)
+                        if m:
+                            num_text = f'{m.group(1)}.  {m.group(2)}'
+                            num_style = config.create_numbered_style(base_styles, level)
+                            story.append(Paragraph(num_text, num_style))
                         continue
                     # Create content style that matches the hierarchy level
                     level_content_style = config.create_content_style(base_styles, level)
@@ -2137,6 +2193,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     current_paragraph = []
     in_list = False
     list_items = []
+    list_type = None  # 'bullet' or 'ordered'
     
     # Utility to escape ampersands that are not part of known entities
     def escape_unescaped_ampersands(s: str) -> str:
@@ -2154,9 +2211,14 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                 current_paragraph = []
             if in_list:
                 # Create a proper list paragraph
-                for item in list_items:
-                    paragraphs.append(f'__BULLET__:{item}')
+                if list_type == 'ordered':
+                    for num, item in list_items:
+                        paragraphs.append(f'__ORDERED__{num}__:{item}')
+                else:
+                    for item in list_items:
+                        paragraphs.append(f'__BULLET__:{item}')
                 list_items = []
+                list_type = None
                 in_list = False
             
             # Convert markdown headers to styled headings with appropriate font sizes
@@ -2183,24 +2245,31 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            
+            if in_list and list_type == 'ordered' and list_items:
+                # switching from ordered to bullet — flush ordered first
+                for num, item in list_items:
+                    paragraphs.append(f'__ORDERED__{num}__:{item}')
+                list_items = []
             bullet_text = stripped[1:].strip()
             list_items.append(bullet_text)
+            list_type = 'bullet'
             in_list = True
             
         # Handle numbered lists
-        elif any(stripped.startswith(f"{i}. ") for i in range(1, 10)):
+        elif re.match(r'^\d+\. ', stripped):
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            if in_list and list_items:
-                # Finish the bullet list first
+            if in_list and list_type == 'bullet' and list_items:
+                # switching from bullet to ordered — flush bullets first
                 for item in list_items:
                     paragraphs.append(f'__BULLET__:{item}')
                 list_items = []
-            
-            numbered_text = stripped[3:].strip()  # Remove "1. " etc.
-            list_items.append(numbered_text)
+            dot_pos = stripped.index('. ')
+            num = int(stripped[:dot_pos])
+            numbered_text = stripped[dot_pos + 2:].strip()
+            list_items.append((num, numbered_text))
+            list_type = 'ordered'
             in_list = True
             
         # Handle empty lines (paragraph breaks)
@@ -2211,9 +2280,14 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             if in_list:
                 # Finish the current list
                 if list_items:
-                    for item in list_items:
-                        paragraphs.append(f'__BULLET__:{item}')
+                    if list_type == 'ordered':
+                        for num, item in list_items:
+                            paragraphs.append(f'__ORDERED__{num}__:{item}')
+                    else:
+                        for item in list_items:
+                            paragraphs.append(f'__BULLET__:{item}')
                     list_items = []
+                list_type = None
                 in_list = False
                 
         # Regular text
@@ -2221,9 +2295,14 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             if in_list:
                 # Finish the current list first
                 if list_items:
-                    for item in list_items:
-                        paragraphs.append(f'__BULLET__:{item}')
+                    if list_type == 'ordered':
+                        for num, item in list_items:
+                            paragraphs.append(f'__ORDERED__{num}__:{item}')
+                    else:
+                        for item in list_items:
+                            paragraphs.append(f'__BULLET__:{item}')
                     list_items = []
+                list_type = None
                 in_list = False
             
             # Handle basic markdown formatting within text
@@ -2380,8 +2459,12 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     if current_paragraph:
         paragraphs.append(' '.join(current_paragraph))
     if in_list and list_items:
-        for item in list_items:
-            paragraphs.append(f'__BULLET__:{item}')
+        if list_type == 'ordered':
+            for num, item in list_items:
+                paragraphs.append(f'__ORDERED__{num}__:{item}')
+        else:
+            for item in list_items:
+                paragraphs.append(f'__BULLET__:{item}')
     
     return [p for p in paragraphs if p.strip()]
 

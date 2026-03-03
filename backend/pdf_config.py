@@ -198,7 +198,9 @@ class PDFConfig:
     def create_bullet_style(cls, base_styles, level=0):
         """Create bullet list item style with hanging indent"""
         base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
-        bullet_hang = 14  # points: bullet hangs this far to the left of the text
+        # bullet_hang must match the rendered width of '• ' (bullet + two spaces)
+        # at body font size so that wrapped lines align with the text start.
+        bullet_hang = 18  # points: aligns with '•  ' (bullet + 2 spaces) at ~11pt
 
         return ParagraphStyle(
             f'BulletItem{level}',
@@ -209,6 +211,27 @@ class PDFConfig:
             alignment=TA_LEFT,
             leftIndent=base_indent + bullet_hang,
             firstLineIndent=-bullet_hang,
+            rightIndent=0,
+            textColor=cls.COLORS['text']
+        )
+
+    @classmethod
+    def create_numbered_style(cls, base_styles, level=0):
+        """Create numbered list item style with hanging indent"""
+        base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        # num_hang must match the rendered width of 'N.  ' (number + dot + 2 spaces)
+        # at body font size so that wrapped lines align with the text start.
+        num_hang = 22  # points: aligns with single-digit '1.  ' prefix at ~11pt
+
+        return ParagraphStyle(
+            f'NumberedItem{level}',
+            parent=base_styles['Normal'],
+            fontName=cls.FONTS['body'],
+            fontSize=cls.FONT_SIZES['body'],
+            spaceAfter=3,
+            alignment=TA_LEFT,
+            leftIndent=base_indent + num_hang,
+            firstLineIndent=-num_hang,
             rightIndent=0,
             textColor=cls.COLORS['text']
         )
