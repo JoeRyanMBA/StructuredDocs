@@ -201,7 +201,8 @@ class PDFConfig:
         base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
         # Measure the exact rendered width of the bullet prefix so wrapped lines
         # align precisely with the text that follows the bullet.
-        bullet_hang = stringWidth('•  ', cls.FONTS['body'], cls.FONT_SIZES['body'])
+        # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
+        bullet_hang = stringWidth('•\xa0\xa0', cls.FONTS['body'], cls.FONT_SIZES['body'])
 
         return ParagraphStyle(
             f'BulletItem{level}',
@@ -223,7 +224,8 @@ class PDFConfig:
         base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
         # Measure the exact rendered width of a single-digit number prefix so
         # wrapped lines align precisely with the text that follows the number.
-        num_hang = stringWidth('1.  ', cls.FONTS['body'], cls.FONT_SIZES['body'])
+        # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
+        num_hang = stringWidth('1.\xa0\xa0', cls.FONTS['body'], cls.FONT_SIZES['body'])
 
         return ParagraphStyle(
             f'NumberedItem{level}',
