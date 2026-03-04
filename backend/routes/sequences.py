@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
 from ..models import db, ReviewSequence, ReviewSequenceStep, Topic, Stakeholder, Review
 from sqlalchemy import and_, or_
@@ -7,6 +8,7 @@ from ..utils.email_service import email_service
 sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
 
 @sequences_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_review_sequence():
     """Create a new review sequence for a topic"""
     try:
@@ -117,7 +119,7 @@ def create_review_sequence():
                         )
                     except Exception as e:
                         # Don't fail the whole operation if email fails
-                        print(f"Failed to send email notification: {e}")
+                        current_app.logger.debug(f"Failed to send email notification: {e}")
         
         db.session.commit()
         
@@ -131,6 +133,7 @@ def create_review_sequence():
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/<int:sequence_id>', methods=['GET'])
+@jwt_required()
 def get_review_sequence(sequence_id):
     """Get details of a specific review sequence"""
     try:
@@ -140,6 +143,7 @@ def get_review_sequence(sequence_id):
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/topic/<int:topic_id>', methods=['GET'])
+@jwt_required()
 def get_topic_sequences(topic_id):
     """Get all review sequences for a topic"""
     try:
@@ -149,6 +153,7 @@ def get_topic_sequences(topic_id):
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/<int:sequence_id>/advance', methods=['POST'])
+@jwt_required()
 def advance_sequence(sequence_id):
     """Manually advance a sequence to the next reviewer"""
     try:
@@ -226,7 +231,7 @@ def advance_sequence(sequence_id):
                     total_reviewers=len(sequence.reviewers)
                 )
             except Exception as e:
-                print(f"Failed to send email notification: {e}")
+                current_app.logger.debug(f"Failed to send email notification: {e}")
         
         db.session.commit()
         
@@ -241,6 +246,7 @@ def advance_sequence(sequence_id):
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/<int:sequence_id>/pause', methods=['POST'])
+@jwt_required()
 def pause_sequence(sequence_id):
     """Pause a review sequence"""
     try:
@@ -264,6 +270,7 @@ def pause_sequence(sequence_id):
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/<int:sequence_id>/resume', methods=['POST'])
+@jwt_required()
 def resume_sequence(sequence_id):
     """Resume a paused review sequence"""
     try:

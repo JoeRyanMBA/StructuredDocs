@@ -4,6 +4,7 @@ Handles CRUD operations for tags
 """
 
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import desc
 import json
 
@@ -15,6 +16,7 @@ tags_bp = Blueprint('tags', __name__, url_prefix='/api/tags')
 # Support both '/api/tags' and '/api/tags/' to avoid redirects through proxies
 @tags_bp.route('', methods=['GET'])
 @tags_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_tags():
     """Get all tags with full details"""
     try:
@@ -27,6 +29,7 @@ def list_tags():
 # Support both '/api/tags' and '/api/tags/' for POST
 @tags_bp.route('', methods=['POST'])
 @tags_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_tag():
     """Create a new tag"""
     try:
@@ -58,6 +61,7 @@ def create_tag():
 
 
 @tags_bp.route('/<int:tag_id>', methods=['PUT'])
+@jwt_required()
 def update_tag(tag_id):
     """Update a tag"""
     try:
@@ -102,6 +106,7 @@ def update_tag(tag_id):
 
 
 @tags_bp.route('/<int:tag_id>', methods=['DELETE'])
+@jwt_required()
 def delete_tag(tag_id):
     """Delete a tag.
 
@@ -168,6 +173,7 @@ def delete_tag(tag_id):
 
 
 @tags_bp.route('/usage', methods=['GET'])
+@jwt_required()
 def tag_usage():
     """Get tag usage statistics across all entity types and tasks."""
     try:
@@ -210,6 +216,7 @@ def tag_usage():
 
 
 @tags_bp.route('/entity/<string:entity_type>/<int:entity_id>', methods=['GET'])
+@jwt_required()
 def get_entity_tags(entity_type, entity_id):
     """Return tags assigned to a specific entity."""
     if entity_type not in EntityTag.VALID_TYPES:
@@ -219,6 +226,7 @@ def get_entity_tags(entity_type, entity_id):
 
 
 @tags_bp.route('/entity/<string:entity_type>/<int:entity_id>', methods=['PUT'])
+@jwt_required()
 def set_entity_tags(entity_type, entity_id):
     """Replace the full tag set for an entity. Body: {"tag_ids": [1,2,3]}"""
     if entity_type not in EntityTag.VALID_TYPES:

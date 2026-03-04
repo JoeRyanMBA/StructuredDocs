@@ -47,17 +47,34 @@ def _sanitize_content(html):
         return html
     return bleach.clean(html, tags=_SAFE_TAGS, attributes=_allow_attrs, strip=True)
 
-# GET /api/topics → List all topics
+# GET /api/topics → List all topics (supports ?page=&limit=&status= filtering)
 @topics_bp.route('', methods=['GET'])
 @topics_bp.route('/', methods=['GET'])
 @jwt_required()
 def list_topics():
     try:
-        all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
-        return jsonify([t.to_dict() for t in all_topics]), 200
+        page = max(1, request.args.get('page', 1, type=int))
+        limit = min(200, max(1, request.args.get('limit', 100, type=int)))
+        status_filter = request.args.get('status')
+
+        q = Topic.query
+        if status_filter:
+            q = q.filter(Topic.status == status_filter)
+        q = q.order_by(Topic.created_at.desc())
+
+        total = q.count()
+        topics = q.offset((page - 1) * limit).limit(limit).all()
+
+        return jsonify({
+            'topics': [t.to_dict() for t in topics],
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'pages': max(1, (total + limit - 1) // limit),
+        }), 200
     except Exception as e:
         current_app.logger.exception("Failed to list topics")
-        return jsonify({'error': str(e)}), 500
+        return jsonify({'error': 'Failed to list topics'}), 500
 
 
 # GET /api/topics/usage-summary → Per-topic collection + project usage counts

@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
 from ..models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ReviewToken
 from typing import TYPE_CHECKING
@@ -17,6 +18,7 @@ reviews_bp = Blueprint('reviews', __name__, url_prefix='/api/reviews')
 
 # Base GET endpoint for /api/reviews
 @reviews_bp.route('/', methods=['GET'])
+@jwt_required()
 def reviews_root():
     """Base endpoint for reviews API - returns all reviews"""
     try:
@@ -26,6 +28,7 @@ def reviews_root():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/<int:review_id>', methods=['GET'])
+@jwt_required()
 def get_review_details(review_id):
     """Get details for a specific review"""
     try:
@@ -37,6 +40,7 @@ def get_review_details(review_id):
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/reviewers', methods=['GET'])
+@jwt_required()
 def get_available_reviewers():
     """Get list of available reviewers from stakeholders"""
     try:
@@ -63,6 +67,7 @@ def get_available_reviewers():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/request', methods=['POST'])
+@jwt_required()
 def request_review():
     """Request a review for a topic"""
     try:
@@ -161,20 +166,20 @@ def request_review():
             if email_sent:
                 review.email_delivery_unavailable = False
                 db.session.commit()
-                print(f"✅ Email notification sent successfully to {reviewer.email}")
-                print(f"📄 Review token: {token.token}")
-                print(f"🔗 Review URL: http://localhost:5173/review/{token.token}")
+                current_app.logger.info(f" Email notification sent successfully to {reviewer.email}")
+                current_app.logger.debug(f"📄 Review token: {token.token}")
+                current_app.logger.debug(f"🔗 Review URL: http://localhost:5173/review/{token.token}")
             else:
                 review.email_delivery_unavailable = True
                 db.session.commit()
-                print(f"⚠️ Failed to send email notification to {reviewer.email}")
+                current_app.logger.warning(f" Failed to send email notification to {reviewer.email}")
                 
         except Exception as email_error:
             review.email_delivery_unavailable = True
             db.session.commit()
-            print(f"❌ Email notification error: {str(email_error)}")
+            current_app.logger.error(f" Email notification error: {str(email_error)}")
             import traceback
-            print(f"🔍 Full traceback: {traceback.format_exc()}")
+            current_app.logger.debug(f"🔍 Full traceback: {traceback.format_exc()}")
             # Don't fail the entire request if email fails
         
         return jsonify({
@@ -187,6 +192,7 @@ def request_review():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/<int:review_id>/start', methods=['POST'])
+@jwt_required()
 def start_review(review_id):
     """Mark a review as started"""
     try:
@@ -210,6 +216,7 @@ def start_review(review_id):
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/<int:review_id>/submit', methods=['POST'])
+@jwt_required()
 def submit_review(review_id):
     """Submit completed review with feedback"""
     try:
@@ -309,7 +316,7 @@ def submit_review(review_id):
                                         total_reviewers=len(sequence.reviewers)
                                     )
                                 except Exception as e:
-                                    print(f"Failed to send email notification: {e}")
+                                    current_app.logger.debug(f"Failed to send email notification: {e}")
                         else:
                             # Sequence is complete
                             sequence.status = 'completed'
@@ -358,6 +365,7 @@ def submit_review(review_id):
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/<int:review_id>/follow-up', methods=['POST'])
+@jwt_required()
 def follow_up_review(review_id):
     """Send a follow-up reminder for a pending review"""
     try:
@@ -376,7 +384,7 @@ def follow_up_review(review_id):
         review_token = ReviewToken.query.filter_by(review_id=review.id).first()
         if not review_token:
             # Create a new token if one doesn't exist
-            print(f"⚠️ No token found for review {review_id}, creating new one")
+            current_app.logger.warning(f" No token found for review {review_id}, creating new one")
             import secrets
             from datetime import timedelta
             
@@ -388,12 +396,12 @@ def follow_up_review(review_id):
             )
             db.session.add(review_token)
             db.session.commit()
-            print(f"✅ Created new token for review {review_id}: {review_token.token[:10]}...")
+            current_app.logger.info(f" Created new token for review {review_id}: {review_token.token[:10]}...")
         
         # Send follow-up reminder email
-        print(f"🔄 Sending follow-up reminder for review {review_id}")
-        print(f"📧 Reviewer: {reviewer.name} ({reviewer.email})")
-        print(f"📝 Topic: {topic.title}")
+        current_app.logger.debug(f" Sending follow-up reminder for review {review_id}")
+        current_app.logger.debug(f"📧 Reviewer: {reviewer.name} ({reviewer.email})")
+        current_app.logger.debug(f"📝 Topic: {topic.title}")
         
         try:
             # Use existing reminder email service, but with "Second Request:" prefix
@@ -412,14 +420,14 @@ def follow_up_review(review_id):
             db.session.commit()
 
             if email_sent:
-                print(f"✅ Follow-up reminder sent successfully to {reviewer.email}")
+                current_app.logger.info(f" Follow-up reminder sent successfully to {reviewer.email}")
                 return jsonify({
                     'message': 'Follow-up reminder sent successfully',
                     'review': review.to_dict(),
                     'email_sent': True
                 }), 200
 
-            print(f"⚠️ Follow-up recorded but email delivery failed for {reviewer.email}")
+            current_app.logger.warning(f" Follow-up recorded but email delivery failed for {reviewer.email}")
             return jsonify({
                 'message': 'Follow-up recorded, but email delivery failed',
                 'review': review.to_dict(),
@@ -428,7 +436,7 @@ def follow_up_review(review_id):
             }), 200
                 
         except Exception as email_error:
-            print(f"❌ Follow-up email error: {str(email_error)}")
+            current_app.logger.error(f" Follow-up email error: {str(email_error)}")
             # Preserve action result even if email transport fails.
             review.follow_up_sent_at = datetime.utcnow()
             review.email_delivery_unavailable = True
@@ -444,6 +452,7 @@ def follow_up_review(review_id):
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/pending', methods=['GET'])
+@jwt_required()
 def get_pending_reviews():
     """Get all pending reviews for the current user"""
     try:
@@ -469,6 +478,7 @@ def get_pending_reviews():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/my-reviews', methods=['GET'])
+@jwt_required()
 def get_my_reviews():
     """Get reviews requested by the current user"""
     try:
@@ -487,6 +497,7 @@ def get_my_reviews():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/topic/<int:topic_id>/reviews', methods=['GET'])
+@jwt_required()
 def get_topic_reviews(topic_id):
     """Get all reviews for a specific topic"""
     try:
@@ -500,6 +511,7 @@ def get_topic_reviews(topic_id):
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/stats', methods=['GET'])
+@jwt_required()
 def get_review_stats():
     """Get review statistics"""
     try:
@@ -560,6 +572,7 @@ def get_review_stats():
 
 # Legacy endpoints for backward compatibility
 @reviews_bp.route('/topics/pending', methods=['GET'])
+@jwt_required()
 def get_pending_topic_reviews():
     """Get topics that need review (legacy endpoint)"""
     try:
@@ -582,6 +595,7 @@ def get_pending_topic_reviews():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/collections/pending', methods=['GET'])
+@jwt_required()
 def get_pending_collection_reviews():
     """Get collections that need review"""
     try:
@@ -591,6 +605,7 @@ def get_pending_collection_reviews():
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/imports/pending', methods=['GET'])
+@jwt_required()
 def get_pending_import_reviews():
     """Get imports that need review"""
     try:

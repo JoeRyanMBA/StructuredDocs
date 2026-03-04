@@ -772,11 +772,6 @@ p { color: #666; }
 
         @app.route('/api/health', methods=['GET'])
         def health_check():
-            print("🏥 Health check requested at", datetime.now().isoformat())
-            print(f"🏥 Request method: {request.method}")
-            print(f"🏥 Request URL: {request.url}")
-            print(f"🏥 Request headers: {dict(request.headers)}")
-            
             uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
             if uri.startswith('sqlite'):
                 db_kind = 'sqlite'
@@ -784,35 +779,22 @@ p { color: #666; }
                 parsed = urlparse(uri)
                 db_kind = parsed.scheme or 'unknown'
 
-            # Use same frontend URL logic as CORS
-            frontend_origin = os.environ.get('FRONTEND_URL')
-            if not frontend_origin:
-                if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
-                    # For production, construct the URL from environment
-                    host = os.environ.get('HOST', 'localhost')
-                    port = os.environ.get('PORT', '8000')
-                    protocol = 'https' if os.environ.get('HTTPS') == 'on' else 'http'
-                    if host == 'localhost':
-                        frontend_origin = f"{protocol}://{host}:{port}"
-                    else:
-                        frontend_origin = f"{protocol}://{host}"
-                else:
-                    frontend_origin = 'http://localhost:5173'  # Local development
+            # Test actual DB connectivity
+            db_status = 'ok'
+            try:
+                from sqlalchemy import text as _text
+                db.session.execute(_text('SELECT 1'))
+            except Exception as _db_e:
+                db_status = 'error'
+                current_app.logger.error("Health check DB probe failed: %s", _db_e)
 
-            print(f"🏥 Health check response: status=ok, db={db_kind}, frontend={frontend_origin}")
-            response_data = {
-                'status': 'ok',
+            status_code = 200 if db_status == 'ok' else 503
+            return jsonify({
+                'status': 'ok' if db_status == 'ok' else 'degraded',
                 'db': db_kind,
-                'frontend_origin': frontend_origin,
-                'timestamp': datetime.now().isoformat(),
-                'request_info': {
-                    'method': request.method,
-                    'url': request.url,
-                    'remote_addr': request.remote_addr
-                }
-            }
-            print(f"🏥 Sending response: {response_data}")
-            return jsonify(response_data), 200
+                'db_status': db_status,
+                'timestamp': datetime.utcnow().isoformat() + 'Z',
+            }), status_code
 
         # --- Specific endpoint rate limits (post-registration) ---------------
         try:
@@ -1055,6 +1037,16 @@ p { color: #666; }
         except Exception as e:
             print(f"⚠️  Could not attach rate limit to login: {e}")
 
+    @app.route('/api/csp-report', methods=['POST'])
+    def csp_report():
+        """Receive Content-Security-Policy violation reports from browsers."""
+        try:
+            report = request.get_json(force=True, silent=True) or {}
+            current_app.logger.warning("CSP violation: %s", report)
+        except Exception:
+            pass
+        return '', 204
+
     print("✅ Flask app created successfully!")
     return app
 
@@ -1063,4 +1055,4 @@ if __name__ == '__main__':
     application = create_app()
     # Use a production-ready server like Gunicorn or Waitress instead of app.run in production
     port = int(os.environ.get('PORT', 8080))  # Match the start.sh default
-    application.run(debug=True, host='0.0.0.0', port=port)
+    application.run(debug=os.environ.get('FLASK_DEBUG', '0') == '1', host='0.0.0.0', port=port)

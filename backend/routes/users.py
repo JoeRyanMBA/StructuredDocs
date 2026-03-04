@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from ..models import db, User, PasswordResetToken
 from ..extensions import limiter
 from sqlalchemy.exc import IntegrityError
@@ -37,36 +37,36 @@ def login():
         credential = (data.get('email') or data.get('username') or '').strip().lower()
         password = data.get('password', None)
 
-        print(f"🔐 Login attempt for: {credential}")
+        current_app.logger.debug(f" Login attempt for: {credential}")
         # Lookup by email if contains '@', otherwise by username
         if '@' in credential:
             user = User.query.filter(func.lower(User.email) == credential).first()
         else:
             user = User.query.filter(func.lower(User.name) == credential).first()
 
-        print(f"👤 User found: {user is not None}")
+        current_app.logger.debug(f" User found: {user is not None}")
 
         # Fail fast if no user, no password provided, or no password hash set
         if (not user) or (not isinstance(password, str) or password == '') or (not user.password_hash):
-            print("❌ No user or no password hash")
+            current_app.logger.debug("❌ No user or no password hash")
             return jsonify({"msg": "Bad email or password"}), 401
 
         try:
             if check_password_hash(user.password_hash, password):
                 # Use string identity to avoid 422 "Subject must be a string" issues in some environments
                 access_token = create_access_token(identity=str(user.id))
-                print("✅ Login successful")
+                current_app.logger.debug("✅ Login successful")
                 return jsonify(access_token=access_token, user=user.to_dict())
         except Exception as e:
             # Avoid 500s on malformed hashes; treat as invalid credentials
-            print(f"❌ Password check error: {e}")
+            current_app.logger.error(f" Password check error: {e}")
     except Exception as e:
-        print(f"❌ Login error: {e}")
+        current_app.logger.error(f" Login error: {e}")
         import traceback
         traceback.print_exc()
         return jsonify({"error": "Internal server error"}), 500
 
-    print("❌ Invalid credentials")
+    current_app.logger.debug("❌ Invalid credentials")
     return jsonify({"msg": "Bad email or password"}), 401
 
 @users_bp.route('/me', methods=['GET'])
@@ -86,23 +86,44 @@ def get_me():
 @users_bp.route('/', methods=['GET'])
 @jwt_required()
 def list_users():
-    """Get all users"""
-    print("🔄 Users GET request received")
+    """Get all users. Supports ?page=&limit=&role=&active="""
     try:
-        users = User.query.order_by(User.name).all()
-        users_data = [user.to_dict() for user in users]
-        print(f"✅ Returning {len(users_data)} users")
-        return jsonify(users_data), 200
+        caller, err = _require_admin()
+        if err:
+            return err
+
+        page = max(1, request.args.get('page', 1, type=int))
+        limit = min(200, max(1, request.args.get('limit', 100, type=int)))
+        role_filter = request.args.get('role')
+        active_filter = request.args.get('active')
+
+        q = User.query
+        if role_filter:
+            q = q.filter(User.role == role_filter)
+        if active_filter is not None:
+            q = q.filter(User.active == (active_filter.lower() in ('1', 'true', 'yes')))
+        q = q.order_by(User.name)
+
+        total = q.count()
+        users = q.offset((page - 1) * limit).limit(limit).all()
+        current_app.logger.info(f"list_users: returning {len(users)} of {total}")
+        return jsonify({
+            'users': [u.to_dict() for u in users],
+            'total': total,
+            'page': page,
+            'limit': limit,
+            'pages': max(1, (total + limit - 1) // limit),
+        }), 200
     except Exception as e:
-        print(f"❌ Error in list_users: {e}")
-        return jsonify({"error": str(e)}), 500
+        current_app.logger.exception("Failed to list users")
+        return jsonify({"error": "Failed to list users"}), 500
 
 @users_bp.route('', methods=['POST'])
 @users_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_user():
     """Create a new user and send password setup email (admin only)"""
-    print("🔄 Create user POST request received")
+    current_app.logger.debug("🔄 Create user POST request received")
     try:
         caller, err = _require_admin()
         if err:
@@ -138,7 +159,7 @@ def create_user():
         db.session.add(user)
         db.session.commit()
         
-        print(f"✅ Created user: {user.name} ({user.email})")
+        current_app.logger.info(f" Created user: {user.name} ({user.email})")
         
         # Send password setup email if no password was provided
         if send_setup_email:
@@ -172,14 +193,14 @@ def create_user():
                 )
                 
                 if email_sent:
-                    print(f"✅ Password setup email sent to {user.email}")
+                    current_app.logger.info(f" Password setup email sent to {user.email}")
                     message = f"User created successfully. Password setup email sent to {user.email}"
                 else:
-                    print(f"⚠️ Failed to send password setup email to {user.email}")
+                    current_app.logger.warning(f" Failed to send password setup email to {user.email}")
                     message = "User created successfully, but failed to send password setup email. Please contact the user directly."
                 
             except Exception as email_error:
-                print(f"❌ Error sending password setup email: {email_error}")
+                current_app.logger.error(f" Error sending password setup email: {email_error}")
                 message = "User created successfully, but failed to send password setup email. Please contact the user directly."
         else:
             message = "User created successfully with provided password."
@@ -195,14 +216,14 @@ def create_user():
         return jsonify({"error": "Email already exists"}), 409
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error creating user: {e}")
+        current_app.logger.error(f" Error creating user: {e}")
         return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/<int:user_id>', methods=['PUT'])
 @jwt_required()
 def update_user(user_id):
     """Update an existing user (admin only)"""
-    print(f"🔄 Update user {user_id} PUT request received")
+    current_app.logger.debug(f" Update user {user_id} PUT request received")
     try:
         caller, err = _require_admin()
         if err:
@@ -225,7 +246,7 @@ def update_user(user_id):
         
         db.session.commit()
         
-        print(f"✅ Updated user: {user.name} ({user.email})")
+        current_app.logger.info(f" Updated user: {user.name} ({user.email})")
         return jsonify(user.to_dict()), 200
         
     except IntegrityError:
@@ -233,14 +254,14 @@ def update_user(user_id):
         return jsonify({"error": "Email already exists"}), 409
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error updating user: {e}")
+        current_app.logger.error(f" Error updating user: {e}")
         return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
     """Delete a user (admin only)"""
-    print(f"🔄 Delete user {user_id} DELETE request received")
+    current_app.logger.debug(f" Delete user {user_id} DELETE request received")
     try:
         caller, err = _require_admin()
         if err:
@@ -257,19 +278,19 @@ def delete_user(user_id):
         db.session.delete(user)
         db.session.commit()
         
-        print(f"✅ Deleted user: {user.name} ({user.email})")
+        current_app.logger.info(f" Deleted user: {user.name} ({user.email})")
         return jsonify({"message": "User deleted successfully"}), 200
         
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error deleting user: {e}")
+        current_app.logger.error(f" Error deleting user: {e}")
         return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/<int:user_id>/role', methods=['PUT'])
 @jwt_required()
 def update_user_role(user_id):
     """Update a user's role (admin only)"""
-    print(f"🔄 Update user {user_id} role PUT request received")
+    current_app.logger.debug(f" Update user {user_id} role PUT request received")
     try:
         caller, err = _require_admin()
         if err:
@@ -295,12 +316,12 @@ def update_user_role(user_id):
         user.role = new_role
         db.session.commit()
         
-        print(f"✅ Updated user role: {user.name} from {old_role} to {new_role}")
+        current_app.logger.info(f" Updated user role: {user.name} from {old_role} to {new_role}")
         return jsonify(user.to_dict()), 200
         
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error updating user role: {e}")
+        current_app.logger.error(f" Error updating user role: {e}")
         return jsonify({"error": str(e)}), 500
 
 
@@ -308,7 +329,7 @@ def update_user_role(user_id):
 @limiter.limit("5 per hour")
 def request_password_reset():
     """Request a password reset email"""
-    print("🔄 Password reset request received")
+    current_app.logger.debug("🔄 Password reset request received")
     try:
         data = request.get_json()
         email = data.get('email', '').strip().lower()
@@ -356,23 +377,23 @@ def request_password_reset():
         )
         
         if email_sent:
-            print(f"✅ Password reset email sent to {user.email}")
+            current_app.logger.info(f" Password reset email sent to {user.email}")
         else:
-            print(f"⚠️ Failed to send password reset email to {user.email}")
+            current_app.logger.warning(f" Failed to send password reset email to {user.email}")
         
         # Always return success message for security
         return jsonify({"message": "If an account with that email exists, a password reset link has been sent."}), 200
         
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error processing password reset request: {e}")
+        current_app.logger.error(f" Error processing password reset request: {e}")
         return jsonify({"error": "Failed to process password reset request"}), 500
 
 
 @users_bp.route('/reset-password/<token>', methods=['POST'])
 def reset_password(token):
     """Reset password using token"""
-    print(f"🔄 Password reset with token: {token[:10]}...")
+    current_app.logger.debug(f" Password reset with token: {token[:10]}...")
     try:
         data = request.get_json()
         new_password = data.get('password')
@@ -408,7 +429,7 @@ def reset_password(token):
         
         db.session.commit()
         
-        print(f"✅ Password reset successful for user: {user.email}")
+        current_app.logger.info(f" Password reset successful for user: {user.email}")
         
         return jsonify({
             "message": "Password reset successful. You can now log in with your new password.",
@@ -417,14 +438,14 @@ def reset_password(token):
         
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error resetting password: {e}")
+        current_app.logger.error(f" Error resetting password: {e}")
         return jsonify({"error": "Failed to reset password"}), 500
 
 
 @users_bp.route('/validate-reset-token/<token>', methods=['GET'])
 def validate_reset_token(token):
     """Validate a password reset token without using it"""
-    print(f"🔄 Validating reset token: {token[:10]}...")
+    current_app.logger.debug(f" Validating reset token: {token[:10]}...")
     try:
         # Find token
         reset_token = PasswordResetToken.query.filter_by(token=token).first()
@@ -447,7 +468,7 @@ def validate_reset_token(token):
             return jsonify({"valid": False, "error": error_message}), 400
         
     except Exception as e:
-        print(f"❌ Error validating reset token: {e}")
+        current_app.logger.error(f" Error validating reset token: {e}")
         return jsonify({"valid": False, "error": "Failed to validate token"}), 500
 
 
@@ -455,7 +476,7 @@ def validate_reset_token(token):
 @jwt_required()
 def resend_setup_email(user_id):
     """Resend password setup email for a user (admin only)"""
-    print(f"🔄 Resending setup email for user {user_id}")
+    current_app.logger.debug(f" Resending setup email for user {user_id}")
     try:
         caller, err = _require_admin()
         if err:
@@ -505,15 +526,15 @@ def resend_setup_email(user_id):
         )
         
         if email_sent:
-            print(f"✅ Setup email resent to {user.email}")
+            current_app.logger.info(f" Setup email resent to {user.email}")
             return jsonify({"message": f"Password setup email sent to {user.email}"}), 200
         else:
             # Surface non-secret last_error for diagnostics
             last_err = getattr(email_service, 'last_error', None)
-            print(f"⚠️ Failed to resend setup email to {user.email}; last_error={last_err}")
+            current_app.logger.warning(f" Failed to resend setup email to {user.email}; last_error={last_err}")
             return jsonify({"error": "Failed to send setup email", "detail": last_err}), 500
         
     except Exception as e:
         db.session.rollback()
-        print(f"❌ Error resending setup email: {e}")
+        current_app.logger.error(f" Error resending setup email: {e}")
         return jsonify({"error": str(e)}), 500
