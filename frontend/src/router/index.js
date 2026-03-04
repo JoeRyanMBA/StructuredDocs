@@ -8,6 +8,7 @@ import AdminDashboard from '../views/AdminDashboard.vue'
 import AdminUserManagement from '../views/AdminUserManagement.vue'
 import SystemLogs from '../views/SystemLogs.vue'
 import PerformanceMetrics from '../views/PerformanceMetrics.vue'
+import AuditLogView from '../views/AuditLogView.vue'
 import ProfileView from '../views/ProfileView.vue'
 import EditNotification from '../views/EditNotification.vue'
 import ProjectCreate from '../views/ProjectCreate.vue';
@@ -63,6 +64,16 @@ const routes = [
       } else {
         next('/dashboard');
       }
+    }
+  },
+  {
+    path: '/admin/audit',
+    name: 'AuditLog',
+    component: AuditLogView,
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
     }
   },
   {

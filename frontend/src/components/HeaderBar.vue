@@ -138,7 +138,9 @@ export default {
         this.showUserDropdown = false
       }
     },
-    logout() {
+    async logout() {
+      // Clear server-side HttpOnly cookies
+      try { await fetch('/api/users/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
       store.setUser(null);
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('access_token');

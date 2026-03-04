@@ -86,6 +86,12 @@
               <h3>Manage Variables</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="navigateTo('/admin/audit')">
+            <div class="action-icon">🛡️</div>
+            <div class="action-content" title="View immutable audit trail of all create/update/delete actions">
+              <h3>Audit Log</h3>
+            </div>
+          </button>
           <button class="quick-action-card danger" @click="confirmClearDatabase">
             <div class="action-icon">⚠️</div>
             <div class="action-content" title="Clear all data except admin user">
