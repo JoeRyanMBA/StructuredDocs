@@ -7,9 +7,11 @@ from ..utils.email_service import email_service
 import secrets
 import os
 from datetime import datetime, timedelta
+from flask import Blueprint, request, jsonify, current_app, make_response
 from flask_jwt_extended import (
     create_access_token, create_refresh_token,
-    jwt_required, get_jwt_identity
+    jwt_required, get_jwt_identity,
+    set_access_cookies, set_refresh_cookies, unset_jwt_cookies,
 )
 from sqlalchemy import func
 
@@ -60,7 +62,11 @@ def login():
                 access_token = create_access_token(identity=str(user.id))
                 refresh_token = create_refresh_token(identity=str(user.id))
                 current_app.logger.debug("✅ Login successful")
-                return jsonify(access_token=access_token, refresh_token=refresh_token, user=user.to_dict())
+                resp = make_response(jsonify(access_token=access_token, refresh_token=refresh_token, user=user.to_dict()))
+                # Also set HttpOnly cookies so token is not accessible to JS
+                set_access_cookies(resp, access_token)
+                set_refresh_cookies(resp, refresh_token)
+                return resp
         except Exception as e:
             # Avoid 500s on malformed hashes; treat as invalid credentials
             current_app.logger.error(f" Password check error: {e}")
@@ -93,7 +99,17 @@ def refresh_token():
     """Issue a new short-lived access token using a valid refresh token."""
     identity = get_jwt_identity()
     new_access = create_access_token(identity=identity)
-    return jsonify(access_token=new_access), 200
+    resp = make_response(jsonify(access_token=new_access))
+    set_access_cookies(resp, new_access)
+    return resp, 200
+
+
+@users_bp.route('/logout', methods=['POST'])
+def logout():
+    """Clear JWT HttpOnly cookies on logout."""
+    resp = make_response(jsonify({'message': 'Logged out'}))
+    unset_jwt_cookies(resp)
+    return resp, 200
 
 @users_bp.route('', methods=['GET'])
 @users_bp.route('/', methods=['GET'])

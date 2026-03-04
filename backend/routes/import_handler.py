@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree, Link, TopicLink
 from ..utils.image_handler import ImageHandler
+from ..extensions import limiter
 import re
 from docx import Document
 import io
@@ -1600,12 +1601,14 @@ def _import_as_collection(file, source):
 
 @import_bp.route('/upload', methods=['POST'])
 @jwt_required()
+@limiter.limit("20 per hour")
 def upload_generic():
     return _upload_file(request.form.get('source', '').lower())
 
 
 @import_bp.route('/markdown', methods=['POST'])
 @jwt_required()
+@limiter.limit("20 per hour")
 def upload_markdown():
     return _upload_file('markdown')
 

@@ -237,6 +237,10 @@ p { color: #666; }
     )
 
     # Configure JWT cookie settings for cross-domain requests
+    # Accept tokens from both Authorization header (existing clients) and HttpOnly cookies
+    app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+    app.config['JWT_COOKIE_HTTPONLY'] = True
+    app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # CSRF protection can be enabled later when fully cookie-based
     # In Codespaces, frontend and backend are on different subdomains, requiring SameSite=None
     if os.environ.get('CODESPACE_NAME'):
         app.config['JWT_COOKIE_SECURE'] = True
