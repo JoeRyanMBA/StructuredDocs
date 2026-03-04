@@ -29,7 +29,26 @@ function computeApiBase() {
 
 export const API_BASE = computeApiBase();
 
-export async function apiRequest(endpoint, options = {}) {
+async function _doRefresh() {
+  const refreshToken = typeof localStorage !== 'undefined' ? localStorage.getItem('refresh_token') : null;
+  if (!refreshToken) return null;
+  try {
+    const resp = await fetch(`${API_BASE}/api/users/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: { 'Authorization': `Bearer ${refreshToken}`, 'Content-Type': 'application/json' },
+    });
+    if (!resp.ok) return null;
+    const data = await resp.json();
+    if (data.access_token) {
+      localStorage.setItem('access_token', data.access_token);
+      return data.access_token;
+    }
+  } catch (_) { /* ignore */ }
+  return null;
+}
+
+export async function apiRequest(endpoint, options = {}, _isRetry = false) {
   const url = `${API_BASE}${endpoint}`;
   
   const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
@@ -45,6 +64,23 @@ export async function apiRequest(endpoint, options = {}) {
 
   const response = await fetch(url, defaultOptions);
   
+  // Attempt silent token refresh on 401 (once)
+  if (response.status === 401 && !_isRetry && !endpoint.includes('/api/users/refresh')) {
+    const newToken = await _doRefresh();
+    if (newToken) {
+      return apiRequest(endpoint, options, true);
+    }
+    // Refresh failed — clear auth and redirect
+    if (typeof localStorage !== 'undefined') {
+      localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
+      localStorage.removeItem('isAuthenticated');
+    }
+    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
+      window.location.href = '/login';
+    }
+  }
+
   if (!response.ok) {
     throw new Error(`API Error: ${response.status} ${response.statusText}`);
   }
@@ -75,3 +111,4 @@ export async function apiDelete(endpoint) {
     method: 'DELETE',
   });
 }
+

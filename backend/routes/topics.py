@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from ..utils.email_service import email_service
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import bleach
+from ..utils.audit import log_audit
 
 topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
 
@@ -130,6 +131,7 @@ def create_topic():
         )
         db.session.add(topic)
         db.session.commit()
+        log_audit('create', 'topic', topic.id, details={'title': topic.title})
         return jsonify(topic.to_dict()), 201
     except Exception as e:
         db.session.rollback()
@@ -161,6 +163,7 @@ def update_topic(topic_id):
         if 'status' in data:
             topic.status = data['status']
         db.session.commit()
+        log_audit('update', 'topic', topic_id, details={'title': topic.title, 'status': topic.status})
         return jsonify(topic.to_dict()), 200
 
     except Exception as e:
@@ -385,6 +388,8 @@ def bulk_delete_topics():
                 db.session.delete(t)
             db.session.commit()
             deleted_count = len(existing)
+            for tid in existing_ids:
+                log_audit('delete', 'topic', tid)
         except Exception as e:
             db.session.rollback()
             current_app.logger.exception('Bulk delete failed')

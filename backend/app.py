@@ -10,7 +10,7 @@ from werkzeug.exceptions import HTTPException
 from .extensions import db, migrate, jwt, limiter, init_sentry, redis_conn, task_queue
 from urllib.parse import urlparse, urlunparse, parse_qsl, urlencode, quote
 import socket
-from datetime import datetime
+from datetime import datetime, timedelta
 import json
 import uuid
 
@@ -228,6 +228,8 @@ p { color: #666; }
         SECRET_KEY=_secret_key,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
         JWT_SECRET_KEY=_jwt_secret,
+        JWT_ACCESS_TOKEN_EXPIRES=timedelta(minutes=15),
+        JWT_REFRESH_TOKEN_EXPIRES=timedelta(days=7),
         MAX_CONTENT_LENGTH=20 * 1024 * 1024,  # 20 MB upload limit
         STATIC_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist'),
         STATIC_URL_PATH='/',

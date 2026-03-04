@@ -7,7 +7,10 @@ from ..utils.email_service import email_service
 import secrets
 import os
 from datetime import datetime, timedelta
-from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identity
+from flask_jwt_extended import (
+    create_access_token, create_refresh_token,
+    jwt_required, get_jwt_identity
+)
 from sqlalchemy import func
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')
@@ -55,8 +58,9 @@ def login():
             if check_password_hash(user.password_hash, password):
                 # Use string identity to avoid 422 "Subject must be a string" issues in some environments
                 access_token = create_access_token(identity=str(user.id))
+                refresh_token = create_refresh_token(identity=str(user.id))
                 current_app.logger.debug("✅ Login successful")
-                return jsonify(access_token=access_token, user=user.to_dict())
+                return jsonify(access_token=access_token, refresh_token=refresh_token, user=user.to_dict())
         except Exception as e:
             # Avoid 500s on malformed hashes; treat as invalid credentials
             current_app.logger.error(f" Password check error: {e}")
@@ -81,6 +85,15 @@ def get_me():
     if user:
         return jsonify(user.to_dict()), 200
     return jsonify({"msg": "User not found"}), 404
+
+
+@users_bp.route('/refresh', methods=['POST'])
+@jwt_required(refresh=True)
+def refresh_token():
+    """Issue a new short-lived access token using a valid refresh token."""
+    identity = get_jwt_identity()
+    new_access = create_access_token(identity=identity)
+    return jsonify(access_token=new_access), 200
 
 @users_bp.route('', methods=['GET'])
 @users_bp.route('/', methods=['GET'])
