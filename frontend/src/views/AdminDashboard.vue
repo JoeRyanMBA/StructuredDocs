@@ -92,6 +92,12 @@
               <h3>Audit Log</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="showLimitsModal = true">
+            <div class="action-icon">⚙️</div>
+            <div class="action-content" title="Configure upload size limits and rate limits">
+              <h3>System Limits</h3>
+            </div>
+          </button>
           <button class="quick-action-card danger" @click="confirmClearDatabase">
             <div class="action-icon">⚠️</div>
             <div class="action-content" title="Clear all data except admin user">
@@ -170,18 +176,22 @@
       </div>
     </div>
   </div>
+
+  <LimitsModal :show="showLimitsModal" @close="showLimitsModal = false" />
 </template>
 
 <script>
 import DatabaseMetricsPanel from '../components/DatabaseMetricsPanel.vue'
 import CompactToolbar from '@/components/CompactToolbar.vue'
+import LimitsModal from '@/components/LimitsModal.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'AdminDashboard',
   components: { 
     DatabaseMetricsPanel,
-    CompactToolbar
+    CompactToolbar,
+    LimitsModal,
   },
   props: {
     notifications: {
@@ -217,7 +227,8 @@ export default {
       newNotification: {
         title: '',
         description: ''
-      }
+      },
+      showLimitsModal: false,
     }
   },
   computed: {
