@@ -487,7 +487,7 @@ p { color: #666; }
             from sqlalchemy import inspect as _inspect
             inspector = _inspect(db.engine)
             existing_tables = set(inspector.get_table_names())
-            critical = {'variables', 'variable_values', 'collection_variable_selections'}
+            critical = {'variables', 'variable_values', 'collection_variable_selections', 'system_settings'}
             missing = critical - existing_tables
             if missing:
                 print(f"🛠  Creating missing critical tables (fallback): {missing}")
