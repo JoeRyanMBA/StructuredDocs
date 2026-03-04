@@ -109,7 +109,8 @@ export default {
         
         const data = await res.json()
         // Ensure publications are sorted by most recent first
-        this.publications = data.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+        const pubs = Array.isArray(data) ? data : (data.publications || [])
+        this.publications = pubs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
       } catch (err) {
         console.error('Failed to fetch publications:', err)
         this.error = 'Failed to load publications'
