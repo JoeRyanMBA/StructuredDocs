@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from datetime import datetime, timezone, timedelta
 from ..models import db, Collection, Topic, collection_topic_tree, Project, Publication, PublicationNode, build_variable_mapping_for_collection, substitute_variables_in_text
+from ..utils.audit import log_audit
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
 
@@ -181,6 +182,7 @@ def create_collection():
     )
     db.session.add(new_collection)
     db.session.commit()
+    log_audit('create', 'collection', new_collection.id, details={'name': new_collection.name})
     return jsonify(new_collection.to_dict()), 201
 
 @collections_bp.route('/<int:collection_id>', methods=['PUT'])
@@ -221,6 +223,7 @@ def update_collection(collection_id):
             collection.position = data['position']
         
         db.session.commit()
+        log_audit('update', 'collection', collection_id, details={'name': collection.name})
         return jsonify(collection.to_dict()), 200
         
     except Exception as e:
@@ -483,6 +486,7 @@ def delete_collection(collection_id):
 
         db.session.delete(collection)
         db.session.commit()
+        log_audit('delete', 'collection', collection_id)
         return jsonify({'message': 'Collection deleted', 'deleted_id': collection_id}), 200
     except Exception as e:
         db.session.rollback()

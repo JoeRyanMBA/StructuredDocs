@@ -142,6 +142,7 @@ export default {
       store.setUser(null);
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('access_token');
+      localStorage.removeItem('refresh_token');
       this.$router.push('/login');
     }
   }

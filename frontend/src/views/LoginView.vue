@@ -288,10 +288,13 @@ export default {
           password: password,
         });
 
-        const { access_token, user } = response.data;
+        const { access_token, refresh_token, user } = response.data;
 
         // Store token and user data
         localStorage.setItem('access_token', access_token);
+        if (refresh_token) {
+          localStorage.setItem('refresh_token', refresh_token);
+        }
         store.setUser(user);
         localStorage.setItem('isAuthenticated', 'true');
 
@@ -307,6 +310,7 @@ export default {
         this.error = error.response?.data?.error || 'Invalid email or password';
         // Clear stored data on login failure
         localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
         store.setUser(null);
         localStorage.removeItem('isAuthenticated');
         delete axios.defaults.headers.common['Authorization'];

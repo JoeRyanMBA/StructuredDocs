@@ -9,6 +9,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, Topic, User
+from ..utils.audit import log_audit
 
 projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 
@@ -100,6 +101,7 @@ def update_project(project_id):
         if 'target_completion' in data:
             project.target_completion = data['target_completion']
         db.session.commit()
+        log_audit('update', 'project', project_id, details={'name': project.name})
         return jsonify(project.to_dict()), 200
     except Exception as e:
         return jsonify({'error': str(e)}), 500
@@ -149,6 +151,7 @@ def create_project():
         )
         db.session.add(project)
         db.session.commit()
+        log_audit('create', 'project', project.id, details={'name': project.name})
         return jsonify(project.to_dict()), 201
     except Exception as e:
         return jsonify({"error": str(e)}), 500

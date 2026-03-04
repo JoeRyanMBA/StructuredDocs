@@ -1,6 +1,6 @@
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
-from ..models import db, User, Notification, Topic, Collection, Project, Task
+from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog
 from ..utils.email_service import get_email_service
 from ..utils.storage import get_storage_backend, SpacesStorage
 from sqlalchemy import func, text
@@ -541,3 +541,42 @@ def clear_database():
     except Exception as e:
         db.session.rollback()
         return jsonify({'status': 'error', 'message': str(e)}), 500
+
+
+@admin_bp.route('/audit-logs', methods=['GET'])
+@jwt_required()
+def get_audit_logs():
+    """Get recent audit log entries. Admin only.
+    
+    Query params:
+      ?page=1&limit=50&resource_type=topic&action=delete&user_id=5
+    """
+    from ..routes.users import _require_admin
+    caller, err = _require_admin()
+    if err:
+        return err
+
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(200, max(1, request.args.get('limit', 50, type=int)))
+    resource_type = request.args.get('resource_type')
+    action = request.args.get('action')
+    user_id = request.args.get('user_id', type=int)
+
+    query = AuditLog.query.order_by(AuditLog.created_at.desc())
+    if resource_type:
+        query = query.filter(AuditLog.resource_type == resource_type)
+    if action:
+        query = query.filter(AuditLog.action == action)
+    if user_id is not None:
+        query = query.filter(AuditLog.user_id == user_id)
+
+    total = query.count()
+    entries = query.offset((page - 1) * limit).limit(limit).all()
+
+    return jsonify({
+        'items': [e.to_dict() for e in entries],
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'pages': max(1, -(-total // limit)),
+    }), 200
