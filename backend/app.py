@@ -3,6 +3,7 @@
 import sys
 import os
 import mimetypes
+import secrets
 from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
@@ -212,10 +213,22 @@ p { color: #666; }
     print("📱 Flask instance created")
     print(f"Instance path: {app.instance_path}")
     print(f"Root path: {app.root_path}")    # Load configuration
+    # Load configuration — prefer environment variables; fall back to ephemeral random keys
+    # with a loud warning so the operator knows sessions won't survive restarts.
+    _secret_key = os.environ.get('SECRET_KEY')
+    _jwt_secret = os.environ.get('JWT_SECRET_KEY')
+    if not _secret_key:
+        _secret_key = secrets.token_hex(32)
+        print("⚠️  WARNING: SECRET_KEY not set — using ephemeral key. Set SECRET_KEY in .env for persistent sessions.")
+    if not _jwt_secret:
+        _jwt_secret = secrets.token_hex(32)
+        print("⚠️  WARNING: JWT_SECRET_KEY not set — using ephemeral key. All JWT tokens will be invalidated on restart.")
+
     app.config.from_mapping(
-        SECRET_KEY='your-flask-secret-key-change-in-production',
+        SECRET_KEY=_secret_key,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        JWT_SECRET_KEY='your-secret-key-change-in-production',
+        JWT_SECRET_KEY=_jwt_secret,
+        MAX_CONTENT_LENGTH=20 * 1024 * 1024,  # 20 MB upload limit
         STATIC_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist'),
         STATIC_URL_PATH='/',
         FRONTEND_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist')
@@ -484,6 +497,41 @@ p { color: #666; }
                     ImportLink.__table__.create(bind=db.engine, checkfirst=True)
                 except Exception as _imp_e:
                     print(f"⚠️ Could not create import_links fallback table: {_imp_e}")
+
+            # Safety net: ensure snippets table exists
+            if 'snippets' not in existing_tables:
+                try:
+                    from backend.models import Snippet
+                    print("🛠  Creating missing table: snippets (fallback until migration applied)")
+                    Snippet.__table__.create(bind=db.engine, checkfirst=True)
+                except Exception as _snip_e:
+                    print(f"⚠️ Could not create snippets fallback table: {_snip_e}")
+
+            # Safety net: ensure tags / entity_tags tables exist (used by snippets, topics, etc.)
+            for _model_name, _table_name in [('Tag', 'tags'), ('EntityTag', 'entity_tags')]:
+                if _table_name not in existing_tables:
+                    try:
+                        from backend import models as _models
+                        _model_cls = getattr(_models, _model_name)
+                        print(f"🛠  Creating missing table: {_table_name} (fallback until migration applied)")
+                        _model_cls.__table__.create(bind=db.engine, checkfirst=True)
+                    except Exception as _tag_e:
+                        print(f"⚠️ Could not create {_table_name} fallback table: {_tag_e}")
+
+            # Safety net: ensure publications.form_number column exists
+            if 'publications' in existing_tables:
+                try:
+                    _pub_cols = {c['name'] for c in inspector.get_columns('publications')}
+                    if 'form_number' not in _pub_cols:
+                        print("🛠  Adding missing column: publications.form_number")
+                        db.session.execute(db.text(
+                            "ALTER TABLE publications ADD COLUMN form_number VARCHAR(100)"
+                        ))
+                        db.session.commit()
+                        print("✅ Added publications.form_number")
+                except Exception as _fn_e:
+                    print(f"⚠️ Could not add publications.form_number: {_fn_e}")
+                    db.session.rollback()
         except Exception as _crit_e:
             print(f"⚠️ Could not ensure critical tables: {_crit_e}")
         
@@ -581,6 +629,7 @@ p { color: #666; }
                 'reviews': ('reviews', 'reviews_bp'),
                 'sequences': ('sequences', 'sequences_bp'),
                 'stakeholders': ('stakeholders', 'stakeholders_bp'),
+                'snippets': ('snippets', 'snippets_bp'),
                 'tags': ('tags', 'tags_bp'),
                 'tasks': ('tasks', 'tasks_bp'),
                 'topics': ('topics', 'topics_bp'),
@@ -636,6 +685,7 @@ p { color: #666; }
                 review_tokens,
                 reviews,
                 sequences,
+                snippets,
                 stakeholders,
                 tags,
                 tasks,
@@ -662,6 +712,7 @@ p { color: #666; }
             app.register_blueprint(reviews.reviews_bp)
             app.register_blueprint(sequences.sequences_bp)
             app.register_blueprint(stakeholders.stakeholders_bp)
+            app.register_blueprint(snippets.snippets_bp)
             app.register_blueprint(tags.tags_bp)
             app.register_blueprint(tasks.tasks_bp)
             app.register_blueprint(topics.topics_bp)
@@ -721,11 +772,6 @@ p { color: #666; }
 
         @app.route('/api/health', methods=['GET'])
         def health_check():
-            print("🏥 Health check requested at", datetime.now().isoformat())
-            print(f"🏥 Request method: {request.method}")
-            print(f"🏥 Request URL: {request.url}")
-            print(f"🏥 Request headers: {dict(request.headers)}")
-            
             uri = app.config.get('SQLALCHEMY_DATABASE_URI', '')
             if uri.startswith('sqlite'):
                 db_kind = 'sqlite'
@@ -733,35 +779,22 @@ p { color: #666; }
                 parsed = urlparse(uri)
                 db_kind = parsed.scheme or 'unknown'
 
-            # Use same frontend URL logic as CORS
-            frontend_origin = os.environ.get('FRONTEND_URL')
-            if not frontend_origin:
-                if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
-                    # For production, construct the URL from environment
-                    host = os.environ.get('HOST', 'localhost')
-                    port = os.environ.get('PORT', '8000')
-                    protocol = 'https' if os.environ.get('HTTPS') == 'on' else 'http'
-                    if host == 'localhost':
-                        frontend_origin = f"{protocol}://{host}:{port}"
-                    else:
-                        frontend_origin = f"{protocol}://{host}"
-                else:
-                    frontend_origin = 'http://localhost:5173'  # Local development
+            # Test actual DB connectivity
+            db_status = 'ok'
+            try:
+                from sqlalchemy import text as _text
+                db.session.execute(_text('SELECT 1'))
+            except Exception as _db_e:
+                db_status = 'error'
+                current_app.logger.error("Health check DB probe failed: %s", _db_e)
 
-            print(f"🏥 Health check response: status=ok, db={db_kind}, frontend={frontend_origin}")
-            response_data = {
-                'status': 'ok',
+            status_code = 200 if db_status == 'ok' else 503
+            return jsonify({
+                'status': 'ok' if db_status == 'ok' else 'degraded',
                 'db': db_kind,
-                'frontend_origin': frontend_origin,
-                'timestamp': datetime.now().isoformat(),
-                'request_info': {
-                    'method': request.method,
-                    'url': request.url,
-                    'remote_addr': request.remote_addr
-                }
-            }
-            print(f"🏥 Sending response: {response_data}")
-            return jsonify(response_data), 200
+                'db_status': db_status,
+                'timestamp': datetime.utcnow().isoformat() + 'Z',
+            }), status_code
 
         # --- Specific endpoint rate limits (post-registration) ---------------
         try:
@@ -790,27 +823,6 @@ p { color: #666; }
                     print("ℹ️ No specific rate limits applied (endpoints may differ or env vars unset)")
         except Exception as _spec_e:
             print(f"⚠️ Error applying specific limits: {_spec_e}")
-
-        @app.route('/test-route')
-        def test_route():
-            return "TEST ROUTE WORKING", 200
-
-        @app.route('/debug-routes')
-        def debug_routes():
-            import urllib.parse
-            output = []
-            for rule in app.url_map.iter_rules():
-                options = {}
-                for arg in rule.arguments:
-                    options[arg] = f"[{arg}]"
-
-                methods = ','.join(rule.methods or [])
-                url = urllib.parse.unquote(rule.endpoint)
-                line = f"{url:50s} {methods:20s} {str(rule)}"
-                output.append(line)
-            
-            response = "<pre>" + "\n".join(sorted(output)) + "</pre>"
-            return response
 
         # Static file serving and other routes
         @app.route('/images/<path:filename>')
@@ -1016,40 +1028,6 @@ p { color: #666; }
             return e
         return "Internal Server Error", 500
 
-    # Add debug endpoint
-    @app.route('/api/debug')
-    def debug_info():
-        print("🐛 Debug info requested")
-        static_folder = app.config.get('STATIC_FOLDER', 'not set')
-        frontend_folder = app.config.get('FRONTEND_FOLDER', 'not set')
-        
-        # Check if directories exist
-        static_exists = os.path.exists(static_folder) if static_folder != 'not set' else False
-        frontend_exists = os.path.exists(frontend_folder) if frontend_folder != 'not set' else False
-        
-        # Check assets directory
-        assets_dir = os.path.join(static_folder, 'assets') if static_folder != 'not set' else 'not set'
-        assets_exists = os.path.exists(assets_dir) if assets_dir != 'not set' else False
-        
-        # List files if directories exist
-        static_files = os.listdir(static_folder) if static_exists else []
-        assets_files = os.listdir(assets_dir) if assets_exists else []
-        
-        return {
-            "status": "debug",
-            "working_directory": os.getcwd(),
-            "static_folder": static_folder,
-            "static_exists": static_exists,
-            "static_files": static_files[:10],  # First 10 files
-            "frontend_folder": frontend_folder,
-            "frontend_exists": frontend_exists,
-            "assets_dir": assets_dir,
-            "assets_exists": assets_exists,
-            "assets_files": assets_files[:5] if len(assets_files) > 0 else [],  # First 5 asset files
-            "python_path": sys.path[:5],  # First 5 paths
-            "database_uri": app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50] + "..." if app.config.get('SQLALCHEMY_DATABASE_URI') else 'not set'
-        }, 200
-
     # Apply rate limit to login if route imported
     if limiter:
         try:
@@ -1059,6 +1037,16 @@ p { color: #666; }
         except Exception as e:
             print(f"⚠️  Could not attach rate limit to login: {e}")
 
+    @app.route('/api/csp-report', methods=['POST'])
+    def csp_report():
+        """Receive Content-Security-Policy violation reports from browsers."""
+        try:
+            report = request.get_json(force=True, silent=True) or {}
+            current_app.logger.warning("CSP violation: %s", report)
+        except Exception:
+            pass
+        return '', 204
+
     print("✅ Flask app created successfully!")
     return app
 
@@ -1067,4 +1055,4 @@ if __name__ == '__main__':
     application = create_app()
     # Use a production-ready server like Gunicorn or Waitress instead of app.run in production
     port = int(os.environ.get('PORT', 8080))  # Match the start.sh default
-    application.run(debug=True, host='0.0.0.0', port=port)
+    application.run(debug=os.environ.get('FLASK_DEBUG', '0') == '1', host='0.0.0.0', port=port)

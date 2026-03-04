@@ -4,6 +4,7 @@ Handles CRUD operations for project milestones
 """
 
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy import desc
 from datetime import datetime, date
 import json
@@ -15,6 +16,7 @@ milestones_bp = Blueprint('milestones', __name__, url_prefix='/api/milestones')
 
 @milestones_bp.route('/', methods=['GET'])
 @milestones_bp.route('', methods=['GET'])
+@jwt_required()
 def list_milestones():
     """Get all milestones with project information"""
     try:
@@ -31,6 +33,7 @@ def list_milestones():
 
 @milestones_bp.route('/', methods=['POST'])
 @milestones_bp.route('', methods=['POST'])
+@jwt_required()
 def create_milestone():
     """Create a new milestone"""
     try:
@@ -74,6 +77,7 @@ def create_milestone():
 
 
 @milestones_bp.route('/<int:milestone_id>', methods=['PUT'])
+@jwt_required()
 def update_milestone(milestone_id):
     """Update a milestone"""
     try:
@@ -124,6 +128,7 @@ def update_milestone(milestone_id):
 
 
 @milestones_bp.route('/<int:milestone_id>', methods=['DELETE'])
+@jwt_required()
 def delete_milestone(milestone_id):
     """Delete a milestone"""
     try:
@@ -140,6 +145,7 @@ def delete_milestone(milestone_id):
 
 
 @milestones_bp.route('/projects', methods=['GET'])
+@jwt_required()
 def list_projects():
     """Get list of projects for milestone association"""
     try:

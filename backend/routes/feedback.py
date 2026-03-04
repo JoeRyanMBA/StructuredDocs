@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from ..models import db, FeedbackReport
 import json
 
@@ -6,6 +7,7 @@ feedback_bp = Blueprint('feedback', __name__, url_prefix='/api/feedback')
 
 
 @feedback_bp.route('', methods=['POST'])
+@jwt_required()
 def submit_feedback():
     try:
         data = request.get_json() or {}
@@ -51,6 +53,7 @@ def submit_feedback():
 
 
 @feedback_bp.route('', methods=['GET'])
+@jwt_required()
 def list_feedback():
     try:
         # Query params for filtering / sorting
@@ -89,6 +92,7 @@ def list_feedback():
 
 
 @feedback_bp.route('/<int:report_id>', methods=['GET'])
+@jwt_required()
 def get_feedback(report_id):
     try:
         r = FeedbackReport.query.get_or_404(report_id)
@@ -98,6 +102,7 @@ def get_feedback(report_id):
 
 
 @feedback_bp.route('/<int:report_id>', methods=['PATCH'])
+@jwt_required()
 def update_feedback(report_id):
     try:
         data = request.get_json() or {}
@@ -137,6 +142,7 @@ def update_feedback(report_id):
 
 
 @feedback_bp.route('/<int:report_id>', methods=['DELETE'])
+@jwt_required()
 def delete_feedback(report_id):
     try:
         r = FeedbackReport.query.get_or_404(report_id)
@@ -151,6 +157,7 @@ def delete_feedback(report_id):
 
 # Backwards-compatible POST endpoints for hosts that block PATCH/DELETE
 @feedback_bp.route('/<int:report_id>/update', methods=['POST'])
+@jwt_required()
 def post_update_feedback(report_id):
     try:
         data = request.get_json() or {}
@@ -187,6 +194,7 @@ def post_update_feedback(report_id):
 
 
 @feedback_bp.route('/<int:report_id>/archive', methods=['POST'])
+@jwt_required()
 def post_archive_feedback(report_id):
     try:
         r = FeedbackReport.query.get_or_404(report_id)

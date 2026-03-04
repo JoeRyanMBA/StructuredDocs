@@ -134,6 +134,7 @@
 
 <script>
 import { toast } from '../composables/useToast.js'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 export default {
   name: 'VariableSelectionModal',
@@ -338,12 +339,11 @@ export default {
     expandPreviewLimit() { this.previewTopicLimit = Math.min(this.previewTopicLimit + 5, (this.previewResult?.topics?.length||0)) },
     renderSnippet(html) {
       if (!html) return '<em>(empty)</em>'
-      // Basic sanitization & truncation (no external lib)
+      const sanitized = sanitizeHtml(html)
       const div = document.createElement('div')
-      div.innerHTML = html
+      div.innerHTML = sanitized
       let text = div.textContent || div.innerText || ''
       if (text.length > 400) text = text.slice(0, 400) + '…'
-      // Re-escape for safe HTML insertion (very naive)
       const esc = text.replace(/&/g,'&amp;').replace(/</g,'&lt;').replace(/>/g,'&gt;')
       return esc.replace(/\n/g,'<br>')
     },

@@ -66,6 +66,12 @@ class Collection(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
+    __table_args__ = (
+        db.Index('ix_collections_parent_id', 'parent_id'),
+        db.Index('ix_collections_project_id', 'project_id'),
+        db.Index('ix_collections_archived', 'archived'),
+    )
+
     # Nested children collections
     children = relationship(
         'Collection',
@@ -176,6 +182,12 @@ class Topic(db.Model):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False
+    )
+
+    __table_args__ = (
+        db.Index('ix_topics_created_at', 'created_at'),
+        db.Index('ix_topics_status', 'status'),
+        db.Index('ix_topics_updated_at', 'updated_at'),
     )
 
     # Relationship to reusable links
@@ -294,10 +306,16 @@ class Publication(db.Model):
     id          = db.Column(db.Integer, primary_key=True)
     title       = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
+    form_number = db.Column(db.String(100), nullable=True)
     created_at  = db.Column(
         db.DateTime,
         server_default=func.now(),
         nullable=False
+    )
+
+    __table_args__ = (
+        db.Index('ix_publications_created_at', 'created_at'),
+        db.Index('ix_publications_title', 'title'),
     )
 
     # Top-level nodes for this publication
@@ -311,6 +329,7 @@ class Publication(db.Model):
             "id":          self.id,
             "title":       self.title,
             "description": self.description,
+            "form_number": self.form_number,
             "created_at":  self.created_at.isoformat(),
             "topics_count": len(self.nodes),  # Count of publication nodes (topics)
         }
@@ -320,7 +339,7 @@ class Publication(db.Model):
 
     if TYPE_CHECKING:
         # Hint constructor parameters for static analysis (SQLAlchemy supplies these dynamically at runtime)
-        def __init__(self, id: int | None = None, title: str = ..., description: str | None = None, created_at: datetime | None = None): ...
+        def __init__(self, id: int | None = None, title: str = ..., description: str | None = None, form_number: str | None = None, created_at: datetime | None = None): ...
 
 class PublicationNode(db.Model):
     __tablename__ = 'publication_nodes'
@@ -360,6 +379,11 @@ class PublicationNode(db.Model):
     # Snapshotted substituted text
     title_snapshot = db.Column(db.String(200), nullable=True)
     content_snapshot = db.Column(db.Text, nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_pub_nodes_publication_id', 'publication_id'),
+        db.Index('ix_pub_nodes_parent_id', 'parent_id'),
+    )
 
     if TYPE_CHECKING:
         def __init__(self, id: int | None = None, publication_id: int = ..., topic_id: int = ..., parent_id: int | None = None, position: int = ..., title_snapshot: str | None = None, content_snapshot: str | None = None): ...
@@ -896,7 +920,7 @@ class EntityTag(db.Model):
     """Polymorphic tag assignments — links any entity type to a Tag."""
     __tablename__ = 'entity_tags'
 
-    VALID_TYPES = ('project', 'collection', 'topic', 'stakeholder', 'image', 'link')
+    VALID_TYPES = ('project', 'collection', 'topic', 'stakeholder', 'image', 'link', 'snippet')
 
     id = db.Column(db.Integer, primary_key=True)
     entity_type = db.Column(db.String(50), nullable=False)
@@ -1139,6 +1163,13 @@ class Review(db.Model):
     requester = relationship('Stakeholder', foreign_keys=[requested_by], backref='requested_reviews')
     reviewer = relationship('Stakeholder', foreign_keys=[reviewer_id], backref='assigned_reviews')
     sequence = relationship('ReviewSequence', back_populates='reviews')
+
+    __table_args__ = (
+        db.Index('ix_reviews_topic_id', 'topic_id'),
+        db.Index('ix_reviews_status', 'status'),
+        db.Index('ix_reviews_reviewer_id', 'reviewer_id'),
+        db.Index('ix_reviews_requested_at', 'requested_at'),
+    )
     
     def to_dict(self):
         return {
@@ -1443,4 +1474,28 @@ class FeedbackReport(db.Model):
             "metadata": self.metadata_json,
             "status": self.status,
             "created_at": self.created_at.isoformat() if self.created_at else None
+        }
+
+class Snippet(db.Model):
+    """Reusable audience-specific content blocks inserted into topics via placeholders."""
+    __tablename__ = 'snippets'
+
+    id = db.Column(db.Integer, primary_key=True)
+    title = db.Column(db.String(200), nullable=False)
+    content = db.Column(db.Text, nullable=True)
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'title': self.title,
+            'content': self.content or '',
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }

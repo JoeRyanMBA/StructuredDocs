@@ -1,5 +1,6 @@
 from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response, current_app
-from ..models import db, Publication, PublicationNode, Topic
+from flask_jwt_extended import jwt_required
+from ..models import db, Publication, PublicationNode, Topic, Snippet, EntityTag
 from datetime import datetime
 import re
 import os
@@ -8,16 +9,94 @@ import mimetypes
 import io
 import json
 import traceback
+import tempfile
+import shutil
+import requests as _http
+from bs4 import BeautifulSoup
+import mistune
 from reportlab.lib.pagesizes import letter, A4
+
+
+def resolve_snippets(content, selected_tag_ids):
+    """Replace <div class="sd-snippet-ref" data-snippet-id="X"> placeholders.
+
+    Snippets with no tags are universal and always included.
+    Snippets with tags are only included when at least one of their tags
+    appears in selected_tag_ids; otherwise the placeholder is removed.
+    """
+    if not content:
+        return content
+    soup = BeautifulSoup(content, 'html.parser')
+    placeholders = soup.find_all('div', class_='sd-snippet-ref')
+    if not placeholders:
+        return content
+
+    selected = set(int(t) for t in selected_tag_ids if str(t).isdigit()) if selected_tag_ids else set()
+
+    def remove_adjacent_brs(element):
+        """Remove <br> siblings (and blank text nodes) immediately before/after element."""
+        nxt = element.next_sibling
+        while nxt and (getattr(nxt, 'name', None) == 'br' or (isinstance(nxt, str) and not nxt.strip())):
+            to_remove = nxt
+            nxt = nxt.next_sibling
+            to_remove.extract()
+        prev = element.previous_sibling
+        while prev and (getattr(prev, 'name', None) == 'br' or (isinstance(prev, str) and not prev.strip())):
+            to_remove = prev
+            prev = prev.previous_sibling
+            to_remove.extract()
+
+    for placeholder in placeholders:
+        raw_id = placeholder.get('data-snippet-id')
+        if not raw_id or not str(raw_id).isdigit():
+            remove_adjacent_brs(placeholder)
+            placeholder.decompose()
+            continue
+
+        snippet_id = int(raw_id)
+
+        snippet_tag_ids = {
+            et.tag_id for et in EntityTag.query.filter_by(entity_type='snippet', entity_id=snippet_id).all()
+        }
+
+        # Untagged snippets are universal — always include.
+        # Tagged snippets only appear when at least one of their tags is selected.
+        if snippet_tag_ids and not (snippet_tag_ids & selected):
+            remove_adjacent_brs(placeholder)
+            placeholder.decompose()
+            continue
+
+        snippet = Snippet.query.get(snippet_id)
+        if snippet and snippet.content:
+            snippet_html = mistune.html(snippet.content)
+            placeholder.replace_with(BeautifulSoup(snippet_html, 'html.parser'))
+        else:
+            remove_adjacent_brs(placeholder)
+            placeholder.decompose()
+
+    return str(soup)
+
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, NextPageTemplate, Flowable
+from reportlab.platypus.flowables import AnchorFlowable
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY, TA_RIGHT
 from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
 from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
+
+
+def _color_hex(color) -> str:
+    """Convert a ReportLab Color to a CSS hex string for use in Paragraph XML link tags."""
+    try:
+        r = int(color.red * 255)
+        g = int(color.green * 255)
+        b = int(color.blue * 255)
+        return f'#{r:02x}{g:02x}{b:02x}'
+    except Exception:
+        return '#000000'
 
 
 # ReportLab-safe text sanitization: strip unsupported tags and fix entities
@@ -124,7 +203,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                 )
                 canvas.restoreState()
             except Exception as e:
-                print(f"Warning: Could not add background image: {e}")
+                current_app.logger.debug(f"Warning: Could not add background image: {e}")
         
         # Add title page footer
         self.add_title_footer(canvas, doc)
@@ -164,7 +243,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load title page logo")
+                    current_app.logger.debug("Warning: Could not load title page logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 10)
@@ -191,7 +270,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add title footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add title footer: {e}")
     
     def add_toc_footer(self, canvas, doc):
         """Add footer for TOC pages with horizontal line"""
@@ -227,7 +306,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -250,7 +329,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add TOC footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
 
     def add_content_footer(self, canvas, doc):
         """Add footer for content pages with horizontal line"""
@@ -287,7 +366,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -311,8 +390,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add content footer: {e}")
-            print(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
     
     def int_to_roman(self, num):
         """Convert integer to roman numerals"""
@@ -363,7 +442,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.restoreState()
             
         except Exception as e:
-            print(f"Warning: Could not add header: {e}")
+            current_app.logger.debug(f"Warning: Could not add header: {e}")
 
 
 class HeaderDocTemplate(BaseDocTemplate):
@@ -462,7 +541,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load title page logo")
+                    current_app.logger.debug("Warning: Could not load title page logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -486,7 +565,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add title footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add title footer: {e}")
     
     def add_toc_footer(self, canvas, doc):
         """Add footer for TOC pages with horizontal line"""
@@ -523,7 +602,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -548,7 +627,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add TOC footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
 
     def add_content_footer(self, canvas, doc):
         """Add footer for content pages with horizontal line"""
@@ -585,7 +664,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -609,8 +688,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add content footer: {e}")
-            print(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
     
     def int_to_roman(self, num):
         """Convert integer to roman numerals"""
@@ -627,13 +706,13 @@ class HeaderDocTemplate(BaseDocTemplate):
     
     def add_header(self, canvas, doc):
         """Add header with publication info and horizontal line"""
-        print("DEBUG: HeaderDocTemplate add_header called")
+        current_app.logger.debug("DEBUG: HeaderDocTemplate add_header called")
         if not self.publication:
-            print("DEBUG: No publication object")
+            current_app.logger.debug("DEBUG: No publication object")
             return
             
         try:
-            print(f"DEBUG: Adding header for publication: {self.publication.title}")
+            current_app.logger.debug(f"DEBUG: Adding header for publication: {self.publication.title}")
             # Save canvas state
             canvas.saveState()
             
@@ -662,10 +741,10 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             # Restore canvas state
             canvas.restoreState()
-            print("DEBUG: Header drawing completed successfully")
+            current_app.logger.debug("DEBUG: Header drawing completed successfully")
             
         except Exception as e:
-            print(f"WARNING: Could not add header: {e}")
+            current_app.logger.debug(f"WARNING: Could not add header: {e}")
             import traceback
             traceback.print_exc()
 
@@ -678,23 +757,34 @@ pubs_bp = Blueprint(
 )
 
 @pubs_bp.route('', methods=['GET'])
+@jwt_required()
 def list_pubs():
+    """List publications. Supports ?page=&limit= for pagination."""
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(100, max(1, request.args.get('limit', 50, type=int)))
+
     all_pubs = Publication.query.order_by(Publication.created_at.desc()).all()
-    
-    # Group publications by title and return only the latest version of each
+
+    # Group by title and keep only the latest version of each
     latest_pubs = {}
     for pub in all_pubs:
         if pub.title not in latest_pubs:
             latest_pubs[pub.title] = pub
-    
-    # Convert to list and maintain newest-first order
-    result = [pub.to_dict() for pub in latest_pubs.values()]
-    # Sort by created_at descending to maintain newest first
-    result.sort(key=lambda x: x['created_at'], reverse=True)
-    
-    return jsonify(result), 200
+
+    result = sorted(latest_pubs.values(), key=lambda p: p.created_at, reverse=True)
+    total = len(result)
+    paginated = result[(page - 1) * limit : page * limit]
+
+    return jsonify({
+        'publications': [p.to_dict() for p in paginated],
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'pages': max(1, (total + limit - 1) // limit),
+    }), 200
 
 @pubs_bp.route('', methods=['POST'])
+@jwt_required()
 def create_publication():
     """Create a new publication"""
     data = request.get_json()
@@ -710,6 +800,7 @@ def create_publication():
     return jsonify(pub.to_dict()), 201
 
 @pubs_bp.route('/<int:pub_id>', methods=['GET'])
+@jwt_required()
 def get_pub(pub_id):
     p = Publication.query.get_or_404(pub_id)
     def serialize(node):
@@ -726,6 +817,7 @@ def get_pub(pub_id):
     return jsonify({'id': p.id, 'title': p.title, 'description': p.description, 'tree': tree}), 200
 
 @pubs_bp.route('/<int:pub_id>/nodes', methods=['POST'])
+@jwt_required()
 def save_nodes(pub_id):
     payload = request.get_json()  # expect {"tree": [...]}
     PublicationNode.query.filter_by(publication_id=pub_id).delete()
@@ -755,15 +847,18 @@ def save_nodes(pub_id):
     return jsonify({'message': 'saved'}), 200
 
 @pubs_bp.route('/<int:pub_id>/export/mobile-kb', methods=['GET'])
+@jwt_required()
 def export_mobile_knowledge_base(pub_id):
     """Export publication as mobile-first knowledge base HTML"""
     pub = Publication.query.get_or_404(pub_id)
-    
+    tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
+
     # Build the hierarchical structure
     def serialize_node(node):
         # Prefer snapshots captured at publish time; fallback to current topic
         title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
         content = node.content_snapshot or (node.topic.content if node.topic else '')
+        content = resolve_snippets(content, tag_ids)
         return {
             'id': node.id,
             'topic_id': node.topic_id,
@@ -787,14 +882,17 @@ def export_mobile_knowledge_base(pub_id):
     return response
 
 @pubs_bp.route('/<int:pub_id>/preview/mobile-kb', methods=['GET'])
+@jwt_required()
 def preview_mobile_knowledge_base(pub_id):
     """Preview publication as mobile-first knowledge base HTML in browser"""
     pub = Publication.query.get_or_404(pub_id)
-    
+    tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
+
     # Build the hierarchical structure (same as export)
     def serialize_node(node):
         title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
         content = node.content_snapshot or (node.topic.content if node.topic else '')
+        content = resolve_snippets(content, tag_ids)
         return {
             'id': node.id,
             'topic_id': node.topic_id,
@@ -1025,6 +1123,116 @@ def generate_mobile_kb_html_inline(publication, tree):
             cursor: pointer;
         }
         .hamburger-btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
+
+        .search-btn {
+            position: absolute;
+            right: 0.5rem;
+            top: 50%;
+            transform: translateY(-50%);
+            width: 40px;
+            height: 40px;
+            display: inline-flex;
+            align-items: center;
+            justify-content: center;
+            border-radius: 6px;
+            border: 1px solid rgba(255,255,255,0.25);
+            background: rgba(255,255,255,0.1);
+            color: #fff;
+            font-size: 1.1rem;
+            cursor: pointer;
+        }
+        .search-btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
+
+        /* Search overlay */
+        .search-overlay {
+            position: fixed;
+            inset: 0;
+            background: rgba(0,0,0,0.88);
+            z-index: 600;
+            display: none;
+            flex-direction: column;
+            align-items: center;
+            padding: 1rem;
+            overflow-y: auto;
+        }
+        .search-overlay.active { display: flex; }
+        .search-box {
+            width: 100%;
+            max-width: 620px;
+            margin-top: 3.5rem;
+        }
+        .search-input-row {
+            display: flex;
+            gap: 0.5rem;
+        }
+        .search-input {
+            flex: 1;
+            padding: 0.75rem 1rem;
+            font-size: 1rem;
+            border: none;
+            border-radius: 6px;
+            outline: none;
+        }
+        .search-close-btn {
+            padding: 0.75rem 1rem;
+            background: rgba(255,255,255,0.15);
+            border: 1px solid rgba(255,255,255,0.35);
+            color: #fff;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 0.95rem;
+            white-space: nowrap;
+        }
+        .search-close-btn:hover { background: rgba(255,255,255,0.25); }
+        .search-hint {
+            color: rgba(255,255,255,0.5);
+            font-size: 0.78rem;
+            margin-top: 0.4rem;
+            padding-left: 0.25rem;
+        }
+        .search-results {
+            width: 100%;
+            max-width: 620px;
+            margin-top: 1rem;
+        }
+        .search-result-item {
+            background: #fff;
+            border-radius: 6px;
+            padding: 0.75rem 1rem;
+            margin-bottom: 0.5rem;
+            cursor: pointer;
+            transition: background 0.15s;
+        }
+        .search-result-item:hover { background: #eef3ff; }
+        .search-result-title {
+            font-weight: 600;
+            color: #005a9c;
+            margin-bottom: 0.25rem;
+            font-size: 0.95rem;
+        }
+        .search-result-snippet {
+            font-size: 0.85rem;
+            color: #444;
+            line-height: 1.45;
+        }
+        .search-result-snippet mark {
+            background: #fff3cd;
+            padding: 0 2px;
+            border-radius: 2px;
+            font-style: normal;
+        }
+        .search-no-results {
+            color: rgba(255,255,255,0.75);
+            text-align: center;
+            padding: 2rem;
+            font-size: 0.95rem;
+        }
+        .search-result-count {
+            color: rgba(255,255,255,0.6);
+            font-size: 0.8rem;
+            margin-bottom: 0.5rem;
+            padding-left: 0.25rem;
+        }
         
         .kb-title {
             font-size: 1.25rem;
@@ -1465,7 +1673,88 @@ def generate_mobile_kb_html_inline(publication, tree):
             const btn = document.getElementById('hamburger-btn');
             if (btn) { btn.setAttribute('aria-expanded', open ? 'true' : 'false'); btn.textContent = open ? '✕' : '☰'; }
         }
-        
+
+        // ── Search ────────────────────────────────────────────────────────────
+        let _searchIndex = null;
+
+        function _buildIndex() {
+            _searchIndex = [];
+            document.querySelectorAll('.content-section').forEach(sec => {
+                const h = sec.querySelector('h1,h2,h3');
+                const title = h ? h.textContent.trim() : sec.id;
+                // innerText gives plain text respecting visibility; fall back to textContent
+                const raw = (sec.innerText || sec.textContent || '').trim();
+                _searchIndex.push({ id: sec.id, title, text: raw });
+            });
+        }
+
+        function _escapeRe(s) { return s.replace(/[.*+?^${}()|[\\]\\\\]/g, '\\\\$&'); }
+
+        function _highlight(text, query) {
+            if (!query) return text;
+            return text.replace(new RegExp('(' + _escapeRe(query) + ')', 'gi'), '<mark>$1</mark>');
+        }
+
+        function _snippet(text, query, maxLen) {
+            maxLen = maxLen || 160;
+            const lo = text.toLowerCase(), lq = query.toLowerCase();
+            const idx = lo.indexOf(lq);
+            if (idx === -1) return text.slice(0, maxLen) + (text.length > maxLen ? '\\u2026' : '');
+            const s = Math.max(0, idx - 70), e = Math.min(text.length, idx + query.length + 90);
+            return (s > 0 ? '\\u2026' : '') + text.slice(s, e) + (e < text.length ? '\\u2026' : '');
+        }
+
+        function performSearch(query) {
+            const countEl   = document.getElementById('search-result-count');
+            const resultsEl = document.getElementById('search-results');
+            resultsEl.innerHTML = '';
+            countEl.textContent = '';
+            if (!query || query.length < 2) return;
+            if (!_searchIndex) _buildIndex();
+
+            const lq = query.toLowerCase();
+            const hits = _searchIndex.filter(item =>
+                item.title.toLowerCase().includes(lq) || item.text.toLowerCase().includes(lq)
+            );
+            // Title matches first
+            hits.sort((a, b) => {
+                const at = a.title.toLowerCase().includes(lq);
+                const bt = b.title.toLowerCase().includes(lq);
+                return (bt ? 1 : 0) - (at ? 1 : 0);
+            });
+
+            if (hits.length === 0) {
+                resultsEl.innerHTML = '<div class="search-no-results">No results found for \\u201c' + query + '\\u201d</div>';
+                return;
+            }
+            countEl.textContent = hits.length + (hits.length === 1 ? ' result' : ' results');
+            hits.slice(0, 15).forEach(item => {
+                const snippet  = _snippet(item.text, query);
+                const div = document.createElement('div');
+                div.className = 'search-result-item';
+                div.innerHTML =
+                    '<div class="search-result-title">' + _highlight(item.title, query) + '</div>' +
+                    '<div class="search-result-snippet">' + _highlight(snippet, query) + '</div>';
+                div.addEventListener('click', function() { closeSearch(); showSection(item.id); });
+                resultsEl.appendChild(div);
+            });
+        }
+
+        function openSearch() {
+            closeNav();
+            document.getElementById('search-overlay').classList.add('active');
+            document.body.style.overflow = 'hidden';
+            setTimeout(function() { document.getElementById('search-input').focus(); }, 50);
+        }
+        function closeSearch() {
+            document.getElementById('search-overlay').classList.remove('active');
+            document.getElementById('search-input').value = '';
+            document.getElementById('search-results').innerHTML = '';
+            document.getElementById('search-result-count').textContent = '';
+            document.body.style.overflow = '';
+        }
+        // ── End Search ────────────────────────────────────────────────────────
+
         // Initialize
         document.addEventListener('DOMContentLoaded', function() {
             // Default: show first section if available, keep drawer closed
@@ -1476,7 +1765,32 @@ def generate_mobile_kb_html_inline(publication, tree):
             if (hb) hb.addEventListener('click', toggleNav);
             const bd = document.getElementById('drawer-backdrop');
             if (bd) bd.addEventListener('click', closeNav);
-            document.addEventListener('keyup', (e) => { if (e.key === 'Escape') closeNav(); });
+            const sb = document.getElementById('search-btn');
+            if (sb) sb.addEventListener('click', openSearch);
+            const sc = document.getElementById('search-close-btn');
+            if (sc) sc.addEventListener('click', closeSearch);
+            const si = document.getElementById('search-input');
+            if (si) {
+                si.addEventListener('input', function() { performSearch(this.value.trim()); });
+                // Allow Enter to navigate to first result
+                si.addEventListener('keydown', function(e) {
+                    if (e.key === 'Enter') {
+                        const first = document.querySelector('.search-result-item');
+                        if (first) first.click();
+                    }
+                });
+            }
+            document.addEventListener('keydown', function(e) {
+                const overlay = document.getElementById('search-overlay');
+                if (e.key === 'Escape') { closeNav(); closeSearch(); }
+                // '/' opens search when not already typing in an input
+                if (e.key === '/' && document.activeElement.tagName !== 'INPUT' &&
+                        document.activeElement.tagName !== 'TEXTAREA') {
+                    if (!overlay.classList.contains('active')) { e.preventDefault(); openSearch(); }
+                }
+            });
+            // Pre-build search index after page settles
+            setTimeout(_buildIndex, 200);
         });
     </script>
     """
@@ -1546,10 +1860,25 @@ def generate_mobile_kb_html_inline(publication, tree):
                     <h1 class="kb-title">{publication.title}</h1>
                     <p class="kb-subtitle">Mobile Knowledge Base</p>
                 </div>
+                <button id="search-btn" class="search-btn" aria-label="Search">🔍</button>
             </div>
         </header>
         
         <div class="drawer-backdrop" id="drawer-backdrop" hidden></div>
+
+        <!-- Search overlay -->
+        <div id="search-overlay" class="search-overlay" role="dialog" aria-label="Search">
+            <div class="search-box">
+                <div class="search-input-row">
+                    <input id="search-input" class="search-input" type="search"
+                           placeholder="Search topics and content…" autocomplete="off" spellcheck="false">
+                    <button id="search-close-btn" class="search-close-btn">✕ Close</button>
+                </div>
+                <div class="search-hint">Press <kbd style="color:#fff;border:1px solid rgba(255,255,255,0.4);padding:0 4px;border-radius:3px;font-size:0.75rem">/</kbd> to search · <kbd style="color:#fff;border:1px solid rgba(255,255,255,0.4);padding:0 4px;border-radius:3px;font-size:0.75rem">Esc</kbd> to close</div>
+            </div>
+            <div id="search-result-count" class="search-result-count"></div>
+            <div id="search-results" class="search-results"></div>
+        </div>
         <nav class="navigation nav-drawer" id="kb-nav" role="navigation" aria-label="Topics menu">
             <div class="nav-section">
                 <div class="nav-title">Topics</div>
@@ -1572,6 +1901,7 @@ def generate_mobile_kb_html_inline(publication, tree):
     return html_template
 
 @pubs_bp.route('/<int:pub_id>/export/pdf', methods=['GET'])
+@jwt_required()
 def export_pdf(pub_id):
     """Export publication as PDF with optional formatting configuration and background image"""
     pub = Publication.query.get_or_404(pub_id)
@@ -1579,7 +1909,7 @@ def export_pdf(pub_id):
     config_type = request.args.get('format', 'default')
     
     try:
-        print(f"DEBUG: export_pdf start pub_id={pub_id}, config_type={config_type}")
+        current_app.logger.debug(f"DEBUG: export_pdf start pub_id={pub_id}, config_type={config_type}")
         # Get format configuration from query parameter
         
         # Get optional background image path from query parameter
@@ -1600,7 +1930,10 @@ def export_pdf(pub_id):
         valid_configs = ['default', 'corporate', 'academic', 'compact', 'organization']
         if config_type not in valid_configs:
             config_type = 'default'
-        
+
+        # Audience tag IDs for snippet filtering
+        tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
+
         # Build the hierarchical structure
         def serialize_node(node):
             # Prefer snapshots captured at publish time; fall back to live topic
@@ -1628,6 +1961,8 @@ def export_pdf(pub_id):
                     title = title if title not in (None, '') else 'Unknown'
                     content = content if content is not None else ''
 
+            content = resolve_snippets(content, tag_ids)
+
             return {
                 'id': node.id,
                 'topic_id': node.topic_id,
@@ -1650,12 +1985,12 @@ def export_pdf(pub_id):
                 pdf_buffer.close()
             except Exception:
                 pass
-        print(f"DEBUG: export_pdf generated bytes={len(pdf_bytes)}")
+        current_app.logger.debug(f"DEBUG: export_pdf generated bytes={len(pdf_bytes)}")
 
         # Validate PDF signature
         if not pdf_bytes or not pdf_bytes.startswith(b'%PDF'):
             prefix = pdf_bytes[:128] if pdf_bytes else b''
-            print(f"ERROR: Invalid PDF output. size={0 if not pdf_bytes else len(pdf_bytes)}, prefix={prefix!r}")
+            current_app.logger.debug(f"ERROR: Invalid PDF output. size={0 if not pdf_bytes else len(pdf_bytes)}, prefix={prefix!r}")
             return make_response(jsonify({'error': 'Invalid PDF output'}), 500)
 
         response = make_response(pdf_bytes)
@@ -1706,12 +2041,12 @@ def export_pdf(pub_id):
 
 def generate_pdf(publication, tree, config_type='default', background_image_path=None):
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
-    buffer = io.BytesIO()
-    
+    _pdf_temp_dir = tempfile.mkdtemp(prefix='sd_pdf_imgs_')
+
     # Ensure config_type is always defined
     if not config_type:
         config_type = 'default'
-    
+
     # Select configuration based on type
     if config_type == 'corporate':
         config = CorporateConfig
@@ -1723,252 +2058,414 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         config = OrganizationConfig
     else:
         config = PDFConfig
-    
+
     # If no background image is specified, use the default SC Cover Background.png
     if not background_image_path:
         default_bg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'SC Cover Background.png')
         if os.path.exists(default_bg_path):
             background_image_path = default_bg_path
-            print(f"DEBUG: Using default background image: {background_image_path}")
-    
-    # Create PDF document with background image support
-    print(f"DEBUG: Creating PDF document for publication: {publication.title}, id: {publication.id}")
-    if background_image_path and os.path.exists(background_image_path):
-        print("DEBUG: Using BackgroundImageDocTemplate")
-        doc = BackgroundImageDocTemplate(
-            buffer,
-            background_image_path=background_image_path,
-            publication=publication,
-            pagesize=config.PAGE_SIZE,
-            rightMargin=config.MARGINS['right'],
-            leftMargin=config.MARGINS['left'],
-            topMargin=config.MARGINS['top'],
-            bottomMargin=config.MARGINS['bottom']
-        )
-    else:
-        # Use HeaderDocTemplate for PDFs with headers but no background image
-        print("DEBUG: Using HeaderDocTemplate")
-        doc = HeaderDocTemplate(
-            buffer,
-            publication=publication,
-            pagesize=config.PAGE_SIZE,
-            rightMargin=config.MARGINS['right'],
-            leftMargin=config.MARGINS['left'],
-            topMargin=config.MARGINS['top'],
-            bottomMargin=config.MARGINS['bottom']
-        )
-    
-    # Build content
-    story = []
+            current_app.logger.debug(f"DEBUG: Using default background image: {background_image_path}")
+
+    def _make_doc(buf):
+        """Create a fresh doc template writing to the given buffer."""
+        if background_image_path and os.path.exists(background_image_path):
+            current_app.logger.debug("DEBUG: Using BackgroundImageDocTemplate")
+            return BackgroundImageDocTemplate(
+                buf,
+                background_image_path=background_image_path,
+                publication=publication,
+                pagesize=config.PAGE_SIZE,
+                rightMargin=config.MARGINS['right'],
+                leftMargin=config.MARGINS['left'],
+                topMargin=config.MARGINS['top'],
+                bottomMargin=config.MARGINS['bottom']
+            )
+        else:
+            current_app.logger.debug("DEBUG: Using HeaderDocTemplate")
+            return HeaderDocTemplate(
+                buf,
+                publication=publication,
+                pagesize=config.PAGE_SIZE,
+                rightMargin=config.MARGINS['right'],
+                leftMargin=config.MARGINS['left'],
+                topMargin=config.MARGINS['top'],
+                bottomMargin=config.MARGINS['bottom']
+            )
+
     base_styles = config.get_base_styles()
+
+    def _make_story(anchor_pages):
+        """Build and return the complete story list.
+
+        anchor_pages: dict mapping anchor_id → actual page number collected from a
+        prior dry-run build.  Pass an empty dict on the first (measurement) pass.
+        """
+        story = []
     
-    # Start with title page template
-    story.append(NextPageTemplate('title_page'))
+        story.append(NextPageTemplate('title_page'))
+        # Create styles using configuration
+        title_style = config.create_title_style(base_styles)
+        subtitle_style = config.create_subtitle_style(base_styles)
     
-    # Create styles using configuration
-    title_style = config.create_title_style(base_styles)
-    subtitle_style = config.create_subtitle_style(base_styles)
+        # Title page content - move title down about 1" and align to right margin
+        story.append(Spacer(1, 84))  # Move down ~1" (72pt)
     
-    # Title page content - move title down about 1" and align to right margin
-    story.append(Spacer(1, 84))  # Move down ~1" (72pt)
+        if background_image_path and os.path.exists(background_image_path):
+            # For background image docs, use white text for visibility on blue background
+            enhanced_title_style = ParagraphStyle(
+                'EnhancedTitle',
+                parent=title_style,
+                textColor=colors.white,  # White text for visibility on blue background
+                fontSize=title_style.fontSize + 4,  # Make title larger
+                leading=title_style.fontSize + 8,
+                alignment=TA_RIGHT,  # Right-align title
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            enhanced_subtitle_style = ParagraphStyle(
+                'EnhancedSubtitle',
+                parent=subtitle_style,
+                textColor=colors.white,  # White text for visibility on blue background
+                fontSize=subtitle_style.fontSize + 3,
+                alignment=TA_RIGHT,  # Right-align subtitle
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            story.append(Paragraph(publication.title, enhanced_title_style))
+            if publication.description:
+                story.append(Paragraph(publication.description, enhanced_subtitle_style))
+        else:
+            # Regular title page without background - also right-aligned
+            enhanced_title_style = ParagraphStyle(
+                'EnhancedTitle',
+                parent=title_style,
+                alignment=TA_RIGHT,  # Right-align title
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            enhanced_subtitle_style = ParagraphStyle(
+                'EnhancedSubtitle',
+                parent=subtitle_style,
+                alignment=TA_RIGHT,  # Right-align subtitle
+                leftIndent=0,  # No left indent for full right alignment
+                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
+            )
+            story.append(Paragraph(publication.title, enhanced_title_style))
+            if publication.description:
+                story.append(Paragraph(publication.description, enhanced_subtitle_style))
     
-    if getattr(doc, 'background_image_path', None):
-        # For background image docs, use white text for visibility on blue background
-        enhanced_title_style = ParagraphStyle(
-            'EnhancedTitle',
-            parent=title_style,
-            textColor=colors.white,  # White text for visibility on blue background
-            fontSize=title_style.fontSize + 4,  # Make title larger
-            leading=title_style.fontSize + 8,
-            alignment=TA_RIGHT,  # Right-align title
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        enhanced_subtitle_style = ParagraphStyle(
-            'EnhancedSubtitle',
-            parent=subtitle_style,
-            textColor=colors.white,  # White text for visibility on blue background
-            fontSize=subtitle_style.fontSize + 3,
-            alignment=TA_RIGHT,  # Right-align subtitle
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        story.append(Paragraph(publication.title, enhanced_title_style))
-        if publication.description:
-            story.append(Paragraph(publication.description, enhanced_subtitle_style))
-    else:
-        # Regular title page without background - also right-aligned
-        enhanced_title_style = ParagraphStyle(
-            'EnhancedTitle',
-            parent=title_style,
-            alignment=TA_RIGHT,  # Right-align title
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        enhanced_subtitle_style = ParagraphStyle(
-            'EnhancedSubtitle',
-            parent=subtitle_style,
-            alignment=TA_RIGHT,  # Right-align subtitle
-            leftIndent=0,  # No left indent for full right alignment
-            rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-        )
-        story.append(Paragraph(publication.title, enhanced_title_style))
-        if publication.description:
-            story.append(Paragraph(publication.description, enhanced_subtitle_style))
+        # Page break to TOC (switches to TOC page template)
+        story.append(NextPageTemplate('toc_page'))
+        story.append(PageBreak())
     
-    # Page break to TOC (switches to TOC page template)
-    story.append(NextPageTemplate('toc_page'))
-    story.append(PageBreak())
-    
-    # Table of contents
-    # Create TOC heading with forced left alignment to overcome any ReportLab frame margins
-    page_width, page_height = config.PAGE_SIZE
-    total_margins = config.MARGINS['left'] + config.MARGINS['right']
-    usable_width = page_width - total_margins
-    
-    # Create TOC heading aligned exactly to the 1-inch margin (same as TOC entries)
-    toc_heading_style = ParagraphStyle(
-        'TOCHeading',
-        fontName=config.FONTS['heading'],
-        fontSize=config.FONT_SIZES['h1'],
-        textColor=config.COLORS['heading'],
-        leftIndent=-6,  # Compensate for ReportLab's apparent 6pt default offset
-        rightIndent=0,
-        firstLineIndent=0,
-        spaceBefore=0,
-        spaceAfter=12,
-        alignment=TA_LEFT,
-        bulletIndent=0,
-        listIndent=0
-    )
-    story.append(Paragraph("Table of Contents", toc_heading_style))
-    story.append(Spacer(1, 12))
-    
-    # Build TOC with perfect alignment using consistent table approach
-    def add_toc_entries(nodes, level=0, page_counter={'value': 1}):
-        # Calculate page dimensions once for all entries
+        # Table of contents
+        # Create TOC heading with forced left alignment to overcome any ReportLab frame margins
         page_width, page_height = config.PAGE_SIZE
         total_margins = config.MARGINS['left'] + config.MARGINS['right']
         usable_width = page_width - total_margins
-        page_num_width = 50  # Fixed width for page numbers
-        title_width = usable_width - page_num_width  # Remaining width for titles
+    
+        # Create TOC heading aligned exactly to the 1-inch margin (same as TOC entries)
+        toc_heading_style = ParagraphStyle(
+            'TOCHeading',
+            fontName=config.FONTS['heading'],
+            fontSize=config.FONT_SIZES['h1'],
+            textColor=config.COLORS['heading'],
+            leftIndent=-6,  # Compensate for ReportLab's apparent 6pt default offset
+            rightIndent=0,
+            firstLineIndent=0,
+            spaceBefore=0,
+            spaceAfter=12,
+            alignment=TA_LEFT,
+            bulletIndent=0,
+            listIndent=0
+        )
+        story.append(Paragraph("Table of Contents", toc_heading_style))
+        story.append(Spacer(1, 12))
+    
+        # Build TOC with perfect alignment using consistent table approach
+        def add_toc_entries(nodes, level=0, page_counter={'value': 1}):
+            # Calculate page dimensions once for all entries
+            page_width, page_height = config.PAGE_SIZE
+            total_margins = config.MARGINS['left'] + config.MARGINS['right']
+            usable_width = page_width - total_margins
+            page_num_width = 50  # Fixed width for page numbers
+            title_width = usable_width - page_num_width  # Remaining width for titles
         
-        for node in nodes:
-            # Estimate page number (simplified - in real implementation would need actual page tracking)
-            page_num = page_counter['value']
-            page_counter['value'] += max(1, len(node.get('content', '')) // 2000)  # Rough page estimation
+            for node in nodes:
+                anchor_id = f'node_{node["id"]}'
+                # Use actual page number from dry-run build; fall back to rough estimate
+                estimated = page_counter['value']
+                page_counter['value'] += max(1, len(node.get('content', '')) // 2000)
+                page_num = anchor_pages.get(anchor_id, estimated)
             
-            title_text = node['title']
-            font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
+                title_text = node['title']
+                font_size = config.FONT_SIZES['toc'] if level == 0 else max(9, config.FONT_SIZES['toc'] - (level * 0.5))
             
-            if level == 0:
-                # Level 0: Simple title and page number, bold styling, aligned to 1-inch margin
-                toc_data = [[title_text, str(page_num)]]
+                if level == 0:
+                    # Level 0: bold heading style, linked title and linked page number
+                    title_style = ParagraphStyle(
+                        'TOCTitle0',
+                        fontName=config.FONTS['heading'],
+                        fontSize=config.FONT_SIZES['toc'],
+                        textColor=config.COLORS['heading'],
+                        alignment=TA_LEFT,
+                        leftIndent=0,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=config.FONT_SIZES['toc'] + 4,
+                    )
+                    page_style = ParagraphStyle(
+                        'TOCPage0',
+                        fontName=config.FONTS['body'],
+                        fontSize=config.FONT_SIZES['toc'],
+                        textColor=config.COLORS['heading'],
+                        alignment=TA_RIGHT,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=config.FONT_SIZES['toc'] + 4,
+                    )
+                    title_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{title_text}</link>', title_style)
+                    page_para = Paragraph(f'<link href="#{anchor_id}" color="{_color_hex(config.COLORS["heading"])}">{page_num}</link>', page_style)
+                    toc_data = [[title_para, page_para]]
                 
-                # Create table with proper margin alignment
-                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
-                toc_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (0, 0), config.FONTS['heading']),
-                    ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
-                    ('FONTSIZE', (0, 0), (-1, -1), config.FONT_SIZES['toc']),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['heading']),
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # No padding - align to document margin
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),
-                ]))
+                    # Create table with proper margin alignment
+                    toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                    toc_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 6),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ]))
                 
-            else:
-                # Nested levels: Clean indented entries with consistent right alignment
-                indent_width = level * config.INDENTS['toc_per_level']
+                else:
+                    # Nested levels: indented entries with consistent right alignment
+                    indent_width = level * config.INDENTS['toc_per_level']
+                    spaces_for_indent = " " * int(indent_width / 4)
                 
-                # Create indented title using spaces
-                spaces_for_indent = " " * int(indent_width / 4)  # Space-based left indentation
-                clean_title = f"{spaces_for_indent}{title_text}"
+                    title_style = ParagraphStyle(
+                        f'TOCTitle{level}',
+                        fontName=config.FONTS['body'],
+                        fontSize=font_size,
+                        textColor=config.COLORS['text'],
+                        alignment=TA_LEFT,
+                        leftIndent=0,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=font_size + 4,
+                    )
+                    page_style = ParagraphStyle(
+                        f'TOCPage{level}',
+                        fontName=config.FONTS['body'],
+                        fontSize=font_size,
+                        textColor=config.COLORS['text'],
+                        alignment=TA_RIGHT,
+                        spaceAfter=0,
+                        spaceBefore=0,
+                        leading=font_size + 4,
+                    )
+                    link_color = _color_hex(config.COLORS['text'])
+                    title_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{spaces_for_indent}{title_text}</link>', title_style)
+                    page_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{page_num}</link>', page_style)
+                    toc_data = [[title_para, page_para]]
                 
-                toc_data = [[clean_title, str(page_num)]]
-                
-                # Use SAME column widths as level 0 to ensure page numbers align to right margin
-                toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
-                toc_table.setStyle(TableStyle([
-                    ('FONTNAME', (0, 0), (0, 0), config.FONTS['body']),
-                    ('FONTNAME', (1, 0), (1, 0), config.FONTS['body']),
-                    ('FONTSIZE', (0, 0), (-1, -1), font_size),
-                    ('TEXTCOLOR', (0, 0), (-1, -1), config.COLORS['text']),
-                    ('ALIGN', (0, 0), (0, 0), 'LEFT'),
-                    ('ALIGN', (1, 0), (1, 0), 'RIGHT'),  # Page numbers right-aligned to same position as level 0
-                    ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
-                    ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
-                    ('TOPPADDING', (0, 0), (-1, -1), 2),
-                    ('LEFTPADDING', (0, 0), (-1, -1), 0),  # No padding - maintain document margin alignment
-                    ('RIGHTPADDING', (0, 0), (-1, -1), 0),  # No extra right padding to maintain alignment
-                ]))
+                    # Use SAME column widths as level 0 to ensure page numbers align to right margin
+                    toc_table = Table(toc_data, colWidths=[title_width, page_num_width])
+                    toc_table.setStyle(TableStyle([
+                        ('VALIGN', (0, 0), (-1, -1), 'MIDDLE'),
+                        ('BOTTOMPADDING', (0, 0), (-1, -1), 2),
+                        ('TOPPADDING', (0, 0), (-1, -1), 2),
+                        ('LEFTPADDING', (0, 0), (-1, -1), 0),
+                        ('RIGHTPADDING', (0, 0), (-1, -1), 0),
+                    ]))
             
-            story.append(toc_table)
+                story.append(toc_table)
             
-            if node['children']:
-                add_toc_entries(node['children'], level + 1, page_counter)
+                if node['children']:
+                    add_toc_entries(node['children'], level + 1, page_counter)
     
-    add_toc_entries(tree)
+        add_toc_entries(tree)
     
-    # Switch to normal page template for content sections
-    story.append(NextPageTemplate('normal_page'))
-    story.append(PageBreak())
+        # Switch to normal page template for content sections
+        story.append(NextPageTemplate('normal_page'))
+        story.append(PageBreak())
     
-    # Content sections
-    def add_content_nodes(nodes, level=0):
-        for node in nodes:
-            # Create proper heading hierarchy based on collection structure
-            heading_text = _pdf_sanitize_text(node['title'])
+        # Content sections
+        def add_content_nodes(nodes, level=0):
+            for node in nodes:
+                # Named anchor so TOC links can navigate directly to this section
+                story.append(AnchorFlowable(f'node_{node["id"]}'))
+
+                # Create proper heading hierarchy based on collection structure
+                heading_text = _pdf_sanitize_text(node['title'])
             
-            # Use config-based heading styles
-            current_heading_style = config.create_heading_style(base_styles, level)
+                # Use config-based heading styles
+                current_heading_style = config.create_heading_style(base_styles, level)
             
-            story.append(Paragraph(heading_text, current_heading_style))
+                story.append(Paragraph(heading_text, current_heading_style))
             
-            # Add content with proper indentation for hierarchy
-            if node['content']:
-                # Convert markdown-like content to paragraphs
-                content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']))
-                for para in content_paragraphs:
-                    # Create content style that matches the hierarchy level
-                    level_content_style = config.create_content_style(base_styles, level)
-                    if para:
+                # Add content with proper indentation for hierarchy
+                if node['content']:
+                    # Convert markdown-like content to paragraphs
+                    content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
+                    for para in content_paragraphs:
+                        if not para:
+                            continue
+                        # Standalone image sentinel — emit as a proper Image flowable so
+                        # ReportLab can handle page breaks correctly (inline img in Paragraph
+                        # causes overflow/overlap).
+                        if para.startswith('__PDF_IMG__:'):
+                            try:
+                                _, img_src, img_w, img_h = para.split(':', 3)
+                                story.append(Spacer(1, 4))
+                                story.append(Image(img_src, width=int(img_w), height=int(img_h)))
+                                story.append(Spacer(1, 4))
+                            except Exception:
+                                pass  # skip broken image sentinel
+                            continue
+                        # Bullet list item — use hanging-indent bullet style
+                        if para.startswith('__BULLET__:'):
+                            # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
+                            bullet_text = '•&nbsp;&nbsp;' + para[len('__BULLET__:'):]
+                            bullet_style = config.create_bullet_style(base_styles, level)
+                            story.append(Paragraph(bullet_text, bullet_style))
+                            continue
+                        # Numbered list item — use hanging-indent numbered style
+                        if re.match(r'^__ORDERED__\d+__:', para):
+                            m = re.match(r'^__ORDERED__(\d+)__:(.*)', para, re.DOTALL)
+                            if m:
+                                # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
+                                num_text = f'{m.group(1)}.&nbsp;&nbsp;{m.group(2)}'
+                                num_style = config.create_numbered_style(base_styles, level)
+                                story.append(Paragraph(num_text, num_style))
+                            continue
+                        # Create content style that matches the hierarchy level
+                        level_content_style = config.create_content_style(base_styles, level)
                         story.append(Paragraph(para, level_content_style))
             
-            # Add spacing after content
-            story.append(Spacer(1, 8))
+                # Add spacing after content
+                story.append(Spacer(1, 8))
             
-            # Recursively add children with increased level
-            if node['children']:
-                add_content_nodes(node['children'], level + 1)
+                # Recursively add children with increased level
+                if node['children']:
+                    add_content_nodes(node['children'], level + 1)
                 
-                # Add extra spacing after a section with children
-                if level < 2:  # Only for top-level sections
-                    story.append(Spacer(1, 16))
+                    # Add extra spacing after a section with children
+                    if level < 2:  # Only for top-level sections
+                        story.append(Spacer(1, 16))
     
-    add_content_nodes(tree)
+        add_content_nodes(tree)
     
-    # Build PDF
-    doc.build(story)
+        return story
+
+    # Two-pass PDF build: pass 1 measures actual page numbers for the TOC;
+    # pass 2 uses those numbers so TOC links and displayed numbers are correct.
+    anchor_pages = {}
+
+    def _capture_anchors(flowable):
+        if isinstance(flowable, AnchorFlowable):
+            anchor_pages[flowable._name] = dry_doc.page
+
+    try:
+        dry_buf = io.BytesIO()
+        dry_doc = _make_doc(dry_buf)
+        dry_doc.afterFlowable = _capture_anchors
+        dry_doc.build(_make_story(anchor_pages))
+    except Exception as _e:
+        current_app.logger.debug(f"DEBUG: PDF dry-run pass failed (page numbers may be estimates): {_e}")
+
+    buffer = io.BytesIO()
+    doc = _make_doc(buffer)
+    try:
+        doc.build(_make_story(anchor_pages))
+    finally:
+        shutil.rmtree(_pdf_temp_dir, ignore_errors=True)
     buffer.seek(0)
     return buffer
 
-def convert_markdown_to_pdf_paragraphs(text):
+def _download_image_for_pdf(url: str, temp_dir: str) -> str:
+    """Download an external image URL to *temp_dir* and return the local path.
+
+    Returns an empty string if the download fails or the image cannot be
+    validated, so the caller can safely skip the image without crashing.
+    """
+    try:
+        resp = _http.get(url, timeout=10, stream=True)
+        if resp.status_code != 200:
+            return ''
+        content_type = resp.headers.get('content-type', '')
+        if 'png' in content_type:
+            ext = '.png'
+        elif 'gif' in content_type:
+            ext = '.gif'
+        elif 'webp' in content_type:
+            ext = '.webp'
+        else:
+            # Try to guess from URL, default to jpg
+            url_lower = url.lower().split('?')[0]
+            if url_lower.endswith('.png'):
+                ext = '.png'
+            elif url_lower.endswith('.gif'):
+                ext = '.gif'
+            elif url_lower.endswith('.webp'):
+                ext = '.webp'
+            else:
+                ext = '.jpg'
+        tmp_path = os.path.join(temp_dir, f'img_{abs(hash(url)) % 10**9}{ext}')
+        with open(tmp_path, 'wb') as f:
+            for chunk in resp.iter_content(8192):
+                f.write(chunk)
+        return tmp_path
+    except Exception:
+        return ''
+
+
+def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     """Convert markdown-like text to PDF paragraphs with better hierarchy support"""
     if not text:
         return [""]
     
     # Normalize line endings and strip non-breaking spaces that can confuse parser
     safe_text = text.replace('\r\n', '\n').replace('\r', '\n').replace('\u00A0', ' ')
+
+    # Unescape Pandoc/Markdown backslash-escaped characters (e.g. \$ -> $, \* -> *)
+    # Pandoc escapes $ and other chars to prevent LaTeX/Markdown interpretation
+    safe_text = re.sub(r'\\([\\`*_{}\[\]()\#+\-.!$|~^])', r'\1', safe_text)
+
+    # Pre-process HTML structural tags produced by snippet resolution (mistune output)
+    # into markdown / ReportLab-compatible format before the line-by-line pass below.
+    # Convert <strong>/<em> to ReportLab-supported <b>/<i>
+    safe_text = re.sub(r'<strong>(.*?)</strong>', r'<b>\1</b>', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    safe_text = re.sub(r'<em>(.*?)</em>', r'<i>\1</i>', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Convert HTML headings (h1–h6) to markdown heading syntax
+    for _lvl in range(6, 0, -1):
+        safe_text = re.sub(
+            r'<h' + str(_lvl) + r'[^>]*>(.*?)</h' + str(_lvl) + r'>',
+            '\n' + '#' * _lvl + r' \1\n',
+            safe_text, flags=re.IGNORECASE | re.DOTALL
+        )
+    # Convert ordered lists to numbered markdown items
+    def _convert_ol_block(m):
+        items = re.findall(r'<li[^>]*>(.*?)</li>', m.group(1), re.IGNORECASE | re.DOTALL)
+        return '\n' + '\n'.join(f'{i + 1}. {item.strip()}' for i, item in enumerate(items)) + '\n'
+    safe_text = re.sub(r'<ol[^>]*>(.*?)</ol>', _convert_ol_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Convert unordered lists to markdown bullet items
+    def _convert_ul_block(m):
+        items = re.findall(r'<li[^>]*>(.*?)</li>', m.group(1), re.IGNORECASE | re.DOTALL)
+        return '\n' + '\n'.join(f'- {item.strip()}' for item in items) + '\n'
+    safe_text = re.sub(r'<ul[^>]*>(.*?)</ul>', _convert_ul_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip any stray <li> tags not caught above
+    safe_text = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip <p> wrappers, preserving inner content with a trailing newline
+    safe_text = re.sub(r'<p[^>]*>', '', safe_text, flags=re.IGNORECASE)
+    safe_text = re.sub(r'</p>', '\n', safe_text, flags=re.IGNORECASE)
+
     lines = safe_text.split('\n')
     paragraphs = []
     current_paragraph = []
     in_list = False
     list_items = []
+    list_type = None  # 'bullet' or 'ordered'
     
     # Utility to escape ampersands that are not part of known entities
     def escape_unescaped_ampersands(s: str) -> str:
@@ -1986,9 +2483,14 @@ def convert_markdown_to_pdf_paragraphs(text):
                 current_paragraph = []
             if in_list:
                 # Create a proper list paragraph
-                list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                paragraphs.append(list_content)
+                if list_type == 'ordered':
+                    for num, item in list_items:
+                        paragraphs.append(f'__ORDERED__{num}__:{item}')
+                else:
+                    for item in list_items:
+                        paragraphs.append(f'__BULLET__:{item}')
                 list_items = []
+                list_type = None
                 in_list = False
             
             # Convert markdown headers to styled headings with appropriate font sizes
@@ -2015,24 +2517,31 @@ def convert_markdown_to_pdf_paragraphs(text):
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            
+            if in_list and list_type == 'ordered' and list_items:
+                # switching from ordered to bullet — flush ordered first
+                for num, item in list_items:
+                    paragraphs.append(f'__ORDERED__{num}__:{item}')
+                list_items = []
             bullet_text = stripped[1:].strip()
             list_items.append(bullet_text)
+            list_type = 'bullet'
             in_list = True
             
         # Handle numbered lists
-        elif any(stripped.startswith(f"{i}. ") for i in range(1, 10)):
+        elif re.match(r'^\d+\. ', stripped):
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            if in_list and list_items:
-                # Finish the bullet list first
-                list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                paragraphs.append(list_content)
+            if in_list and list_type == 'bullet' and list_items:
+                # switching from bullet to ordered — flush bullets first
+                for item in list_items:
+                    paragraphs.append(f'__BULLET__:{item}')
                 list_items = []
-            
-            numbered_text = stripped[3:].strip()  # Remove "1. " etc.
-            list_items.append(numbered_text)
+            dot_pos = stripped.index('. ')
+            num = int(stripped[:dot_pos])
+            numbered_text = stripped[dot_pos + 2:].strip()
+            list_items.append((num, numbered_text))
+            list_type = 'ordered'
             in_list = True
             
         # Handle empty lines (paragraph breaks)
@@ -2043,9 +2552,14 @@ def convert_markdown_to_pdf_paragraphs(text):
             if in_list:
                 # Finish the current list
                 if list_items:
-                    list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                    paragraphs.append(list_content)
+                    if list_type == 'ordered':
+                        for num, item in list_items:
+                            paragraphs.append(f'__ORDERED__{num}__:{item}')
+                    else:
+                        for item in list_items:
+                            paragraphs.append(f'__BULLET__:{item}')
                     list_items = []
+                list_type = None
                 in_list = False
                 
         # Regular text
@@ -2053,9 +2567,14 @@ def convert_markdown_to_pdf_paragraphs(text):
             if in_list:
                 # Finish the current list first
                 if list_items:
-                    list_content = '<br/>'.join([f"• {item}" for item in list_items])
-                    paragraphs.append(list_content)
+                    if list_type == 'ordered':
+                        for num, item in list_items:
+                            paragraphs.append(f'__ORDERED__{num}__:{item}')
+                    else:
+                        for item in list_items:
+                            paragraphs.append(f'__BULLET__:{item}')
                     list_items = []
+                list_type = None
                 in_list = False
             
             # Handle basic markdown formatting within text
@@ -2071,10 +2590,17 @@ def convert_markdown_to_pdf_paragraphs(text):
             formatted_line = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', r'<img src="\2">', formatted_line)
             
             # Clean up HTML tags that ReportLab doesn't support
-            # Remove div, span, p, and a tags but keep their content
+            # Remove div, span, p tags but keep their content
             formatted_line = re.sub(r'</?div[^>]*>', '', formatted_line)
             formatted_line = re.sub(r'</?span[^>]*>', '', formatted_line)
             formatted_line = re.sub(r'</?p[^>]*>', '', formatted_line)
+            # Convert <a href="...">text</a> to "text (url)" so the destination is
+            # visible in the PDF; then strip any remaining bare <a> tags (anchors etc.)
+            formatted_line = re.sub(
+                r'<a\s[^>]*href="([^"]*)"[^>]*>(.*?)</a>',
+                lambda m: f'{m.group(2)} ({m.group(1)})',
+                formatted_line, flags=re.IGNORECASE | re.DOTALL
+            )
             formatted_line = re.sub(r'</?a[^>]*>', '', formatted_line)
             
             # Handle images - ReportLab only supports specific img attributes
@@ -2090,12 +2616,18 @@ def convert_markdown_to_pdf_paragraphs(text):
                     # Convert relative image paths to absolute paths
                     if src:
                         if src.startswith('http://') or src.startswith('https://'):
-                            # Skip external images in PDF generation to avoid build failures
-                            return ''
-                        if src.startswith('data:'):
+                            # Download external image (e.g. DigitalOcean Spaces) to temp dir
+                            if temp_dir:
+                                src = _download_image_for_pdf(src, temp_dir)
+                                if not src:
+                                    return ''
+                                # src is now an absolute local temp path; skip path conversion
+                            else:
+                                return ''
+                        elif src.startswith('data:'):
                             # Skip data URIs as reportlab Paragraph img doesn't handle them
                             return ''
-                        if src.startswith('/images/'):
+                        elif src.startswith('/images/'):
                             # Convert /images/ path to absolute path
                             image_filename = src[8:]  # Remove /images/ prefix
                             static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
@@ -2126,24 +2658,65 @@ def convert_markdown_to_pdf_paragraphs(text):
                     # Build clean img tag with only supported attributes
                     clean_attrs = []
                     if src and os.path.exists(src):
-                        # Validate image can be opened to avoid ReportLab failures
+                        # Validate image and read natural dimensions for scaling
                         try:
                             from PIL import Image as PILImage
                             with open(src, 'rb') as _f:
-                                img = PILImage.open(_f)
-                                img.verify()
+                                pil_img = PILImage.open(_f)
+                                pil_img.verify()
+                            with open(src, 'rb') as _f:
+                                pil_img = PILImage.open(_f)
+                                natural_w, natural_h = pil_img.size
                         except Exception:
                             return ''
                         clean_attrs.append(f'src="{src}"')
-                    if width_match:
-                        clean_attrs.append(f'width="{width_match.group(1)}"')
-                    if height_match:
-                        clean_attrs.append(f'height="{height_match.group(1)}"')
+                        # Constrain to fit within the content column (~400pt ≈ 5.5 inches).
+                        # Use explicit width/height from the original tag if provided,
+                        # otherwise scale the natural image size down as needed.
+                        MAX_WIDTH = 400
+                        if width_match:
+                            try:
+                                w = int(width_match.group(1))
+                                h = int(height_match.group(1)) if height_match else int(natural_h * w / natural_w)
+                            except (ValueError, ZeroDivisionError):
+                                w, h = natural_w, natural_h
+                        else:
+                            w, h = natural_w, natural_h
+                        if w > MAX_WIDTH and w > 0:
+                            h = int(h * MAX_WIDTH / w)
+                            w = MAX_WIDTH
+                        clean_attrs.append(f'width="{w}"')
+                        clean_attrs.append(f'height="{h}"')
                     if not clean_attrs:
                         return ''
-                    return f'<img {" ".join(clean_attrs)}/>'
+                    # Return a sentinel so the caller can emit a standalone Image flowable
+                    # instead of embedding inside a Paragraph (which causes overflow issues).
+                    return f'__PDF_IMG__:{src}:{w}:{h}'
                 
                 formatted_line = re.sub(r'<img[^>]*>', clean_img_tag, formatted_line)
+                # If this line contains an image sentinel, flush surrounding text and
+                # emit the image as its own paragraph entry so generate_pdf can use
+                # a proper Image flowable (not a Paragraph).
+                img_sentinel_re = re.compile(r'__PDF_IMG__:([^:]+):(\d+):(\d+)')
+                if img_sentinel_re.search(formatted_line):
+                    # Flush any accumulated paragraph text first
+                    if current_paragraph:
+                        paragraphs.append(' '.join(current_paragraph))
+                        current_paragraph = []
+                    # Emit each image sentinel as a standalone entry; emit surrounding text too
+                    parts = img_sentinel_re.split(formatted_line)
+                    # parts: [pre, src, w, h, post, src2, w2, h2, post2, ...]
+                    idx = 0
+                    while idx < len(parts):
+                        chunk = parts[idx].strip()
+                        if chunk:
+                            paragraphs.append(chunk)
+                        idx += 1
+                        if idx + 2 < len(parts):
+                            img_src, img_w, img_h = parts[idx], parts[idx+1], parts[idx+2]
+                            paragraphs.append(f'__PDF_IMG__:{img_src}:{img_w}:{img_h}')
+                            idx += 3
+                    formatted_line = ''  # already handled
             
             # Escape stray ampersands and clean up extra whitespace
             formatted_line = escape_unescaped_ampersands(formatted_line)
@@ -2158,41 +2731,75 @@ def convert_markdown_to_pdf_paragraphs(text):
     if current_paragraph:
         paragraphs.append(' '.join(current_paragraph))
     if in_list and list_items:
-        list_content = '<br/>'.join([f"• {item}" for item in list_items])
-        paragraphs.append(list_content)
+        if list_type == 'ordered':
+            for num, item in list_items:
+                paragraphs.append(f'__ORDERED__{num}__:{item}')
+        else:
+            for item in list_items:
+                paragraphs.append(f'__BULLET__:{item}')
     
     return [p for p in paragraphs if p.strip()]
 
 def convert_image_to_base64(image_src):
-    """Convert image path to base64 data URL for standalone HTML"""
+    """Convert an image reference to a base64 data URL for embedding in standalone HTML.
+
+    - Absolute http/https URLs are returned as-is (they work from any browser).
+    - /images/<filename> paths and bare filenames are resolved by searching all
+      known local image directories; if found, the file is embedded as base64.
+    - Falls back to the original src if the image cannot be found.
+    """
     try:
-        # Handle both /images/ paths and direct paths
+        # Absolute URLs work fine in a downloaded HTML file — leave them alone.
+        if image_src.startswith('http://') or image_src.startswith('https://') or image_src.startswith('data:'):
+            return image_src
+
+        # Strip well-known prefixes to get the bare filename / relative path.
         if image_src.startswith('/images/'):
-            image_path = image_src[8:]  # Remove /images/ prefix
+            rel_path = image_src[8:]
+        elif image_src.startswith('/static/images/'):
+            rel_path = image_src[15:]
         else:
-            image_path = image_src
-            
-        # Build full path to image file
-        static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-        full_image_path = os.path.join(static_images_dir, image_path)
-        
-        if os.path.exists(full_image_path):
-            # Get mime type
-            mime_type, _ = mimetypes.guess_type(full_image_path)
-            if not mime_type:
-                mime_type = 'image/jpeg'  # Default fallback
-                
-            # Read and encode image
-            with open(full_image_path, 'rb') as image_file:
-                image_data = base64.b64encode(image_file.read()).decode('utf-8')
-                return f"data:{mime_type};base64,{image_data}"
-        else:
-            print(f"Warning: Image not found at {full_image_path}")
-            return image_src  # Return original if file not found
-            
+            rel_path = image_src  # bare filename or unknown relative path
+
+        # Search all directories the backend serves images from.
+        candidate_roots = []
+        try:
+            candidate_roots.append(os.path.join(current_app.config['STATIC_FOLDER'], 'images'))
+        except Exception:
+            pass
+        try:
+            root_dir = os.path.dirname(os.path.dirname(os.path.dirname(__file__)))
+            candidate_roots += [
+                os.path.join(root_dir, 'frontend', 'dist', 'images'),
+                os.path.join(root_dir, 'frontend', 'public', 'images'),
+                os.path.join(root_dir, 'backend', 'static', 'images'),
+            ]
+        except Exception:
+            pass
+        candidate_roots.append('/app/data/images')
+
+        full_image_path = None
+        for root in candidate_roots:
+            candidate = os.path.join(root, rel_path)
+            if os.path.exists(candidate):
+                full_image_path = candidate
+                break
+
+        if not full_image_path:
+            current_app.logger.debug(f"Warning: Image not found for '{image_src}' (searched {len(candidate_roots)} directories)")
+            return image_src  # Return original — broken but at least doesn't crash
+
+        mime_type, _ = mimetypes.guess_type(full_image_path)
+        if not mime_type:
+            mime_type = 'image/jpeg'
+
+        with open(full_image_path, 'rb') as image_file:
+            image_data = base64.b64encode(image_file.read()).decode('utf-8')
+            return f"data:{mime_type};base64,{image_data}"
+
     except Exception as e:
-        print(f"Error converting image {image_src} to base64: {str(e)}")
-        return image_src  # Return original on error
+        current_app.logger.debug(f"Error converting image {image_src} to base64: {str(e)}")
+        return image_src
 
 def convert_markdown_to_html(markdown_text):
     """Basic markdown to HTML conversion for mobile display"""
@@ -2233,37 +2840,45 @@ def convert_markdown_to_html(markdown_text):
     # Links
     html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', html)
     
-    # Lists
+    # Lists — handle both markdown (- / 1.) and already-HTML content from TinyMCE
     lines = html.split('\n')
     in_list = False
+    list_type = None   # 'ul' or 'ol'
     result_lines = []
-    
+
+    # Regex to detect a line that is already an HTML tag (open or close).
+    # Such lines must be passed through as-is so existing <ul>/<li> structure is preserved.
+    _html_tag_re = re.compile(r'^</?[a-zA-Z][a-zA-Z0-9]*[\s>/]', re.IGNORECASE)
+
     for line in lines:
         stripped = line.strip()
         if stripped.startswith('- ') or stripped.startswith('* '):
             if not in_list:
                 result_lines.append('<ul>')
                 in_list = True
+                list_type = 'ul'
             result_lines.append(f'<li>{stripped[2:]}</li>')
-        elif stripped.startswith(('1. ', '2. ', '3. ', '4. ', '5. ', '6. ', '7. ', '8. ', '9. ')):
+        elif re.match(r'^\d+\. ', stripped):
             if not in_list:
                 result_lines.append('<ol>')
                 in_list = True
-            result_lines.append(f'<li>{stripped[3:]}</li>')
+                list_type = 'ol'
+            result_lines.append(f'<li>{stripped[stripped.index(". ") + 2:]}</li>')
         else:
             if in_list:
-                result_lines.append('</ul>' if result_lines[-2].startswith('<li>') else '</ol>')
+                result_lines.append(f'</{list_type}>')
                 in_list = False
+                list_type = None
             if stripped:
-                # Don't wrap images in paragraphs
-                if stripped.startswith('<img') or '<img' in stripped:
+                # Pass HTML block-level tags through as-is (TinyMCE content is already HTML)
+                if stripped.startswith('<img') or '<img' in stripped or _html_tag_re.match(stripped):
                     result_lines.append(stripped)
                 else:
                     result_lines.append(f'<p>{stripped}</p>')
             else:
-                result_lines.append('<br>')
-    
+                result_lines.append('')
+
     if in_list:
-        result_lines.append('</ul>')
+        result_lines.append(f'</{list_type}>')
     
     return '\n'.join(result_lines)

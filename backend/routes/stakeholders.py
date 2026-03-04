@@ -4,6 +4,7 @@ Handles CRUD operations for stakeholders
 """
 
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
 import json
@@ -22,6 +23,7 @@ def parse_expertise_areas(expertise_data):
         return []
 
 @stakeholders_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_stakeholders():
     """Get all stakeholders"""
     try:
@@ -32,6 +34,7 @@ def list_stakeholders():
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_stakeholder():
     """Create a new stakeholder"""
     try:
@@ -69,6 +72,7 @@ def create_stakeholder():
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/<int:stakeholder_id>', methods=['GET'])
+@jwt_required()
 def get_stakeholder(stakeholder_id):
     """Get a specific stakeholder"""
     try:
@@ -95,6 +99,7 @@ def get_stakeholder(stakeholder_id):
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/<int:stakeholder_id>', methods=['PUT'])
+@jwt_required()
 def update_stakeholder(stakeholder_id):
     """Update a stakeholder"""
     try:
@@ -134,6 +139,7 @@ def update_stakeholder(stakeholder_id):
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/<int:stakeholder_id>', methods=['DELETE'])
+@jwt_required()
 def delete_stakeholder(stakeholder_id):
     """Deactivate a stakeholder (soft delete)"""
     try:
@@ -147,6 +153,7 @@ def delete_stakeholder(stakeholder_id):
         return jsonify({"error": str(e)}), 500
 
 @stakeholders_bp.route('/search', methods=['GET'])
+@jwt_required()
 def search_stakeholders():
     """Search stakeholders by various criteria"""
     try:

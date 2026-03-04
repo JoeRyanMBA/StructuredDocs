@@ -39,13 +39,13 @@
             @click="goPublishHtml(element.id, $event)"
             class="publish-btn publish-html"
           >
-            🔗 Publish HTML
+            🔗 Save & Export HTML
           </button>
           <button
             @click="goPublishPdf(element.id, $event)"
             class="publish-btn publish-pdf"
           >
-            📋 Publish PDF
+            📋 Save & Export PDF
           </button>
         </div>
         <div v-else-if="!element.topics || element.topics.length === 0" class="empty-collection">
@@ -56,14 +56,14 @@
               class="publish-btn-disabled"
               title="This will create an empty HTML publication"
             >
-              🔗 Publish Empty HTML
+              🔗 Save & Export Empty HTML
             </button>
             <button
               @click="goPublishPdf(element.id, $event)"
               class="publish-btn-disabled"
               title="This will create an empty PDF publication"
             >
-              📋 Publish Empty PDF
+              📋 Save & Export Empty PDF
             </button>
           </div>
         </div>

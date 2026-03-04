@@ -242,6 +242,11 @@ const routes = [
     component: TopicsListView
   },
   {
+    path: '/snippets',
+    name: 'SnippetsLibrary',
+    component: () => import('@/views/SnippetsLibrary.vue'),
+  },
+  {
     path: '/topics/new',
     name: 'NewTopic',
     component: EditTopicView,

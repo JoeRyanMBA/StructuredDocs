@@ -6,6 +6,19 @@
       These are lightweight, offline-ready HTML files that work without internet connectivity.
     </p>
 
+    <!-- Audience tag selector -->
+    <div class="audience-bar">
+      <label class="audience-label">🎯 Audience Tags:</label>
+      <div class="tag-checkboxes">
+        <label v-for="tag in allTags" :key="tag.id" class="tag-check">
+          <input type="checkbox" :value="tag.id" v-model="selectedTagIds" />
+          {{ tag.name }}
+        </label>
+        <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
+      </div>
+      <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the export.</span>
+    </div>
+
     <div v-if="recentPublishedPublications.length" class="recent-section">
       <h3>Recent Publications</h3>
       <div class="recent-list">
@@ -21,7 +34,7 @@
           </div>
           <div class="recent-actions">
             <button @click.stop="previewMobileKB(pub.id)" class="btn-preview btn-compact">Preview</button>
-            <button @click.stop="exportMobileKB(pub.id)" class="btn-export btn-compact">Download</button>
+            <button @click.stop="exportMobileKB(pub.id)" class="btn-export btn-compact">Export KB</button>
           </div>
         </div>
       </div>
@@ -76,12 +89,14 @@ export default {
   data() {
     return {
       publications: [],
+      allTags: [],
+      selectedTagIds: [],
       loading: true,
       error: null
     }
   },
   async created() {
-    await this.fetchPublications()
+    await Promise.all([this.fetchPublications(), this.loadTags()])
   },
   methods: {
     async fetchPublications() {
@@ -102,6 +117,22 @@ export default {
         this.loading = false
       }
     },
+
+    async loadTags() {
+      try {
+        const res = await fetch('/api/tags/')
+        if (res.ok) {
+          const data = await res.json()
+          this.allTags = Array.isArray(data) ? data : (data.tags || [])
+        }
+      } catch (e) {
+        console.error('Failed to load tags', e)
+      }
+    },
+
+    _tagParams() {
+      return this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+    },
     
     selectPublication(pub) {
       // Navigate to publication view
@@ -109,8 +140,8 @@ export default {
     },
     
     previewMobileKB(pubId) {
-      // Open preview in mobile-sized window using the preview endpoint
-      const previewUrl = `/api/publications/${pubId}/preview/mobile-kb`
+      const params = this._tagParams()
+      const previewUrl = `/api/publications/${pubId}/preview/mobile-kb${params ? '?' + params : ''}`
       const previewWindow = window.open(
         previewUrl, 
         '_blank', 
@@ -122,8 +153,8 @@ export default {
     },
     
     exportMobileKB(pubId) {
-      // Download the mobile knowledge base HTML file
-      window.open(`/api/publications/${pubId}/export/mobile-kb`, '_blank')
+      const params = this._tagParams()
+      window.open(`/api/publications/${pubId}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
     },
     scrollToAllPublications() {
       this.$refs.allPublicationsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })
@@ -164,6 +195,29 @@ export default {
 </script>
 
 <style scoped>
+.audience-bar {
+  background: #f0f4ff;
+  border: 1px solid #c5d3f0;
+  border-radius: 8px;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1.5rem;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-start;
+  gap: 0.5rem;
+}
+.audience-label { font-weight: 600; font-size: 0.88rem; color: #205493; white-space: nowrap; padding-top: 2px; }
+.tag-checkboxes { display: flex; flex-wrap: wrap; gap: 0.5rem; flex: 1; }
+.tag-check {
+  display: flex; align-items: center; gap: 0.3rem;
+  font-size: 0.85rem; cursor: pointer;
+  background: #fff; border: 1px solid #c5d3f0; border-radius: 12px;
+  padding: 0.2rem 0.6rem;
+}
+.tag-check input { cursor: pointer; }
+.no-tags-hint { color: #6c757d; font-size: 0.82rem; font-style: italic; }
+.audience-hint { width: 100%; color: #6c757d; font-size: 0.78rem; margin-top: 0.25rem; }
+
 .publish-mobile-kb {
   margin: 0 auto;
   padding: 1.5rem 2rem;
