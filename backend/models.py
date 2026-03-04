@@ -1507,6 +1507,25 @@ class AuditLog(db.Model):
         }
 
 
+class SystemSetting(db.Model):
+    """Admin-configurable runtime settings (key/value pairs)."""
+    __tablename__ = 'system_settings'
+
+    id = db.Column(db.Integer, primary_key=True)
+    key = db.Column(db.String(100), nullable=False, unique=True)
+    value = db.Column(db.String(500), nullable=False)
+    description = db.Column(db.String(300), nullable=True)
+    updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
+
+    def to_dict(self):
+        return {
+            'key': self.key,
+            'value': self.value,
+            'description': self.description,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }
+
+
 class Snippet(db.Model):
     """Reusable audience-specific content blocks inserted into topics via placeholders."""
     __tablename__ = 'snippets'

@@ -1,8 +1,9 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
-from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog
+from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog, SystemSetting
 from ..utils.email_service import get_email_service
 from ..utils.storage import get_storage_backend, SpacesStorage
+from ..utils.settings import get_setting, set_setting, DEFAULTS
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import os
@@ -580,3 +581,65 @@ def get_audit_logs():
         'limit': limit,
         'pages': max(1, -(-total // limit)),
     }), 200
+
+
+@admin_bp.route('/settings', methods=['GET'])
+@jwt_required()
+def get_settings():
+    """Return all runtime-configurable system settings. Admin only."""
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    if err:
+        return err
+
+    rows = {row.key: row.to_dict() for row in SystemSetting.query.all()}
+    # Include defaults for any keys not yet in DB
+    result = []
+    for key, (default_val, desc) in DEFAULTS.items():
+        row = rows.get(key)
+        result.append({
+            'key': key,
+            'value': row['value'] if row else default_val,
+            'description': desc,
+            'updated_at': row['updated_at'] if row else None,
+        })
+    return jsonify(result), 200
+
+
+@admin_bp.route('/settings', methods=['PUT'])
+@jwt_required()
+def update_settings():
+    """Update one or more runtime settings. Body: [{key, value}, ...]
+    Admin only."""
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    if err:
+        return err
+
+    data = request.get_json() or []
+    if not isinstance(data, list):
+        data = [data]
+
+    updated = []
+    errors = []
+    for item in data:
+        key = item.get('key', '').strip()
+        value = str(item.get('value', '')).strip()
+        if not key or key not in DEFAULTS:
+            errors.append(f"Unknown setting key: {key!r}")
+            continue
+        try:
+            set_setting(key, value)
+            # If upload size changed, apply immediately to Flask config
+            if key == 'max_upload_size_mb':
+                try:
+                    current_app.config['MAX_CONTENT_LENGTH'] = int(value) * 1024 * 1024
+                except (ValueError, TypeError):
+                    pass
+            updated.append(key)
+        except Exception as exc:
+            errors.append(f"{key}: {exc}")
+
+    if errors and not updated:
+        return jsonify({'error': '; '.join(errors)}), 400
+    return jsonify({'updated': updated, 'errors': errors}), 200

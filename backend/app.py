@@ -580,6 +580,17 @@ p { color: #666; }
                 print(f"⚠️ Database query failed (tables may not exist yet): {db_error}")
                 print("ℹ️ This is normal during first deployment - migrations will create tables")
                 # Don't fail here, just log the error
+
+            # Seed default system settings (safe no-op if table doesn't exist yet)
+            try:
+                from .utils.settings import seed_defaults
+                seed_defaults()
+                # Apply persisted max upload size to Flask config
+                from .utils.settings import get_setting
+                _size_mb = int(get_setting('max_upload_size_mb', '20'))
+                app.config['MAX_CONTENT_LENGTH'] = _size_mb * 1024 * 1024
+            except Exception as _seed_err:
+                print(f"⚠️ Could not seed system settings: {_seed_err}")
                 
         except Exception as e:
             print(f"⚠️ Could not create admin user: {e}")

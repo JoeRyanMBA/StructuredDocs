@@ -6,12 +6,19 @@ from flask import Blueprint, request, jsonify, render_template_string
 from ..models import db, ReviewToken, Review, ReviewFeedback, Topic
 from sqlalchemy.exc import IntegrityError
 from ..extensions import limiter
+from ..utils.settings import get_setting
 
 review_tokens_bp = Blueprint('review_tokens_api', __name__)
 
+def _token_rate_limit():
+    return get_setting('review_token_rate_limit', '10 per hour')
+
+def _feedback_rate_limit():
+    return get_setting('review_feedback_rate_limit', '30 per hour')
+
 
 @review_tokens_bp.route('/api/reviews/<int:review_id>/generate-token', methods=['POST'])
-@limiter.limit("10 per hour")
+@limiter.limit(_token_rate_limit)
 def generate_review_token(review_id):
     """Generate a secure token for external reviewer access"""
     try:
@@ -106,7 +113,7 @@ def get_review_by_token(token):
 
 
 @review_tokens_bp.route('/api/review/<token>/feedback', methods=['POST'])
-@limiter.limit("30 per hour")
+@limiter.limit(_feedback_rate_limit)
 def submit_review_feedback(token):
     """Submit structured feedback using token authentication"""
     try:
