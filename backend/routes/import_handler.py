@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
+from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree, Link, TopicLink
 from ..utils.image_handler import ImageHandler
@@ -1598,16 +1599,19 @@ def _import_as_collection(file, source):
 
 
 @import_bp.route('/upload', methods=['POST'])
+@jwt_required()
 def upload_generic():
     return _upload_file(request.form.get('source', '').lower())
 
 
 @import_bp.route('/markdown', methods=['POST'])
+@jwt_required()
 def upload_markdown():
     return _upload_file('markdown')
 
 
 @import_bp.route('/history', methods=['GET'])
+@jwt_required()
 def get_import_history():
     """Get list of all import documents with their status"""
     try:
@@ -1637,6 +1641,7 @@ def get_import_history():
 
 
 @import_bp.route('/staging/<int:doc_id>/images', methods=['GET'])
+@jwt_required()
 def get_import_images(doc_id):
     """Get all images associated with an import document
     
@@ -1679,6 +1684,7 @@ def get_import_images(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/links', methods=['GET'])
+@jwt_required()
 def get_import_links(doc_id):
     """Get all links extracted from an import document"""
     try:
@@ -1701,6 +1707,7 @@ def get_import_links(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>', methods=['GET'])
+@jwt_required()
 def get_staging(doc_id):
     doc = ImportDocument.query.get_or_404(doc_id)
     result = doc.to_dict(include_items=True)
@@ -1714,12 +1721,14 @@ def get_staging(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/sme_approve', methods=['POST'])
+@jwt_required()
 def sme_approve(doc_id):
     """Deprecated two-step approval — kept for backwards compatibility, now a no-op redirect to commit."""
     return jsonify({'message': 'Use /commit directly'}), 200
 
 
 @import_bp.route('/staging/<int:doc_id>/commit', methods=['POST'])
+@jwt_required()
 def commit_import(doc_id):
     """Commit a staged import: create topics and optionally add them to a collection."""
     try:
@@ -1821,6 +1830,7 @@ def commit_import(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>', methods=['DELETE'])
+@jwt_required()
 def delete_staging(doc_id):
     """Delete a staging import document and all its items."""
     from sqlalchemy import text
@@ -1840,6 +1850,7 @@ def delete_staging(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/reprocess', methods=['POST'])
+@jwt_required()
 def reprocess_document(doc_id):
     """Reprocess an existing import document to extract items"""
     try:
@@ -1859,6 +1870,7 @@ def reprocess_document(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/reject', methods=['POST'])
+@jwt_required()
 def reject_import(doc_id):
     """Reject an import document"""
     try:

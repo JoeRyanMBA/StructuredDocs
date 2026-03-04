@@ -6,12 +6,51 @@ from ..models import db, Topic, Link, TopicLink, User, Review, Stakeholder, Revi
 from datetime import datetime, timedelta
 from ..utils.email_service import email_service
 from flask_jwt_extended import jwt_required, get_jwt_identity
+import bleach
 
 topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
+
+# Allowlist for TinyMCE HTML content — blocks <script>/<iframe>/event handlers
+_SAFE_TAGS = list(bleach.ALLOWED_TAGS) + [
+    'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'colgroup', 'col',
+    'img', 'figure', 'figcaption', 'br', 'hr',
+    'pre', 'code', 'blockquote', 'sub', 'sup',
+    'u', 's', 'strike', 'del', 'ins', 'dl', 'dt', 'dd',
+]
+
+
+def _allow_attrs(tag, name, value):
+    """Attribute allowlist for bleach — blocks event handlers, allows everything else."""
+    if name.startswith('on'):  # onclick, onload, etc.
+        return False
+    if name in ('class', 'id', 'style', 'title', 'lang', 'dir'):
+        return True
+    if name.startswith('data-') or name.startswith('aria-'):
+        return True
+    if tag == 'a' and name in ('href', 'target', 'rel'):
+        return True
+    if tag == 'img' and name in ('src', 'alt', 'width', 'height'):
+        return True
+    if tag in ('td', 'th') and name in ('colspan', 'rowspan', 'scope'):
+        return True
+    if tag == 'table' and name in ('border', 'cellpadding', 'cellspacing', 'width'):
+        return True
+    if tag == 'col' and name == 'span':
+        return True
+    return False
+
+
+def _sanitize_content(html):
+    """Strip dangerous tags/attributes from TinyMCE HTML while preserving formatting."""
+    if not html:
+        return html
+    return bleach.clean(html, tags=_SAFE_TAGS, attributes=_allow_attrs, strip=True)
 
 # GET /api/topics → List all topics
 @topics_bp.route('', methods=['GET'])
 @topics_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_topics():
     try:
         all_topics = Topic.query.order_by(Topic.created_at.desc()).all()
@@ -23,6 +62,7 @@ def list_topics():
 
 # GET /api/topics/usage-summary → Per-topic collection + project usage counts
 @topics_bp.route('/usage-summary', methods=['GET'])
+@jwt_required()
 def topics_usage_summary():
     try:
         rows = db.session.execute(
@@ -61,12 +101,13 @@ def topics_usage_summary():
 # POST /api/topics → Create a new topic (defaults to draft)
 @topics_bp.route('', methods=['POST'])
 @topics_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_topic():
     data = request.get_json() or {}
     try:
         topic = Topic(
             title=(data.get('title') or 'Untitled'),
-            content=data.get('content'),
+            content=_sanitize_content(data.get('content')),
             frontmatter=data.get('frontmatter'),
             status=data.get('status', 'draft')
         )
@@ -80,6 +121,7 @@ def create_topic():
 
 # GET /api/topics/<id> → Fetch a single topic
 @topics_bp.route('/<int:topic_id>', methods=['GET'])
+@jwt_required()
 def get_topic(topic_id):
     topic = Topic.query.get(topic_id)
     if topic:
@@ -88,6 +130,7 @@ def get_topic(topic_id):
 
 # PUT /api/topics/<id> → Update a topic
 @topics_bp.route('/<int:topic_id>', methods=['PUT'])
+@jwt_required()
 def update_topic(topic_id):
     data = request.get_json() or {}
     topic = Topic.query.get(topic_id)
@@ -96,7 +139,7 @@ def update_topic(topic_id):
 
     try:
         topic.title   = data.get('title', topic.title)
-        topic.content = data.get('content', topic.content)
+        topic.content = _sanitize_content(data.get('content', topic.content))
         topic.frontmatter = data.get('frontmatter', topic.frontmatter)
         if 'status' in data:
             topic.status = data['status']
@@ -110,6 +153,7 @@ def update_topic(topic_id):
 
 # POST /api/topics/<id>/review → Convenience wrapper to create a review request
 @topics_bp.route('/<int:topic_id>/review', methods=['POST'])
+@jwt_required()
 def create_topic_review(topic_id):
     """Create a simple review request for a topic.
 

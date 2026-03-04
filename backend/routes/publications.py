@@ -1,4 +1,5 @@
 from flask import Blueprint, Flask, request, jsonify, render_template_string, make_response, current_app
+from flask_jwt_extended import jwt_required
 from ..models import db, Publication, PublicationNode, Topic, Snippet, EntityTag
 from datetime import datetime
 import re
@@ -756,6 +757,7 @@ pubs_bp = Blueprint(
 )
 
 @pubs_bp.route('', methods=['GET'])
+@jwt_required()
 def list_pubs():
     all_pubs = Publication.query.order_by(Publication.created_at.desc()).all()
     
@@ -773,6 +775,7 @@ def list_pubs():
     return jsonify(result), 200
 
 @pubs_bp.route('', methods=['POST'])
+@jwt_required()
 def create_publication():
     """Create a new publication"""
     data = request.get_json()
@@ -788,6 +791,7 @@ def create_publication():
     return jsonify(pub.to_dict()), 201
 
 @pubs_bp.route('/<int:pub_id>', methods=['GET'])
+@jwt_required()
 def get_pub(pub_id):
     p = Publication.query.get_or_404(pub_id)
     def serialize(node):
@@ -804,6 +808,7 @@ def get_pub(pub_id):
     return jsonify({'id': p.id, 'title': p.title, 'description': p.description, 'tree': tree}), 200
 
 @pubs_bp.route('/<int:pub_id>/nodes', methods=['POST'])
+@jwt_required()
 def save_nodes(pub_id):
     payload = request.get_json()  # expect {"tree": [...]}
     PublicationNode.query.filter_by(publication_id=pub_id).delete()
@@ -833,6 +838,7 @@ def save_nodes(pub_id):
     return jsonify({'message': 'saved'}), 200
 
 @pubs_bp.route('/<int:pub_id>/export/mobile-kb', methods=['GET'])
+@jwt_required()
 def export_mobile_knowledge_base(pub_id):
     """Export publication as mobile-first knowledge base HTML"""
     pub = Publication.query.get_or_404(pub_id)
@@ -867,6 +873,7 @@ def export_mobile_knowledge_base(pub_id):
     return response
 
 @pubs_bp.route('/<int:pub_id>/preview/mobile-kb', methods=['GET'])
+@jwt_required()
 def preview_mobile_knowledge_base(pub_id):
     """Preview publication as mobile-first knowledge base HTML in browser"""
     pub = Publication.query.get_or_404(pub_id)
@@ -1885,6 +1892,7 @@ def generate_mobile_kb_html_inline(publication, tree):
     return html_template
 
 @pubs_bp.route('/<int:pub_id>/export/pdf', methods=['GET'])
+@jwt_required()
 def export_pdf(pub_id):
     """Export publication as PDF with optional formatting configuration and background image"""
     pub = Publication.query.get_or_404(pub_id)

@@ -3,6 +3,7 @@
 import sys
 import os
 import mimetypes
+import secrets
 from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
@@ -212,10 +213,22 @@ p { color: #666; }
     print("📱 Flask instance created")
     print(f"Instance path: {app.instance_path}")
     print(f"Root path: {app.root_path}")    # Load configuration
+    # Load configuration — prefer environment variables; fall back to ephemeral random keys
+    # with a loud warning so the operator knows sessions won't survive restarts.
+    _secret_key = os.environ.get('SECRET_KEY')
+    _jwt_secret = os.environ.get('JWT_SECRET_KEY')
+    if not _secret_key:
+        _secret_key = secrets.token_hex(32)
+        print("⚠️  WARNING: SECRET_KEY not set — using ephemeral key. Set SECRET_KEY in .env for persistent sessions.")
+    if not _jwt_secret:
+        _jwt_secret = secrets.token_hex(32)
+        print("⚠️  WARNING: JWT_SECRET_KEY not set — using ephemeral key. All JWT tokens will be invalidated on restart.")
+
     app.config.from_mapping(
-        SECRET_KEY='your-flask-secret-key-change-in-production',
+        SECRET_KEY=_secret_key,
         SQLALCHEMY_TRACK_MODIFICATIONS=False,
-        JWT_SECRET_KEY='your-secret-key-change-in-production',
+        JWT_SECRET_KEY=_jwt_secret,
+        MAX_CONTENT_LENGTH=20 * 1024 * 1024,  # 20 MB upload limit
         STATIC_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist'),
         STATIC_URL_PATH='/',
         FRONTEND_FOLDER=os.path.join(os.getcwd(), 'frontend', 'dist')
@@ -829,27 +842,6 @@ p { color: #666; }
         except Exception as _spec_e:
             print(f"⚠️ Error applying specific limits: {_spec_e}")
 
-        @app.route('/test-route')
-        def test_route():
-            return "TEST ROUTE WORKING", 200
-
-        @app.route('/debug-routes')
-        def debug_routes():
-            import urllib.parse
-            output = []
-            for rule in app.url_map.iter_rules():
-                options = {}
-                for arg in rule.arguments:
-                    options[arg] = f"[{arg}]"
-
-                methods = ','.join(rule.methods or [])
-                url = urllib.parse.unquote(rule.endpoint)
-                line = f"{url:50s} {methods:20s} {str(rule)}"
-                output.append(line)
-            
-            response = "<pre>" + "\n".join(sorted(output)) + "</pre>"
-            return response
-
         # Static file serving and other routes
         @app.route('/images/<path:filename>')
         def serve_image(filename):
@@ -1053,40 +1045,6 @@ p { color: #666; }
         if isinstance(e, HTTPException):
             return e
         return "Internal Server Error", 500
-
-    # Add debug endpoint
-    @app.route('/api/debug')
-    def debug_info():
-        print("🐛 Debug info requested")
-        static_folder = app.config.get('STATIC_FOLDER', 'not set')
-        frontend_folder = app.config.get('FRONTEND_FOLDER', 'not set')
-        
-        # Check if directories exist
-        static_exists = os.path.exists(static_folder) if static_folder != 'not set' else False
-        frontend_exists = os.path.exists(frontend_folder) if frontend_folder != 'not set' else False
-        
-        # Check assets directory
-        assets_dir = os.path.join(static_folder, 'assets') if static_folder != 'not set' else 'not set'
-        assets_exists = os.path.exists(assets_dir) if assets_dir != 'not set' else False
-        
-        # List files if directories exist
-        static_files = os.listdir(static_folder) if static_exists else []
-        assets_files = os.listdir(assets_dir) if assets_exists else []
-        
-        return {
-            "status": "debug",
-            "working_directory": os.getcwd(),
-            "static_folder": static_folder,
-            "static_exists": static_exists,
-            "static_files": static_files[:10],  # First 10 files
-            "frontend_folder": frontend_folder,
-            "frontend_exists": frontend_exists,
-            "assets_dir": assets_dir,
-            "assets_exists": assets_exists,
-            "assets_files": assets_files[:5] if len(assets_files) > 0 else [],  # First 5 asset files
-            "python_path": sys.path[:5],  # First 5 paths
-            "database_uri": app.config.get('SQLALCHEMY_DATABASE_URI', 'not set')[:50] + "..." if app.config.get('SQLALCHEMY_DATABASE_URI') else 'not set'
-        }, 200
 
     # Apply rate limit to login if route imported
     if limiter:

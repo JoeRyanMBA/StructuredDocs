@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from datetime import datetime, timezone, timedelta
 from ..models import db, Collection, Topic, collection_topic_tree, Project, Publication, PublicationNode, build_variable_mapping_for_collection, substitute_variables_in_text
 
@@ -6,6 +7,7 @@ collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections
 
 @collections_bp.route('', methods=['GET'])
 @collections_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_collections():
     print(f"🔄 Collections GET request received")
     try:
@@ -19,6 +21,7 @@ def list_collections():
         return jsonify({"error": str(e)}), 500
 
 @collections_bp.route('/stats', methods=['GET'])
+@jwt_required()
 def get_collections_stats():
     """Get statistics for collections dashboard"""
     try:
@@ -69,6 +72,7 @@ def get_collections_stats():
 
 @collections_bp.route('', methods=['PUT'])
 @collections_bp.route('/', methods=['PUT'])
+@jwt_required()
 def update_collections():
     """
     Expect payload: an array of nested nodes:
@@ -135,6 +139,7 @@ def update_collections():
         return jsonify({'error': str(e)}), 500
 
 @collections_bp.route('', methods=['POST'])
+@jwt_required()
 def create_collection():
     """
     Create a new collection.
@@ -179,6 +184,7 @@ def create_collection():
     return jsonify(new_collection.to_dict()), 201
 
 @collections_bp.route('/<int:collection_id>', methods=['PUT'])
+@jwt_required()
 def update_collection(collection_id):
     """
     Update a specific collection's properties.
@@ -222,6 +228,7 @@ def update_collection(collection_id):
         return jsonify({'error': str(e)}), 500
 
 @collections_bp.route('/<int:collection_id>/publish', methods=['POST'])
+@jwt_required()
 def publish_collection(collection_id):
     """
     Convert a collection to a publication for publishing.
@@ -453,6 +460,7 @@ def publish_collection(collection_id):
         return jsonify({'error': str(e)}), 500
 
 @collections_bp.route('/<int:collection_id>', methods=['DELETE'])
+@jwt_required()
 def delete_collection(collection_id):
     """Delete a collection (and its nested children) by ID.
 
@@ -481,6 +489,7 @@ def delete_collection(collection_id):
         return jsonify({'error': str(e)}), 500
 
 @collections_bp.route('/<int:collection_id>/archive', methods=['POST'])
+@jwt_required()
 def archive_collection(collection_id):
     """Soft archive (toggle) a collection.
     Request body (optional): {"archived": true|false}
@@ -503,6 +512,7 @@ def archive_collection(collection_id):
 
 
 @collections_bp.route('/<int:collection_id>/variables/check', methods=['GET'])
+@jwt_required()
 def check_collection_variables(collection_id):
     """
     Check what variables need to be configured before publishing this collection.
@@ -549,6 +559,7 @@ def check_collection_variables(collection_id):
 
 
 @collections_bp.route('/<int:collection_id>/prepare-publish', methods=['GET'])
+@jwt_required()
 def prepare_collection_for_publish(collection_id):
     """
     Comprehensive endpoint to prepare a collection for publishing.
