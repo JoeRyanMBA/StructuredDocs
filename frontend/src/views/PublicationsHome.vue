@@ -43,7 +43,8 @@ export default {
     try {
       const res = await fetch('/api/publications')
       if (!res.ok) throw new Error(`Failed to fetch publications: ${res.statusText}`)
-      this.publications = await res.json()
+      const data = await res.json()
+      this.publications = Array.isArray(data) ? data : (data.publications || [])
     } catch (err) {
       console.error('Failed to fetch publications:', err)
       this.error = 'Failed to load publications'

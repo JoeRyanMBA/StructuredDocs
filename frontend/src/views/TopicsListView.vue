@@ -353,7 +353,8 @@ export default {
           fetch('/api/topics/usage-summary')
         ])
         if (!res.ok) throw new Error(`Status ${res.status}`)
-        this.topics = await res.json()
+        const data = await res.json()
+        this.topics = Array.isArray(data) ? data : (data.topics || [])
         if (usageRes.ok) this.topicUsage = await usageRes.json()
         this.applyFilters()
       } catch (err) {

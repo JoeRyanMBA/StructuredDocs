@@ -392,7 +392,7 @@ export default {
         ])
         if (res.ok) {
           const allTopics = await res.json()
-          this.myTopics = allTopics
+          this.myTopics = Array.isArray(allTopics) ? allTopics : (allTopics.topics || [])
           this.recentTopics = [...this.myTopics]
             .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
             .slice(0, 5)
