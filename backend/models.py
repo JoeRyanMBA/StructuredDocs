@@ -66,6 +66,12 @@ class Collection(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
+    __table_args__ = (
+        db.Index('ix_collections_parent_id', 'parent_id'),
+        db.Index('ix_collections_project_id', 'project_id'),
+        db.Index('ix_collections_archived', 'archived'),
+    )
+
     # Nested children collections
     children = relationship(
         'Collection',
@@ -176,6 +182,12 @@ class Topic(db.Model):
         server_default=func.now(),
         onupdate=func.now(),
         nullable=False
+    )
+
+    __table_args__ = (
+        db.Index('ix_topics_created_at', 'created_at'),
+        db.Index('ix_topics_status', 'status'),
+        db.Index('ix_topics_updated_at', 'updated_at'),
     )
 
     # Relationship to reusable links
@@ -301,6 +313,11 @@ class Publication(db.Model):
         nullable=False
     )
 
+    __table_args__ = (
+        db.Index('ix_publications_created_at', 'created_at'),
+        db.Index('ix_publications_title', 'title'),
+    )
+
     # Top-level nodes for this publication
     nodes = relationship(
         'PublicationNode',
@@ -362,6 +379,11 @@ class PublicationNode(db.Model):
     # Snapshotted substituted text
     title_snapshot = db.Column(db.String(200), nullable=True)
     content_snapshot = db.Column(db.Text, nullable=True)
+
+    __table_args__ = (
+        db.Index('ix_pub_nodes_publication_id', 'publication_id'),
+        db.Index('ix_pub_nodes_parent_id', 'parent_id'),
+    )
 
     if TYPE_CHECKING:
         def __init__(self, id: int | None = None, publication_id: int = ..., topic_id: int = ..., parent_id: int | None = None, position: int = ..., title_snapshot: str | None = None, content_snapshot: str | None = None): ...
@@ -1141,6 +1163,13 @@ class Review(db.Model):
     requester = relationship('Stakeholder', foreign_keys=[requested_by], backref='requested_reviews')
     reviewer = relationship('Stakeholder', foreign_keys=[reviewer_id], backref='assigned_reviews')
     sequence = relationship('ReviewSequence', back_populates='reviews')
+
+    __table_args__ = (
+        db.Index('ix_reviews_topic_id', 'topic_id'),
+        db.Index('ix_reviews_status', 'status'),
+        db.Index('ix_reviews_reviewer_id', 'reviewer_id'),
+        db.Index('ix_reviews_requested_at', 'requested_at'),
+    )
     
     def to_dict(self):
         return {

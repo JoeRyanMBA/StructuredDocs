@@ -1,10 +1,12 @@
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
 from ..models import db, Variable, VariableValue, CollectionVariableSelection, build_variable_mapping_for_collection, substitute_variables_in_text, Collection
 
 variables_bp = Blueprint('variables', __name__, url_prefix='/api/variables')
 
 
 @variables_bp.route('/validate_slug', methods=['GET'])
+@jwt_required()
 def validate_slug():
     """Validate a proposed slug; returns normalized slug, availability, and auto-incremented suggestion."""
     import re
@@ -30,6 +32,7 @@ def validate_slug():
 
 @variables_bp.route('', methods=['GET'])
 @variables_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_variables():
     try:
         include_values = request.args.get('include_values', '1') == '1'
@@ -51,6 +54,7 @@ def list_variables():
 
 @variables_bp.route('', methods=['POST'])
 @variables_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_variable():
     data = request.get_json() or {}
     try:
@@ -83,6 +87,7 @@ def create_variable():
 
 
 @variables_bp.route('/<int:var_id>', methods=['PUT'])
+@jwt_required()
 def update_variable(var_id):
     variable = Variable.query.get(var_id)
     if not variable:
@@ -103,6 +108,7 @@ def update_variable(var_id):
 
 
 @variables_bp.route('/<int:var_id>', methods=['DELETE'])
+@jwt_required()
 def delete_variable(var_id):
     variable = Variable.query.get(var_id)
     if not variable:
@@ -119,6 +125,7 @@ def delete_variable(var_id):
 
 # ----- Variable Values -----
 @variables_bp.route('/<int:var_id>/values', methods=['POST'])
+@jwt_required()
 def add_variable_value(var_id):
     variable = Variable.query.get(var_id)
     if not variable:
@@ -148,6 +155,7 @@ def add_variable_value(var_id):
 
 
 @variables_bp.route('/values/<int:value_id>', methods=['PUT'])
+@jwt_required()
 def update_variable_value(value_id):
     vv = VariableValue.query.get(value_id)
     if not vv:
@@ -173,6 +181,7 @@ def update_variable_value(value_id):
 
 
 @variables_bp.route('/values/<int:value_id>', methods=['DELETE'])
+@jwt_required()
 def delete_variable_value(value_id):
     vv = VariableValue.query.get(value_id)
     if not vv:
@@ -189,6 +198,7 @@ def delete_variable_value(value_id):
 
 # ----- Collection Selections -----
 @variables_bp.route('/collections/<int:collection_id>/selections', methods=['GET'])
+@jwt_required()
 def get_collection_variable_selections(collection_id):
     collection = Collection.query.get(collection_id)
     if not collection:
@@ -207,6 +217,7 @@ def get_collection_variable_selections(collection_id):
 
 
 @variables_bp.route('/collections/<int:collection_id>/selections', methods=['POST', 'PUT'])
+@jwt_required()
 def upsert_collection_variable_selections(collection_id):
     collection = Collection.query.get(collection_id)
     if not collection:
@@ -236,6 +247,7 @@ def upsert_collection_variable_selections(collection_id):
 
 # ----- Utility / Preview -----
 @variables_bp.route('/collections/<int:collection_id>/preview', methods=['POST'])
+@jwt_required()
 def preview_collection_with_variables(collection_id):
     """Return topics content with variable substitution applied for a preview selection map (not persisted)."""
     collection = Collection.query.get(collection_id)
@@ -255,6 +267,7 @@ def preview_collection_with_variables(collection_id):
 
 
 @variables_bp.route('/collections/<int:collection_id>/publish-setup', methods=['GET'])
+@jwt_required()
 def get_collection_publish_setup(collection_id):
     """
     Get comprehensive variable setup information for publishing a collection.
@@ -322,6 +335,7 @@ def get_collection_publish_setup(collection_id):
 
 
 @variables_bp.route('/collections/<int:collection_id>/configure-for-publish', methods=['POST'])
+@jwt_required()
 def configure_collection_variables_for_publish(collection_id):
     """
     Configure variables for a collection in preparation for publishing.
@@ -392,6 +406,7 @@ def configure_collection_variables_for_publish(collection_id):
 
 
 @variables_bp.route('/collections/batch-configure', methods=['POST'])
+@jwt_required()
 def batch_configure_variables_for_collections():
     """Apply the same variable selections to multiple collections.
     Payload: {

@@ -203,7 +203,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                 )
                 canvas.restoreState()
             except Exception as e:
-                print(f"Warning: Could not add background image: {e}")
+                current_app.logger.debug(f"Warning: Could not add background image: {e}")
         
         # Add title page footer
         self.add_title_footer(canvas, doc)
@@ -243,7 +243,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load title page logo")
+                    current_app.logger.debug("Warning: Could not load title page logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 10)
@@ -270,7 +270,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add title footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add title footer: {e}")
     
     def add_toc_footer(self, canvas, doc):
         """Add footer for TOC pages with horizontal line"""
@@ -306,7 +306,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -329,7 +329,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add TOC footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
 
     def add_content_footer(self, canvas, doc):
         """Add footer for content pages with horizontal line"""
@@ -366,7 +366,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -390,8 +390,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add content footer: {e}")
-            print(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
     
     def int_to_roman(self, num):
         """Convert integer to roman numerals"""
@@ -442,7 +442,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.restoreState()
             
         except Exception as e:
-            print(f"Warning: Could not add header: {e}")
+            current_app.logger.debug(f"Warning: Could not add header: {e}")
 
 
 class HeaderDocTemplate(BaseDocTemplate):
@@ -541,7 +541,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load title page logo")
+                    current_app.logger.debug("Warning: Could not load title page logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -565,7 +565,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add title footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add title footer: {e}")
     
     def add_toc_footer(self, canvas, doc):
         """Add footer for TOC pages with horizontal line"""
@@ -602,7 +602,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -627,7 +627,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add TOC footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
 
     def add_content_footer(self, canvas, doc):
         """Add footer for content pages with horizontal line"""
@@ -664,7 +664,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    print("Warning: Could not load footer logo")
+                    current_app.logger.debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -688,8 +688,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            print(f"Warning: Could not add content footer: {e}")
-            print(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
+            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
     
     def int_to_roman(self, num):
         """Convert integer to roman numerals"""
@@ -706,13 +706,13 @@ class HeaderDocTemplate(BaseDocTemplate):
     
     def add_header(self, canvas, doc):
         """Add header with publication info and horizontal line"""
-        print("DEBUG: HeaderDocTemplate add_header called")
+        current_app.logger.debug("DEBUG: HeaderDocTemplate add_header called")
         if not self.publication:
-            print("DEBUG: No publication object")
+            current_app.logger.debug("DEBUG: No publication object")
             return
             
         try:
-            print(f"DEBUG: Adding header for publication: {self.publication.title}")
+            current_app.logger.debug(f"DEBUG: Adding header for publication: {self.publication.title}")
             # Save canvas state
             canvas.saveState()
             
@@ -741,10 +741,10 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             # Restore canvas state
             canvas.restoreState()
-            print("DEBUG: Header drawing completed successfully")
+            current_app.logger.debug("DEBUG: Header drawing completed successfully")
             
         except Exception as e:
-            print(f"WARNING: Could not add header: {e}")
+            current_app.logger.debug(f"WARNING: Could not add header: {e}")
             import traceback
             traceback.print_exc()
 
@@ -759,20 +759,29 @@ pubs_bp = Blueprint(
 @pubs_bp.route('', methods=['GET'])
 @jwt_required()
 def list_pubs():
+    """List publications. Supports ?page=&limit= for pagination."""
+    page = max(1, request.args.get('page', 1, type=int))
+    limit = min(100, max(1, request.args.get('limit', 50, type=int)))
+
     all_pubs = Publication.query.order_by(Publication.created_at.desc()).all()
-    
-    # Group publications by title and return only the latest version of each
+
+    # Group by title and keep only the latest version of each
     latest_pubs = {}
     for pub in all_pubs:
         if pub.title not in latest_pubs:
             latest_pubs[pub.title] = pub
-    
-    # Convert to list and maintain newest-first order
-    result = [pub.to_dict() for pub in latest_pubs.values()]
-    # Sort by created_at descending to maintain newest first
-    result.sort(key=lambda x: x['created_at'], reverse=True)
-    
-    return jsonify(result), 200
+
+    result = sorted(latest_pubs.values(), key=lambda p: p.created_at, reverse=True)
+    total = len(result)
+    paginated = result[(page - 1) * limit : page * limit]
+
+    return jsonify({
+        'publications': [p.to_dict() for p in paginated],
+        'total': total,
+        'page': page,
+        'limit': limit,
+        'pages': max(1, (total + limit - 1) // limit),
+    }), 200
 
 @pubs_bp.route('', methods=['POST'])
 @jwt_required()
@@ -1900,7 +1909,7 @@ def export_pdf(pub_id):
     config_type = request.args.get('format', 'default')
     
     try:
-        print(f"DEBUG: export_pdf start pub_id={pub_id}, config_type={config_type}")
+        current_app.logger.debug(f"DEBUG: export_pdf start pub_id={pub_id}, config_type={config_type}")
         # Get format configuration from query parameter
         
         # Get optional background image path from query parameter
@@ -1976,12 +1985,12 @@ def export_pdf(pub_id):
                 pdf_buffer.close()
             except Exception:
                 pass
-        print(f"DEBUG: export_pdf generated bytes={len(pdf_bytes)}")
+        current_app.logger.debug(f"DEBUG: export_pdf generated bytes={len(pdf_bytes)}")
 
         # Validate PDF signature
         if not pdf_bytes or not pdf_bytes.startswith(b'%PDF'):
             prefix = pdf_bytes[:128] if pdf_bytes else b''
-            print(f"ERROR: Invalid PDF output. size={0 if not pdf_bytes else len(pdf_bytes)}, prefix={prefix!r}")
+            current_app.logger.debug(f"ERROR: Invalid PDF output. size={0 if not pdf_bytes else len(pdf_bytes)}, prefix={prefix!r}")
             return make_response(jsonify({'error': 'Invalid PDF output'}), 500)
 
         response = make_response(pdf_bytes)
@@ -2055,12 +2064,12 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         default_bg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'SC Cover Background.png')
         if os.path.exists(default_bg_path):
             background_image_path = default_bg_path
-            print(f"DEBUG: Using default background image: {background_image_path}")
+            current_app.logger.debug(f"DEBUG: Using default background image: {background_image_path}")
 
     def _make_doc(buf):
         """Create a fresh doc template writing to the given buffer."""
         if background_image_path and os.path.exists(background_image_path):
-            print("DEBUG: Using BackgroundImageDocTemplate")
+            current_app.logger.debug("DEBUG: Using BackgroundImageDocTemplate")
             return BackgroundImageDocTemplate(
                 buf,
                 background_image_path=background_image_path,
@@ -2072,7 +2081,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 bottomMargin=config.MARGINS['bottom']
             )
         else:
-            print("DEBUG: Using HeaderDocTemplate")
+            current_app.logger.debug("DEBUG: Using HeaderDocTemplate")
             return HeaderDocTemplate(
                 buf,
                 publication=publication,
@@ -2363,7 +2372,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         dry_doc.afterFlowable = _capture_anchors
         dry_doc.build(_make_story(anchor_pages))
     except Exception as _e:
-        print(f"DEBUG: PDF dry-run pass failed (page numbers may be estimates): {_e}")
+        current_app.logger.debug(f"DEBUG: PDF dry-run pass failed (page numbers may be estimates): {_e}")
 
     buffer = io.BytesIO()
     doc = _make_doc(buffer)
@@ -2777,7 +2786,7 @@ def convert_image_to_base64(image_src):
                 break
 
         if not full_image_path:
-            print(f"Warning: Image not found for '{image_src}' (searched {len(candidate_roots)} directories)")
+            current_app.logger.debug(f"Warning: Image not found for '{image_src}' (searched {len(candidate_roots)} directories)")
             return image_src  # Return original — broken but at least doesn't crash
 
         mime_type, _ = mimetypes.guess_type(full_image_path)
@@ -2789,7 +2798,7 @@ def convert_image_to_base64(image_src):
             return f"data:{mime_type};base64,{image_data}"
 
     except Exception as e:
-        print(f"Error converting image {image_src} to base64: {str(e)}")
+        current_app.logger.debug(f"Error converting image {image_src} to base64: {str(e)}")
         return image_src
 
 def convert_markdown_to_html(markdown_text):

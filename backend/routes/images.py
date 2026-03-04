@@ -3,6 +3,7 @@
 import os
 import uuid
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
+from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from ..models import db, ImportImage
@@ -19,6 +20,7 @@ def allowed_file(filename):
            filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
 @images_bp.route('', methods=['GET'])
+@jwt_required()
 def get_images():
     """Get all available images, scanning dist/public/backend images recursively.
 
@@ -230,6 +232,7 @@ def get_images():
         return jsonify({'error': 'Failed to fetch images'}), 500
 
 @images_bp.route('/upload', methods=['POST'])
+@jwt_required()
 def upload_image():
     """Upload a new image"""
     try:
@@ -297,6 +300,7 @@ def upload_image():
         return jsonify({'error': 'Failed to upload image'}), 500
 
 @images_bp.route('/<int:image_id>', methods=['DELETE'])
+@jwt_required()
 def delete_image(image_id):
     """Delete an image (simplified - by filename hash)"""
     try:
@@ -319,6 +323,7 @@ def delete_image(image_id):
 
 
 @images_bp.route('/usage-summary', methods=['GET'])
+@jwt_required()
 def images_usage_summary():
     """For each ImportImage, find which topics reference its public_url in content,
     then return per-image collection + project usage."""

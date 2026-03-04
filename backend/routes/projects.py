@@ -13,6 +13,7 @@ from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, T
 projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
 
 @projects_bp.route('/roles', methods=['GET'])
+@jwt_required()
 def get_allowed_project_roles():
     """Return allowed roles for Stakeholder and ProjectStakeholder enums.
     Useful for frontend to populate role dropdowns accurately.
@@ -73,7 +74,7 @@ def archive_project(project_id):
         db.session.commit()
         # Structured log (using print to stay consistent with existing logging approach)
         try:
-            print(f"[PROJECT_ARCHIVE] user_id={user_pk} project_id={project.id} previous_archived={prev} new_archived={project.archived} timestamp={datetime.utcnow().isoformat()}Z")
+            current_app.logger.debug(f"[PROJECT_ARCHIVE] user_id={user_pk} project_id={project.id} previous_archived={prev} new_archived={project.archived} timestamp={datetime.utcnow().isoformat()}Z")
         except Exception:
             pass
         return jsonify({'project': project.to_dict(), 'previous_archived': prev}), 200
@@ -82,6 +83,7 @@ def archive_project(project_id):
         return jsonify({'error': str(e)}), 500
 
 @projects_bp.route('/<int:project_id>', methods=['PUT'])
+@jwt_required()
 def update_project(project_id):
     """Update a project's basic info"""
     try:
@@ -103,6 +105,7 @@ def update_project(project_id):
         return jsonify({'error': str(e)}), 500
 
 @projects_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_projects():
     """Get all projects with basic info"""
     import traceback
@@ -110,11 +113,12 @@ def list_projects():
         projects = Project.query.order_by(desc(Project.updated_at)).all()
         return jsonify([project.to_dict() for project in projects])
     except Exception as e:
-        print('Error in /api/projects:', e)
+        current_app.logger.debug('Error in /api/projects:', e)
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>', methods=['GET'])
+@jwt_required()
 def get_project(project_id):
     """Get detailed project information"""
     try:
@@ -128,6 +132,7 @@ def get_project(project_id):
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_project():
     """Create a new project"""
     try:
@@ -149,6 +154,7 @@ def create_project():
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>/stakeholders', methods=['GET'])
+@jwt_required()
 def get_project_stakeholders(project_id):
     """Get all stakeholders for a project"""
     from sqlalchemy.orm import joinedload
@@ -197,6 +203,7 @@ def get_project_stakeholders(project_id):
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>/stakeholders', methods=['POST'])
+@jwt_required()
 def add_project_stakeholder(project_id):
     """Add a stakeholder to a project with validation to avoid 500s."""
     from sqlalchemy.exc import IntegrityError
@@ -539,6 +546,7 @@ def add_project_stakeholder(project_id):
         }), 500
 
 @projects_bp.route('/<int:project_id>/reviews', methods=['GET'])
+@jwt_required()
 def get_project_reviews(project_id):
     """Get all reviews for a project"""
     try:
@@ -589,6 +597,7 @@ def get_project_reviews(project_id):
         return jsonify({"error": str(e)}), 500
 
 @projects_bp.route('/<int:project_id>/reviews', methods=['POST'])
+@jwt_required()
 def submit_topic_for_project_review(project_id):
     """Submit a topic for review within a project context"""
     try:

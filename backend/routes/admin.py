@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from ..models import db, User, Notification, Topic, Collection, Project, Task
 from ..utils.email_service import get_email_service
 from ..utils.storage import get_storage_backend, SpacesStorage
@@ -10,6 +11,7 @@ from typing import Any
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 @admin_bp.route('/stats', methods=['GET'])
+@jwt_required()
 def get_admin_stats():
     """Get admin dashboard statistics including system metrics"""
     try:
@@ -40,7 +42,7 @@ def get_admin_stats():
             app_metrics = get_application_metrics(None)
             
         except Exception as e:
-            print(f"⚠️ Error getting system metrics: {e}")
+            current_app.logger.warning(f" Error getting system metrics: {e}")
             # Fallback system performance data
             system_performance = {
                 'memoryUsage': 65.0,
@@ -106,10 +108,11 @@ def get_admin_stats():
         }), 200
         
     except Exception as e:
-        print(f"❌ Error in get_admin_stats: {e}")
+        current_app.logger.error(f" Error in get_admin_stats: {e}")
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/activity', methods=['GET'])
+@jwt_required()
 def get_recent_activity():
     """Get recent system activity"""
     try:
@@ -127,7 +130,7 @@ def get_recent_activity():
                     'user': user.name
                 })
         except Exception as e:
-            print(f"Error fetching recent users: {e}")
+            current_app.logger.debug(f"Error fetching recent users: {e}")
         
         # Get recent topics
         try:
@@ -141,7 +144,7 @@ def get_recent_activity():
                     'user': 'System'
                 })
         except Exception as e:
-            print(f"Error fetching recent topics: {e}")
+            current_app.logger.debug(f"Error fetching recent topics: {e}")
         
         # Get recent collections
         try:
@@ -155,7 +158,7 @@ def get_recent_activity():
                     'user': 'System'
                 })
         except Exception as e:
-            print(f"Error fetching recent collections: {e}")
+            current_app.logger.debug(f"Error fetching recent collections: {e}")
         
         # Sort by timestamp descending and limit to 10 most recent
         activity_items.sort(key=lambda x: x['timestamp'], reverse=True)
@@ -163,10 +166,11 @@ def get_recent_activity():
         return jsonify(activity_items[:10]), 200
         
     except Exception as e:
-        print(f"❌ Error in get_recent_activity: {e}")
+        current_app.logger.error(f" Error in get_recent_activity: {e}")
         return jsonify([]), 200  # Return empty array instead of error
 
 @admin_bp.route('/system-logs', methods=['GET'])
+@jwt_required()
 def get_system_logs():
     """Get recent system logs"""
     try:
@@ -207,10 +211,11 @@ def get_system_logs():
         return jsonify(logs), 200
         
     except Exception as e:
-        print(f"❌ Error in get_system_logs: {e}")
+        current_app.logger.error(f" Error in get_system_logs: {e}")
         return jsonify([]), 200
 
 @admin_bp.route('/send-test-email', methods=['POST'])
+@jwt_required()
 def send_test_email_endpoint():
     """Send a test email to verify SMTP configuration.
 
@@ -297,6 +302,7 @@ def send_test_email_endpoint():
         return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/email-status', methods=['GET'])
+@jwt_required()
 def email_status():
     """Return sanitized email configuration status (no secrets)."""
     try:
@@ -331,6 +337,7 @@ def email_status():
         return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/users', methods=['GET'])
+@jwt_required()
 def get_admin_users():
     """Get all users for admin management"""
     try:
@@ -351,10 +358,11 @@ def get_admin_users():
         return jsonify(users_data), 200
         
     except Exception as e:
-        print(f"❌ Error in get_admin_users: {e}")
+        current_app.logger.error(f" Error in get_admin_users: {e}")
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/notifications', methods=['GET'])
+@jwt_required()
 def get_admin_notifications():
     """Get all notifications for admin management"""
     try:
@@ -375,10 +383,11 @@ def get_admin_notifications():
         return jsonify(notifications_data), 200
         
     except Exception as e:
-        print(f"❌ Error in get_admin_notifications: {e}")
+        current_app.logger.error(f" Error in get_admin_notifications: {e}")
         return jsonify({'error': str(e)}), 500
 
 @admin_bp.route('/clear-database', methods=['POST'])
+@jwt_required()
 def clear_database():
     """Clear all data from the database except the admin user (admin-only endpoint)."""
     # NOTE: In production, you should add authentication/authorization checks here!
