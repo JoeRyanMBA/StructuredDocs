@@ -93,6 +93,7 @@
       <!-- Links List -->
       <div class="links-list">
         <div class="list-header">
+          <div class="col-id">ID</div>
           <div class="col-title">Title & URL</div>
           <div class="col-reference">Reference</div>
           <div class="col-type">Type</div>
@@ -108,6 +109,7 @@
           @click="selectLink(link)"
           :class="{ 'selected': selectedLink?.id === link.id }"
         >
+          <div class="col-id">#{{ link.id }}</div>
           <div class="col-title">
             <div class="link-main">
               <div class="link-title" :title="link.title">{{ link.title }}</div>
@@ -161,6 +163,10 @@
         <div class="modal-body" v-if="selectedLink">
           <div class="link-details">
             <div class="detail-main">
+              <div class="detail-group">
+                <label>ID:</label>
+                <span class="text-muted">#{{ selectedLink.id }}</span>
+              </div>
               <div class="detail-group">
                 <label>Title:</label>
                 <span>{{ selectedLink.title }}</span>
@@ -731,7 +737,7 @@ export default {
 
 .list-header {
   display: grid;
-  grid-template-columns: 2fr 150px 120px 120px 100px 150px;
+  grid-template-columns: 55px 2fr 150px 120px 120px 100px 150px;
   gap: 1rem;
   padding: 1rem;
   background: #f8f9fa;
@@ -741,13 +747,21 @@ export default {
 
 .link-row {
   display: grid;
-  grid-template-columns: 2fr 150px 120px 120px 100px 150px;
+  grid-template-columns: 55px 2fr 150px 120px 120px 100px 150px;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: all 0.2s ease;
   align-items: start;
+}
+
+.col-id {
+  font-size: 0.8rem;
+  color: #5a6a8a;
+  text-align: center;
+  white-space: nowrap;
+  padding-top: 0.1rem;
 }
 
 .link-row:hover {
@@ -1064,7 +1078,7 @@ export default {
 @media (max-width: 1200px) {
   .list-header,
   .link-row {
-    grid-template-columns: 2fr 130px 110px 80px 130px;
+    grid-template-columns: 55px 2fr 130px 110px 80px 130px;
   }
 
   .col-reference {

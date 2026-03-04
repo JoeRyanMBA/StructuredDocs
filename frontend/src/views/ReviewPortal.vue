@@ -320,6 +320,7 @@ import { marked } from 'marked'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { toast } from '@/composables/useToast'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 export default {
   name: 'ReviewPortal',
@@ -369,12 +370,12 @@ export default {
       marked.setOptions({
         breaks: true,        // Convert line breaks to <br>
         gfm: true,          // GitHub Flavored Markdown
-        sanitize: false,    // Allow HTML (since we trust the content)
+        sanitize: false,    // Allow HTML (sanitized below via DOMPurify)
         smartypants: true   // Use smart quotes and dashes
       })
       
-      // Convert markdown to HTML using marked
-      return marked(this.review.topic_content)
+      // Convert markdown to HTML and sanitize before rendering
+      return sanitizeHtml(marked(this.review.topic_content))
     },
     
     canSubmit() {

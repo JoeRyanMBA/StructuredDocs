@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app, make_response
+from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree, Link, TopicLink
 from ..utils.image_handler import ImageHandler
@@ -76,34 +77,34 @@ def _convert_word_to_markdown(file_content, import_doc_id):
                 '-o', temp_output_path
             ]
             
-            print(f"PANDOC: Running command: {' '.join(cmd)}")
+            current_app.logger.debug(f"PANDOC: Running command: {' '.join(cmd)}")
             current_app.logger.info(f"🔄 PANDOC: Converting Word document to Markdown (import {import_doc_id})")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             
             if result.returncode != 0:
-                print(f"PANDOC ERROR: {result.stderr}")
+                current_app.logger.debug(f"PANDOC ERROR: {result.stderr}")
                 current_app.logger.error(f"❌ PANDOC ERROR: {result.stderr}")
                 raise Exception(f"Pandoc conversion failed: {result.stderr}")
             
             # Check if pandoc extracted any images
             if os.path.exists(temp_media_dir):
                 extracted_files = os.listdir(temp_media_dir)
-                print(f"PANDOC SUCCESS: Extracted {len(extracted_files)} files to {temp_media_dir}")
+                current_app.logger.debug(f"PANDOC SUCCESS: Extracted {len(extracted_files)} files to {temp_media_dir}")
                 current_app.logger.info(f"🖼️  PANDOC EXTRACTED: {len(extracted_files)} files - {extracted_files}")
                 if extracted_files:
                     for fname in extracted_files[:5]:
                         fpath = os.path.join(temp_media_dir, fname)
                         fsize = os.path.getsize(fpath) if os.path.isfile(fpath) else 'DIR'
-                        print(f"     - {fname} ({fsize} bytes)")
+                        current_app.logger.debug(f"     - {fname} ({fsize} bytes)")
             else:
-                print(f"PANDOC: No media directory created - document likely has no images")
+                current_app.logger.debug(f"PANDOC: No media directory created - document likely has no images")
                 current_app.logger.info(f"ℹ️  PANDOC: No images extracted (temp_media_dir not created)")
             
             # Read the converted Markdown
             with open(temp_output_path, 'r', encoding='utf-8') as f:
                 markdown_content = f.read()
             
-            print(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
+            current_app.logger.debug(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             current_app.logger.info(f"✅ PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             
             # Initialize image handler
@@ -134,17 +135,17 @@ def _convert_word_to_markdown(file_content, import_doc_id):
                 )
                 db.session.add(import_image)
             
-            print(f"IMAGE PROCESSING: Stored {len(stored_images)} images")
+            current_app.logger.debug(f"IMAGE PROCESSING: Stored {len(stored_images)} images")
             current_app.logger.info(f"✅ IMAGE PROCESSING: Stored {len(stored_images)} images in database")
             
             if stored_images:
                 for img in stored_images:
-                    print(f"   ✅ {img['filename']} -> {img['public_url']}")
-                    print(f"      Backend: {img['backend_path']}")
-                    print(f"      Frontend: {img['frontend_path']}")
+                    current_app.logger.debug(f"   ✅ {img['filename']} -> {img['public_url']}")
+                    current_app.logger.debug(f"      Backend: {img['backend_path']}")
+                    current_app.logger.debug(f"      Frontend: {img['frontend_path']}")
                     current_app.logger.info(f"   ✅ Stored image: {img['filename']} (URL: {img['public_url']})")
             else:
-                print(f"   ⚠️  No images were successfully stored!")
+                current_app.logger.debug(f"   ⚠️  No images were successfully stored!")
                 current_app.logger.warning(f"⚠️  IMAGE PROCESSING: No images were successfully stored")
             
             # Post-process the markdown to fix issues
@@ -155,7 +156,7 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             
             # Fix progressive list indentation issues from Word conversion
             updated_markdown = _fix_list_indentation(updated_markdown)
-            print(f"LIST INDENTATION: Fixed progressive indentation issues")
+            current_app.logger.debug(f"LIST INDENTATION: Fixed progressive indentation issues")
             
             # NOTE: Blank line removal now happens per-topic during content cleaning
             # to preserve document structure for heading detection
@@ -164,7 +165,7 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             validation_issues = image_handler.validate_markdown_images(updated_markdown)
             if validation_issues:
                 for issue in validation_issues:
-                    print(f"IMAGE VALIDATION: {issue['message']}")
+                    current_app.logger.debug(f"IMAGE VALIDATION: {issue['message']}")
             
             # Clean up temporary directory
             image_handler.cleanup_temp_images(temp_base_dir)
@@ -180,16 +181,16 @@ def _convert_word_to_markdown(file_content, import_doc_id):
                 pass  # Files might already be deleted
                 
     except subprocess.TimeoutExpired:
-        print("PANDOC ERROR: Conversion timed out")
+        current_app.logger.debug("PANDOC ERROR: Conversion timed out")
         raise Exception("Word to Markdown conversion timed out")
     except FileNotFoundError:
-        print("PANDOC ERROR: Pandoc not found")
+        current_app.logger.debug("PANDOC ERROR: Pandoc not found")
         raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
     except subprocess.CalledProcessError as e:
-        print(f"PANDOC ERROR: Process failed with code {e.returncode}: {e.stderr}")
+        current_app.logger.debug(f"PANDOC ERROR: Process failed with code {e.returncode}: {e.stderr}")
         raise Exception(f"Pandoc conversion failed: {e.stderr}")
     except Exception as e:
-        print(f"PANDOC ERROR: {str(e)}")
+        current_app.logger.debug(f"PANDOC ERROR: {str(e)}")
         # Check if it's a pandoc not found error
         if "pandoc" in str(e).lower() and ("not found" in str(e).lower() or "command not found" in str(e).lower()):
             raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
@@ -224,18 +225,18 @@ def _convert_word_to_markdown_no_images(file_content):
                 '-o', temp_output_path
             ]
             
-            print(f"PANDOC (NO IMAGES): Running command: {' '.join(cmd)}")
+            current_app.logger.debug(f"PANDOC (NO IMAGES): Running command: {' '.join(cmd)}")
             result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
             
             if result.returncode != 0:
-                print(f"PANDOC ERROR: {result.stderr}")
+                current_app.logger.debug(f"PANDOC ERROR: {result.stderr}")
                 raise Exception(f"Pandoc conversion failed: {result.stderr}")
             
             # Read the converted Markdown
             with open(temp_output_path, 'r', encoding='utf-8') as f:
                 markdown_content = f.read()
             
-            print(f"PANDOC SUCCESS (NO IMAGES): Converted {len(file_content)} bytes to {len(markdown_content)} chars")
+            current_app.logger.debug(f"PANDOC SUCCESS (NO IMAGES): Converted {len(file_content)} bytes to {len(markdown_content)} chars")
             
             return markdown_content
             
@@ -246,19 +247,19 @@ def _convert_word_to_markdown_no_images(file_content):
                 os.unlink(temp_output_path)
                 shutil.rmtree(temp_base_dir)
             except Exception as cleanup_error:
-                print(f"Cleanup warning: {cleanup_error}")
+                current_app.logger.debug(f"Cleanup warning: {cleanup_error}")
                 
     except subprocess.TimeoutExpired:
-        print("PANDOC ERROR: Conversion timed out")
+        current_app.logger.debug("PANDOC ERROR: Conversion timed out")
         raise Exception("Word document conversion timed out")
     except FileNotFoundError:
-        print("PANDOC ERROR: Pandoc not found")
+        current_app.logger.debug("PANDOC ERROR: Pandoc not found")
         raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
     except subprocess.CalledProcessError as e:
-        print(f"PANDOC ERROR: Process failed with code {e.returncode}: {e.stderr}")
+        current_app.logger.debug(f"PANDOC ERROR: Process failed with code {e.returncode}: {e.stderr}")
         raise Exception(f"Pandoc conversion failed: {e.stderr}")
     except Exception as e:
-        print(f"PANDOC ERROR: {str(e)}")
+        current_app.logger.debug(f"PANDOC ERROR: {str(e)}")
         # Check if it's a pandoc not found error
         if "pandoc" in str(e).lower() and ("not found" in str(e).lower() or "command not found" in str(e).lower()):
             raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
@@ -474,7 +475,7 @@ def _extract_and_store_links(document_id, content, position=0):
         
         db.session.add(import_link)
         links_extracted += 1
-        print(f"LINK EXTRACTED: [{title}]({url}) - type: {link_type}, internal: {is_internal}")
+        current_app.logger.debug(f"LINK EXTRACTED: [{title}]({url}) - type: {link_type}, internal: {is_internal}")
     
     # Extract plain URLs (not already captured as markdown links)
     existing_urls = set()
@@ -516,7 +517,7 @@ def _extract_and_store_links(document_id, content, position=0):
         
         db.session.add(import_link)
         links_extracted += 1
-        print(f"URL EXTRACTED: {url} - type: {link_type}, internal: {is_internal}")
+        current_app.logger.debug(f"URL EXTRACTED: {url} - type: {link_type}, internal: {is_internal}")
     
     return links_extracted
 
@@ -770,7 +771,7 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
 
     if source == 'word':
         # Parse Word document: try pandoc first, then python-docx fallback
-        print(f"PARSING WORD DOC: {imp_doc.filename}")
+        current_app.logger.debug(f"PARSING WORD DOC: {imp_doc.filename}")
         # Read file content for conversion attempts
         file_content = file.read()
         file.stream.seek(0)  # Reset stream for potential future reads
@@ -790,23 +791,23 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
                     if preserve_hierarchy:
                         # Keep original heading level
                         lines.append(line)
-                        print(f"HEADING PRESERVED: '{line.strip()}' (level H{hash_count})")
+                        current_app.logger.debug(f"HEADING PRESERVED: '{line.strip()}' (level H{hash_count})")
                     else:
                         # Promote all headings to H1 (original behavior)
                         heading_text = line.lstrip('#').strip()
                         promoted_line = f"# {heading_text}"
                         lines.append(promoted_line)
-                        print(f"HEADING PROMOTED: '{promoted_line}' (was H{hash_count})")
+                        current_app.logger.debug(f"HEADING PROMOTED: '{promoted_line}' (was H{hash_count})")
                 else:
                     heading_levels.append(None)  # Not a heading
                     lines.append(line)
 
             md_snippet = '\n'.join(lines[:10])
-            print(f"MARKDOWN SNIPPET (first 10 lines):\n{md_snippet}")
+            current_app.logger.debug(f"MARKDOWN SNIPPET (first 10 lines):\n{md_snippet}")
             current_app.logger.info(f"Parsed Markdown snippet for {imp_doc.filename}:\n{md_snippet}")
         except Exception as e:
             # Fallback: attempt to read headings and paragraphs via python-docx
-            print(f"PANDOC/CONVERSION ERROR: {e}")
+            current_app.logger.debug(f"PANDOC/CONVERSION ERROR: {e}")
             current_app.logger.error(f"Pandoc or conversion failed for {imp_doc.filename}: {e}")
             snippet = file_content[:500]
             current_app.logger.error(f"First 500 bytes of file: {snippet}")
@@ -828,7 +829,7 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
                     level = detect_heading_level_from_style(style_name)
                     if level is not None and style_name and not re.search(r'heading\s*'+str(level), style_name):
                         # Log only when mapping from a non-standard variant
-                        print(f"STYLE->HEADING: '{style_name_raw}' -> H{level}")
+                        current_app.logger.debug(f"STYLE->HEADING: '{style_name_raw}' -> H{level}")
                     if level == 1:
                         lines.append(f"# {text}")
                     elif level and level > 1:
@@ -854,10 +855,10 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
                     lines.extend(md_table)
                     lines.append('')
                 md_snippet = '\n'.join(lines[:10])
-                print(f"DOCX FALLBACK SNIPPET (first 10 lines):\n{md_snippet}")
+                current_app.logger.debug(f"DOCX FALLBACK SNIPPET (first 10 lines):\n{md_snippet}")
                 current_app.logger.info(f"DOCX fallback parsed snippet for {imp_doc.filename}:\n{md_snippet}")
             except Exception as e2:
-                print(f"DOCX FALLBACK ERROR: {e2}")
+                current_app.logger.debug(f"DOCX FALLBACK ERROR: {e2}")
                 current_app.logger.error(f"DOCX fallback failed for {imp_doc.filename}: {e2}")
                 lines = []
 
@@ -873,7 +874,7 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             validation_issues = image_handler.validate_markdown_images(raw)
             if validation_issues:
                 for issue in validation_issues:
-                    print(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
+                    current_app.logger.debug(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
         
         # Optionally promote headers based on preserve_hierarchy setting
         lines = []
@@ -885,16 +886,16 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
                     # Promote to H1: replace multiple # with single #
                     content = line.lstrip('#').strip()
                     line = f"# {content}"
-                    print(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
+                    current_app.logger.debug(f"PROMOTED: '{line.strip()}' (was H{hash_count})")
                 elif preserve_hierarchy:
-                    print(f"PRESERVED: '{line.strip()}' (level H{hash_count})")
+                    current_app.logger.debug(f"PRESERVED: '{line.strip()}' (level H{hash_count})")
             lines.append(line)
         
         paras = [('md', line) for line in lines]
         full_text = '\n'.join(lines)
 
     items, buffer, order, current_title = [], [], 0, None
-    print(f"PARSING: source={source}, paragraphs={len(paras)}")
+    current_app.logger.debug(f"PARSING: source={source}, paragraphs={len(paras)}")
 
     def commit_buffer():
         nonlocal order, current_title, buffer
@@ -912,10 +913,10 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             # Only create an item if we have actual content (not just empty lines/whitespace)
             if content:
                 items.append((order, current_title, content))
-                print(f"COMMITTED: order={order}, title='{current_title}', content_len={len(content)}")
+                current_app.logger.debug(f"COMMITTED: order={order}, title='{current_title}', content_len={len(content)}")
                 order += 1
             else:
-                print(f"SKIPPED EMPTY: title='{current_title}' (no substantive content)")
+                current_app.logger.debug(f"SKIPPED EMPTY: title='{current_title}' (no substantive content)")
             buffer = []
 
     for style, text in paras:
@@ -926,7 +927,7 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             # Original behavior: only H1 creates new topics
             is_heading = text.strip().startswith('#') and not text.strip().startswith('##')
         
-        print(f"LINE: '{text}' -> heading={is_heading} (preserve_hierarchy={preserve_hierarchy})")
+        current_app.logger.debug(f"LINE: '{text}' -> heading={is_heading} (preserve_hierarchy={preserve_hierarchy})")
         
         if is_heading:
             # Check if we have a current title but no substantive content yet
@@ -945,17 +946,17 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
                     buffer.append(f"{hashes} {heading_text}")
                 else:
                     buffer.append(f"## {heading_text}")  # Add as H2 in content
-                print(f"MERGED_HEADING: '{heading_text}' added to content of '{current_title}' (no substantive content found)")
+                current_app.logger.debug(f"MERGED_HEADING: '{heading_text}' added to content of '{current_title}' (no substantive content found)")
             else:
                 # Normal case: commit previous section and start new one
                 commit_buffer()
                 current_title = text.strip().lstrip('#').strip()
-                print(f"NEW_TITLE: '{current_title}'")
+                current_app.logger.debug(f"NEW_TITLE: '{current_title}'")
         else:
             buffer.append(text)
 
     commit_buffer()
-    print(f"FINAL: {len(items)} items created")
+    current_app.logger.debug(f"FINAL: {len(items)} items created")
 
     # Fallback: if no items were created, use entire content as a single item
     if not items:
@@ -968,21 +969,21 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
                 fallback_content = _clean_topic_content(fallback_content)
 
             if fallback_content and fallback_content.strip():
-                print(f"FALLBACK: Creating single item from full document. title='{fallback_title}', content_len={len(fallback_content)}")
+                current_app.logger.debug(f"FALLBACK: Creating single item from full document. title='{fallback_title}', content_len={len(fallback_content)}")
                 items.append((0, fallback_title, fallback_content))
             else:
-                print("FALLBACK: Full document content is empty after cleaning; no item created")
+                current_app.logger.debug("FALLBACK: Full document content is empty after cleaning; no item created")
         except Exception as e:
-            print(f"FALLBACK ERROR: {e}")
+            current_app.logger.debug(f"FALLBACK ERROR: {e}")
 
     # Extract links from the full document content
     total_links_extracted = 0
     try:
         links_count = _extract_and_store_links(imp_doc.id, full_text)
         total_links_extracted += links_count
-        print(f"LINK EXTRACTION: Extracted {links_count} links from document")
+        current_app.logger.debug(f"LINK EXTRACTION: Extracted {links_count} links from document")
     except Exception as e:
-        print(f"LINK EXTRACTION ERROR: {e}")
+        current_app.logger.debug(f"LINK EXTRACTION ERROR: {e}")
         current_app.logger.error(f"Link extraction failed for {imp_doc.filename}: {e}")
 
     for order, title, content in items:
@@ -1014,13 +1015,13 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
 
 
 def _upload_file(source):
-    print(f"UPLOAD: Starting upload with source={source}")
+    current_app.logger.debug(f"UPLOAD: Starting upload with source={source}")
     file = request.files.get('file')
     import_type = request.form.get('import_type', 'topics')  # Default to topics for backward compatibility
     preserve_hierarchy = request.form.get('preserve_hierarchy', 'false').lower() == 'true'
     
     if not file or source not in SOURCES:
-        print(f"UPLOAD: Missing file or invalid source. file={file}, source={source}")
+        current_app.logger.debug(f"UPLOAD: Missing file or invalid source. file={file}, source={source}")
         return jsonify({'error': 'Missing file or invalid source'}), 400
 
     try:
@@ -1034,7 +1035,7 @@ def _upload_file(source):
     except Exception as e:
         db.session.rollback()
         current_app.logger.exception("Upload failed")
-        print(f"UPLOAD: Exception occurred: {e}")
+        current_app.logger.debug(f"UPLOAD: Exception occurred: {e}")
         return jsonify({'error': str(e)}), 500
 
 
@@ -1071,12 +1072,12 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             hierarchical_items = _parse_hierarchical_structure_with_images(file, source, temp_imp_doc.id)
         except Exception as parse_error:
             # Log the error but continue to fallback
-            print(f"HIERARCHICAL PARSING ERROR: {parse_error}")
+            current_app.logger.debug(f"HIERARCHICAL PARSING ERROR: {parse_error}")
             current_app.logger.error(f"❌ HIERARCHICAL PARSING ERROR: {str(parse_error)}", exc_info=True)
             hierarchical_items = []
         
         if not hierarchical_items:
-            print("HIERARCHICAL PARSING FAILED: Falling back to regular flat parsing")
+            current_app.logger.debug("HIERARCHICAL PARSING FAILED: Falling back to regular flat parsing")
             # Fall back to regular parsing logic
             file.stream.seek(0)
             temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
@@ -1089,7 +1090,7 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             if items_count == 0:
                 # Commit any extracted links before rolling back
                 links_count = ImportLink.query.filter_by(document_id=temp_imp_doc.id).count()
-                print(f"COLLECTION IMPORT: Preserving {links_count} extracted links before rollback")
+                current_app.logger.debug(f"COLLECTION IMPORT: Preserving {links_count} extracted links before rollback")
                 if links_count > 0:
                     db.session.commit()
                 
@@ -1116,7 +1117,7 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             ImportItem.query.filter_by(document_id=temp_imp_doc.id).delete()
             db.session.delete(temp_imp_doc)
             
-            print(f"FALLBACK SUCCESS: Created {len(hierarchical_items)} flat items")
+            current_app.logger.debug(f"FALLBACK SUCCESS: Created {len(hierarchical_items)} flat items")
         
         # Create the collection
         collection = Collection(
@@ -1165,7 +1166,7 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
             )
         
         db.session.commit()
-        print(f"HIERARCHICAL_TOPIC_IMPORT: Created collection '{collection_name}' with {len(created_topics)} topics")
+        current_app.logger.debug(f"HIERARCHICAL_TOPIC_IMPORT: Created collection '{collection_name}' with {len(created_topics)} topics")
         
         # Return collection info instead of import document
         collection_dict = collection.to_dict()
@@ -1181,18 +1182,18 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
     )
     db.session.add(imp_doc)
     db.session.flush()  # get imp_doc.id
-    print(f"UPLOAD: Created ImportDocument with ID={imp_doc.id}")
+    current_app.logger.debug(f"UPLOAD: Created ImportDocument with ID={imp_doc.id}")
 
     _parse_and_store(file, imp_doc, source, preserve_hierarchy)
     
     # Check if any items were created
     items_count = ImportItem.query.filter_by(document_id=imp_doc.id).count()
-    print(f"UPLOAD: Created {items_count} import items")
+    current_app.logger.debug(f"UPLOAD: Created {items_count} import items")
     
     if items_count == 0:
         # Commit any extracted links so they aren't lost when we delete the import document
         links_count = ImportLink.query.filter_by(document_id=imp_doc.id).count()
-        print(f"UPLOAD: Preserving {links_count} extracted links before deleting import")
+        current_app.logger.debug(f"UPLOAD: Preserving {links_count} extracted links before deleting import")
         if links_count > 0:
             db.session.commit()
         
@@ -1220,12 +1221,12 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
         else:
             error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
         error_msg += f"\nFirst 500 bytes of file: {snippet}\nMarkdown snippet (first 10 lines):\n{md_snippet}"
-        print(f"UPLOAD: {error_msg}")
+        current_app.logger.debug(f"UPLOAD: {error_msg}")
         current_app.logger.error(error_msg)
         return jsonify({'error': error_msg}), 422
     
     db.session.commit()
-    print(f"UPLOAD: Committed to database")
+    current_app.logger.debug(f"UPLOAD: Committed to database")
     return jsonify(imp_doc.to_dict(include_items=True)), 201
 
 
@@ -1257,7 +1258,7 @@ def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
                 validation_issues = image_handler.validate_markdown_images(markdown_content)
                 if validation_issues:
                     for issue in validation_issues:
-                        print(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
+                        current_app.logger.debug(f"MARKDOWN IMAGE VALIDATION: {issue['message']}")
             # Extract links from markdown input and store
             try:
                 links_count = _extract_and_store_links(import_doc_id, markdown_content)
@@ -1268,7 +1269,7 @@ def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
         return _parse_hierarchical_content(markdown_content)
         
     except Exception as e:
-        print(f"HIERARCHICAL PARSING ERROR: {e}")
+        current_app.logger.debug(f"HIERARCHICAL PARSING ERROR: {e}")
         current_app.logger.error(f"❌ HIERARCHICAL PARSING ERROR: {str(e)}", exc_info=True)
         # Re-raise the exception so the caller can see the actual error
         raise
@@ -1349,7 +1350,7 @@ def _parse_hierarchical_content(markdown_content):
         else:
             item['parent_index'] = None
     
-    print(f"HIERARCHICAL PARSING: Found {len(hierarchical_items)} hierarchical items")
+    current_app.logger.debug(f"HIERARCHICAL PARSING: Found {len(hierarchical_items)} hierarchical items")
     return hierarchical_items
 
 
@@ -1409,7 +1410,7 @@ def _parse_hierarchical_structure(file, source):
                 heading_item['parent_level'] = current_stack[-1]['level'] if current_stack else None
                 
                 current_stack.append(heading_item)
-                print(f"HIERARCHICAL HEADING: Level {hash_count} - '{title}' (parent: {heading_item['parent_index']})")
+                current_app.logger.debug(f"HIERARCHICAL HEADING: Level {hash_count} - '{title}' (parent: {heading_item['parent_index']})")
                 
             else:
                 # Regular content line
@@ -1435,11 +1436,11 @@ def _parse_hierarchical_structure(file, source):
             # Remove the temporary parent_level field
             item.pop('parent_level', None)
         
-        print(f"HIERARCHICAL PARSING: Created {len(hierarchical_items)} hierarchical items")
+        current_app.logger.debug(f"HIERARCHICAL PARSING: Created {len(hierarchical_items)} hierarchical items")
         return hierarchical_items
         
     except Exception as e:
-        print(f"HIERARCHICAL PARSING ERROR: {e}")
+        current_app.logger.debug(f"HIERARCHICAL PARSING ERROR: {e}")
         current_app.logger.error(f"Hierarchical parsing failed: {e}")
         # Return empty list to trigger the error handling in calling function
         return []
@@ -1500,7 +1501,7 @@ def _import_as_collection(file, source):
             error_msg += "This may be due to: 1) The document has no H1 headings (# Title), or 2) The file is empty or corrupted."
         return jsonify({'error': error_msg}), 422
     
-    print(f"COLLECTION_IMPORT: Parsed {len(hierarchical_items)} hierarchical items from document")
+    current_app.logger.debug(f"COLLECTION_IMPORT: Parsed {len(hierarchical_items)} hierarchical items from document")
     
     # Create the collection
     collection = Collection(
@@ -1511,7 +1512,7 @@ def _import_as_collection(file, source):
     )
     db.session.add(collection)
     db.session.flush()  # get collection.id
-    print(f"COLLECTION_IMPORT: Created collection with ID={collection.id}")
+    current_app.logger.debug(f"COLLECTION_IMPORT: Created collection with ID={collection.id}")
     
     # Convert hierarchical items to topics and add them to the collection with proper hierarchy
     # IMPORTANT: Parents appear AFTER children in hierarchical_items due to stack-pop order during parsing.
@@ -1527,7 +1528,7 @@ def _import_as_collection(file, source):
         db.session.flush()  # get topic.id
         created_topics.append(topic)
         topic_id_map[i] = topic.id
-        print(f"COLLECTION_IMPORT: Created topic '{item['title']}' (level {item['level']}) -> topic_id={topic.id}")
+        current_app.logger.debug(f"COLLECTION_IMPORT: Created topic '{item['title']}' (level {item['level']}) -> topic_id={topic.id}")
 
     # Pass 2: Insert hierarchical relationships using parent_index mapping
     linked = 0
@@ -1547,11 +1548,11 @@ def _import_as_collection(file, source):
         )
 
         hierarchy_info = f"parent: {parent_topic_id}" if parent_topic_id else "root level"
-        print(f"COLLECTION_IMPORT: Linked topic_idx={i} -> {hierarchy_info}")
+        current_app.logger.debug(f"COLLECTION_IMPORT: Linked topic_idx={i} -> {hierarchy_info}")
         if parent_topic_id:
             linked += 1
 
-    print(f"COLLECTION_IMPORT: Created {len(created_topics)} topics; linked {linked} with parents")
+    current_app.logger.debug(f"COLLECTION_IMPORT: Created {len(created_topics)} topics; linked {linked} with parents")
 
     # Pass 3: Associate ImportLinks with their topics based on URL presence in content
     import_links = ImportLink.query.filter_by(document_id=temp_imp_doc.id).all()
@@ -1586,7 +1587,7 @@ def _import_as_collection(file, source):
     temp_imp_doc.status = 'approved'
     temp_imp_doc.review_step = 'final_approved'
     db.session.commit()
-    print(f"COLLECTION_IMPORT: Successfully committed collection import and cleaned up temporary data")
+    current_app.logger.debug(f"COLLECTION_IMPORT: Successfully committed collection import and cleaned up temporary data")
     
     return jsonify({
         'collection_id': collection.id,
@@ -1598,16 +1599,19 @@ def _import_as_collection(file, source):
 
 
 @import_bp.route('/upload', methods=['POST'])
+@jwt_required()
 def upload_generic():
     return _upload_file(request.form.get('source', '').lower())
 
 
 @import_bp.route('/markdown', methods=['POST'])
+@jwt_required()
 def upload_markdown():
     return _upload_file('markdown')
 
 
 @import_bp.route('/history', methods=['GET'])
+@jwt_required()
 def get_import_history():
     """Get list of all import documents with their status"""
     try:
@@ -1637,6 +1641,7 @@ def get_import_history():
 
 
 @import_bp.route('/staging/<int:doc_id>/images', methods=['GET'])
+@jwt_required()
 def get_import_images(doc_id):
     """Get all images associated with an import document
     
@@ -1679,6 +1684,7 @@ def get_import_images(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/links', methods=['GET'])
+@jwt_required()
 def get_import_links(doc_id):
     """Get all links extracted from an import document"""
     try:
@@ -1701,6 +1707,7 @@ def get_import_links(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>', methods=['GET'])
+@jwt_required()
 def get_staging(doc_id):
     doc = ImportDocument.query.get_or_404(doc_id)
     result = doc.to_dict(include_items=True)
@@ -1714,12 +1721,14 @@ def get_staging(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/sme_approve', methods=['POST'])
+@jwt_required()
 def sme_approve(doc_id):
     """Deprecated two-step approval — kept for backwards compatibility, now a no-op redirect to commit."""
     return jsonify({'message': 'Use /commit directly'}), 200
 
 
 @import_bp.route('/staging/<int:doc_id>/commit', methods=['POST'])
+@jwt_required()
 def commit_import(doc_id):
     """Commit a staged import: create topics and optionally add them to a collection."""
     try:
@@ -1821,6 +1830,7 @@ def commit_import(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>', methods=['DELETE'])
+@jwt_required()
 def delete_staging(doc_id):
     """Delete a staging import document and all its items."""
     from sqlalchemy import text
@@ -1840,6 +1850,7 @@ def delete_staging(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/reprocess', methods=['POST'])
+@jwt_required()
 def reprocess_document(doc_id):
     """Reprocess an existing import document to extract items"""
     try:
@@ -1859,6 +1870,7 @@ def reprocess_document(doc_id):
 
 
 @import_bp.route('/staging/<int:doc_id>/reject', methods=['POST'])
+@jwt_required()
 def reject_import(doc_id):
     """Reject an import document"""
     try:

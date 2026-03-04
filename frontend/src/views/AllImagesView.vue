@@ -127,6 +127,7 @@
       <!-- List View -->
       <div v-if="viewMode === 'list'" class="images-list">
         <div class="list-header">
+          <div class="col-id">ID</div>
           <div class="col-filename">Filename</div>
           <div class="col-size">Size</div>
           <div class="col-dimensions">Dimensions</div>
@@ -142,8 +143,9 @@
           @click="selectImage(image)"
           :class="{ 'selected': selectedImage?.id === image.id }"
         >
+          <div class="col-id">#{{ image.id }}</div>
           <div class="col-filename">
-            <img 
+            <img
               :src="getImageUrl(image)" 
               :alt="image.filename"
               class="list-thumbnail"
@@ -195,6 +197,10 @@
               />
             </div>
             <div class="detail-info">
+              <div class="detail-group">
+                <label>Image ID:</label>
+                <span class="obj-id-badge">#{{ selectedImage.id }}</span>
+              </div>
               <div class="detail-group">
                 <label>Filename:</label>
                 <span>{{ selectedImage.filename }}</span>
@@ -564,13 +570,11 @@ export default {
 
     formatDate(dateString) {
       if (!dateString) return 'N/A'
-      return new Date(dateString).toLocaleDateString('en-US', {
-        year: 'numeric',
-        month: 'short',
-        day: 'numeric',
-        hour: '2-digit',
-        minute: '2-digit'
-      })
+      const d = new Date(dateString)
+      const mm = String(d.getMonth() + 1).padStart(2, '0')
+      const dd = String(d.getDate()).padStart(2, '0')
+      const yyyy = d.getFullYear()
+      return `${mm}/${dd}/${yyyy}`
     },
 
     showMessage(text, type = 'success') { /* legacy no-op */
@@ -831,7 +835,7 @@ export default {
 
 .list-header {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 160px 120px;
+  grid-template-columns: 60px 2fr 1fr 1fr 1fr 160px 120px;
   gap: 1rem;
   padding: 1rem;
   background: #f8f9fa;
@@ -841,13 +845,20 @@ export default {
 
 .list-row {
   display: grid;
-  grid-template-columns: 2fr 1fr 1fr 1fr 160px 120px;
+  grid-template-columns: 60px 2fr 1fr 1fr 1fr 160px 120px;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: all 0.2s ease;
   align-items: center;
+}
+
+.col-id {
+  font-size: 0.8rem;
+  color: #5a6a8a;
+  text-align: center;
+  white-space: nowrap;
 }
 
 .list-row:hover {
@@ -1053,5 +1064,16 @@ export default {
     min-width: auto;
     margin: 1rem;
   }
+}
+
+.obj-id-badge {
+  display: inline-block;
+  font-size: 0.75rem;
+  font-weight: 500;
+  color: #5a6a8a;
+  background: #e8eef7;
+  border: 1px solid #c5d3f0;
+  border-radius: 10px;
+  padding: 0.1rem 0.5rem;
 }
 </style>

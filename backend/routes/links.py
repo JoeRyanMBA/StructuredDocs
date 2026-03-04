@@ -1,4 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
+from flask_jwt_extended import jwt_required
 from ..models import db, Link, Topic, TopicLink
 from sqlalchemy import or_, and_, func
 import re
@@ -6,6 +7,7 @@ import re
 links_bp = Blueprint('links', __name__, url_prefix='/api/links')
 
 @links_bp.route('/', methods=['GET'])
+@jwt_required()
 def get_links():
     """Get all links with optional filtering"""
     try:
@@ -56,6 +58,7 @@ def get_links():
         return jsonify({'error': f'Failed to fetch links: {str(e)}'}), 500
 
 @links_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_link():
     """Create a new reusable link"""
     try:
@@ -111,6 +114,7 @@ def create_link():
         return jsonify({'error': f'Failed to create link: {str(e)}'}), 500
 
 @links_bp.route('/<int:link_id>', methods=['GET'])
+@jwt_required()
 def get_link(link_id):
     """Get a specific link with usage information"""
     try:
@@ -121,6 +125,7 @@ def get_link(link_id):
         return jsonify({'error': f'Failed to fetch link: {str(e)}'}), 500
 
 @links_bp.route('/<int:link_id>', methods=['PUT'])
+@jwt_required()
 def update_link(link_id):
     """Update an existing link"""
     try:
@@ -161,6 +166,7 @@ def update_link(link_id):
         return jsonify({'error': f'Failed to update link: {str(e)}'}), 500
 
 @links_bp.route('/<int:link_id>', methods=['DELETE'])
+@jwt_required()
 def delete_link(link_id):
     """Delete a link (will also remove from all topics)"""
     try:
@@ -185,6 +191,7 @@ def delete_link(link_id):
         return jsonify({'error': f'Failed to delete link: {str(e)}'}), 500
 
 @links_bp.route('/reference/<reference_code>', methods=['GET'])
+@jwt_required()
 def get_link_by_reference(reference_code):
     """Get a link by its reference code (e.g., AB-123)"""
     try:
@@ -199,6 +206,7 @@ def get_link_by_reference(reference_code):
         return jsonify({'error': f'Failed to fetch link: {str(e)}'}), 500
 
 @links_bp.route('/types', methods=['GET'])
+@jwt_required()
 def get_link_types():
     """Get available link types"""
     return jsonify({
@@ -217,6 +225,7 @@ def get_link_types():
 # Topic-Link Association Routes
 
 @links_bp.route('/topics/<int:topic_id>/links', methods=['GET'])
+@jwt_required()
 def get_topic_links(topic_id):
     """Get all links associated with a specific topic"""
     try:
@@ -238,6 +247,7 @@ def get_topic_links(topic_id):
         return jsonify({'error': f'Failed to fetch topic links: {str(e)}'}), 500
 
 @links_bp.route('/topics/<int:topic_id>/links', methods=['POST'])
+@jwt_required()
 def add_link_to_topic(topic_id):
     """Associate a link with a topic"""
     try:
@@ -281,6 +291,7 @@ def add_link_to_topic(topic_id):
         return jsonify({'error': f'Failed to add link to topic: {str(e)}'}), 500
 
 @links_bp.route('/topics/<int:topic_id>/links/<int:link_id>', methods=['DELETE'])
+@jwt_required()
 def remove_link_from_topic(topic_id, link_id):
     """Remove a link association from a topic"""
     try:
@@ -300,6 +311,7 @@ def remove_link_from_topic(topic_id, link_id):
         return jsonify({'error': f'Failed to remove link from topic: {str(e)}'}), 500
 
 @links_bp.route('/search/content', methods=['POST'])
+@jwt_required()
 def search_link_references_in_content():
     """Search for potential link references in topic content"""
     try:
@@ -353,6 +365,7 @@ def search_link_references_in_content():
 
 
 @links_bp.route('/usage-summary', methods=['GET'])
+@jwt_required()
 def links_usage_summary():
     """Per-link collection + project usage, via topic_links → collection_topic_tree."""
     try:

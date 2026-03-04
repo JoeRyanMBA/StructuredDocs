@@ -90,7 +90,7 @@ class PDFConfig:
     SPACING = {
         'title_after': 30,
         'subtitle_after': 20,
-        'heading_before': 20,
+        'heading_before': 10,
         'heading_after': 12,
         'paragraph_after': 12,
         'section_after': 16,
@@ -190,6 +190,52 @@ class PDFConfig:
             spaceAfter=cls.SPACING['paragraph_after'],
             alignment=TA_JUSTIFY,
             leftIndent=indent,
+            rightIndent=0,
+            textColor=cls.COLORS['text']
+        )
+
+    @classmethod
+    def create_bullet_style(cls, base_styles, level=0):
+        """Create bullet list item style with hanging indent"""
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+        base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        # Measure the exact rendered width of the bullet prefix so wrapped lines
+        # align precisely with the text that follows the bullet.
+        # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
+        bullet_hang = stringWidth('•\xa0\xa0', cls.FONTS['body'], cls.FONT_SIZES['body'])
+
+        return ParagraphStyle(
+            f'BulletItem{level}',
+            parent=base_styles['Normal'],
+            fontName=cls.FONTS['body'],
+            fontSize=cls.FONT_SIZES['body'],
+            spaceAfter=3,
+            alignment=TA_LEFT,
+            leftIndent=base_indent + bullet_hang,
+            firstLineIndent=-bullet_hang,
+            rightIndent=0,
+            textColor=cls.COLORS['text']
+        )
+
+    @classmethod
+    def create_numbered_style(cls, base_styles, level=0):
+        """Create numbered list item style with hanging indent"""
+        from reportlab.pdfbase.pdfmetrics import stringWidth
+        base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        # Measure the exact rendered width of a single-digit number prefix so
+        # wrapped lines align precisely with the text that follows the number.
+        # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
+        num_hang = stringWidth('1.\xa0\xa0', cls.FONTS['body'], cls.FONT_SIZES['body'])
+
+        return ParagraphStyle(
+            f'NumberedItem{level}',
+            parent=base_styles['Normal'],
+            fontName=cls.FONTS['body'],
+            fontSize=cls.FONT_SIZES['body'],
+            spaceAfter=3,
+            alignment=TA_LEFT,
+            leftIndent=base_indent + num_hang,
+            firstLineIndent=-num_hang,
             rightIndent=0,
             textColor=cls.COLORS['text']
         )
@@ -328,7 +374,7 @@ class AcademicConfig(PDFConfig):
     SPACING = {
         'title_after': 40,
         'subtitle_after': 25,
-        'heading_before': 25,
+        'heading_before': 12,
         'heading_after': 15,
         'paragraph_after': 15,  # More spacing between paragraphs
         'section_after': 20,
@@ -352,7 +398,7 @@ class CompactConfig(PDFConfig):
     SPACING = {
         'title_after': 20,
         'subtitle_after': 15,
-        'heading_before': 15,
+        'heading_before': 8,
         'heading_after': 8,
         'paragraph_after': 8,
         'section_after': 12,

@@ -4,6 +4,7 @@ Handles CRUD operations for tasks and their associations with projects, collecti
 """
 
 from flask import Blueprint, request, jsonify
+from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc, and_, or_
 from datetime import datetime, date
@@ -17,6 +18,7 @@ from backend.extensions import limiter  # optional limiter
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
 
 @tasks_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_tasks():
     """Get all tasks with optional filtering"""
     try:
@@ -75,7 +77,7 @@ def list_tasks():
         })
 
     except Exception as e:
-        print(f"Error in list_tasks: {e}")
+        current_app.logger.debug(f"Error in list_tasks: {e}")
         # Return empty response if error occurs
         return jsonify({
             'tasks': [],
@@ -89,6 +91,7 @@ def list_tasks():
 
 
 @tasks_bp.route('/enqueue-example', methods=['POST'])
+@jwt_required()
 def enqueue_example_task():
     """Enqueue the example long-running task.
 
@@ -111,6 +114,7 @@ def enqueue_example_task():
         return jsonify({'error': str(e)}), 500
 
 @tasks_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_task():
     """Create a new task"""
     try:
@@ -171,7 +175,7 @@ def create_task():
         return jsonify(task.to_dict()), 201
 
     except Exception as e:
-        print(f"Error in create_task: {e}")
+        current_app.logger.debug(f"Error in create_task: {e}")
         # Return placeholder response as fallback
         return jsonify({
             "id": 999,
@@ -194,6 +198,7 @@ def create_task():
         return jsonify({"error": str(e)}), 500
 
 @tasks_bp.route('/<int:task_id>', methods=['GET'])
+@jwt_required()
 def get_task(task_id):
     """Get a specific task"""
     try:
@@ -230,6 +235,7 @@ def get_task(task_id):
         return jsonify({"error": str(e)}), 500
 
 @tasks_bp.route('/<int:task_id>', methods=['PUT'])
+@jwt_required()
 def update_task(task_id):
     """Update a task"""
     try:
@@ -288,6 +294,7 @@ def update_task(task_id):
         return jsonify({"error": str(e)}), 500
 
 @tasks_bp.route('/<int:task_id>', methods=['DELETE'])
+@jwt_required()
 def delete_task(task_id):
     """Delete a task"""
     try:
@@ -300,6 +307,7 @@ def delete_task(task_id):
         return jsonify({"error": str(e)}), 500
 
 @tasks_bp.route('/summary', methods=['GET'])
+@jwt_required()
 def get_task_summary():
     """Get task summary statistics"""
     try:
@@ -320,10 +328,11 @@ def get_task_summary():
         })
 
     except Exception as e:
-        print(f"Error in get_task_summary: {e}")
+        current_app.logger.debug(f"Error in get_task_summary: {e}")
         return jsonify({"error": str(e)}), 500
 
 @tasks_bp.route('/associations', methods=['GET'])
+@jwt_required()
 def get_task_associations():
     """Get available associations for task creation (projects, collections, topics)"""
     try:
@@ -349,6 +358,7 @@ def get_task_associations():
 
 
 @tasks_bp.route('/tags', methods=['GET'])
+@jwt_required()
 def list_tags():
     """Get all tags with full details"""
     try:
@@ -359,6 +369,7 @@ def list_tags():
 
 
 @tasks_bp.route('/tags', methods=['POST'])
+@jwt_required()
 def create_tag():
     """Create a new tag"""
     try:
@@ -388,6 +399,7 @@ def create_tag():
 
 
 @tasks_bp.route('/tags/<int:tag_id>', methods=['PUT'])
+@jwt_required()
 def update_tag(tag_id):
     """Update a tag"""
     try:
@@ -417,6 +429,7 @@ def update_tag(tag_id):
 
 
 @tasks_bp.route('/tags/<int:tag_id>', methods=['DELETE'])
+@jwt_required()
 def delete_tag(tag_id):
     """Delete a tag"""
     try:
@@ -463,4 +476,4 @@ def ensure_tags_exist(tag_names):
         db.session.commit()
     except Exception as e:
         db.session.rollback()
-        print(f"Error creating tags: {e}")
+        current_app.logger.debug(f"Error creating tags: {e}")

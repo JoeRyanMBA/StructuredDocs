@@ -5,12 +5,14 @@ from ..models import db, Notification, User
 notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/notifications')
 
 @notifications_bp.route('', methods=['GET'])
+@jwt_required()
 def get_notifications():
     # Fetch all notifications (user-specific logic disabled for debugging)
     notifications = Notification.query.order_by(Notification.date.desc()).all()
     return jsonify([n.to_dict() for n in notifications])
 
 @notifications_bp.route('', methods=['POST'])
+@jwt_required()
 def create_notification():
     data = request.json
     title = data.get('title')
@@ -30,6 +32,7 @@ def create_notification():
     return jsonify(notification.to_dict()), 201
 
 @notifications_bp.route('/<int:notification_id>', methods=['PATCH'])
+@jwt_required()
 def mark_notification_read(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     notification.read = True
@@ -37,11 +40,13 @@ def mark_notification_read(notification_id):
     return jsonify(notification.to_dict())
 
 @notifications_bp.route('/<int:notification_id>', methods=['GET'])
+@jwt_required()
 def get_notification(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     return jsonify(notification.to_dict())
 
 @notifications_bp.route('/<int:notification_id>', methods=['PUT'])
+@jwt_required()
 def update_notification(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     data = request.json or {}
@@ -60,6 +65,7 @@ def update_notification(notification_id):
     return jsonify(notification.to_dict())
 
 @notifications_bp.route('/<int:notification_id>', methods=['DELETE'])
+@jwt_required()
 def delete_notification(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     db.session.delete(notification)

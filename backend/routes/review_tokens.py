@@ -83,6 +83,7 @@ def get_review_by_token(token):
             'success': True,
             'review': {
                 'id': review.id,
+                'topic_id': topic.id,
                 'topic_title': topic.title,
                 'topic_content': topic.content,
                 'author_message': review.author_message,

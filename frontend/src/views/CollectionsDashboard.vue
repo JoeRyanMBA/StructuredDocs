@@ -95,6 +95,7 @@
               <div class="collection-header">
                 <h4>{{ collection.name }}</h4>
                 <span class="collection-meta">{{ collection.topics_count || 0 }} topics</span>
+                <span class="obj-id-badge">#{{ collection.id }}</span>
               </div>
               <p class="collection-description">{{ collection.description || 'No description available' }}</p>
               <div class="collection-project-info">
@@ -127,6 +128,7 @@
               <div class="card-header">
                 <h4>{{ collection.name }}</h4>
                 <span class="card-badge">{{ collection.topics_count || 0 }} topics</span>
+                <span class="obj-id-badge">#{{ collection.id }}</span>
               </div>
               <p class="card-description">{{ collection.description || 'No description available' }}</p>
               <div class="card-project">
@@ -208,13 +210,13 @@
           </div>
           
           <div class="form-group">
-            <label for="collectionDescription">Description</label>
-            <textarea
+            <label for="collectionDescription">Subtitle</label>
+            <input
               id="collectionDescription"
               v-model="newCollection.description"
-              rows="3"
-              placeholder="Describe what this collection will contain"
-            ></textarea>
+              type="text"
+              placeholder="Subtitle (optional — appears on PDF cover page)"
+            />
           </div>
           
           <div class="form-group">
@@ -922,5 +924,17 @@ export default {
   .dashboard-header h1 {
     font-size: 2rem;
   }
+}
+
+.obj-id-badge {
+  font-size: 0.7rem;
+  font-weight: 500;
+  color: #5a6a8a;
+  background: #e8eef7;
+  border: 1px solid #c5d3f0;
+  border-radius: 10px;
+  padding: 0.1rem 0.45rem;
+  margin-left: 0.4rem;
+  white-space: nowrap;
 }
 </style>
