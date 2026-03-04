@@ -1,5 +1,6 @@
 from flask import Blueprint, request, jsonify
 from ..models import db, User, PasswordResetToken
+from ..extensions import limiter
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..utils.email_service import email_service
@@ -10,6 +11,23 @@ from flask_jwt_extended import create_access_token, jwt_required, get_jwt_identi
 from sqlalchemy import func
 
 users_bp = Blueprint('users', __name__, url_prefix='/api/users')
+
+VALID_ROLES = {'author', 'reviewer', 'admin'}
+
+
+def _require_admin():
+    """Return (user, None) when the caller is an authenticated admin.
+    Return (None, error_response) when authentication or authorization fails.
+    """
+    uid = get_jwt_identity()
+    try:
+        uid = int(uid)
+    except (TypeError, ValueError):
+        pass
+    user = User.query.get(uid) if uid is not None else None
+    if not user or user.role != 'admin':
+        return None, (jsonify({'error': 'Admin access required'}), 403)
+    return user, None
 
 @users_bp.route('/login', methods=['POST'])
 def login():
@@ -66,6 +84,7 @@ def get_me():
 
 @users_bp.route('', methods=['GET'])
 @users_bp.route('/', methods=['GET'])
+@jwt_required()
 def list_users():
     """Get all users"""
     print("🔄 Users GET request received")
@@ -80,10 +99,15 @@ def list_users():
 
 @users_bp.route('', methods=['POST'])
 @users_bp.route('/', methods=['POST'])
+@jwt_required()
 def create_user():
-    """Create a new user and send password setup email"""
+    """Create a new user and send password setup email (admin only)"""
     print("🔄 Create user POST request received")
     try:
+        caller, err = _require_admin()
+        if err:
+            return err
+
         data = request.get_json()
         
         # Validate required fields
@@ -91,7 +115,11 @@ def create_user():
             return jsonify({"error": "Name is required"}), 400
         if not data.get('email'):
             return jsonify({"error": "Email is required"}), 400
-        
+
+        requested_role = data.get('role', 'author')
+        if requested_role not in VALID_ROLES:
+            return jsonify({"error": f"Invalid role. Must be one of: {', '.join(sorted(VALID_ROLES))}"}), 400
+
         # Check if password is provided (for direct creation) or if we should send setup email
         send_setup_email = not data.get('password')
         
@@ -99,7 +127,7 @@ def create_user():
         user = User(
             name=data['name'].strip(),
             email=data['email'].strip().lower(),
-            role=data.get('role', 'author'),
+            role=requested_role,
             active=data.get('active', True)
         )
         
@@ -171,10 +199,15 @@ def create_user():
         return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/<int:user_id>', methods=['PUT'])
+@jwt_required()
 def update_user(user_id):
-    """Update an existing user"""
+    """Update an existing user (admin only)"""
     print(f"🔄 Update user {user_id} PUT request received")
     try:
+        caller, err = _require_admin()
+        if err:
+            return err
+
         user = User.query.get_or_404(user_id)
         data = request.get_json()
         
@@ -184,6 +217,8 @@ def update_user(user_id):
         if 'email' in data:
             user.email = data['email'].strip().lower()
         if 'role' in data:
+            if data['role'] not in VALID_ROLES:
+                return jsonify({"error": f"Invalid role. Must be one of: {', '.join(sorted(VALID_ROLES))}"}), 400
             user.role = data['role']
         if 'active' in data:
             user.active = data['active']
@@ -202,10 +237,15 @@ def update_user(user_id):
         return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/<int:user_id>', methods=['DELETE'])
+@jwt_required()
 def delete_user(user_id):
-    """Delete a user"""
+    """Delete a user (admin only)"""
     print(f"🔄 Delete user {user_id} DELETE request received")
     try:
+        caller, err = _require_admin()
+        if err:
+            return err
+
         user = User.query.get_or_404(user_id)
         
         # Don't allow deleting the last admin
@@ -226,20 +266,27 @@ def delete_user(user_id):
         return jsonify({"error": str(e)}), 500
 
 @users_bp.route('/<int:user_id>/role', methods=['PUT'])
+@jwt_required()
 def update_user_role(user_id):
-    """Update a user's role"""
+    """Update a user's role (admin only)"""
     print(f"🔄 Update user {user_id} role PUT request received")
     try:
+        caller, err = _require_admin()
+        if err:
+            return err
+
         user = User.query.get_or_404(user_id)
         data = request.get_json()
         
         if not data.get('role'):
             return jsonify({"error": "Role is required"}), 400
-        
-        old_role = user.role
+
         new_role = data['role']
+        if new_role not in VALID_ROLES:
+            return jsonify({"error": f"Invalid role. Must be one of: {', '.join(sorted(VALID_ROLES))}"}), 400
         
         # Don't allow removing admin role from the last admin
+        old_role = user.role
         if old_role == 'admin' and new_role != 'admin':
             admin_count = User.query.filter_by(role='admin', active=True).count()
             if admin_count <= 1:
@@ -258,6 +305,7 @@ def update_user_role(user_id):
 
 
 @users_bp.route('/request-password-reset', methods=['POST'])
+@limiter.limit("5 per hour")
 def request_password_reset():
     """Request a password reset email"""
     print("🔄 Password reset request received")
@@ -393,7 +441,6 @@ def validate_reset_token(token):
                 "valid": True,
                 "token_type": reset_token.token_type,
                 "user_name": user.name if user else None,
-                "user_email": user.email if user else None,
                 "expires_at": reset_token.expires_at.isoformat()
             }), 200
         else:
@@ -405,10 +452,15 @@ def validate_reset_token(token):
 
 
 @users_bp.route('/<int:user_id>/resend-setup-email', methods=['POST'])
+@jwt_required()
 def resend_setup_email(user_id):
-    """Resend password setup email for a user"""
+    """Resend password setup email for a user (admin only)"""
     print(f"🔄 Resending setup email for user {user_id}")
     try:
+        caller, err = _require_admin()
+        if err:
+            return err
+
         user = User.query.get_or_404(user_id)
         
         # Check if user already has a password

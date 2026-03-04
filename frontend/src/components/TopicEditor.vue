@@ -496,6 +496,7 @@ import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE } from '@/api/base'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
+import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
@@ -721,7 +722,7 @@ export default {
     abbreviatedHtml() {
       const text = this.content || ''
       const shortText = text.length > 200 ? text.substring(0, 200) : text
-      return marked(shortText)
+      return sanitizeHtml(marked(shortText))
     },
     /* True if any field differs from last saved snapshot */
     isDirty() {
@@ -1474,7 +1475,7 @@ export default {
 
       const els = [...tmp.querySelectorAll('.sd-snippet-ref[data-snippet-id]')]
       if (els.length === 0) {
-        this.previewHtml = html
+        this.previewHtml = sanitizeHtml(html)
         return
       }
 
@@ -1518,7 +1519,7 @@ export default {
       const warnings = [...base.querySelectorAll('.image-warning')]
       let finalHtml = tmp.innerHTML
       warnings.forEach(w => { finalHtml += w.outerHTML })
-      this.previewHtml = finalHtml
+      this.previewHtml = sanitizeHtml(finalHtml)
     },
 
     _buildSnippetPlaceholder(snippet) {
