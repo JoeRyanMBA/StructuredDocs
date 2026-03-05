@@ -25,6 +25,12 @@
     <FeedbackWidget />
     <VersionFooter />
     <ToastContainer />
+    <SessionTimeoutModal
+      :show="sessionWarning"
+      :secondsRemaining="sessionSecondsRemaining"
+      @extend="sessionExtend"
+      @logout="sessionLogout"
+    />
   </div>
 </template>
 
@@ -35,9 +41,22 @@ import NotificationTicker from './components/NotificationTicker.vue'
 import FeedbackWidget from '@/components/FeedbackWidget.vue';
 import ToastContainer from '@/components/ToastContainer.vue'
 import VersionFooter from '@/components/VersionFooter.vue'
+import SessionTimeoutModal from '@/components/SessionTimeoutModal.vue'
+import { useSessionTimeout } from '@/composables/useSessionTimeout'
 
 export default {
-  components: { Sidebar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter },
+  components: { Sidebar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter, SessionTimeoutModal },
+  setup() {
+    const { showWarning, secondsRemaining, startWatcher, stopWatcher, extendSession, performLogout } = useSessionTimeout()
+    return {
+      sessionWarning: showWarning,
+      sessionSecondsRemaining: secondsRemaining,
+      sessionExtend: extendSession,
+      sessionLogout: performLogout,
+      startSessionWatcher: startWatcher,
+      stopSessionWatcher: stopWatcher,
+    }
+  },
   data() {
     return {
       notifications: [],
@@ -81,6 +100,12 @@ export default {
   },
   created() {
     this.fetchNotifications()
+    // Start session watcher if user is already logged in
+    if (localStorage.getItem('access_token')) {
+      this.startSessionWatcher()
+    }
+    // Restart watcher after login and stop it after logout
+    window.addEventListener('userUpdated', this._onUserUpdated)
   },
   mounted() {
     // Close sidebar when switching from mobile to desktop
@@ -88,9 +113,17 @@ export default {
   },
   beforeUnmount() {
     window.removeEventListener('resize', this.handleResize)
+    window.removeEventListener('userUpdated', this._onUserUpdated)
+    this.stopSessionWatcher()
   },
   methods: {
-
+    _onUserUpdated() {
+      if (localStorage.getItem('access_token')) {
+        this.startSessionWatcher()
+      } else {
+        this.stopSessionWatcher()
+      }
+    },
     toggleSidebar() {
       this.sidebarOpen = !this.sidebarOpen
       // Only prevent scrolling on mobile when sidebar is open
