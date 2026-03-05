@@ -247,7 +247,8 @@ export default {
         // Fetch real data from backend API
         const res = await fetch('/api/publications')
         if (res.ok) {
-          this.publications = await res.json()
+          const data = await res.json()
+          this.publications = Array.isArray(data) ? data : (data.publications ?? [])
         } else {
           this.publications = []
         }

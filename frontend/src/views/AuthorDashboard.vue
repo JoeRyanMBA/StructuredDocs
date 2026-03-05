@@ -73,8 +73,6 @@
               <p>Add from external sources</p>
             </div>
           </button>
-  </div>
-  <div class="quick-actions-grid" style="margin-top: 1rem;">
           <button class="quick-action-card resource-card" @click="navigateTo('/all-images')">
             <div class="action-icon">🖼️</div>
             <div class="action-content">
@@ -89,7 +87,6 @@
               <p>Find reusable links for content</p>
             </div>
           </button>
-          
       </div>
     </div>
 
@@ -773,8 +770,7 @@ export default {
 
 /* Quick Actions */
 .quick-actions-grid {
-  --quick-action-min-width: 240px;
-  --quick-action-gap: 1rem;
+  --quick-action-gap: 0.25rem;
   margin-bottom: 2rem;
 }
 
