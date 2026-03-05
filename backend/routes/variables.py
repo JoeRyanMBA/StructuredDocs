@@ -286,38 +286,27 @@ def get_collection_publish_setup(collection_id):
         selections = CollectionVariableSelection.query.filter_by(collection_id=collection_id).all()
         selection_map = {s.variable_id: s.variable_value_id for s in selections}
 
-        # Get all variables that appear in collection content
+        # Return all defined variables so users can configure them regardless of
+        # whether they have already been inserted into topic content.
         all_variables = Variable.query.all()
         variables_in_content = []
 
-        # Check which variables are actually used in this collection's content
         for var in all_variables:
-            variable_pattern = f"{{{{{var.slug}}}}}"
-            found_in_content = False
+            current_selection = selection_map.get(var.id)
+            current_value = None
+            if current_selection:
+                value_obj = VariableValue.query.get(current_selection)
+                current_value = value_obj.to_dict() if value_obj else None
 
-            # Check in topic titles and content
-            for topic in collection.topics:
-                if (variable_pattern in (topic.title or '') or
-                    variable_pattern in (topic.content or '')):
-                    found_in_content = True
-                    break
-
-            if found_in_content:
-                current_selection = selection_map.get(var.id)
-                current_value = None
-                if current_selection:
-                    value_obj = VariableValue.query.get(current_selection)
-                    current_value = value_obj.to_dict() if value_obj else None
-
-                variables_in_content.append({
-                    'id': var.id,
-                    'slug': var.slug,
-                    'name': var.name,
-                    'description': var.description,
-                    'is_resolved': var.slug not in unresolved,
-                    'current_selection': current_value,
-                    'values': [v.to_dict() for v in var.values]
-                })
+            variables_in_content.append({
+                'id': var.id,
+                'slug': var.slug,
+                'name': var.name,
+                'description': var.description,
+                'is_resolved': var.slug not in unresolved,
+                'current_selection': current_value,
+                'values': [v.to_dict() for v in var.values]
+            })
 
         return jsonify({
             'collection_id': collection_id,
