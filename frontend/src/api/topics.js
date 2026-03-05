@@ -2,7 +2,8 @@ export async function getTopics() {
   try {
     const res = await fetch('/api/topics')
     if (!res.ok) throw new Error(res.statusText)
-    return res.json()
+    const data = await res.json()
+    return Array.isArray(data) ? data : (data.topics ?? [])
   } catch (error) {
     console.error('Failed to load topics from API:', error)
     console.log('Using fallback mock data for testing')
