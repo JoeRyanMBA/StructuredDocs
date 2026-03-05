@@ -215,6 +215,20 @@ def tag_usage():
         return jsonify({'error': str(e)}), 500
 
 
+@tags_bp.route('/entity/topic', methods=['GET'])
+@jwt_required()
+def get_all_topic_tags():
+    """Return all topic→tag mappings as {topic_id: [{id, name}]} in one query."""
+    rows = EntityTag.query.filter_by(entity_type='topic').all()
+    result = {}
+    for row in rows:
+        key = str(row.entity_id)
+        if key not in result:
+            result[key] = []
+        result[key].append(row.to_dict())
+    return jsonify(result)
+
+
 @tags_bp.route('/entity/<string:entity_type>/<int:entity_id>', methods=['GET'])
 @jwt_required()
 def get_entity_tags(entity_type, entity_id):

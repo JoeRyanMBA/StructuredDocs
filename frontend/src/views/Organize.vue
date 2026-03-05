@@ -261,6 +261,16 @@
       </div>
       <div class="topics-panel">
         <h2>Available Topics</h2>
+
+        <!-- Tag filter -->
+        <div v-if="availableTagsForFilter.length" class="available-tag-filter">
+          <label for="available-tag-select">Filter by tag:</label>
+          <select id="available-tag-select" v-model="tagFilter" class="tag-filter-select">
+            <option value="">All topics</option>
+            <option v-for="tag in availableTagsForFilter" :key="tag.id" :value="tag.name">{{ tag.name }}</option>
+          </select>
+          <button v-if="tagFilter" @click="tagFilter = ''" class="clear-filter-btn" title="Clear filter" aria-label="Clear tag filter">×</button>
+        </div>
         
         <!-- Multi-select controls for Available Topics -->
         <div v-if="selectedAvailableTopics.size > 0" class="multi-select-controls">
@@ -279,6 +289,7 @@
         >
           <template #item="{ element, index }">
             <div 
+              v-show="!tagFilter || (topicTagsMap[String(element.id)] || []).some(t => t.name === tagFilter)"
               class="unassigned-topic-item"
               :class="{ 'selected': selectedAvailableTopics.has(element.id) }"
               @click="handleAvailableTopicClick(element, index, $event)"
@@ -298,6 +309,11 @@
                 </svg>
               </div>
               <span class="topic-title">{{ element.title }}</span>
+              <span 
+                v-for="tag in (topicTagsMap[String(element.id)] || [])" 
+                :key="tag.id" 
+                class="topic-tag-badge"
+              >{{ tag.name }}</span>
               <div style="margin-left: auto; display: flex; align-items: center;">
                 <button class="icon-btn" @click.stop="previewTopic(element)" title="Preview this topic" aria-label="Preview topic">
                   <i class="bi bi-zoom-in" aria-hidden="true"></i>
@@ -383,7 +399,7 @@ import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
 import { getCollections, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
-import { getTopics } from '@/api/topics.js' // You may need to implement this
+import { getTopics, getTopicTagsMap } from '@/api/topics.js' // You may need to implement this
 import TopicEditor from '@/components/TopicEditor.vue'
 import { toast } from '@/composables/useToast'
 import TagEditor from '@/components/TagEditor.vue'
@@ -435,6 +451,8 @@ export default {
       , showVariableModal: false
       , variableModalData: null
       , pendingPublishAction: null
+      , tagFilter: ''
+      , topicTagsMap: {}
     }
   },
   computed: {
@@ -451,19 +469,38 @@ export default {
       // Match Topic Preview icon color; icon-btn uses this token
       return getComputedStyle(document.documentElement).getPropertyValue('--primary-deep-teal')?.trim() || '#005B6E'
     },
+    availableTagsForFilter() {
+      const seen = new Map()
+      for (const topic of this.unassignedTopics) {
+        const tags = this.topicTagsMap[String(topic.id)] || []
+        for (const tag of tags) {
+          if (!seen.has(tag.id)) seen.set(tag.id, tag.name)
+        }
+      }
+      return Array.from(seen.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
+    },
+    filteredUnassignedTopics() {
+      if (!this.tagFilter) return this.unassignedTopics
+      return this.unassignedTopics.filter(topic => {
+        const tags = this.topicTagsMap[String(topic.id)] || []
+        return tags.some(t => t.name === this.tagFilter)
+      })
+    },
   },
   async created() {
     // Check if we're in edit mode
     this.isEditMode = this.$route.query.edit === 'true'
     
     try {
-      // Load collections and topics (critical)
-      const [collections, topics] = await Promise.all([
+      // Load collections, topics, and topic tags in parallel
+      const [collections, topics, tagsMap] = await Promise.all([
         getCollections(),
-        getTopics()
+        getTopics(),
+        getTopicTagsMap()
       ])
       this.allCollections = collections
       this.topics = topics
+      this.topicTagsMap = tagsMap
       
       // Load projects separately with error handling (non-critical for viewing)
       try {
@@ -1557,6 +1594,11 @@ export default {
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
 }
 
+.topics-panel {
+  display: flex;
+  flex-direction: column;
+}
+
 .collections-panel h2, .topics-panel h2 {
   color: var(--primary-deep-teal);
   margin-top: 0;
@@ -1626,7 +1668,58 @@ export default {
 
 /* header toggle uses .icon-btn to match preview buttons */
 
+.available-tag-filter {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  flex-wrap: wrap;
+}
+
+.available-tag-filter label {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-secondary-cool-gray);
+  white-space: nowrap;
+}
+
+.tag-filter-select {
+  padding: 0.25rem 0.5rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: 4px;
+  font-size: 0.875rem;
+  flex: 1;
+  min-width: 0;
+}
+
+.clear-filter-btn {
+  background: none;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 1rem;
+  line-height: 1;
+  padding: 0.2rem 0.4rem;
+  color: var(--text-secondary-cool-gray);
+}
+
+.clear-filter-btn:hover {
+  background-color: var(--bg-light-mist-gray);
+}
+
+.topic-tag-badge {
+  font-size: 0.7rem;
+  background-color: var(--extended-sky-blue);
+  color: var(--primary-deep-teal);
+  border-radius: 3px;
+  padding: 0.1rem 0.35rem;
+  white-space: nowrap;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+}
+
 .collection-topics-list, .unassigned-list {
+  flex: 1;
   min-height: 200px;
   border: 1px dashed var(--extended-lavender-gray);
   padding: 0.5rem;

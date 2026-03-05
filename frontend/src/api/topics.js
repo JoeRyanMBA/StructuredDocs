@@ -1,4 +1,15 @@
-export async function getTopics() {
+export async function getTopicTagsMap() {
+  try {
+    const res = await fetch('/api/tags/entity/topic')
+    if (!res.ok) throw new Error(res.statusText)
+    return await res.json() // {topic_id_str: [{id, name}]}
+  } catch (error) {
+    console.warn('Failed to load topic tags:', error)
+    return {}
+  }
+}
+
+
   try {
     const res = await fetch('/api/topics')
     if (!res.ok) throw new Error(res.statusText)
