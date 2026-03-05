@@ -200,7 +200,7 @@ export default {
         console.log('🔄 UserManagement - Loading users from API...')
         const response = await axios.get('/api/users')
         console.log('✅ UserManagement - API response:', response.data)
-        this.users = response.data
+        this.users = response.data.users || []
         console.log('✅ UserManagement - Users loaded:', this.users.length, 'users')
       } catch (error) {
         console.error('❌ UserManagement - Error loading users:', error)
