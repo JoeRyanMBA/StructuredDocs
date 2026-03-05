@@ -300,7 +300,7 @@ export default {
       this.$router.push(`/publications/${publication.id}`)
     },
     editPublication(publication) {
-      this.$router.push(`/publications/${publication.id}/edit`)
+      this.$router.push(`/publications/${publication.id}`)
     },
     async publishNow(publication) {
       // Persist publish action to backend
