@@ -177,6 +177,7 @@
 <script>
 import CalendarWidget from '../components/CalendarWidget.vue'
 import { store } from '../store';
+import { apiRequest } from '../api/base.js';
 
 export default {
   name: 'StartPage',
@@ -362,21 +363,12 @@ export default {
     
     async loadProjects() {
       try {
-        const response = await fetch('/api/projects/', {
-          headers: this.getAuthHeaders()
-        });
-        if (response.ok) {
-          this.projects = await response.json()
-          console.log('📁 Loaded projects:', this.projects.length);
-          // Update active metric now that projects are available
-          this.updateProjectActiveMetric()
-        } else {
-          console.warn('📁 Projects API returned error:', response.status, response.statusText);
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
+        const data = await apiRequest('/api/projects/')
+        this.projects = data
+        console.log('📁 Loaded projects:', this.projects.length);
+        this.updateProjectActiveMetric()
       } catch (error) {
         console.error('Failed to load projects:', error)
-        // Fallback to empty array
         this.projects = []
       }
     },
@@ -400,12 +392,7 @@ export default {
     
     async loadRecentActivity() {
       try {
-        const res = await fetch('/api/import/history', {
-          headers: this.getAuthHeaders()
-        });
-        if (res.ok) {
-          this.recentActivity = await res.json();
-        }
+        this.recentActivity = await apiRequest('/api/import/history');
       } catch (error) {
         console.error('Failed to load recent activity:', error)
       }

@@ -112,6 +112,7 @@
 </template>
 <script>
 import { toast } from '@/composables/useToast'
+import { apiRequest } from '@/api/base.js'
 export default {
   name:'AdminVariablesView',
   data(){
@@ -170,8 +171,7 @@ export default {
     async refresh(){
       this.loading = true
       try {
-        const res = await fetch('/api/variables?include_values=1')
-        const data = await res.json()
+        const data = await apiRequest('/api/variables?include_values=1')
         if(Array.isArray(data)) {
           this.variables = data.map(v=>({ ...v, values: Array.isArray(v.values)? v.values : [] }))
           this.loadError = null
@@ -183,7 +183,7 @@ export default {
         if(this.selectedVar){
           this.selectedVar = this.variables.find(v=>v.id===this.selectedVar.id) || null
         }
-      } catch(e){ console.error('Load failed', e); this.variables=[] }
+      } catch(e){ console.error('Load failed', e); this.variables=[]; this.loadError = { detail: e.message } }
       finally { this.loading = false }
     },
     selectVariable(v){ this.selectedVar = v },
@@ -219,9 +219,7 @@ export default {
       const slug = this.varForm.slug;
       if(!slug) { this.slugAvailable=false; return; }
       try {
-        const res = await fetch(`/api/variables/validate_slug?slug=${encodeURIComponent(slug)}`);
-        if(!res.ok) return;
-        const data = await res.json();
+        const data = await apiRequest(`/api/variables/validate_slug?slug=${encodeURIComponent(slug)}`);
         this.slugAvailable = data.available;
         this.slugSuggestion = data.suggested;
       } catch(e){ /* silent */ }
@@ -270,25 +268,21 @@ export default {
         const payload = { name:this.varForm.name.trim(), slug:this.varForm.slug.trim(), description:this.varForm.description.trim(), scope:this.varForm.scope }
         const method = this.editingVar ? 'PUT' : 'POST'
         const url = this.editingVar ? `/api/variables/${this.selectedVar.id}` : '/api/variables'
-        const res = await fetch(url,{ method, headers:{'Content-Type':'application/json'}, body: JSON.stringify(payload) })
-        if(!res.ok) {
-          // If server returns slug collision simultaneously, refresh availability
-            await this.validateSlugRemote();
-            toast.error('Failed to save variable');
-            throw new Error('Save failed');
-        }
-        const data = await res.json();
+        const data = await apiRequest(url, { method, body: JSON.stringify(payload) })
         await this.refresh();
         toast.success(this.editingVar ? 'Variable updated' : `Variable created (${data.slug})`);
         this.showVarModal=false
-      } catch(e){ console.error(e); }
+      } catch(e){
+        await this.validateSlugRemote();
+        toast.error('Failed to save variable');
+        console.error(e);
+      }
       finally { this.isSaving = false }
     },
     async addValue(){
       if(!this.selectedVar || !this.newValue.trim()) return
       try {
-        const res = await fetch(`/api/variables/${this.selectedVar.id}/values`, { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ value:this.newValue.trim(), is_default:this.newValueDefault }) })
-        if(!res.ok) throw new Error('Add failed')
+        await apiRequest(`/api/variables/${this.selectedVar.id}/values`, { method:'POST', body: JSON.stringify({ value:this.newValue.trim(), is_default:this.newValueDefault }) })
         this.newValue=''; this.newValueDefault=false; await this.refresh();
         toast.success('Value added');
       } catch(e){ console.error(e); toast.error('Failed to add value'); }
@@ -296,8 +290,7 @@ export default {
     async deleteValue(val){
       if(!confirm('Delete this value?')) return
       try {
-        const res = await fetch(`/api/variables/values/${val.id}`, { method:'DELETE' })
-        if(!res.ok) throw new Error('Delete failed')
+        await apiRequest(`/api/variables/values/${val.id}`, { method:'DELETE' })
         await this.refresh();
         toast.success('Value deleted');
       } catch(e){ console.error(e); toast.error('Failed to delete value'); }
@@ -305,8 +298,7 @@ export default {
     async makeDefault(val){
       if(!this.selectedVar) return
       try {
-        const res = await fetch(`/api/variables/values/${val.id}`, { method:'PUT', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ is_default:true }) })
-        if(!res.ok) throw new Error('Default update failed')
+        await apiRequest(`/api/variables/values/${val.id}`, { method:'PUT', body: JSON.stringify({ is_default:true }) })
         await this.refresh();
         toast.success('Default updated');
       } catch(e){ console.error(e); toast.error('Failed to update default'); }
@@ -317,8 +309,8 @@ export default {
 <style scoped>
 .admin-variables { padding:1.25rem; }
 .subtitle { color:#64748b; margin-bottom:1rem; }
-.actions-bar { display:flex; gap:.5rem; margin-bottom:1rem; }
-.actions-bar .btn { min-width:120px; }
+.actions-bar { display:flex; gap:.5rem; margin-bottom:1rem; align-items:center; }
+.actions-bar .btn { min-width:120px; white-space:nowrap; }
 .variables-layout { display:flex; gap:1rem; }
 .variables-list { flex:1 1 50%; overflow:auto; }
 .variable-detail { flex:1 1 50%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; }
