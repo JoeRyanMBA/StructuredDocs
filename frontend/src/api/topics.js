@@ -10,6 +10,7 @@ export async function getTopicTagsMap() {
 }
 
 
+export async function getTopics() {
   try {
     const res = await fetch('/api/topics')
     if (!res.ok) throw new Error(res.statusText)
