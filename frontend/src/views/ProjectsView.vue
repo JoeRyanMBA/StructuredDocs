@@ -65,13 +65,6 @@
           </div>
         </button>
         
-        <button @click="filterByStatus('active')" class="quick-action-card">
-          <div class="action-icon">🎯</div>
-          <div class="action-content" title="See all currently active projects">
-            <h3>View Active</h3>
-          </div>
-        </button>
-
         <button @click="$router.push({ name: 'AllTasks' })" class="quick-action-card">
           <div class="action-icon">✅</div>
           <div class="action-content" title="View and manage all tasks">
