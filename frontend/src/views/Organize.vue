@@ -11,6 +11,14 @@
       </p>
     </div>
     
+    <div class="organize-top-actions">
+      <button class="secondary-btn" @click="refreshTopics" :disabled="refreshing">
+        <span v-if="refreshing"><i class="bi bi-arrow-clockwise spin"></i> Refreshing…</span>
+        <span v-else><i class="bi bi-arrow-clockwise"></i> Refresh Topics</span>
+      </button>
+      <span v-if="confirmation" class="confirmation">{{ confirmation }}</span>
+    </div>
+
     <div class="organize-layout">
       <div class="collections-panel">
         <div class="panel-title-row">
@@ -223,6 +231,9 @@
             
             <!-- Show publish buttons for the current collection -->
             <div v-if="currentCollection.topics && currentCollection.topics.length" class="publish-buttons">
+              <button class="primary-btn" @click="saveChanges">
+                <i class="bi bi-floppy" aria-hidden="true"></i> Save
+              </button>
               <button
                 @click="openVariableConfigurator(currentCollection.id, $event)"
                 class="publish-btn configure-vars"
@@ -244,6 +255,9 @@
             <div v-else class="empty-collection">
               <em>No topics in this collection</em>
               <div class="publish-buttons">
+                <button class="primary-btn" @click="saveChanges">
+                  <i class="bi bi-floppy" aria-hidden="true"></i> Save
+                </button>
                 <button
                   @click="goPublishHtml(currentCollection.id, $event)"
                   class="publish-btn-disabled"
@@ -356,8 +370,10 @@
     </div>
     
     <div class="organize-actions">
-      <button class="primary-btn" @click="saveChanges">Save</button>
-      <button class="secondary-btn" @click="onTopicDrop">Refresh Topics</button>
+      <button class="secondary-btn" @click="refreshTopics" :disabled="refreshing">
+        <span v-if="refreshing"><i class="bi bi-arrow-clockwise spin"></i> Refreshing…</span>
+        <span v-else><i class="bi bi-arrow-clockwise"></i> Refresh Topics</span>
+      </button>
       <span v-if="confirmation" class="confirmation">{{ confirmation }}</span>
     </div>
     
@@ -484,6 +500,7 @@ export default {
       , tagFilter: ''
       , topicSearch: ''
       , topicTagsMap: {}
+      , refreshing: false
     }
   },
   computed: {
@@ -1281,6 +1298,28 @@ export default {
       this.unassignedTopics = this.getUnassignedTopics()
     },
 
+    async refreshTopics() {
+      this.refreshing = true
+      try {
+        const [topics, tagsMap, fullCollection] = await Promise.all([
+          getTopics(),
+          getTopicTagsMap(),
+          getCollection(parseInt(this.id))
+        ])
+        this.topics = topics
+        this.topicTagsMap = tagsMap
+        if (!fullCollection.error) {
+          this.currentCollection.topics = (fullCollection.topics || []).map(t => this.ensureTopicStructure(t))
+        }
+        this.unassignedTopics = this.getUnassignedTopics()
+        this.setSnapshot()
+      } catch (e) {
+        console.error('Failed to refresh topics:', e)
+      } finally {
+        this.refreshing = false
+      }
+    },
+
     async onTopicDrop(event) {
       console.log('Topic drop event:', event)
       
@@ -1797,6 +1836,15 @@ export default {
   margin-left: 0.5rem;
 }
 
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  display: inline-block;
+  animation: spin 0.75s linear infinite;
+}
+
+
 .topic-search-row {
   display: flex;
   align-items: center;
@@ -1982,6 +2030,13 @@ export default {
   text-align: center;
   padding: 2rem;
   color: var(--text-secondary-cool-gray);
+}
+
+.organize-top-actions {
+  margin-bottom: 1rem;
+  display: inline-flex;
+  gap: 0.75rem;
+  align-items: center;
 }
 
 .organize-actions {
