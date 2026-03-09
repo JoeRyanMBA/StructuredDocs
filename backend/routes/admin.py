@@ -492,6 +492,7 @@ def clear_database():
         db.session.execute(text("DELETE FROM stakeholders;"))
         db.session.execute(text("DELETE FROM projects;"))
         db.session.execute(text("DELETE FROM links;"))
+        db.session.execute(text("DELETE FROM snippets;"))
         db.session.execute(text("DELETE FROM users WHERE email != :admin_email"), {"admin_email": admin_email})
         db.session.commit()
 
