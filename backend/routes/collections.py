@@ -12,10 +12,78 @@ collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections
 def list_collections():
     current_app.logger.debug(f" Collections GET request received")
     try:
-        roots = Collection.query.filter_by(parent_id=None)\
-                  .order_by(Collection.position).all()
-        tree = [c.to_dict() for c in roots]
-        current_app.logger.info(f" Returning {len(tree)} collections")
+        from sqlalchemy.orm import joinedload
+        from collections import defaultdict
+
+        # Load ALL collections in one query, eagerly fetching project and topics
+        all_cols = Collection.query \
+            .options(joinedload(Collection.project), joinedload(Collection.topics)) \
+            .order_by(Collection.position).all()
+
+        # Load all collection_topic_tree rows in one query to avoid per-collection queries
+        tree_rows = db.session.execute(
+            collection_topic_tree.select().order_by(collection_topic_tree.c.position)
+        ).fetchall()
+
+        # Group tree rows by collection_id
+        rows_by_collection = defaultdict(list)
+        for row in tree_rows:
+            rows_by_collection[row.collection_id].append(row)
+
+        # Build a global topic lookup from already-loaded topics
+        topic_map = {}
+        for col in all_cols:
+            for t in col.topics:
+                if t.id not in topic_map:
+                    topic_map[t.id] = t
+
+        def build_topic_tree(collection_id):
+            rows = rows_by_collection[collection_id]
+            node_map = defaultdict(list)
+            for row in rows:
+                topic = topic_map.get(row.topic_id)
+                if topic:
+                    node_map[row.parent_topic_id].append({
+                        'id': topic.id,
+                        'title': topic.title,
+                        'children': []
+                    })
+            def build(parent_id):
+                nodes = node_map[parent_id]
+                for node in nodes:
+                    node['children'] = build(node['id'])
+                return nodes
+            return build(None)
+
+        col_map = {c.id: c for c in all_cols}
+
+        def build_col_dict(col):
+            return {
+                'id': col.id,
+                'name': col.name,
+                'form_number': col.form_number,
+                'description': col.description,
+                'position': col.position,
+                'parentId': col.parent_id,
+                'projectId': col.project_id,
+                'archived': col.archived,
+                'topics_count': len(col.topics),
+                'created_at': col.created_at.isoformat() if col.created_at else None,
+                'updated_at': col.updated_at.isoformat() if col.updated_at else None,
+                'projectName': col.project.name if col.project else None,
+                'topics': build_topic_tree(col.id),
+                'children': [
+                    build_col_dict(col_map[c.id])
+                    for c in sorted(
+                        [c for c in all_cols if c.parent_id == col.id],
+                        key=lambda x: x.position
+                    )
+                ]
+            }
+
+        roots = sorted([c for c in all_cols if c.parent_id is None], key=lambda x: x.position)
+        tree = [build_col_dict(c) for c in roots]
+        current_app.logger.info(f" Returning {len(roots)} root collections ({len(all_cols)} total)")
         return jsonify(tree), 200
     except Exception as e:
         current_app.logger.error(f" Error in list_collections: {e}")
@@ -26,47 +94,33 @@ def list_collections():
 def get_collections_stats():
     """Get statistics for collections dashboard"""
     try:
-        # Get all collections (including children)
-        all_collections = Collection.query.all()
-        root_collections = Collection.query.filter_by(parent_id=None).all()
-        
-        total_collections = len(all_collections)
-        # Since Collection doesn't have status field, assume all are active
-        active_collections = total_collections
-        
-        # Calculate total topics across all collections
-        total_topics = sum(len(c.topics) for c in all_collections)
+        from sqlalchemy import func as sqlfunc
 
-        # Calculate new collections created within the last 7 days (inclusive)
-        # Use naive UTC datetimes to match model columns (no timezone=True)
+        total_collections = db.session.query(sqlfunc.count(Collection.id)).scalar() or 0
+        root_collections = db.session.query(sqlfunc.count(Collection.id)).filter_by(parent_id=None).scalar() or 0
+
+        # Count total topics via pivot table (single query, no lazy loading)
+        total_topics = db.session.query(sqlfunc.count(collection_topic_tree.c.topic_id)).scalar() or 0
+
         now = datetime.utcnow()
         one_week_ago = now - timedelta(days=7)
-        new_this_week = 0
-        for c in all_collections:
-            created = getattr(c, 'created_at', None)
-            if created and created >= one_week_ago:
-                new_this_week += 1
-        
-        # Calculate average topics per collection
+        new_this_week = db.session.query(sqlfunc.count(Collection.id))\
+            .filter(Collection.created_at >= one_week_ago).scalar() or 0
+
         avg_topics = round(total_topics / total_collections) if total_collections > 0 else 0
-        
+
         stats = {
             'total': total_collections,
-            'active': active_collections,
+            'active': total_collections,
             'totalTopics': total_topics,
             'newThisWeek': new_this_week,
             'avgTopics': avg_topics,
-            'rootCollections': len(root_collections),
-            'debug': {
-                'all_collections_count': len(all_collections),
-                'root_collections_count': len(root_collections),
-                'topics_per_collection': [(c.name, len(c.topics)) for c in all_collections]
-            }
+            'rootCollections': root_collections,
         }
-        
+
         current_app.logger.debug(f"📊 Collections stats: {stats}")
         return jsonify(stats), 200
-        
+
     except Exception as e:
         current_app.logger.error(f" Error calculating collections stats: {e}")
         return jsonify({"error": str(e)}), 500
