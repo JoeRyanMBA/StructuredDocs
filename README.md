@@ -1,5 +1,30 @@
 # StructuredDocs
 
+StructuredDocs is a document management and knowledge-base platform. Users organize content into a **Project → Collection → Topic** hierarchy, edit rich HTML content with TinyMCE or Quill, route topics through a structured review and approval workflow, and publish finished content as PDFs, HTML knowledge bases, or mobile-optimised sites. Word (`.docx`), HTML, and Markdown documents can be imported and automatically parsed into the hierarchy.
+
+## Features
+
+- **Hierarchical authoring** – Projects contain nested Collections and Topics with a rich-text editor (TinyMCE 6 / Quill 2)
+- **Document import** – Upload `.docx` or Markdown; headings are parsed into the Project → Collection → Topic tree with embedded images preserved
+- **Review workflow** – Assign reviewers, generate time-limited token links for external (no-account) reviewers, collect inline feedback, and track approval status through configurable review sequences
+- **Publications & export** – Assemble ordered topic snapshots into a Publication and export as PDF (multiple style configs), self-contained HTML, or a mobile knowledge base
+- **Variables & snippets** – Reusable content blocks and variable substitution across documents
+- **Milestones & tasks** – Lightweight project task tracking
+- **Admin** – User management, diagnostics, metrics dashboard
+
+## Tech Stack
+
+| Layer | Technology |
+|---|---|
+| Frontend | Vue 3, Vite, Bootstrap 5, TinyMCE 6, Quill 2, Axios |
+| Backend | Python 3.11, Flask, SQLAlchemy ORM, Flask-Migrate |
+| Database | PostgreSQL (production), SQLite (development) |
+| Auth | Flask-JWT-Extended (JWT bearer tokens) |
+| Background jobs | Redis + RQ |
+| Rate limiting | Flask-Limiter |
+| Storage | AWS S3 / DigitalOcean Spaces (images) |
+| Email | SendGrid or SMTP |
+
 ## Quick Start
 
 ### Frontend (Vercel)
@@ -25,7 +50,7 @@ Three supported deployment styles (choose one):
 
 2. Droplet + systemd (no containers)
 
-   - Install Python 3.12, create venv, install `backend/requirements.txt`.
+   - Install Python 3.11, create venv, install `backend/requirements.txt`.
 
    - Use Gunicorn unit: `/etc/systemd/system/structureddocs.service` pointing to `backend.app:create_app()`.
    - Run Alembic migrations with `scripts/run_migrations.sh` (ensure env loaded).
@@ -65,13 +90,33 @@ See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuratio
 | Layer    | Dev Command                            | Production Path                                                |
 |----------|----------------------------------------|----------------------------------------------------------------|
 | Frontend | `cd frontend && npm run dev`           | Vercel build + CDN                                             |
-| Backend  | `docker compose -f docker-compose.app.yml up` | Droplet container (Gunicorn)                             |
-| DB       | DO Managed Postgres                    | Managed service (set `DATABASE_URL`)                           |
-| Migrations | `scripts/run_migrations.sh`         | Manual or container start (`RUN_DB_MIGRATIONS=1`)               |
+| Backend  | `python -m gunicorn "backend.app:create_app()" -b 0.0.0.0:8080` | Droplet container (Gunicorn) |
+| DB       | SQLite (auto-created)                  | DO Managed Postgres (set `DATABASE_URL`)                       |
+| Migrations | `cd backend && flask db upgrade`    | Manual or container start (`RUN_DB_MIGRATIONS=1`)              |
+
+### Local Development (without Docker)
+
+```bash
+# Backend
+cd /path/to/repo
+python -m venv .venv && source .venv/bin/activate
+pip install -r backend/requirements.txt
+cp .env.example .env          # fill in values
+python -m gunicorn "backend.app:create_app()" -b 0.0.0.0:8080
+
+# Frontend (separate terminal)
+cd frontend
+npm install
+npm run dev                   # Vite dev server on :5173, proxies /api → :8080
+
+# Run tests
+python -m pytest test_hierarchical_parsing_logic.py   # unit tests (no server needed)
+python -m pytest test_integration.py                  # integration tests (requires backend on :5050)
+```
 
 ### Legacy
 
-- PythonAnywhere hosting is no longer supported and all related scripts have been removed from this repository.
+- PythonAnywhere was a previous hosting target. Residual helper scripts (`pa_*.sh`, `deploy_pythonanywhere.sh`, etc.) remain in `scripts/` for reference but are not part of the current deployment workflow.
 
 ## Operational Enhancements (Infrastructure Overview)
 
