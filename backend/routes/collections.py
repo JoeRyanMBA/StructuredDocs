@@ -13,47 +13,20 @@ def list_collections():
     current_app.logger.debug(f" Collections GET request received")
     try:
         from sqlalchemy.orm import joinedload
-        from collections import defaultdict
+        from sqlalchemy import func as sqlfunc
 
-        # Load ALL collections in one query, eagerly fetching project and topics
+        # Load all collections with their projects in one query (no topics JOIN)
         all_cols = Collection.query \
-            .options(joinedload(Collection.project), joinedload(Collection.topics)) \
+            .options(joinedload(Collection.project)) \
             .order_by(Collection.position).all()
 
-        # Load all collection_topic_tree rows in one query to avoid per-collection queries
-        tree_rows = db.session.execute(
-            collection_topic_tree.select().order_by(collection_topic_tree.c.position)
-        ).fetchall()
-
-        # Group tree rows by collection_id
-        rows_by_collection = defaultdict(list)
-        for row in tree_rows:
-            rows_by_collection[row.collection_id].append(row)
-
-        # Build a global topic lookup from already-loaded topics
-        topic_map = {}
-        for col in all_cols:
-            for t in col.topics:
-                if t.id not in topic_map:
-                    topic_map[t.id] = t
-
-        def build_topic_tree(collection_id):
-            rows = rows_by_collection[collection_id]
-            node_map = defaultdict(list)
-            for row in rows:
-                topic = topic_map.get(row.topic_id)
-                if topic:
-                    node_map[row.parent_topic_id].append({
-                        'id': topic.id,
-                        'title': topic.title,
-                        'children': []
-                    })
-            def build(parent_id):
-                nodes = node_map[parent_id]
-                for node in nodes:
-                    node['children'] = build(node['id'])
-                return nodes
-            return build(None)
+        # Count topics per collection in a single GROUP BY query
+        topic_counts = dict(
+            db.session.query(
+                collection_topic_tree.c.collection_id,
+                sqlfunc.count(collection_topic_tree.c.topic_id)
+            ).group_by(collection_topic_tree.c.collection_id).all()
+        )
 
         col_map = {c.id: c for c in all_cols}
 
@@ -67,11 +40,11 @@ def list_collections():
                 'parentId': col.parent_id,
                 'projectId': col.project_id,
                 'archived': col.archived,
-                'topics_count': len(col.topics),
+                'topics_count': topic_counts.get(col.id, 0),
                 'created_at': col.created_at.isoformat() if col.created_at else None,
                 'updated_at': col.updated_at.isoformat() if col.updated_at else None,
                 'projectName': col.project.name if col.project else None,
-                'topics': build_topic_tree(col.id),
+                'topics': [],  # Full topic tree loaded per-collection on the detail page
                 'children': [
                     build_col_dict(col_map[c.id])
                     for c in sorted(
