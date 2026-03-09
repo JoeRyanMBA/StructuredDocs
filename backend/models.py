@@ -140,11 +140,9 @@ class Collection(db.Model):
         for row in rows:
             topic = topics.get(row.topic_id)
             if topic:
-                tree[row.parent_topic_id].append({
-                    'id': topic.id,
-                    'title': topic.title,
-                    'children': []
-                })
+                node = topic.to_dict()
+                node['children'] = []
+                tree[row.parent_topic_id].append(node)
         # Recursively build children
         def build(parent_id):
             nodes = tree[parent_id]
