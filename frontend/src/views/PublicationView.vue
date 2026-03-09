@@ -33,7 +33,7 @@
       <div class="actions">
         <button @click="downloadPDF">Download PDF</button>
         <button @click="exportMobileKB" class="mobile-kb-btn">📱 Export Mobile Knowledge Base</button>
-        <button @click="previewMobileKB" class="preview-btn">👁️ Preview Mobile KB</button>
+        <button @click="previewMobileKB" class="preview-btn"><i class="bi bi-zoom-in" aria-hidden="true"></i> Preview Mobile KB</button>
       </div>
     </div>
     <div v-else class="empty">

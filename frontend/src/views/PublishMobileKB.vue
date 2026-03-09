@@ -62,7 +62,7 @@
           <p class="publication-description">{{ pub.description || 'No description' }}</p>
           <div class="card-actions">
             <button @click.stop="previewMobileKB(pub.id)" class="btn-preview">
-              👁️ Preview
+              <i class="bi bi-zoom-in" aria-hidden="true"></i> Preview
             </button>
             <button @click.stop="exportMobileKB(pub.id)" class="btn-export">
               📥 Download
