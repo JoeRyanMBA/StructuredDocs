@@ -283,9 +283,11 @@
           :list="unassignedTopics"
           group="topics"
           item-key="id"
-          @change="onTopicDrop"
+          @change="onAvailableTopicChange"
           class="unassigned-list"
           handle=".drag-handle"
+          :force-fallback="true"
+          :fallback-tolerance="5"
         >
           <template #item="{ element, index }">
             <div 
@@ -363,7 +365,7 @@
     <div v-if="previewModal.show" class="modal-overlay" @click.self="closePreviewModal">
       <div class="modal-content preview-modal" @click.stop>
         <div class="modal-header-row modal-header">
-          <h3>👁️ Topic Preview</h3>
+          <h3><i class="bi bi-zoom-in" aria-hidden="true"></i> Topic Preview</h3>
           <button class="plain-close btn-close" @click="closePreviewModal">✕</button>
         </div>
         <div class="modal-body">
@@ -1244,49 +1246,48 @@ export default {
       this.unassignedTopics = this.getUnassignedTopics()
     },
 
+    // Handles changes on the available-topics list. Only refreshes the unassigned list;
+    // saving is handled exclusively by onTopicDrop (on the collection list) to avoid
+    // duplicate concurrent saves for the same cross-list drag.
+    onAvailableTopicChange() {
+      this.unassignedTopics = this.getUnassignedTopics()
+    },
+
     async onTopicDrop(event) {
       console.log('Topic drop event:', event)
-      console.log('Event keys:', Object.keys(event))
       
-      // Handle different types of drag-and-drop events
       if (event.added) {
-        // Topic was added to this collection from somewhere else
         const addedTopic = event.added.element
         console.log('Topic added:', addedTopic)
-        
-        // Ensure the added topic has proper structure
         this.ensureTopicStructure(addedTopic)
-        
-        // Auto-expand if the added topic has children
         if (addedTopic.children && addedTopic.children.length > 0) {
           this.expandedTopics.add(addedTopic.id)
         }
       }
       
       if (event.moved) {
-        // Topic was moved within this collection
-        const movedTopic = event.moved.element
-        console.log('Topic moved within collection:', movedTopic)
+        console.log('Topic moved within collection:', event.moved.element)
       }
       
       if (event.removed) {
-        // Topic was removed from this collection
-        const removedTopic = event.removed.element
-        console.log('Topic removed from collection:', removedTopic)
+        console.log('Topic removed from collection:', event.removed.element)
       }
       
-      // Refresh unassigned topics list when topics are moved
+      // Refresh unassigned topics list
       this.unassignedTopics = this.getUnassignedTopics()
       
-      // Update the collection in the global array and save
-      const collectionToUpdate = this.findCollectionById(this.allCollections, parseInt(this.id))
-      if (collectionToUpdate) {
-        Object.assign(collectionToUpdate, this.currentCollection)
+      // Only save when this event came from the collection list (added or moved or removed from collection).
+      // The available-topics list also fires @change with {removed} for the same cross-list drag — skip that
+      // duplicate save by only persisting when the collection state actually changed.
+      if (event.added || event.moved || event.removed) {
+        const collectionToUpdate = this.findCollectionById(this.allCollections, parseInt(this.id))
+        if (collectionToUpdate) {
+          Object.assign(collectionToUpdate, this.currentCollection)
+        }
+        await saveCollections(this.buildSafePayload(this.allCollections))
+        this.confirmation = 'Topics updated!'
+        setTimeout(() => { this.confirmation = '' }, 1500)
       }
-      
-      await saveCollections(this.buildSafePayload(this.allCollections))
-      this.confirmation = 'Topics updated!'
-      setTimeout(() => { this.confirmation = '' }, 1500)
     },
 
     // Build a save payload where only the current collection carries its topic list.
