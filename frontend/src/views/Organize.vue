@@ -153,7 +153,9 @@
                           </svg>
                         </div>
                         <div class="topic-content-row" style="display: flex; align-items: center; flex: 1; min-width: 0;">
+                          <span class="topic-id-badge">#{{ topic.id }}</span>
                           <span class="topic-title">{{ topic.title }}</span>
+                          <span :class="['topic-status-badge', 'status-' + (topic.status || 'draft')]">{{ topic.status || 'draft' }}</span>
                           <span v-if="topic.children && topic.children.length > 0" class="child-count">
                             ({{ topic.children.length }})
                           </span>
@@ -201,7 +203,9 @@
                                 <circle cx="10" cy="10" r="1" fill="#999"/>
                               </svg>
                             </div>
+                            <span class="topic-id-badge">#{{ childTopic.id }}</span>
                             <span class="topic-title">{{ childTopic.title }}</span>
+                            <span :class="['topic-status-badge', 'status-' + (childTopic.status || 'draft')]">{{ childTopic.status || 'draft' }}</span>
                             <div class="topic-actions">
                               <button class="topic-btn up" @click.stop="moveTopicUp(childTopic)">▲</button>
                               <button class="topic-btn down" @click.stop="moveTopicDown(childTopic)">▼</button>
@@ -260,7 +264,19 @@
         </div>
       </div>
       <div class="topics-panel">
-        <h2>Available Topics</h2>
+        <h2>Available Topics <span class="topic-count-badge">{{ visibleUnassignedCount }} / {{ unassignedTopics.length }}</span></h2>
+
+        <!-- Text search -->
+        <div class="topic-search-row">
+          <input
+            v-model="topicSearch"
+            type="text"
+            class="topic-search-input"
+            placeholder="Search by ID or title…"
+            aria-label="Search available topics"
+          />
+          <button v-if="topicSearch" @click="topicSearch = ''" class="clear-filter-btn" title="Clear search" aria-label="Clear search">×</button>
+        </div>
 
         <!-- Tag filter -->
         <div v-if="availableTagsForFilter.length" class="available-tag-filter">
@@ -272,6 +288,13 @@
           <button v-if="tagFilter" @click="tagFilter = ''" class="clear-filter-btn" title="Clear filter" aria-label="Clear tag filter">×</button>
         </div>
         
+        <!-- Add all matching -->
+        <div v-if="topicSearch || tagFilter" class="add-all-row">
+          <button @click="addAllFilteredToCollection" class="move-btn" :disabled="visibleUnassignedCount === 0">
+            + Add All Matching ({{ visibleUnassignedCount }})
+          </button>
+        </div>
+
         <!-- Multi-select controls for Available Topics -->
         <div v-if="selectedAvailableTopics.size > 0" class="multi-select-controls">
           <span class="selected-count">{{ selectedAvailableTopics.size }} topic(s) selected</span>
@@ -291,7 +314,7 @@
         >
           <template #item="{ element, index }">
             <div 
-              v-show="!tagFilter || (topicTagsMap[String(element.id)] || []).some(t => t.name === tagFilter)"
+              v-show="isAvailableTopicVisible(element)"
               class="unassigned-topic-item"
               :class="{ 'selected': selectedAvailableTopics.has(element.id) }"
               @click="handleAvailableTopicClick(element, index, $event)"
@@ -310,13 +333,18 @@
                   <circle cx="10" cy="10" r="1" fill="#999"/>
                 </svg>
               </div>
+              <span class="topic-id-badge">#{{ element.id }}</span>
               <span class="topic-title">{{ element.title }}</span>
+              <span :class="['topic-status-badge', 'status-' + (element.status || 'draft')]">{{ element.status || 'draft' }}</span>
               <span 
                 v-for="tag in (topicTagsMap[String(element.id)] || [])" 
                 :key="tag.id" 
                 class="topic-tag-badge"
               >{{ tag.name }}</span>
-              <div style="margin-left: auto; display: flex; align-items: center;">
+              <div style="margin-left: auto; display: flex; align-items: center; gap: 0.25rem; flex-shrink: 0;">
+                <button class="icon-btn" @click.stop="addTopicToCollection(element)" title="Add to collection" aria-label="Add to collection">
+                  <i class="bi bi-plus-circle" aria-hidden="true"></i>
+                </button>
                 <button class="icon-btn" @click.stop="previewTopic(element)" title="Preview this topic" aria-label="Preview topic">
                   <i class="bi bi-zoom-in" aria-hidden="true"></i>
                 </button>
@@ -454,6 +482,7 @@ export default {
       , variableModalData: null
       , pendingPublishAction: null
       , tagFilter: ''
+      , topicSearch: ''
       , topicTagsMap: {}
     }
   },
@@ -482,11 +511,10 @@ export default {
       return Array.from(seen.entries()).map(([id, name]) => ({ id, name })).sort((a, b) => a.name.localeCompare(b.name))
     },
     filteredUnassignedTopics() {
-      if (!this.tagFilter) return this.unassignedTopics
-      return this.unassignedTopics.filter(topic => {
-        const tags = this.topicTagsMap[String(topic.id)] || []
-        return tags.some(t => t.name === this.tagFilter)
-      })
+      return this.unassignedTopics.filter(t => this.isAvailableTopicVisible(t))
+    },
+    visibleUnassignedCount() {
+      return this.unassignedTopics.filter(t => this.isAvailableTopicVisible(t)).length
     },
   },
   async created() {
@@ -1308,6 +1336,32 @@ export default {
       return strip(collections)
     },
 
+    isAvailableTopicVisible(topic) {
+      const matchesTag = !this.tagFilter ||
+        (this.topicTagsMap[String(topic.id)] || []).some(t => t.name === this.tagFilter)
+      const term = this.topicSearch.trim().toLowerCase()
+      if (!term) return matchesTag
+      const matchesSearch = String(topic.id).includes(term) ||
+        topic.title.toLowerCase().includes(term)
+      return matchesTag && matchesSearch
+    },
+
+    addTopicToCollection(topic) {
+      this.ensureTopicStructure(topic)
+      this.currentCollection.topics.push(topic)
+      this.unassignedTopics = this.getUnassignedTopics()
+      this.saveChanges()
+    },
+
+    addAllFilteredToCollection() {
+      const toAdd = this.unassignedTopics.filter(t => this.isAvailableTopicVisible(t))
+      if (!toAdd.length) return
+      toAdd.forEach(t => this.ensureTopicStructure(t))
+      this.currentCollection.topics.push(...toAdd)
+      this.unassignedTopics = this.getUnassignedTopics()
+      this.saveChanges()
+    },
+
     ensureTopicStructure(topic) {
       // Ensure each topic has a children array for nesting
       if (!topic.children) {
@@ -1735,6 +1789,67 @@ export default {
 .clear-filter-btn:hover {
   background-color: var(--bg-light-mist-gray);
 }
+
+.topic-count-badge {
+  font-size: 0.75rem;
+  color: var(--text-secondary-cool-gray);
+  font-weight: normal;
+  margin-left: 0.5rem;
+}
+
+.topic-search-row {
+  display: flex;
+  align-items: center;
+  gap: 0.25rem;
+  margin-bottom: 0.5rem;
+}
+
+.topic-search-input {
+  flex: 1;
+  padding: 0.35rem 0.6rem;
+  border: 1px solid var(--extended-lavender-gray);
+  border-radius: 4px;
+  font-size: 0.85rem;
+}
+
+.topic-search-input:focus {
+  outline: none;
+  border-color: var(--primary-deep-teal);
+}
+
+.add-all-row {
+  margin-bottom: 0.5rem;
+}
+
+.topic-id-badge {
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: var(--text-secondary-cool-gray);
+  background: var(--bg-light-mist-gray);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  margin-right: 0.35rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.topic-status-badge {
+  font-size: 0.65rem;
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+.status-draft          { background: #e9ecef; color: #495057; }
+.status-pending_review { background: #cce5ff; color: #004085; }
+.status-revisions_requested { background: #fff3cd; color: #856404; }
+.status-approved       { background: #d4edda; color: #155724; }
+.status-published      { background: #d1ecf1; color: #0c5460; }
+.status-rejected       { background: #f8d7da; color: #721c24; }
+.status-archived       { background: #e2e3e5; color: #383d41; }
 
 .topic-tag-badge {
   font-size: 0.7rem;
