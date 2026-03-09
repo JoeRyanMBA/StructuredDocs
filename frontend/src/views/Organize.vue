@@ -397,7 +397,7 @@
 import CollectionTree from '@/components/CollectionTree.vue'
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
-import { getCollections, saveCollections } from '@/api/collections.js'
+import { getCollections, getCollection, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { getTopics, getTopicTagsMap } from '@/api/topics.js' // You may need to implement this
 import TopicEditor from '@/components/TopicEditor.vue'
@@ -522,6 +522,15 @@ export default {
       console.error(`Collection with ID ${this.id} not found`)
       this.$router.push({ name: 'Collections' })
       return
+    }
+
+    // Load the full topic tree for this collection (list endpoint omits topics for performance)
+    try {
+      const fullCollection = await getCollection(parseInt(this.id))
+      this.currentCollection.topics = fullCollection.topics || []
+    } catch (e) {
+      console.warn('Failed to load collection topics, defaulting to empty:', e)
+      this.currentCollection.topics = []
     }
     
     // Ensure all topics have proper structure for nesting
