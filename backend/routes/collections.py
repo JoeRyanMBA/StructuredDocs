@@ -67,12 +67,12 @@ def list_collections():
 def get_collection(collection_id):
     """Get a single collection with its full topic hierarchy."""
     try:
-        col = Collection.query.get(collection_id)
+        col = db.session.get(Collection, collection_id)
         if not col:
             return jsonify({"error": "Collection not found"}), 404
         return jsonify(col.to_dict(include_children=True, include_topics=True)), 200
     except Exception as e:
-        current_app.logger.error(f" Error in get_collection {collection_id}: {e}")
+        current_app.logger.exception(f"Error in get_collection {collection_id}: {e}")
         return jsonify({"error": str(e)}), 500
 
 

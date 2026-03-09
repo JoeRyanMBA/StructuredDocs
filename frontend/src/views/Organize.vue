@@ -527,9 +527,16 @@ export default {
     // Load the full topic tree for this collection (list endpoint omits topics for performance)
     try {
       const fullCollection = await getCollection(parseInt(this.id))
-      this.currentCollection.topics = fullCollection.topics || []
+      console.log('📋 Full collection response:', fullCollection)
+      if (fullCollection.error) {
+        console.error('❌ getCollection returned error:', fullCollection.error)
+        this.currentCollection.topics = []
+      } else {
+        this.currentCollection.topics = fullCollection.topics || []
+        console.log(`✅ Loaded ${this.currentCollection.topics.length} topics for collection ${this.id}`)
+      }
     } catch (e) {
-      console.warn('Failed to load collection topics, defaulting to empty:', e)
+      console.error('❌ Failed to load collection topics:', e)
       this.currentCollection.topics = []
     }
     
