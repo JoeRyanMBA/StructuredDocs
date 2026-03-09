@@ -269,6 +269,7 @@ import CompactToolbar from '../components/CompactToolbar.vue'
 import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
 import { getCollections, saveCollections } from '@/api/collections.js'
+import { apiRequest } from '@/api/base.js'
 import { toast } from '@/composables/useToast'
 
 export default {
@@ -347,15 +348,10 @@ export default {
           status: collection.status,
           project_id: collection.projectId
         }
-        const response = await fetch(`/api/collections/${collection.id}`, {
+        await apiRequest(`/api/collections/${collection.id}`, {
           method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to update collection: ${response.status} ${errorText}`)
-        }
         await this.loadCollections()
   toast.success('Collection updated')
       } catch (error) {
@@ -365,13 +361,9 @@ export default {
 
     async deleteCollection(collectionId) {
       try {
-        const response = await fetch(`/api/collections/${collectionId}`, {
+        await apiRequest(`/api/collections/${collectionId}`, {
           method: 'DELETE'
         })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to delete collection: ${response.status} ${errorText}`)
-        }
         await this.loadCollections()
   toast.success('Collection deleted')
       } catch (error) {
@@ -380,15 +372,10 @@ export default {
     },
     async toggleArchiveState(collection, newState) {
       try {
-        const response = await fetch(`/api/collections/${collection.id}/archive`, {
+        const data = await apiRequest(`/api/collections/${collection.id}/archive`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ archived: newState })
         })
-        if (!response.ok) {
-          throw new Error(await response.text())
-        }
-        const data = await response.json()
         toast.success(newState ? 'Collection archived' : 'Collection unarchived')
         // Update local state
         const idx = this.collections.findIndex(c => c.id === collection.id)
@@ -421,15 +408,10 @@ export default {
           status: this.newCollection.status,
           project_id: this.newCollection.projectId
         }
-        const response = await fetch('/api/collections', {
+        await apiRequest('/api/collections', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to create collection: ${response.status} ${errorText}`)
-        }
         await this.loadCollections()
         this.showCreateModal = false
         this.resetNewCollection()
@@ -481,11 +463,7 @@ export default {
 
     async loadCollections() {
       try {
-        const response = await fetch('/api/collections')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const data = await response.json()
+        const data = await apiRequest('/api/collections')
         // Flatten the tree so all collections (roots and children) are shown
         const flat = this.flattenCollections(data)
         this.collections = flat
@@ -504,11 +482,7 @@ export default {
     async loadStats() {
       try {
         // Use the backend stats API for accurate calculation
-        const response = await fetch('/api/collections/stats')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const stats = await response.json()
+        const stats = await apiRequest('/api/collections/stats')
         // Use total from backend (all collections)
         this.stats = {
           total: stats.total,
@@ -534,11 +508,7 @@ export default {
     async loadProjects() {
       try {
         // Fetch real projects from backend
-  const response = await fetch('/api/projects/');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const data = await response.json();
+        const data = await apiRequest('/api/projects/');
         console.log('📁 Projects data received:', data);
         this.projects = data;
       } catch (error) {
