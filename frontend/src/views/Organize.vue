@@ -1240,7 +1240,7 @@ export default {
       }
       
       console.log('Updated current collection:', JSON.stringify(this.currentCollection, null, 2))
-      await saveCollections(this.allCollections)
+      await saveCollections(this.buildSafePayload(this.allCollections))
       this.unassignedTopics = this.getUnassignedTopics()
     },
 
@@ -1284,15 +1284,27 @@ export default {
         Object.assign(collectionToUpdate, this.currentCollection)
       }
       
-      await saveCollections(this.allCollections)
+      await saveCollections(this.buildSafePayload(this.allCollections))
       this.confirmation = 'Topics updated!'
       setTimeout(() => { this.confirmation = '' }, 1500)
     },
 
-    onTopicUpdate(updatedTopic) {
-      // Handle updates to nested topic structure
-      console.log('Topic updated:', updatedTopic)
-      this.saveChanges()
+    // Build a save payload where only the current collection carries its topic list.
+    // All other collections omit the `topics` key entirely so the backend leaves
+    // their collection_topic_tree rows untouched.
+    buildSafePayload(collections) {
+      const currentId = parseInt(this.id)
+      const strip = (cols) => cols.map(col => {
+        const safe = { ...col }
+        if (col.id !== currentId) {
+          delete safe.topics
+        }
+        if (Array.isArray(safe.children)) {
+          safe.children = strip(safe.children)
+        }
+        return safe
+      })
+      return strip(collections)
     },
 
     ensureTopicStructure(topic) {
@@ -1310,7 +1322,7 @@ export default {
         Object.assign(collectionToUpdate, this.currentCollection)
       }
       
-      await saveCollections(this.allCollections)
+      await saveCollections(this.buildSafePayload(this.allCollections))
       this.confirmation = 'Collection saved!'
       setTimeout(() => { this.confirmation = '' }, 1500)
   this.setSnapshot()
