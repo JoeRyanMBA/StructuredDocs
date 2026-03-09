@@ -88,8 +88,14 @@
               <td>
                 <button @click="viewPublication(publication)" class="table-btn">View</button>
                 <button @click="editPublication(publication)" class="table-btn">Edit</button>
-                <button @click="downloadMobileKB(publication)" class="table-btn">Export KB</button>
-                <button @click="downloadPDF(publication)" class="table-btn">Export PDF</button>
+                <button @click="downloadMobileKB(publication)" class="table-btn" :disabled="exportingKb.has(publication.id)">
+                  <span v-if="exportingKb.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Exporting…</span>
+                  <span v-else>Export KB</span>
+                </button>
+                <button @click="downloadPDF(publication)" class="table-btn" :disabled="exportingPdf.has(publication.id)">
+                  <span v-if="exportingPdf.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Exporting…</span>
+                  <span v-else>Export PDF</span>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -155,7 +161,10 @@
               <div class="card-footer">
                 <span class="card-date">Updated {{ formatRelativeTime(publication.updated_at || publication.created_at) }}</span>
                 <div class="card-actions">
-                  <button v-if="publication.status === 'published'" @click.stop="downloadPublication(publication)" class="card-action-btn primary">Export PDF</button>
+                  <button v-if="publication.status === 'published'" @click.stop="downloadPublication(publication)" class="card-action-btn primary" :disabled="exportingPdf.has(publication.id)">
+                    <span v-if="exportingPdf.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Exporting…</span>
+                    <span v-else>Export PDF</span>
+                  </button>
                   <button v-else-if="publication.status === 'draft'" @click.stop="publishNow(publication)" class="card-action-btn primary">Save Snapshot</button>
                   <button @click.stop="editPublication(publication)" class="card-action-btn">Edit</button>
                 </div>
@@ -206,7 +215,9 @@ export default {
       publications: [],
       recentPublications: [],
       allTags: [],
-      selectedTagIds: []
+      selectedTagIds: [],
+      exportingPdf: new Set(),
+      exportingKb: new Set(),
     }
   },
   
@@ -315,19 +326,48 @@ export default {
         console.error('Error publishing:', err)
       }
     },
-    downloadMobileKB(publication) {
-      const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
-      window.open(`/api/publications/${publication.id}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
+    async downloadMobileKB(publication) {
+      if (this.exportingKb.has(publication.id)) return
+      this.exportingKb = new Set([...this.exportingKb, publication.id])
+      try {
+        const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+        window.open(`/api/publications/${publication.id}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
+        // Give the browser a moment to initiate the download before re-enabling
+        await new Promise(r => setTimeout(r, 2000))
+      } finally {
+        const next = new Set(this.exportingKb)
+        next.delete(publication.id)
+        this.exportingKb = next
+      }
     },
-    downloadPDF(publication) {
-      const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
-      const pdfUrl = `/api/publications/${publication.id}/export/pdf${params ? '?' + params : ''}`
-      const link = document.createElement('a')
-      link.href = pdfUrl
-      link.download = `${publication.title || 'publication'}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+    async downloadPDF(publication) {
+      if (this.exportingPdf.has(publication.id)) return
+      this.exportingPdf = new Set([...this.exportingPdf, publication.id])
+      try {
+        const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
+        const pdfUrl = `/api/publications/${publication.id}/export/pdf${params ? '?' + params : ''}`
+        const token = localStorage.getItem('access_token')
+        const response = await fetch(pdfUrl, {
+          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
+        })
+        if (!response.ok) throw new Error(`Export failed (${response.status})`)
+        const blob = await response.blob()
+        const objectUrl = URL.createObjectURL(blob)
+        const link = document.createElement('a')
+        link.href = objectUrl
+        link.download = `${publication.title || 'publication'}.pdf`
+        document.body.appendChild(link)
+        link.click()
+        document.body.removeChild(link)
+        URL.revokeObjectURL(objectUrl)
+      } catch (e) {
+        console.error('PDF export failed:', e)
+        alert(`Export failed: ${e.message}`)
+      } finally {
+        const next = new Set(this.exportingPdf)
+        next.delete(publication.id)
+        this.exportingPdf = next
+      }
     },
     downloadPublication(publication) {
       this.downloadPDF(publication)
@@ -513,6 +553,20 @@ export default {
 
 .table-btn:hover {
   background: var(--primary-medium-teal);
+}
+
+.table-btn:disabled,
+.card-action-btn:disabled {
+  opacity: 0.7;
+  cursor: not-allowed;
+}
+
+@keyframes spin {
+  to { transform: rotate(360deg); }
+}
+.spin {
+  display: inline-block;
+  animation: spin 0.75s linear infinite;
 }
 
 /* Template Section */

@@ -82,7 +82,13 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
   }
 
   if (!response.ok) {
-    throw new Error(`API Error: ${response.status} ${response.statusText}`);
+    let message = `API Error: ${response.status} ${response.statusText}`;
+    try {
+      const body = await response.json();
+      if (body?.error) message = body.error;
+      else if (body?.message) message = body.message;
+    } catch (_) { /* body not JSON, keep default message */ }
+    throw new Error(message);
   }
   
   return response.json();

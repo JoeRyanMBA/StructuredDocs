@@ -168,6 +168,9 @@
                             ({{ topic.children.length }})
                           </span>
                           <div class="topic-actions" style="margin-left: auto;">
+                            <button class="icon-btn" @click.stop="previewTopic(topic)" title="Preview this topic" aria-label="Preview topic">
+                              <i class="bi bi-zoom-in" aria-hidden="true"></i>
+                            </button>
                             <button class="topic-btn up" @click.stop="moveTopicUp(topic)">▲</button>
                             <button class="topic-btn down" @click.stop="moveTopicDown(topic)">▼</button>
                             <button class="topic-btn right" @click.stop="indentTopic(topic)">▶</button>
@@ -215,6 +218,9 @@
                             <span class="topic-title">{{ childTopic.title }}</span>
                             <span :class="['topic-status-badge', 'status-' + (childTopic.status || 'draft')]">{{ childTopic.status || 'draft' }}</span>
                             <div class="topic-actions">
+                              <button class="icon-btn" @click.stop="previewTopic(childTopic)" title="Preview this topic" aria-label="Preview topic">
+                                <i class="bi bi-zoom-in" aria-hidden="true"></i>
+                              </button>
                               <button class="topic-btn up" @click.stop="moveTopicUp(childTopic)">▲</button>
                               <button class="topic-btn down" @click.stop="moveTopicDown(childTopic)">▼</button>
                               <button class="topic-btn right" @click.stop="indentTopic(childTopic)">▶</button>
@@ -231,8 +237,9 @@
             
             <!-- Show publish buttons for the current collection -->
             <div v-if="currentCollection.topics && currentCollection.topics.length" class="publish-buttons">
-              <button class="primary-btn" @click="saveChanges">
-                <i class="bi bi-floppy" aria-hidden="true"></i> Save
+              <button class="primary-btn" @click="saveChanges" :disabled="saving">
+                <span v-if="saving"><i class="bi bi-arrow-clockwise spin" aria-hidden="true"></i> Saving…</span>
+                <span v-else><i class="bi bi-floppy" aria-hidden="true"></i> Save</span>
               </button>
               <button
                 @click="openVariableConfigurator(currentCollection.id, $event)"
@@ -255,8 +262,9 @@
             <div v-else class="empty-collection">
               <em>No topics in this collection</em>
               <div class="publish-buttons">
-                <button class="primary-btn" @click="saveChanges">
-                  <i class="bi bi-floppy" aria-hidden="true"></i> Save
+                <button class="primary-btn" @click="saveChanges" :disabled="saving">
+                  <span v-if="saving"><i class="bi bi-arrow-clockwise spin" aria-hidden="true"></i> Saving…</span>
+                  <span v-else><i class="bi bi-floppy" aria-hidden="true"></i> Save</span>
                 </button>
                 <button
                   @click="goPublishHtml(currentCollection.id, $event)"
@@ -501,6 +509,7 @@ export default {
       , topicSearch: ''
       , topicTagsMap: {}
       , refreshing: false
+      , saving: false
     }
   },
   computed: {
@@ -1410,16 +1419,23 @@ export default {
     },
 
     async saveChanges() {
-      // Update the collection in the global array and save
-      const collectionToUpdate = this.findCollectionById(this.allCollections, parseInt(this.id))
-      if (collectionToUpdate) {
-        Object.assign(collectionToUpdate, this.currentCollection)
+      this.saving = true
+      try {
+        const collectionToUpdate = this.findCollectionById(this.allCollections, parseInt(this.id))
+        if (collectionToUpdate) {
+          Object.assign(collectionToUpdate, this.currentCollection)
+        }
+        await saveCollections(this.buildSafePayload(this.allCollections))
+        this.confirmation = 'Collection saved!'
+        setTimeout(() => { this.confirmation = '' }, 1500)
+        this.setSnapshot()
+      } catch (e) {
+        console.error('Failed to save collection:', e)
+        this.confirmation = 'Save failed — please try again.'
+        setTimeout(() => { this.confirmation = '' }, 3000)
+      } finally {
+        this.saving = false
       }
-      
-      await saveCollections(this.buildSafePayload(this.allCollections))
-      this.confirmation = 'Collection saved!'
-      setTimeout(() => { this.confirmation = '' }, 1500)
-  this.setSnapshot()
     },
 
     // Add publish methods from CollectionTree
