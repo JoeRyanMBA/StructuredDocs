@@ -382,7 +382,7 @@ export default {
         toast.success(newState ? 'Collection archived' : 'Collection unarchived')
         // Update local state
         const idx = this.collections.findIndex(c => c.id === collection.id)
-        if (idx !== -1) this.$set(this.collections, idx, { ...collection, archived: data.collection.archived })
+        if (idx !== -1) this.collections.splice(idx, 1, { ...collection, archived: data.collection.archived })
       } catch (e) {
         toast.error('Failed to update archive state')
       }

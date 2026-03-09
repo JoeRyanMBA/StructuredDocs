@@ -519,10 +519,14 @@ def delete_collection(collection_id):
     try:
         collection = Collection.query.get_or_404(collection_id)
 
-        # Safeguard: prevent hard delete if published (has a publication with same title)
+        # If a publication exists for this collection, only allow deletion once the
+        # collection is archived. At that point, delete the publication too so no
+        # orphaned records are left behind.
         existing_pub = Publication.query.filter_by(title=collection.name).first()
         if existing_pub:
-            return jsonify({'error': 'Collection is published. Archive it first or unpublish to delete.'}), 400
+            if not collection.archived:
+                return jsonify({'error': 'This collection has a publication. Archive the collection before deleting it.'}), 400
+            db.session.delete(existing_pub)
 
         db.session.delete(collection)
         db.session.commit()
