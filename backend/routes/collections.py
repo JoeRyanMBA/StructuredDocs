@@ -62,7 +62,20 @@ def list_collections():
         current_app.logger.error(f" Error in list_collections: {e}")
         return jsonify({"error": str(e)}), 500
 
-@collections_bp.route('/stats', methods=['GET'])
+@collections_bp.route('/<int:collection_id>', methods=['GET'])
+@jwt_required()
+def get_collection(collection_id):
+    """Get a single collection with its full topic hierarchy."""
+    try:
+        col = Collection.query.get(collection_id)
+        if not col:
+            return jsonify({"error": "Collection not found"}), 404
+        return jsonify(col.to_dict(include_children=True, include_topics=True)), 200
+    except Exception as e:
+        current_app.logger.error(f" Error in get_collection {collection_id}: {e}")
+        return jsonify({"error": str(e)}), 500
+
+
 @jwt_required()
 def get_collections_stats():
     """Get statistics for collections dashboard"""
