@@ -229,10 +229,10 @@
           </div>
           
           <div class="modal-footer modal-actions">
-            <button type="button" @click="showCreateModal = false" class="btn btn-secondary cancel-btn">
+            <button type="button" @click="showCreateModal = false" class="secondary-btn">
               Cancel
             </button>
-            <button type="submit" class="create-btn">Create Collection</button>
+            <button type="submit" class="primary-btn">Create Collection</button>
           </div>
         </form>
       </div>
@@ -254,9 +254,10 @@
           <p><strong>Warning:</strong> This will permanently remove the collection <strong>{{ collectionToDelete?.name }}</strong> and all nested child collections. Topics inside remain in the system and are not deleted.</p>
           <p>Type the collection name to confirm:</p>
           <input v-model="deleteConfirmText" :placeholder="collectionToDelete?.name" />
+          <p v-if="deleteError" class="delete-error-msg">{{ deleteError }}</p>
           <div class="modal-footer modal-actions" style="margin-top:1rem;">
-            <button type="button" class="btn btn-secondary cancel-btn" @click="cancelDelete">Cancel</button>
-            <button type="button" class="btn btn-danger" :disabled="deleteConfirmText !== collectionToDelete?.name" @click="confirmDelete">Delete</button>
+            <button type="button" class="secondary-btn" @click="cancelDelete">Cancel</button>
+            <button type="button" class="btn-danger" :disabled="deleteConfirmText !== collectionToDelete?.name" @click="confirmDelete">Delete</button>
           </div>
         </div>
       </div>
@@ -296,6 +297,7 @@ export default {
       showDeleteModal: false,
       collectionToDelete: null,
       deleteConfirmText: '',
+      deleteError: '',
       newCollection: {
         name: '',
         description: '',
@@ -360,14 +362,15 @@ export default {
     },
 
     async deleteCollection(collectionId) {
+      this.deleteError = ''
       try {
         await apiRequest(`/api/collections/${collectionId}`, {
           method: 'DELETE'
         })
         await this.loadCollections()
-  toast.success('Collection deleted')
+        toast.success('Collection deleted')
       } catch (error) {
-  toast.error('Failed to delete collection: ' + error.message)
+        this.deleteError = error.message
       }
     },
     async toggleArchiveState(collection, newState) {
@@ -392,12 +395,13 @@ export default {
     cancelDelete() {
       this.collectionToDelete = null
       this.deleteConfirmText = ''
+      this.deleteError = ''
       this.showDeleteModal = false
     },
     async confirmDelete() {
       if (!this.collectionToDelete) return
       await this.deleteCollection(this.collectionToDelete.id)
-      this.cancelDelete()
+      if (!this.deleteError) this.cancelDelete()
     },
     async submitNewCollection() {
       try {
@@ -870,6 +874,14 @@ export default {
   padding-top: 1rem;
   border-top: 1px solid var(--extended-lavender-gray);
 }
+
+.delete-error-msg {
+  margin-top: 0.75rem;
+  color: var(--error-red, #dc3545);
+  font-size: 0.9rem;
+  font-weight: 500;
+}
+
 
 /* Responsive Design */
 @media (max-width: 900px) {
