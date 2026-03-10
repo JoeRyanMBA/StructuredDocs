@@ -644,6 +644,7 @@ p { color: #666; }
                 'publications': ('publications', 'pubs_bp'),
                 'review_tokens': ('review_tokens', 'review_tokens_bp'),
                 'reviews': ('reviews', 'reviews_bp'),
+                'bulk_reviews': ('bulk_reviews', 'bulk_reviews_bp'),
                 'sequences': ('sequences', 'sequences_bp'),
                 'stakeholders': ('stakeholders', 'stakeholders_bp'),
                 'snippets': ('snippets', 'snippets_bp'),
@@ -701,6 +702,7 @@ p { color: #666; }
                 publications,
                 review_tokens,
                 reviews,
+                bulk_reviews,
                 sequences,
                 snippets,
                 stakeholders,
@@ -727,6 +729,7 @@ p { color: #666; }
             app.register_blueprint(publications.pubs_bp)
             app.register_blueprint(review_tokens.review_tokens_bp)
             app.register_blueprint(reviews.reviews_bp)
+            app.register_blueprint(bulk_reviews.bulk_reviews_bp)
             app.register_blueprint(sequences.sequences_bp)
             app.register_blueprint(stakeholders.stakeholders_bp)
             app.register_blueprint(snippets.snippets_bp)

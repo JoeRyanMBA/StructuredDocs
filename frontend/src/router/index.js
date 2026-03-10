@@ -441,6 +441,15 @@ const routes = [
     meta: { requiresAuth: false }
   },
 
+  // 🔗 Bulk Review Portal (Token-based access, no auth required)
+  {
+    path: '/bulk-review/:token',
+    name: 'BulkReviewPortal',
+    component: () => import('@/views/BulkReviewPortal.vue'),
+    props: true,
+    meta: { requiresAuth: false }
+  },
+
   // 🔒 Admin Section
   // Admin routes are defined above with proper authentication
 
