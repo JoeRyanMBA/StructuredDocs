@@ -524,6 +524,32 @@ p { color: #666; }
                     except Exception as _tag_e:
                         print(f"⚠️ Could not create {_table_name} fallback table: {_tag_e}")
 
+            # Safety net: ensure bulk review tables exist
+            for _model_name, _table_name in [('ReviewBatch', 'review_batches'), ('ReviewBatchToken', 'review_batch_tokens')]:
+                if _table_name not in existing_tables:
+                    try:
+                        from backend import models as _models
+                        _model_cls = getattr(_models, _model_name)
+                        print(f"🛠  Creating missing table: {_table_name} (fallback until migration applied)")
+                        _model_cls.__table__.create(bind=db.engine, checkfirst=True)
+                    except Exception as _br_e:
+                        print(f"⚠️ Could not create {_table_name} fallback table: {_br_e}")
+            # Safety net: ensure reviews.batch_id and batch_position columns exist
+            if 'reviews' in existing_tables:
+                try:
+                    _review_cols = {c['name'] for c in inspector.get_columns('reviews')}
+                    if 'batch_id' not in _review_cols:
+                        db.session.execute(db.text('ALTER TABLE reviews ADD COLUMN batch_id INTEGER REFERENCES review_batches(id)'))
+                        db.session.commit()
+                        print("✅ Added reviews.batch_id")
+                    if 'batch_position' not in _review_cols:
+                        db.session.execute(db.text('ALTER TABLE reviews ADD COLUMN batch_position INTEGER'))
+                        db.session.commit()
+                        print("✅ Added reviews.batch_position")
+                except Exception as _bc_e:
+                    print(f"⚠️ Could not add bulk review columns to reviews: {_bc_e}")
+                    db.session.rollback()
+
             # Safety net: ensure publications.form_number column exists
             if 'publications' in existing_tables:
                 try:
