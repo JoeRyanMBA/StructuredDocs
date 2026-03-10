@@ -73,3 +73,10 @@ export async function deleteTopic(topicId) {
   if (!res.ok) throw new Error(await res.text());
   return res.json();
 }
+
+export async function searchTopics(query) {
+  const qs = query ? `?q=${encodeURIComponent(query)}` : ''
+  const res = await fetch(`/api/topics/search${qs}`)
+  if (!res.ok) throw new Error(await res.text())
+  return res.json() // Array of { id, title, status, collection_ids }
+}
