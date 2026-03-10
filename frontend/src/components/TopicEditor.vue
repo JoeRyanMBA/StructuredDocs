@@ -250,6 +250,15 @@
                   @click="linkInsertMode = 'upload'"
                   title="Upload an image and link to it"
                 >Upload Image</button>
+                <button
+                  type="button"
+                  role="tab"
+                  :aria-selected="(linkInsertMode === 'topic').toString()"
+                  :tabindex="linkInsertMode === 'topic' ? 0 : -1"
+                  :class="['segmented-btn','btn','btn-sm', linkInsertMode === 'topic' ? 'btn-primary active' : 'btn-secondary']"
+                  @click="openTopicLinks"
+                  title="Link to another topic in this application"
+                >Topic</button>
               </div>
             </div>
             <div v-if="linkInsertMode === 'manual'">
@@ -281,7 +290,7 @@
               </div>
               <div class="empty-state" v-else>No links found.</div>
             </div>
-            <div v-else>
+            <div v-else-if="linkInsertMode === 'upload'">
               <div class="form-group">
                 <label>Upload Image (becomes link URL)</label>
                 <input type="file" accept="image/*" @change="onLinkUploadSelect" />
@@ -299,6 +308,29 @@
               <div class="form-group" v-if="linkText === '' && linkUrl">
                 <label>Link Text</label>
                 <input v-model="linkText" type="text" class="form-input" placeholder="Display text">
+              </div>
+            </div>
+            <div v-else-if="linkInsertMode === 'topic'">
+              <div class="form-group">
+                <label>Search Topics</label>
+                <input v-model="topicSearch" type="text" class="form-input" placeholder="Search by title" @input="debouncedFetchTopics" autofocus>
+              </div>
+              <div class="resource-list" v-if="availableTopics && availableTopics.length">
+                <div
+                  v-for="topic in availableTopics"
+                  :key="topic.id"
+                  class="resource-item"
+                  :class="{ selected: selectedTopicLink && selectedTopicLink.id === topic.id }"
+                  @click="selectTopicLink(topic)"
+                >
+                  <div class="resource-title">{{ topic.title }}</div>
+                  <div class="resource-sub muted">{{ topic.status }}</div>
+                </div>
+              </div>
+              <div class="empty-state" v-else-if="topicSearch">No topics found.</div>
+              <div class="empty-state muted" v-else>Start typing to search topics.</div>
+              <div v-if="topicLinkWarning" class="link-warning">
+                <span>⚠️ This topic is not in any shared collection and may not be published together.</span>
               </div>
             </div>
           </div>
@@ -498,6 +530,7 @@ import { API_BASE } from '@/api/base'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
+import { searchTopics } from '@/api/topics.js'
 import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
 import SnippetSelector from '@/components/SnippetSelector.vue'
@@ -577,6 +610,12 @@ export default {
   selectedExistingImage: null,
   selectedExistingLink: null,
   savedWysiwygRange: null,
+  // Topic link tab state
+  topicSearch: '',
+  availableTopics: [],
+  selectedTopicLink: null,
+  topicLinkWarning: false,
+  currentTopicCollectionIds: [],
   showSnippetSelector: false,
   showCreateSnippetModal: false,
   showEditSnippetModal: false,
@@ -1022,6 +1061,38 @@ export default {
       this.linkText = link.title || link.reference_code || 'Link'
       this.linkUrl = link.url
     },
+    async openTopicLinks() {
+      this.linkInsertMode = 'topic'
+      // Load the current topic's collections once so we can do the membership check
+      if (this.topicId && this.currentTopicCollectionIds.length === 0) {
+        try {
+          const res = await fetch(`/api/topics/${this.topicId}`)
+          if (res.ok) {
+            const data = await res.json()
+            this.currentTopicCollectionIds = data.collection_ids || []
+          }
+        } catch (e) { console.error('Failed to load current topic collections', e) }
+      }
+      if (this.topicSearch) await this.fetchTopics()
+    },
+    async fetchTopics() {
+      try {
+        this.availableTopics = await searchTopics(this.topicSearch)
+      } catch (e) { console.error('Failed to search topics', e) }
+    },
+    debouncedFetchTopics() {
+      this.debounce(this.fetchTopics, 300)()
+    },
+    selectTopicLink(topic) {
+      this.selectedTopicLink = topic
+      this.linkText = topic.title
+      this.linkUrl = `/topics/${topic.id}/edit`
+      // Warn if the linked topic shares no collection with the current topic
+      const linkedIds = topic.collection_ids || []
+      this.topicLinkWarning = this.topicId != null
+        && this.currentTopicCollectionIds.length > 0
+        && !linkedIds.some(id => this.currentTopicCollectionIds.includes(id))
+    },
     async openExistingImages() {
       this.imageInsertMode = 'existing'
       await this.fetchImages()
@@ -1356,6 +1427,8 @@ export default {
       this.linkText = ''
       this.linkUrl = ''
       this.selectedExistingLink = null
+      this.selectedTopicLink = null
+      this.topicLinkWarning = false
       this.savedWysiwygRange = null
       this.showLinkModal = false
     },
@@ -1962,6 +2035,15 @@ export default {
 .resource-title { font-weight:600; color:#333; }
 .resource-sub { font-size:.85rem; color:#666; }
 .muted { color:#667085; font-weight:400; font-size:.9em; }
+.link-warning {
+  margin-top:.75rem;
+  padding:.5rem .75rem;
+  background:#fff8e1;
+  border:1px solid #ffe082;
+  border-radius:6px;
+  color:#7a5c00;
+  font-size:.875rem;
+}
 .image-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:.75rem; max-height:320px; overflow:auto; }
 .image-item { border:1px solid #eee; border-radius:6px; padding:.5rem; cursor:pointer; text-align:center; }
 .image-item.selected {

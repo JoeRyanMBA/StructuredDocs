@@ -191,7 +191,7 @@ class Topic(db.Model):
     # Relationship to reusable links
     topic_links = relationship('TopicLink', back_populates='topic', cascade='all, delete-orphan')
 
-    def to_dict(self, include_links=False):
+    def to_dict(self, include_links=False, include_collections=False):
         base = {
             "id": self.id,
             "title": self.title,
@@ -204,6 +204,13 @@ class Topic(db.Model):
         if include_links:
             base["links"] = [tl.to_dict() for tl in self.topic_links]
             base["links_count"] = len(self.topic_links)
+        if include_collections:
+            rows = db.session.execute(
+                collection_topic_tree.select().where(
+                    collection_topic_tree.c.topic_id == self.id
+                )
+            ).fetchall()
+            base["collection_ids"] = [r.collection_id for r in rows]
         return base
 
     if TYPE_CHECKING:

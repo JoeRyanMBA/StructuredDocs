@@ -138,13 +138,28 @@ def create_topic():
         current_app.logger.exception("Failed to create topic")
         return jsonify({'error': str(e)}), 500
 
+# GET /api/topics/search → Search topics by title (used by topic link picker)
+@topics_bp.route('/search', methods=['GET'])
+@jwt_required()
+def search_topics():
+    try:
+        q = (request.args.get('q') or '').strip()
+        query = Topic.query
+        if q:
+            query = query.filter(Topic.title.ilike(f'%{q}%'))
+        topics = query.order_by(Topic.title).limit(20).all()
+        return jsonify([t.to_dict(include_collections=True) for t in topics]), 200
+    except Exception as e:
+        current_app.logger.exception("Failed to search topics")
+        return jsonify({'error': str(e)}), 500
+
 # GET /api/topics/<id> → Fetch a single topic
 @topics_bp.route('/<int:topic_id>', methods=['GET'])
 @jwt_required()
 def get_topic(topic_id):
     topic = Topic.query.get(topic_id)
     if topic:
-        return jsonify(topic.to_dict()), 200
+        return jsonify(topic.to_dict(include_collections=True)), 200
     return jsonify({'error': 'Topic not found'}), 404
 
 # PUT /api/topics/<id> → Update a topic
