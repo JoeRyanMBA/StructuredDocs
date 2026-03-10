@@ -199,7 +199,7 @@ export default {
 
 .form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
-.btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: none; font-weight: 500; }
+.btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: none; font-weight: 500; line-height: 1.5; box-sizing: border-box; display: inline-block; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-secondary { background: #f3f4f6; color: #374151; }
 .btn-secondary:hover { background: #e5e7eb; }

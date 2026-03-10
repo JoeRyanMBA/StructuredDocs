@@ -149,8 +149,8 @@
       <!-- Bulk actions toolbar -->
       <div class="bulk-actions" v-if="selectedTopicIds.length > 0">
         <span class="selection-count">{{ selectedTopicIds.length }} selected</span>
-  <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting || !isAdmin">
-    <i class="bi bi-trash"></i> Delete Selected
+        <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting || !isAdmin">
+          <i class="bi bi-trash"></i> Delete Selected
         </button>
         <button
           v-if="selectedTopicIds.length >= 2"
