@@ -130,6 +130,92 @@ class EmailService:
             logger.error(f"Failed to send review notification: {str(e)}")
             return False
     
+    def send_bulk_review_notification(self, reviewer_email, reviewer_name, topic_titles,
+                                      author_message, due_date, priority, batch_token,
+                                      base_url=None):
+        """Send a single digest email for a bulk review batch."""
+        try:
+            if base_url is None:
+                base_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
+            portal_url = f"{base_url}/bulk-review/{batch_token}"
+            n = len(topic_titles)
+            subject = f"Review Request: {n} Topic{'s' if n != 1 else ''} Assigned for Review"
+
+            html_content = self._create_bulk_review_email_html(
+                reviewer_name, topic_titles, author_message, due_date, priority, portal_url
+            )
+            text_content = self._create_bulk_review_email_text(
+                reviewer_name, topic_titles, author_message, due_date, priority, portal_url
+            )
+
+            return self._send_email(reviewer_email, subject, html_content, text_content)
+        except Exception as e:
+            logger.error(f"Failed to send bulk review notification: {str(e)}")
+            return False
+
+    def _create_bulk_review_email_html(self, reviewer_name, topic_titles, author_message,
+                                       due_date, priority, portal_url):
+        due_str = due_date.strftime('%B %d, %Y') if due_date else 'No deadline set'
+        priority_colors = {'urgent': '#dc3545', 'high': '#fd7e14', 'medium': '#0d6efd', 'low': '#6c757d'}
+        priority_color = priority_colors.get(priority or 'medium', '#0d6efd')
+
+        topics_html = ''.join(
+            f'<li style="padding:4px 0;">{i + 1}. {title}</li>'
+            for i, title in enumerate(topic_titles)
+        )
+
+        message_block = (
+            f'<div style="background:#f8f9fa;border-left:4px solid #0d6efd;padding:12px 16px;'
+            f'margin:16px 0;border-radius:4px;">'
+            f'<strong>Message from requester:</strong><br>{author_message}</div>'
+            if author_message else ''
+        )
+
+        return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333;">
+  <div style="background:#0d6efd;padding:20px 24px;border-radius:8px 8px 0 0;">
+    <h1 style="color:#fff;margin:0;font-size:22px;">Review Request: {len(topic_titles)} Topics</h1>
+  </div>
+  <div style="background:#fff;border:1px solid #dee2e6;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <p>Hello {reviewer_name},</p>
+    <p>You have been assigned <strong>{len(topic_titles)} topic{'s' if len(topic_titles) != 1 else ''}</strong> for review.</p>
+    <div style="background:#f8f9fa;padding:16px;border-radius:6px;margin:16px 0;">
+      <p style="margin:0 0 8px;font-weight:bold;">Topics to Review:</p>
+      <ul style="margin:0;padding-left:20px;">{topics_html}</ul>
+    </div>
+    <p><strong>Priority:</strong> <span style="color:{priority_color};font-weight:bold;">{(priority or 'medium').upper()}</span></p>
+    <p><strong>Due Date:</strong> {due_str}</p>
+    {message_block}
+    <div style="text-align:center;margin:28px 0;">
+      <a href="{portal_url}" style="background:#0d6efd;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:16px;">Open Review Portal</a>
+    </div>
+    <p style="color:#6c757d;font-size:13px;">The portal lets you navigate between topics, leave feedback, and track your progress in one place.</p>
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    <p style="color:#6c757d;font-size:12px;">If the button above does not work, copy this link into your browser:<br>
+    <a href="{portal_url}" style="color:#0d6efd;">{portal_url}</a></p>
+  </div>
+</body>
+</html>"""
+
+    def _create_bulk_review_email_text(self, reviewer_name, topic_titles, author_message,
+                                       due_date, priority, portal_url):
+        due_str = due_date.strftime('%B %d, %Y') if due_date else 'No deadline set'
+        topics_text = '\n'.join(f'  {i + 1}. {t}' for i, t in enumerate(topic_titles))
+        message_block = f'\nMessage from requester:\n  {author_message}\n' if author_message else ''
+        return (
+            f"Hello {reviewer_name},\n\n"
+            f"You have been assigned {len(topic_titles)} topic(s) for review.\n\n"
+            f"Topics to Review:\n{topics_text}\n\n"
+            f"Priority: {(priority or 'medium').upper()}\n"
+            f"Due Date: {due_str}\n"
+            f"{message_block}\n"
+            f"Open your review portal here:\n{portal_url}\n\n"
+            f"The portal lets you navigate between topics, leave feedback, and track your progress."
+        )
+
     def send_review_reminder(self, reviewer_email, reviewer_name, topic_title, 
                            due_date, review_token, base_url=None, is_follow_up=False):
         """Send reminder email for pending review"""

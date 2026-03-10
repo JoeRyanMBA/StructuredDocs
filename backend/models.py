@@ -1162,12 +1162,17 @@ class Review(db.Model):
     # Sequential review tracking
     sequence_id = db.Column(db.Integer, db.ForeignKey('review_sequences.id'), nullable=True)
     sequence_position = db.Column(db.Integer, nullable=True)  # Position in the sequence (0-based)
-    
+
+    # Bulk review tracking
+    batch_id = db.Column(db.Integer, db.ForeignKey('review_batches.id'), nullable=True)
+    batch_position = db.Column(db.Integer, nullable=True)  # 0-based position within the batch
+
     # Relationships
     topic = relationship('Topic', backref='reviews')
     requester = relationship('Stakeholder', foreign_keys=[requested_by], backref='requested_reviews')
     reviewer = relationship('Stakeholder', foreign_keys=[reviewer_id], backref='assigned_reviews')
     sequence = relationship('ReviewSequence', back_populates='reviews')
+    batch = relationship('ReviewBatch', back_populates='reviews')
 
     __table_args__ = (
         db.Index('ix_reviews_topic_id', 'topic_id'),
@@ -1200,11 +1205,13 @@ class Review(db.Model):
             "author_message": self.author_message,
             "edited_content": self.edited_content,
             "sequence_id": self.sequence_id,
-            "sequence_position": self.sequence_position
+            "sequence_position": self.sequence_position,
+            "batch_id": self.batch_id,
+            "batch_position": self.batch_position
         }
 
     if TYPE_CHECKING:
-        def __init__(self, id: int | None = None, topic_id: int = ..., requested_by: int = ..., reviewer_id: int = ..., status: str = 'pending', priority: str = 'medium', requested_at: datetime | None = None, due_date: datetime | None = None, started_at: datetime | None = None, completed_at: datetime | None = None, follow_up_sent_at: datetime | None = None, email_delivery_unavailable: bool = False, feedback: str | None = None, recommendation: str | None = None, review_notes: str | None = None, author_message: str | None = None, edited_content: str | None = None, sequence_id: int | None = None, sequence_position: int | None = None): ...
+        def __init__(self, id: int | None = None, topic_id: int = ..., requested_by: int = ..., reviewer_id: int = ..., status: str = 'pending', priority: str = 'medium', requested_at: datetime | None = None, due_date: datetime | None = None, started_at: datetime | None = None, completed_at: datetime | None = None, follow_up_sent_at: datetime | None = None, email_delivery_unavailable: bool = False, feedback: str | None = None, recommendation: str | None = None, review_notes: str | None = None, author_message: str | None = None, edited_content: str | None = None, sequence_id: int | None = None, sequence_position: int | None = None, batch_id: int | None = None, batch_position: int | None = None): ...
 
 
 class PasswordResetToken(db.Model):
@@ -1440,6 +1447,104 @@ class ReviewSequenceStep(db.Model):
             "name": self.name,
             "instructions": self.instructions,
         }
+
+
+class ReviewBatch(db.Model):
+    """Groups multiple single-topic Reviews under one reviewer for bulk review."""
+    __tablename__ = 'review_batches'
+
+    id = db.Column(db.Integer, primary_key=True)
+    requester_id = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=True)
+    reviewer_id = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=False)
+
+    priority = db.Column(
+        Enum('low', 'medium', 'high', 'urgent', name='review_batch_priority'),
+        nullable=False,
+        default='medium',
+        server_default='medium'
+    )
+    due_date = db.Column(db.DateTime, nullable=True)
+    message = db.Column(db.Text, nullable=True)
+
+    status = db.Column(
+        Enum('pending', 'in_progress', 'completed', name='review_batch_status'),
+        nullable=False,
+        default='pending',
+        server_default='pending'
+    )
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    email_delivery_unavailable = db.Column(db.Boolean, nullable=False, default=False, server_default='0')
+
+    requester = relationship('Stakeholder', foreign_keys=[requester_id], backref='requested_batches')
+    reviewer = relationship('Stakeholder', foreign_keys=[reviewer_id], backref='assigned_batches')
+    reviews = relationship('Review', back_populates='batch', order_by='Review.batch_position')
+    tokens = relationship('ReviewBatchToken', back_populates='batch', cascade='all, delete-orphan')
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'requester_id': self.requester_id,
+            'requester_name': self.requester.name if self.requester else None,
+            'reviewer_id': self.reviewer_id,
+            'reviewer_name': self.reviewer.name if self.reviewer else None,
+            'reviewer_email': self.reviewer.email if self.reviewer else None,
+            'priority': self.priority,
+            'due_date': self.due_date.isoformat() if self.due_date else None,
+            'message': self.message,
+            'status': self.status,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'email_delivery_unavailable': bool(self.email_delivery_unavailable),
+            'topic_count': len(self.reviews),
+        }
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, requester_id: int | None = None, reviewer_id: int = ..., priority: str = 'medium', due_date: datetime | None = None, message: str | None = None, status: str = 'pending', email_delivery_unavailable: bool = False): ...
+
+
+class ReviewBatchToken(db.Model):
+    """Single shared token granting access to all topics in a ReviewBatch."""
+    __tablename__ = 'review_batch_tokens'
+
+    id = db.Column(db.Integer, primary_key=True)
+    token = db.Column(db.String(64), nullable=False, unique=True, index=True)
+    batch_id = db.Column(db.Integer, db.ForeignKey('review_batches.id'), nullable=False)
+    reviewer_email = db.Column(db.String(120), nullable=False)
+
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    expires_at = db.Column(db.DateTime, nullable=False)
+    accessed_at = db.Column(db.DateTime, nullable=True)
+
+    is_active = db.Column(db.Boolean, default=True, nullable=False)
+    access_count = db.Column(db.Integer, default=0, nullable=False)
+    max_access_count = db.Column(db.Integer, default=100, nullable=False)
+
+    batch = relationship('ReviewBatch', back_populates='tokens')
+
+    def is_valid(self):
+        if not self.is_active:
+            return False, "Token has been deactivated"
+        if datetime.now() > self.expires_at:
+            return False, "Token has expired"
+        if self.access_count >= self.max_access_count:
+            return False, "Token access limit exceeded"
+        return True, "Token is valid"
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'token': self.token,
+            'batch_id': self.batch_id,
+            'reviewer_email': self.reviewer_email,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'expires_at': self.expires_at.isoformat() if self.expires_at else None,
+            'accessed_at': self.accessed_at.isoformat() if self.accessed_at else None,
+            'is_active': self.is_active,
+            'access_count': self.access_count,
+            'max_access_count': self.max_access_count,
+        }
+
+    if TYPE_CHECKING:
+        def __init__(self, id: int | None = None, token: str = ..., batch_id: int = ..., reviewer_email: str = ..., expires_at: datetime = ..., is_active: bool = True, access_count: int = 0, max_access_count: int = 100): ...
 
 
 class FeedbackReport(db.Model):

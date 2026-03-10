@@ -152,6 +152,14 @@
   <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting || !isAdmin">
     <i class="bi bi-trash"></i> Delete Selected
         </button>
+        <button
+          v-if="selectedTopicIds.length >= 2"
+          class="btn btn-sm btn-primary"
+          @click="showBulkReviewModal = true"
+          :disabled="deleting"
+        >
+          <i class="bi bi-send"></i> Request Bulk Review
+        </button>
         <div class="bulk-actions-spacer"></div>
         <button class="btn btn-sm btn-secondary" @click="selectAllResults" :disabled="deleting">
           Select all results ({{ filteredTopics.length }})
@@ -161,6 +169,14 @@
         </button>
       </div>
     </div>
+
+    <BulkRequestReviewModal
+      :topics="selectedTopicsForBulk"
+      :is-visible="showBulkReviewModal"
+      :current-user="currentUserObj"
+      @close="showBulkReviewModal = false"
+      @bulk-review-requested="onBulkReviewRequested"
+    />
 
     <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
       <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Submit topic for review">
@@ -237,12 +253,13 @@
 
 <script>
 import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
+import BulkRequestReviewModal from '@/components/BulkRequestReviewModal.vue'
 import UsageBadge from '@/components/UsageBadge.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TopicListView',
-  components: { SequentialReviewModal, UsageBadge },
+  components: { SequentialReviewModal, BulkRequestReviewModal, UsageBadge },
   props: {
     globalNotifications: {
       type: Array,
@@ -284,6 +301,7 @@ export default {
   },
   // Bulk selection state
   selectedTopicIds: [],
+  showBulkReviewModal: false,
   deleting: false,
   lastSelectedIndex: null,
       // Removed local toast state
@@ -301,6 +319,17 @@ export default {
       } catch (_) {
         return false
       }
+    },
+    currentUserObj() {
+      try {
+        return JSON.parse(localStorage.getItem('user') || '{}')
+      } catch (_) {
+        return {}
+      }
+    },
+    selectedTopicsForBulk() {
+      const idSet = new Set(this.selectedTopicIds)
+      return this.topics.filter(t => idSet.has(t.id))
     },
     // Safe stakeholders for template rendering
     safeProjectStakeholders() {
@@ -438,6 +467,11 @@ export default {
     clearSelection() {
       this.selectedTopicIds = []
       this.lastSelectedIndex = null
+    },
+    onBulkReviewRequested() {
+      this.showBulkReviewModal = false
+      this.clearSelection()
+      this.loadTopics()
     },
     toggleSelectAll(checked) {
       if (checked) {

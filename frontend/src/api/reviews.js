@@ -83,3 +83,37 @@ export async function sendFollowUpReminder(reviewId) {
   if (!res.ok) await throwApiError(res, 'Failed to send follow-up reminder')
   return res.json()
 }
+
+// --- Bulk Review ---
+
+export async function requestBulkReview(data) {
+  const res = await fetch('/api/reviews/bulk-request', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(data)
+  })
+  if (!res.ok) await throwApiError(res, 'Failed to create bulk review')
+  return res.json()
+}
+
+export async function getBulkReview(token) {
+  const res = await fetch(`/api/bulk-review/${token}`)
+  if (!res.ok) await throwApiError(res, 'Failed to load bulk review')
+  return res.json()
+}
+
+export async function submitBulkTopicFeedback(token, reviewId, feedbackData) {
+  const res = await fetch(`/api/bulk-review/${token}/review/${reviewId}/feedback`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify(feedbackData)
+  })
+  if (!res.ok) await throwApiError(res, 'Failed to submit feedback')
+  return res.json()
+}
+
+export async function getBulkReviewStatus(token) {
+  const res = await fetch(`/api/bulk-review/${token}/status`)
+  if (!res.ok) await throwApiError(res, 'Failed to load bulk review status')
+  return res.json()
+}
