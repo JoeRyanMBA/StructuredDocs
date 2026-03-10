@@ -300,6 +300,17 @@ def submit_review(review_id):
                             
                             sequence_advanced = True
                             
+                            # Create a secure token for the next reviewer so they can access
+                            # the review without needing a user account
+                            next_token = ReviewToken(
+                                token=secrets.token_urlsafe(32),
+                                review_id=next_review.id,
+                                reviewer_email=next_step.reviewer.email,
+                                expires_at=next_review.due_date + timedelta(days=7)
+                            )
+                            db.session.add(next_token)
+                            db.session.flush()
+
                             # Send notification to next reviewer
                             if email_service:
                                 try:
@@ -309,7 +320,7 @@ def submit_review(review_id):
                                         topic_title=sequence.topic.title,
                                         author_name=sequence.creator.name if sequence.creator else 'Unknown',
                                         due_date=next_review.due_date,
-                                        review_url=f"/reviews/{next_review.id}",
+                                        review_url=f"/review/{next_token.token}",
                                         author_message=next_review.author_message,
                                         is_sequential=True,
                                         sequence_position=next_position + 1,
