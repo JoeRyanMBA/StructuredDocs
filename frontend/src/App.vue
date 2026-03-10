@@ -1,18 +1,18 @@
 <template>
-  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isLoginPage, 'sidebar-open': sidebarOpen && !isLoginPage }]">
-    <HeaderBar v-if="!isLoginPage" @toggle-sidebar="toggleSidebar" :sidebarOpen="sidebarOpen" />
-    <Sidebar v-if="!isLoginPage" :open="sidebarOpen" @close="closeSidebar" />
+  <div :class="[{ 'login-bg': isLoginPage }, { 'sidebar-layout': !isPublicPage, 'sidebar-open': sidebarOpen && !isPublicPage }]">
+    <HeaderBar v-if="!isPublicPage" @toggle-sidebar="toggleSidebar" :sidebarOpen="sidebarOpen" />
+    <Sidebar v-if="!isPublicPage" :open="sidebarOpen" @close="closeSidebar" />
     <transition name="fade">
-      <div v-if="!isLoginPage && sidebarOpen" class="sidebar-backdrop mobile-only" @click="closeSidebar" aria-hidden="true"></div>
+      <div v-if="!isPublicPage && sidebarOpen" class="sidebar-backdrop mobile-only" @click="closeSidebar" aria-hidden="true"></div>
     </transition>
-    <div class="ticker-bar" v-if="!isLoginPage">
+    <div class="ticker-bar" v-if="!isPublicPage">
       <NotificationTicker
         :notifications="notifications"
         :contextType="notificationContextType"
         @mark-read="markNotificationRead"
       />
     </div>
-    <main class="content" :class="{ 'login-content': isLoginPage }">
+    <main class="content" :class="{ 'login-content': isPublicPage }">
       <router-view v-slot="{ Component, route }">
         <component
           :is="Component"
@@ -77,6 +77,9 @@ export default {
     },
     isLoginPage() {
       return this.$route.name === 'Login';
+    },
+    isPublicPage() {
+      return this.$route.name === 'Login' || this.$route.name === 'ReviewPortal';
     },
     notificationContextType() {
       const path = this.$route?.path || ''
