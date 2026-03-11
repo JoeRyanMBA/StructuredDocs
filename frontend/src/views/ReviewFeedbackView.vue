@@ -1,33 +1,24 @@
 <template>
   <div class="review-feedback-container">
-    <div v-if="loading" class="text-center">
-      <p>Loading review feedback...</p>
+    <div v-if="loading" class="text-center py-5">
+      <p class="text-muted">Loading review feedback…</p>
     </div>
 
-    <div v-else-if="error" class="alert alert-danger" role="alert">
-      {{ error }}
-    </div>
+    <div v-else-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
     <div v-else class="review-feedback-content">
-      <!-- Header -->
-      <div class="header-section mb-4">
-        <h1 class="h2 mb-3">Review Feedback</h1>
-        <nav aria-label="breadcrumb">
-          <ol class="breadcrumb">
-            <li class="breadcrumb-item">
-              <router-link to="/reviews">Reviews</router-link>
-            </li>
-            <li class="breadcrumb-item">
-              <router-link to="/topics">Topics</router-link>
-            </li>
-            <li class="breadcrumb-item active" aria-current="page">
-              {{ topic?.title || 'Topic' }} - Review Feedback
-            </li>
-          </ol>
-        </nav>
-      </div>
 
-      <!-- Topic Info -->
+      <!-- Breadcrumb -->
+      <nav aria-label="breadcrumb" class="mb-3">
+        <ol class="breadcrumb">
+          <li class="breadcrumb-item"><router-link to="/reviews">Reviews</router-link></li>
+          <li class="breadcrumb-item active" aria-current="page">
+            {{ topic?.title || 'Topic' }} — Review Feedback
+          </li>
+        </ol>
+      </nav>
+
+      <!-- Topic info bar -->
       <div class="card mb-4">
         <div class="card-header bg-primary-subtle text-primary-emphasis">
           <h3 class="card-title mb-0">
@@ -37,20 +28,64 @@
         <div class="card-body">
           <div class="row">
             <div class="col-md-6">
-              <p><strong>Status:</strong> 
+              <p class="mb-1"><strong>Status:</strong>
                 <span :class="statusBadgeClass">{{ formatStatus(topic?.status) }}</span>
               </p>
-              <p><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
+              <p class="mb-1"><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
             </div>
             <div class="col-md-6">
-              <p><strong>Last Updated:</strong> {{ formatDate(topic?.updated_at) }}</p>
-              <p><strong>Priority:</strong> {{ review?.priority || '—' }}</p>
+              <p class="mb-1"><strong>Last Updated:</strong> {{ formatDate(topic?.updated_at) }}</p>
+              <p class="mb-1"><strong>Priority:</strong> {{ review?.priority || '—' }}</p>
             </div>
           </div>
         </div>
       </div>
 
-      <!-- Structured Feedback Items -->
+      <!-- Reviewer's overall feedback -->
+      <div class="card mb-4">
+        <div class="card-header bg-warning-subtle text-warning-emphasis">
+          <h4 class="card-title mb-0">
+            <i class="bi bi-chat-square-text me-2"></i>
+            Reviewer: {{ review?.reviewer_name }}
+            <span :class="recommendationBadgeClass" class="ms-2">
+              {{ formatRecommendation(review?.recommendation) }}
+            </span>
+          </h4>
+        </div>
+        <div class="card-body">
+          <div v-if="review?.feedback" class="mb-3">
+            <h6 class="fw-semibold">Comments:</h6>
+            <div class="p-3 bg-light border-start border-warning border-4 rounded">{{ review.feedback }}</div>
+          </div>
+          <div v-if="review?.review_notes" class="mb-3">
+            <h6 class="fw-semibold">Internal Notes:</h6>
+            <div class="p-3 bg-light border-start border-info border-4 rounded">{{ review.review_notes }}</div>
+          </div>
+          <p v-if="!review?.feedback && !review?.review_notes" class="text-muted fst-italic mb-0">
+            No general feedback provided.
+          </p>
+        </div>
+      </div>
+
+      <!-- ── Word-level content diff ── -->
+      <div v-if="review?.edited_content" class="card mb-4">
+        <div class="card-header" style="background:#e8f4fd;color:#0c4a6e;">
+          <h4 class="card-title mb-0">
+            <i class="bi bi-pencil-square me-2"></i>
+            Content Edits
+            <span class="ms-2 badge bg-info text-dark" style="font-size:0.75rem;">click a change to accept / reject</span>
+          </h4>
+        </div>
+        <div class="card-body">
+          <ReviewDiffEditor
+            :original-html="originalHtml"
+            :edited-html="review.edited_content"
+            v-model:finalHtml="finalContentHtml"
+          />
+        </div>
+      </div>
+
+      <!-- ── Structured feedback items ── -->
       <div v-if="review?.feedback_items?.length" class="card mb-4">
         <div class="card-header bg-danger-subtle text-danger-emphasis">
           <h4 class="card-title mb-0">
@@ -73,10 +108,11 @@
               </span>
               <span class="ms-auto d-flex gap-2">
                 <span class="priority-pill" :class="'priority-' + item.priority">{{ item.priority }}</span>
-                <span class="impact-pill" :class="'impact-' + item.impact">{{ item.impact }}</span>
+                <span class="impact-pill"   :class="'impact-' + item.impact">{{ item.impact }}</span>
               </span>
             </div>
 
+            <!-- Original / Suggested text side-by-side -->
             <div v-if="item.original_text || item.suggested_text" class="text-comparison">
               <div v-if="item.original_text" class="text-block original">
                 <div class="text-block-label">Original</div>
@@ -94,70 +130,67 @@
             <div v-if="item.rationale" class="feedback-rationale">
               <strong>Rationale:</strong> {{ item.rationale }}
             </div>
+
+            <!-- Accept / Reject controls -->
+            <div class="feedback-respond mt-3">
+              <div class="respond-btns mb-2">
+                <button
+                  class="btn btn-sm me-2"
+                  :class="itemResponses[item.id]?.status === 'accepted' ? 'btn-success' : 'btn-outline-success'"
+                  @click="setItemStatus(item.id, 'accepted')"
+                >
+                  <i class="bi bi-check-lg me-1"></i>Accept
+                </button>
+                <button
+                  class="btn btn-sm me-2"
+                  :class="itemResponses[item.id]?.status === 'rejected' ? 'btn-danger' : 'btn-outline-danger'"
+                  @click="setItemStatus(item.id, 'rejected')"
+                >
+                  <i class="bi bi-x-lg me-1"></i>Reject
+                </button>
+                <button
+                  class="btn btn-sm"
+                  :class="itemResponses[item.id]?.status === 'modified' ? 'btn-warning' : 'btn-outline-warning'"
+                  @click="setItemStatus(item.id, 'modified')"
+                >
+                  <i class="bi bi-pencil me-1"></i>Modify
+                </button>
+              </div>
+              <textarea
+                v-if="itemResponses[item.id]?.status"
+                v-model="itemResponses[item.id].response"
+                class="form-control form-control-sm"
+                rows="2"
+                :placeholder="itemResponses[item.id].status === 'modified' ? 'Describe your modification…' : 'Optional response note…'"
+              ></textarea>
+            </div>
           </div>
         </div>
       </div>
 
-      <!-- Review Feedback -->
-      <div class="card mb-4">
-        <div class="card-header bg-warning-subtle text-warning-emphasis">
-          <h4 class="card-title mb-0">
-            <i class="bi bi-chat-square-text me-2"></i>Reviewer Feedback
-          </h4>
-        </div>
-        <div class="card-body">
-          <div class="row mb-3">
-            <div class="col-md-6">
-              <p><strong>Reviewer:</strong> {{ review?.reviewer_name }}</p>
-              <p><strong>Review Date:</strong> {{ formatDate(review?.updated_at) }}</p>
-            </div>
-            <div class="col-md-6">
-              <p><strong>Recommendation:</strong> 
-                <span :class="recommendationBadgeClass">{{ formatRecommendation(review?.recommendation) }}</span>
-              </p>
-              <p><strong>Status:</strong> 
-                <span class="badge bg-warning">Revisions Requested</span>
-              </p>
-            </div>
-          </div>
-
-          <div v-if="review?.feedback" class="feedback-content">
-            <h5>Reviewer Comments:</h5>
-            <div class="feedback-text p-3 bg-light border-start border-warning border-4">
-              {{ review.feedback }}
-            </div>
-          </div>
-
-          <div v-if="review?.notes" class="reviewer-notes mt-3">
-            <h5>Internal Notes:</h5>
-            <div class="notes-text p-3 bg-light border-start border-info border-4">
-              {{ review.notes }}
-            </div>
-          </div>
-
-          <div v-if="!review?.feedback && !review?.notes" class="no-feedback">
-            <p class="text-muted fst-italic">No specific feedback provided by the reviewer.</p>
-          </div>
-        </div>
+      <!-- ── Apply / action bar ── -->
+      <div class="action-bar">
+        <button
+          v-if="review?.edited_content || review?.feedback_items?.length"
+          @click="applyChanges"
+          class="btn btn-primary btn-lg me-3"
+          :disabled="applying"
+        >
+          <span v-if="applying" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          <i v-else class="bi bi-check2-circle me-2"></i>
+          Update Topic
+        </button>
+        <button @click="editTopicManually" class="btn btn-outline-secondary btn-lg me-3">
+          <i class="bi bi-pencil-square me-2"></i>Open in Editor
+        </button>
+        <button @click="goBack" class="btn btn-outline-secondary btn-lg">
+          <i class="bi bi-arrow-left me-2"></i>Back to Reviews
+        </button>
       </div>
 
-      <!-- Action Buttons -->
-      <div class="action-buttons d-flex gap-3">
-        <button 
-          @click="editTopic" 
-          class="btn btn-primary btn-lg"
-        >
-          <i class="bi bi-pencil-square me-2"></i>
-          Edit Topic & Incorporate Changes
-        </button>
-        
-        <button 
-          @click="goBack" 
-          class="btn btn-outline-secondary btn-lg"
-        >
-          <i class="bi bi-arrow-left me-2"></i>
-          Back to Reviews
-        </button>
+      <div v-if="applyError" class="alert alert-danger mt-3">{{ applyError }}</div>
+      <div v-if="applySuccess" class="alert alert-success mt-3">
+        <i class="bi bi-check-circle-fill me-2"></i>Topic updated successfully.
       </div>
     </div>
   </div>
@@ -165,54 +198,52 @@
 
 <script>
 import axios from 'axios'
+import { marked } from 'marked'
+import ReviewDiffEditor from '@/components/ReviewDiffEditor.vue'
 
 export default {
   name: 'ReviewFeedbackView',
+  components: { ReviewDiffEditor },
   props: {
-    topicId: {
-      type: Number,
-      required: true
-    },
-    reviewId: {
-      type: Number,
-      required: true
-    }
+    topicId:  { type: Number, required: true },
+    reviewId: { type: Number, required: true }
   },
   data() {
     return {
-      loading: true,
-      error: null,
-      topic: null,
-      review: null
+      loading:         true,
+      error:           null,
+      topic:           null,
+      review:          null,
+      // The reconstructed final HTML after accept/reject in the diff editor
+      finalContentHtml: '',
+      // Per feedback-item responses: { [itemId]: { status, response } }
+      itemResponses:   {},
+      applying:        false,
+      applyError:      null,
+      applySuccess:    false,
     }
   },
   computed: {
-    statusBadgeClass() {
-      if (!this.topic?.status) return 'badge bg-secondary'
-      
-      const statusClasses = {
-        'draft': 'badge bg-secondary',
-        'pending_review': 'badge bg-warning',
-        'approved': 'badge bg-success',
-        'revisions_requested': 'badge bg-warning',
-        'published': 'badge bg-primary',
-        'rejected': 'badge bg-danger'
-      }
-      
-      return statusClasses[this.topic.status] || 'badge bg-secondary'
+    // Render the original topic markdown to HTML for the diff input
+    originalHtml() {
+      if (!this.topic?.content) return ''
+      const md = this.topic.content.replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
+      return marked.parse(md)
     },
-    
-    recommendationBadgeClass() {
-      if (!this.review?.recommendation) return 'badge bg-secondary'
-      
-      const recommendationClasses = {
-        'approve': 'badge bg-success',
-        'approve_with_changes': 'badge bg-warning',
-        'needs_more_info': 'badge bg-info',
-        'reject': 'badge bg-danger'
+    statusBadgeClass() {
+      const map = {
+        draft: 'badge bg-secondary', pending_review: 'badge bg-warning',
+        approved: 'badge bg-success', revisions_requested: 'badge bg-warning',
+        published: 'badge bg-primary', rejected: 'badge bg-danger'
       }
-      
-      return recommendationClasses[this.review.recommendation] || 'badge bg-secondary'
+      return map[this.topic?.status] || 'badge bg-secondary'
+    },
+    recommendationBadgeClass() {
+      const map = {
+        approve: 'badge bg-success', approve_with_changes: 'badge bg-warning',
+        needs_more_info: 'badge bg-info', reject: 'badge bg-danger'
+      }
+      return map[this.review?.recommendation] || 'badge bg-secondary'
     }
   },
   async mounted() {
@@ -222,75 +253,101 @@ export default {
     async loadData() {
       try {
         this.loading = true
-        this.error = null
-
-        // Load topic details
-        const topicResponse = await axios.get(`/api/topics/${this.topicId}`)
-        this.topic = topicResponse.data
-
-        // Load review details
-        const reviewResponse = await axios.get(`/api/reviews/${this.reviewId}`)
-        this.review = reviewResponse.data
-
-        // Verify review belongs to this topic
+        this.error   = null
+        const [topicRes, reviewRes] = await Promise.all([
+          axios.get(`/api/topics/${this.topicId}`),
+          axios.get(`/api/reviews/${this.reviewId}`)
+        ])
+        this.topic  = topicRes.data
+        this.review = reviewRes.data
         if (this.review.topic_id !== this.topicId) {
           throw new Error('Review does not belong to this topic')
         }
-
-      } catch (error) {
-        console.error('Error loading review feedback:', error)
-        this.error = error.response?.data?.error || 'Failed to load review feedback'
+        // Pre-populate the final content with the reviewer's edit (all changes accepted by default)
+        this.finalContentHtml = this.review.edited_content || this.originalHtml
+      } catch (err) {
+        console.error('Error loading review feedback:', err)
+        this.error = err.response?.data?.error || 'Failed to load review feedback'
       } finally {
         this.loading = false
       }
     },
 
-    formatFeedbackType(type) {
-      const labels = {
-        'general_comment': 'General Comment',
-        'text_edit': 'Text Edit',
-        'text_addition': 'Addition',
-        'text_deletion': 'Deletion',
-        'structural_change': 'Structural Change',
-        'technical_correction': 'Technical Correction',
-        'style_suggestion': 'Style Suggestion'
+    setItemStatus(itemId, status) {
+      const existing = this.itemResponses[itemId] || { response: '' }
+      this.itemResponses = {
+        ...this.itemResponses,
+        [itemId]: { ...existing, status }
       }
-      return labels[type] || type
     },
 
-    formatStatus(status) {
-      if (!status) return 'Unknown'
-      return status.split('_').map(word => 
-        word.charAt(0).toUpperCase() + word.slice(1)
-      ).join(' ')
-    },
+    async applyChanges() {
+      this.applying     = true
+      this.applyError   = null
+      this.applySuccess = false
+      try {
+        // 1. Update the topic content with the accepted diff result
+        const contentToSave = this.review?.edited_content
+          ? this.finalContentHtml
+          : this.topic.content
 
-    formatRecommendation(recommendation) {
-      if (!recommendation) return 'Unknown'
-      
-      const recommendationLabels = {
-        'approve': 'Approve',
-        'approve_with_changes': 'Approve with Changes',
-        'needs_more_info': 'Needs More Info',
-        'reject': 'Reject'
+        await axios.put(`/api/topics/${this.topicId}`, {
+          title:   this.topic.title,
+          content: contentToSave
+        })
+
+        // 2. Persist each feedback-item response that was set
+        const pending = Object.entries(this.itemResponses).filter(([, v]) => v.status)
+        await Promise.all(pending.map(([id, val]) =>
+          axios.put(`/api/feedback/${id}/respond`, {
+            status:          val.status,
+            author_response: val.response || ''
+          })
+        ))
+
+        this.applySuccess = true
+        // Navigate back to reviews after a brief confirmation moment
+        setTimeout(() => this.$router.push('/reviews'), 1500)
+      } catch (err) {
+        console.error('Error applying changes:', err)
+        this.applyError = err.response?.data?.error || 'Failed to update topic. Please try again.'
+      } finally {
+        this.applying = false
       }
-      
-      return recommendationLabels[recommendation] || recommendation
     },
 
-    formatDate(dateString) {
-      if (!dateString) return 'Unknown'
-      const date = new Date(dateString)
-      return date.toLocaleDateString() + ' ' + date.toLocaleTimeString()
-    },
-
-    editTopic() {
+    editTopicManually() {
       this.$router.push(`/topics/${this.topicId}/edit?reviewId=${this.reviewId}`)
     },
 
     goBack() {
-      // Navigate back to reviews dashboard
       this.$router.push('/reviews')
+    },
+
+    formatFeedbackType(type) {
+      const labels = {
+        general_comment: 'General Comment', text_edit: 'Text Edit',
+        text_addition: 'Addition', text_deletion: 'Deletion',
+        structural_change: 'Structural Change', technical_correction: 'Technical Correction',
+        style_suggestion: 'Style Suggestion'
+      }
+      return labels[type] || type
+    },
+    formatStatus(status) {
+      if (!status) return 'Unknown'
+      return status.split('_').map(w => w.charAt(0).toUpperCase() + w.slice(1)).join(' ')
+    },
+    formatRecommendation(rec) {
+      const labels = {
+        approve: 'Approve', approve_with_changes: 'Approve with Changes',
+        needs_more_info: 'Needs More Info', reject: 'Reject'
+      }
+      return labels[rec] || rec || 'Unknown'
+    },
+    formatDate(dateString) {
+      if (!dateString) return 'Unknown'
+      const d = new Date(dateString)
+      return d.toLocaleDateString() + ' ' + d.toLocaleTimeString()
     }
   }
 }
@@ -298,13 +355,9 @@ export default {
 
 <style scoped>
 .review-feedback-container {
-  max-width: 1200px;
+  max-width: 1100px;
   margin: 0 auto;
-  padding: 2rem;
-}
-
-.badge {
-  color: #000 !important;
+  padding: 1.5rem;
 }
 
 .feedback-item {
@@ -324,37 +377,26 @@ export default {
   margin-bottom: 0.75rem;
   flex-wrap: wrap;
 }
-.feedback-index {
-  font-weight: 700;
-  color: #6c757d;
-  font-size: 0.85rem;
-}
+.feedback-index { font-weight: 700; color: #6c757d; font-size: 0.85rem; }
 .feedback-type-badge {
-  background: #e9ecef;
-  color: #495057;
-  font-size: 0.75rem;
-  font-weight: 600;
-  padding: 0.2rem 0.55rem;
-  border-radius: 4px;
+  background: #e9ecef; color: #495057;
+  font-size: 0.75rem; font-weight: 600;
+  padding: 0.2rem 0.55rem; border-radius: 4px;
 }
-.feedback-section {
-  font-size: 0.82rem;
-  color: #0d6efd;
-}
+.feedback-section { font-size: 0.82rem; color: #0d6efd; }
+
 .priority-pill, .impact-pill {
-  font-size: 0.7rem;
-  font-weight: 700;
+  font-size: 0.7rem; font-weight: 700;
   text-transform: uppercase;
-  padding: 0.15rem 0.45rem;
-  border-radius: 3px;
+  padding: 0.15rem 0.45rem; border-radius: 3px;
 }
 .priority-critical { background:#f8d7da; color:#842029; }
 .priority-high     { background:#ffe5d0; color:#7c3a00; }
 .priority-medium   { background:#fff3cd; color:#664d03; }
 .priority-low      { background:#d1e7dd; color:#0a3622; }
-.impact-major    { background:#f8d7da; color:#842029; }
-.impact-moderate { background:#fff3cd; color:#664d03; }
-.impact-minor    { background:#d1e7dd; color:#0a3622; }
+.impact-major      { background:#f8d7da; color:#842029; }
+.impact-moderate   { background:#fff3cd; color:#664d03; }
+.impact-minor      { background:#d1e7dd; color:#0a3622; }
 
 .text-comparison {
   display: grid;
@@ -365,67 +407,34 @@ export default {
 @media (max-width: 600px) { .text-comparison { grid-template-columns: 1fr; } }
 
 .text-block { border-radius: 4px; overflow: hidden; }
-.text-block-label {
-  font-size: 0.72rem;
-  font-weight: 700;
-  text-transform: uppercase;
-  padding: 0.2rem 0.6rem;
-}
-.text-block-content {
-  padding: 0.5rem 0.75rem;
-  font-size: 0.88rem;
-  white-space: pre-wrap;
-  word-break: break-word;
-}
+.text-block-label { font-size: 0.72rem; font-weight: 700; text-transform: uppercase; padding: 0.2rem 0.6rem; }
+.text-block-content { padding: 0.5rem 0.75rem; font-size: 0.88rem; white-space: pre-wrap; word-break: break-word; }
 .text-block.original .text-block-label  { background:#f8d7da; color:#842029; }
-.text-block.original .text-block-content { background:#fff5f5; border: 1px solid #f5c2c7; }
-.text-block.suggested .text-block-label { background:#d1e7dd; color:#0a3622; }
-.text-block.suggested .text-block-content { background:#f0fff4; border: 1px solid #badbcc; }
+.text-block.original .text-block-content { background:#fff5f5; border:1px solid #f5c2c7; }
+.text-block.suggested .text-block-label  { background:#d1e7dd; color:#0a3622; }
+.text-block.suggested .text-block-content { background:#f0fff4; border:1px solid #badbcc; }
 
 .feedback-comment, .feedback-rationale {
-  font-size: 0.88rem;
-  margin-top: 0.4rem;
-  color: #343a40;
+  font-size: 0.88rem; margin-top: 0.4rem; color: #343a40;
 }
 
-.feedback-content h5,
-.reviewer-notes h5 {
-  color: var(--text-primary-charcoal);
-  font-weight: 600;
-  margin-bottom: 0.75rem;
+.feedback-respond {
+  border-top: 1px dashed #dee2e6;
+  padding-top: 0.75rem;
 }
+.respond-btns { display: flex; flex-wrap: wrap; gap: 0.25rem; }
 
-.feedback-text,
-.notes-text {
-  white-space: pre-wrap;
-  word-wrap: break-word;
-  line-height: 1.6;
-}
-
-.action-buttons {
+.action-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem;
   margin-top: 2rem;
-  padding-top: 2rem;
-  border-top: 1px solid var(--border-color-gray);
+  padding-top: 1.5rem;
+  border-top: 1px solid #dee2e6;
 }
 
-.no-feedback {
-  padding: 2rem;
-  text-align: center;
-  background-color: var(--bg-white);
-  border-radius: 0.375rem;
-}
-
-@media (max-width: 768px) {
-  .review-feedback-container {
-    padding: 1rem;
-  }
-  
-  .action-buttons {
-    flex-direction: column;
-  }
-  
-  .action-buttons .btn {
-    width: 100%;
-  }
+@media (max-width: 600px) {
+  .action-bar { flex-direction: column; }
+  .action-bar .btn { width: 100%; }
 }
 </style>

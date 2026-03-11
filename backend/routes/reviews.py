@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
 from ..models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ReviewToken

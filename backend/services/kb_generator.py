@@ -188,18 +188,14 @@ def generate_mobile_kb_html_inline(publication, tree):
             justify-content: center;
         }
         .kb-header-inner {
-            position: relative;
             width: 100%;
             max-width: 900px;
             display: flex;
             align-items: center;
-            justify-content: center;
+            gap: 0.5rem;
         }
         .hamburger-btn {
-            position: absolute;
-            left: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
+            flex-shrink: 0;
             width: 40px;
             height: 40px;
             display: inline-flex;
@@ -215,10 +211,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         .hamburger-btn:focus { outline: 2px solid #fff; outline-offset: 2px; }
 
         .search-btn {
-            position: absolute;
-            right: 0.5rem;
-            top: 50%;
-            transform: translateY(-50%);
+            flex-shrink: 0;
             width: 40px;
             height: 40px;
             display: inline-flex;
@@ -334,6 +327,13 @@ def generate_mobile_kb_html_inline(publication, tree):
             font-size: 0.875rem;
             opacity: 0.9;
             margin-top: 0.25rem;
+        }
+
+        .kb-title-group {
+            flex: 1;
+            text-align: center;
+            min-width: 0;
+            overflow: hidden;
         }
         
         /* Drawer navigation (initially collapsed) */
@@ -946,7 +946,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         <header class="kb-header">
             <div class="kb-header-inner">
                 <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">☰</button>
-                <div>
+                <div class="kb-title-group">
                     <h1 class="kb-title">{publication.title}</h1>
                     <p class="kb-subtitle">Mobile Knowledge Base</p>
                 </div>
