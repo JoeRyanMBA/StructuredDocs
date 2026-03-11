@@ -135,12 +135,12 @@ Create
   │
   ▼
 draft ──→ pending_review ──→ approved ──→ published
-                │
-                ▼
-        revisions_requested
-                │
-                ▼
-             draft  (cycle back to edit)
+                │                 ▲
+                ▼                 │
+        revisions_requested       │
+                │                 │
+                ▼                 │
+             draft ───────────────┘  (incorporate feedback, re-submit)
                 │
                 ▼
             rejected
@@ -149,13 +149,15 @@ draft ──→ pending_review ──→ approved ──→ published
 1. **Create** a topic. Status defaults to `draft`. Write and edit content in the rich-text editor.
 2. **Submit for review** by creating a Review against the topic. This moves status to `pending_review`. A reviewer is notified by email and receives a time-limited token link to access the content without needing an account.
 3. The **reviewer reads the topic** via their token link, leaves inline feedback, and submits a recommendation: `approve`, `approve_with_changes`, `reject`, or `needs_more_info`.
-4. **Author responds** to each feedback item (accept, reject, or modify) and makes any edits.
-5. Once the review is **completed**:
+4. Once the review is **completed**:
    - Approved → status moves to `approved`
-   - Changes requested → status moves to `revisions_requested`, author edits and re-submits
+   - Changes requested (`approve_with_changes`) → status moves to `revisions_requested`
+   - More information needed (`needs_more_info`) → status moves back to `draft`
    - Rejected → status moves to `rejected`
-6. **Publish** the topic as part of a collection (see Collection Lifecycle above). Status moves to `published`. The publication captures a snapshot of the content at that moment — later edits to the topic do not affect the published snapshot.
-7. **Archive** the topic when it is retired.
+5. **Incorporate feedback** via the *Incorporate Feedback* dashboard. The author reviews each inline comment (accept, reject, or modify), applies word-level diff edits from the reviewer, and clicks **Update Topic**. This saves all changes and moves the topic status back to `draft`, removing it from the Incorporate Feedback queue.
+6. The author can re-submit the revised topic for another review (repeat from step 2) or, if already approved, move directly to publication.
+7. **Publish** the topic as part of a collection (see Collection Lifecycle above). Status moves to `published`. The publication captures a snapshot of the content at that moment — later edits to the topic do not affect the published snapshot.
+8. **Archive** the topic when it is retired.
 
 ### What you can do with a Topic
 
@@ -165,7 +167,8 @@ draft ──→ pending_review ──→ approved ──→ published
 | Edit title and content | Any time while in `draft` or `revisions_requested` |
 | Submit for review | Moves to `pending_review`; notifies reviewer by email |
 | Review via token link | External reviewers do not need an account |
-| Approve / request revisions / reject | Done by the reviewer |
+| Approve / request revisions / reject | Done by the reviewer; also supports bulk review (multiple topics, one email) |
+| Incorporate feedback | *Incorporate Feedback* dashboard; accept/reject word-level diffs; clicking Update Topic returns topic to `draft` |
 | Add to a collection | Topics can belong to multiple collections |
 | Publish (via collection) | Captures a snapshot; status moves to `published` |
 | Archive | Soft retire |

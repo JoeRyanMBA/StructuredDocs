@@ -92,16 +92,18 @@ GET    /api/reviews/{id}/feedback             - Get feedback (auth)
 ```
 /frontend/src/
 ├─ views/
-│  ├─ ReviewsDashboard.vue        → Main dashboard
-│  ├─ ReviewFeedbackView.vue      → Viewing feedback
-│  └─ ReviewHistory.vue            → History view
+│  ├─ ReviewsDashboard.vue        → Combined reviews table with search/filter
+│  ├─ IncorporateFeedback.vue     → Completed reviews needing author action
+│  ├─ ReviewFeedbackView.vue      → Word-level diff + per-item accept/reject
+│  └─ BulkReviewPortal.vue        → Reviewer portal for bulk reviews (no auth)
 ├─ components/
-│  ├─ RequestReviewModal.vue      → Single-topic request
-│  ├─ SequentialReviewModal.vue   → Multi-step setup
-│  ├─ ReviewCard.vue              → Card in dashboard
-│  └─ ...others
+│  ├─ ReviewDiffEditor.vue        → Word-level diff with Accept All / Reject All
+│  ├─ RequestReviewModal.vue      → Single-topic review request
+│  ├─ BulkRequestReviewModal.vue  → Multi-topic review request (≥2 topics)
+│  ├─ SequentialReviewModal.vue   → Multi-step reviewer queue (same topic)
+│  └─ ReviewPortal.vue            → Single-topic reviewer portal (no auth)
 └─ api/
-   └─ reviews.js                   → API methods
+   └─ reviews.js                   → API methods (single + bulk)
 ```
 
 ## Email Service Key Methods
@@ -203,29 +205,15 @@ Validation rules (ReviewToken.is_valid()):
     └─ Track status (pending/accepted/rejected/modified)
 ```
 
-## Missing for Bulk Reviews
+## Bulk Review Endpoints
 ```
-❌ POST /api/reviews/batch                   (create N reviews)
-❌ GET /api/reviews/batches/{id}/progress   (track batch)
-❌ RequestBulkReviewModal.vue                (multi-topic UI)
-❌ BatchProgressTracker.vue                  (progress UI)
-❌ ReviewerDashboard.vue                     (all reviews view)
-❌ review_batches table                      (DB schema)
-❌ Batch email template                      (digest emails)
-❌ Reviewer search/filter                    (discovery)
+POST /api/reviews/bulk-request              (create ReviewBatch + N reviews + token + email)
+GET  /api/bulk-review/<token>               (reviewer portal: all topics + progress)
+POST /api/bulk-review/<token>/review/<id>/feedback  (submit feedback for one topic)
+GET  /api/bulk-review/<token>/status        (per-topic completion state)
 ```
-
-## Estimated Timeline to Add Bulk
-
-| Phase | Work | Time | Requires |
-|-------|------|------|----------|
-| 1 | Multi-topic request endpoint | 1w | DB migration + API + modal |
-| 2 | Batch tracking & progress | 1w | Progress endpoints + UI |
-| 3 | Reviewer dashboard | 2w | New endpoint + component |
-| 4 | Advanced (email digest, parallel, etc) | 3w+ | All above + email refactor |
 
 ---
 
-**For detailed analysis**: See `REVIEW_WORKFLOW_ANALYSIS.md`  
-**For implementation code**: See `BULK_REVIEW_TODO.md`  
+**For detailed analysis**: See `REVIEW_WORKFLOW_ANALYSIS.md`
 **For overview**: See `REVIEW_SUMMARY.md`
