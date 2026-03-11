@@ -92,9 +92,8 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('isAuthenticated');
   delete axios.defaults.headers.common['Authorization'];
-  if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-    window.location.href = '/login';
-  }
+  // Dispatch event so useSessionTimeout shows the modal instead of a raw page reload
+  window.dispatchEvent(new CustomEvent('auth:logout'));
 }
 
 export default axiosInstance;

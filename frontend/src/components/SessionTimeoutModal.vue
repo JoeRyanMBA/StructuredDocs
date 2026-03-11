@@ -5,10 +5,10 @@
         <div class="session-modal">
           <div class="session-modal-header">
             <span class="session-icon"><i class="bi bi-clock-history"></i></span>
-            <h5 id="session-timeout-title">Session Expiring Soon</h5>
+        <h5 id="session-timeout-title">{{ expired ? 'Session Expired' : 'Session Expiring Soon' }}</h5>
           </div>
           <div class="session-modal-body">
-            <p>Your session will expire in</p>
+            <p>{{ expired ? 'Your session has expired.' : 'Your session will expire in' }}</p>
             <div class="session-countdown">{{ formattedTime }}</div>
             <p class="session-hint">Would you like to stay logged in?</p>
           </div>
@@ -33,6 +33,10 @@ export default {
     secondsRemaining: {
       type: Number,
       default: 0,
+    },
+    expired: {
+      type: Boolean,
+      default: false,
     },
   },
   emits: ['extend', 'logout'],
