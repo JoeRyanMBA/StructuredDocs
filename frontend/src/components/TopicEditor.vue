@@ -662,7 +662,9 @@ export default {
       return this.content.replace(/\n/g, '<br>')
     },
     renderedMarkdown() {
-      const content = this.content || ''
+      // Strip Pandoc-style image size attributes like {width="4.0in" height="2.0in"}
+      // before rendering so they don't appear as literal text next to images.
+      const content = (this.content || '').replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
 
       // Custom renderer to handle broken images
       const renderer = new marked.Renderer()
@@ -724,7 +726,7 @@ export default {
       }
       
       if (content.match(/\{width=|{height=/)) {
-        rendered += '<div class="image-warning" style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 10px; margin: 10px 0; border-radius: 4px;"><strong>📝 Formatting Note:</strong> This topic contains Pandoc-style attributes that aren\'t displayed in the editor. For size control, use HTML: &lt;img src="/images/file.png" width="500"&gt;</div>'
+        // Attributes already stripped above; this branch is a no-op safety guard.
       }
       
       // Post-process: in preview mode we use previewHtml (async, tag-aware).
@@ -1498,7 +1500,9 @@ export default {
     _rawMarkdownToHtml() {
       // Renders this.content to HTML keeping sd-snippet-ref wrappers intact (for WYSIWYG init).
       // Unlike renderedMarkdown, does NOT strip snippet wrappers so htmlToMarkdown can round-trip them.
-      return marked.parse(this.content || '', { breaks: false, gfm: true })
+      // Strip Pandoc-style image size attributes so they don't appear as literal text.
+      const content = (this.content || '').replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
+      return marked.parse(content, { breaks: false, gfm: true })
     },
 
     async _initWysiwygContent() {
