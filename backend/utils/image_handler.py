@@ -191,11 +191,14 @@ class ImageHandler:
                     # Update markdown content with new image path
                     old_ref = f"media/{temp_image_path.name}"
                     new_ref = f"/images/imports/{self.import_doc_id}/{stored_image_info['filename']}"
-                    # Replace various possible reference formats
+                    # Replace various possible reference formats.
+                    # The optional (?:\{[^}]*\})? suffix strips Pandoc-style size attributes
+                    # like {width="4.0in" height="2.0in"} that pandoc adds to image references.
+                    pandoc_attrs = r'(?:\{[^}]*\})?'
                     patterns = [
-                        f"![.*?]\\({re.escape(old_ref)}\\)",
-                        f"![.*?]\\({re.escape(temp_image_path.name)}\\)",
-                        f"!\\[.*?\\]\\(.*?{re.escape(temp_image_path.stem)}.*?\\)"
+                        rf"!\[.*?\]\({re.escape(old_ref)}\){pandoc_attrs}",
+                        rf"!\[.*?\]\({re.escape(temp_image_path.name)}\){pandoc_attrs}",
+                        rf"!\[.*?\]\(.*?{re.escape(temp_image_path.stem)}.*?\){pandoc_attrs}"
                     ]
                     for pattern in patterns:
                         matches = re.finditer(pattern, updated_content)

@@ -124,113 +124,7 @@
                 handle=".drag-handle"
               >
     <template #item="{ element: topic, index }">
-                  <div 
-                    class="topic-wrapper"
-                    :data-topic-id="topic.id"
-                  >
-                    <div 
-                      class="collection-topic-item"
-                      :class="{ 
-                        'selected': selectedTopics.has(topic.id),
-                        'drop-target': dropTarget === topic.id
-                      }"
-                      
-                      @click="handleTopicClick(topic, index, $event)"
-                      @contextmenu="handleTopicRightClick(topic, index, $event)"
-                      
-                    >
-                      <div class="collection-topic-item-row" style="display: flex; align-items: center; width: 100%;">
-                        <div v-if="topic.children && topic.children.length > 0" class="expand-toggle" @click.stop="toggleExpansion(topic.id)">
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <path v-if="expandedTopics.has(topic.id)" d="M3 4.5L6 7.5L9 4.5" :stroke="arrowColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                            <path v-else d="M4.5 3L7.5 6L4.5 9" :stroke="arrowColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
-                          </svg>
-                        </div>
-                        <div v-else class="expand-spacer"></div>
-                        <div class="drag-handle">
-                          <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                            <circle cx="2" cy="2" r="1" fill="#999"/>
-                            <circle cx="6" cy="2" r="1" fill="#999"/>
-                            <circle cx="10" cy="2" r="1" fill="#999"/>
-                            <circle cx="2" cy="6" r="1" fill="#999"/>
-                            <circle cx="6" cy="6" r="1" fill="#999"/>
-                            <circle cx="10" cy="6" r="1" fill="#999"/>
-                            <circle cx="2" cy="10" r="1" fill="#999"/>
-                            <circle cx="6" cy="10" r="1" fill="#999"/>
-                            <circle cx="10" cy="10" r="1" fill="#999"/>
-                          </svg>
-                        </div>
-                        <div class="topic-content-row" style="display: flex; align-items: center; flex: 1; min-width: 0;">
-                          <span class="topic-id-badge">#{{ topic.id }}</span>
-                          <span class="topic-title">{{ topic.title }}</span>
-                          <span :class="['topic-status-badge', 'status-' + (topic.status || 'draft')]">{{ topic.status || 'draft' }}</span>
-                          <span v-if="topic.children && topic.children.length > 0" class="child-count">
-                            ({{ topic.children.length }})
-                          </span>
-                          <div class="topic-actions" style="margin-left: auto;">
-                            <button class="icon-btn" @click.stop="previewTopic(topic)" title="Preview this topic" aria-label="Preview topic">
-                              <i class="bi bi-zoom-in" aria-hidden="true"></i>
-                            </button>
-                            <button class="topic-btn up" @click.stop="moveTopicUp(topic)">▲</button>
-                            <button class="topic-btn down" @click.stop="moveTopicDown(topic)">▼</button>
-                            <button class="topic-btn right" @click.stop="indentTopic(topic)">▶</button>
-                            <button class="topic-btn left" @click.stop="outdentTopic(topic)">◀</button>
-                          </div>
-                        </div>
-                      </div>
-                    </div> <!-- close .collection-topic-item-row -->
-                    <!-- Render child topics if they exist and topic is expanded -->
-                    <div 
-                      v-if="topic.children && topic.children.length > 0 && expandedTopics.has(topic.id)" 
-                      class="child-topics"
-                    >
-                      <draggable
-                        :list="topic.children"
-                        group="topics"
-                        item-key="id"
-                        @change="onTopicDrop"
-                        class="child-topics-list"
-                        :fallback-tolerance="5"
-                        :force-fallback="true"
-                        handle=".drag-handle"
-                      >
-                        <template #item="{ element: childTopic, index: childIndex }">
-                          <div 
-                            class="collection-topic-item child-topic"
-                            :class="{ 'selected': selectedTopics.has(childTopic.id) }"
-                            @click="handleChildTopicClick(childTopic, topic, childIndex, $event)"
-                            @contextmenu="handleTopicRightClick(childTopic, childIndex, $event)"
-                          >
-                            <div class="drag-handle">
-                              <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
-                                <circle cx="2" cy="2" r="1" fill="#999"/>
-                                <circle cx="6" cy="2" r="1" fill="#999"/>
-                                <circle cx="10" cy="2" r="1" fill="#999"/>
-                                <circle cx="2" cy="6" r="1" fill="#999"/>
-                                <circle cx="6" cy="6" r="1" fill="#999"/>
-                                <circle cx="10" cy="6" r="1" fill="#999"/>
-                                <circle cx="2" cy="10" r="1" fill="#999"/>
-                                <circle cx="6" cy="10" r="1" fill="#999"/>
-                                <circle cx="10" cy="10" r="1" fill="#999"/>
-                              </svg>
-                            </div>
-                            <span class="topic-id-badge">#{{ childTopic.id }}</span>
-                            <span class="topic-title">{{ childTopic.title }}</span>
-                            <span :class="['topic-status-badge', 'status-' + (childTopic.status || 'draft')]">{{ childTopic.status || 'draft' }}</span>
-                            <div class="topic-actions">
-                              <button class="icon-btn" @click.stop="previewTopic(childTopic)" title="Preview this topic" aria-label="Preview topic">
-                                <i class="bi bi-zoom-in" aria-hidden="true"></i>
-                              </button>
-                              <button class="topic-btn up" @click.stop="moveTopicUp(childTopic)">▲</button>
-                              <button class="topic-btn down" @click.stop="moveTopicDown(childTopic)">▼</button>
-                              <button class="topic-btn right" @click.stop="indentTopic(childTopic)">▶</button>
-                              <button class="topic-btn left" @click.stop="outdentTopic(childTopic)">◀</button>
-                            </div>
-                          </div>
-                        </template>
-                      </draggable>
-                    </div>
-                  </div>
+                  <OrganizeTopicNode :topic="topic" :depth="0" :topic-index="index" />
                 </template>
               </draggable>
             </div>
@@ -458,6 +352,7 @@ import TopicEditor from '@/components/TopicEditor.vue'
 import { toast } from '@/composables/useToast'
 import TagEditor from '@/components/TagEditor.vue'
 import VariableSelectionModal from '@/components/VariableSelectionModal.vue'
+import OrganizeTopicNode from '@/components/OrganizeTopicNode.vue'
 
 export default {
   name: 'OrganizeView',
@@ -467,7 +362,10 @@ export default {
       required: true
     }
   },
-  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal, TagEditor },
+  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal, TagEditor, OrganizeTopicNode },
+  provide() {
+    return { organizeView: this }
+  },
   data() {
     return {
       currentCollection: null, // The specific collection being organized
