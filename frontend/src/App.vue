@@ -28,6 +28,7 @@
     <SessionTimeoutModal
       :show="sessionWarning"
       :secondsRemaining="sessionSecondsRemaining"
+      :expired="sessionExpired"
       @extend="sessionExtend"
       @logout="sessionLogout"
     />
@@ -47,10 +48,11 @@ import { useSessionTimeout } from '@/composables/useSessionTimeout'
 export default {
   components: { Sidebar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter, SessionTimeoutModal },
   setup() {
-    const { showWarning, secondsRemaining, startWatcher, stopWatcher, extendSession, performLogout } = useSessionTimeout()
+    const { showWarning, secondsRemaining, sessionExpired, startWatcher, stopWatcher, extendSession, performLogout } = useSessionTimeout()
     return {
       sessionWarning: showWarning,
       sessionSecondsRemaining: secondsRemaining,
+      sessionExpired,
       sessionExtend: extendSession,
       sessionLogout: performLogout,
       startSessionWatcher: startWatcher,

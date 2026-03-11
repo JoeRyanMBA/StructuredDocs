@@ -164,14 +164,14 @@
                 <button
                   v-if="review.status === 'completed' && review.topic_status === 'revisions_requested'"
                   @click="incorporateFeedback(review)"
-                  class="row-action-btn primary"
+                  class="btn btn-primary btn-sm"
                 >Incorporate</button>
                 <button
                   v-else-if="review.status === 'pending'"
                   @click="followUp(review)"
-                  class="row-action-btn"
+                  class="btn btn-secondary btn-sm"
                 >Follow Up</button>
-                <button @click="viewReview(review)" class="row-action-btn">View</button>
+                <button @click="viewReview(review)" class="btn btn-secondary btn-sm">View</button>
               </td>
             </tr>
           </tbody>
@@ -770,6 +770,10 @@ export default {
 .col-actions-head,
 .col-actions  { white-space: nowrap; text-align: right; }
 
+.col-actions .btn + .btn {
+  margin-left: 0.3rem;
+}
+
 .status-badge {
   display: inline-block;
   padding: 0.2rem 0.55rem;
@@ -785,34 +789,6 @@ export default {
 .status-badge.completed   { background: var(--success-light-green); color: var(--success-dark-green); }
 .status-badge.declined    { background: #f3f4f6; color: #6b7280; }
 .status-badge.overdue     { background: var(--error-light-red); color: var(--error-dark-red); }
-
-.row-action-btn {
-  padding: 0.3rem 0.65rem;
-  border: 1px solid var(--border-light-gray);
-  border-radius: var(--border-radius-sm);
-  background: var(--bg-white);
-  color: var(--text-dark-gray);
-  font-size: 0.78rem;
-  cursor: pointer;
-  margin-left: 0.3rem;
-  transition: all 0.12s;
-}
-
-.row-action-btn:hover {
-  border-color: var(--primary-deep-teal);
-  color: var(--primary-deep-teal);
-}
-
-.row-action-btn.primary {
-  background: var(--primary-deep-teal);
-  color: #fff;
-  border-color: var(--primary-deep-teal);
-}
-
-.row-action-btn.primary:hover {
-  background: var(--primary-dark-blue);
-  border-color: var(--primary-dark-blue);
-}
 
 /* Empty States */
 .empty-state {

@@ -711,4 +711,11 @@ export default {
 .quill-editor-area { min-height: 400px; }
 .quill-editor-area :deep(.ql-container) { font-size: 15px; min-height: 360px; }
 .quill-editor-area :deep(.ql-editor) { min-height: 360px; line-height: 1.7; }
+.quill-editor-area :deep(.ql-editor p) { margin-bottom: 1rem; }
+.quill-editor-area :deep(.ql-editor h1),
+.quill-editor-area :deep(.ql-editor h2),
+.quill-editor-area :deep(.ql-editor h3) { margin-top: 1.5rem; margin-bottom: 0.75rem; font-weight: 600; }
+.quill-editor-area :deep(.ql-editor ul),
+.quill-editor-area :deep(.ql-editor ol) { margin-bottom: 1rem; }
+.quill-editor-area :deep(.ql-editor li) { margin-bottom: 0.25rem; }
 </style>

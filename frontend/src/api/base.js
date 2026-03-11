@@ -70,14 +70,14 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
     if (newToken) {
       return apiRequest(endpoint, options, true);
     }
-    // Refresh failed — clear auth and redirect
+    // Refresh failed — clear auth and show session modal via event (no raw page reload)
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem('access_token');
       localStorage.removeItem('refresh_token');
       localStorage.removeItem('isAuthenticated');
     }
-    if (typeof window !== 'undefined' && !window.location.pathname.includes('/login')) {
-      window.location.href = '/login';
+    if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('auth:logout'));
     }
   }
 
