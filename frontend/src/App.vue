@@ -79,7 +79,7 @@ export default {
       return this.$route.name === 'Login';
     },
     isPublicPage() {
-      return this.$route.name === 'Login' || this.$route.name === 'ReviewPortal';
+      return this.$route.name === 'Login' || this.$route.name === 'ReviewPortal' || this.$route.name === 'BulkReviewPortal';
     },
     notificationContextType() {
       const path = this.$route?.path || ''
