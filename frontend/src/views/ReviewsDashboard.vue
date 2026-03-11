@@ -88,98 +88,95 @@
       </div>
     </div>
 
-    <!-- Main Content Grid -->
-    <div class="content-grid two-col">
-      <!-- Pending Reviews -->
-      <div class="dashboard-section">
-        <h2>Urgent Reviews</h2>
-        <div class="reviews-list">
-          <div v-if="urgentReviews.length === 0" class="empty-state">
-            <p>No urgent reviews! 🎉</p>
+    <!-- Combined Reviews Table -->
+    <div class="dashboard-section reviews-table-section">
+      <div class="table-toolbar">
+        <h2>All Reviews</h2>
+        <div class="toolbar-controls">
+          <div class="search-wrap">
+            <span class="search-icon">🔍</span>
+            <input
+              v-model="searchQuery"
+              type="search"
+              class="search-input"
+              placeholder="Search by topic or reviewer…"
+            />
           </div>
-          <div v-else>
-            <div 
-              v-for="review in urgentReviews" 
-              :key="review.id"
-              class="review-item urgent"
-              @click="viewReview(review)"
-            >
-              <div class="review-icon">📝</div>
-              <div class="review-content">
-                <div class="review-title">{{ review.topic_title || 'Unknown Topic' }}</div>
-                <div class="review-description">{{ review.reviewer_name || 'Unknown Reviewer' }}</div>
-                <div class="review-meta">Due {{ formatDueDate(review.due_date) }}</div>
-              </div>
-              <div class="review-status" :class="review.status">{{ formatStatus(review.status) }}</div>
-            </div>
-          </div>
+          <select v-model="filterStatus" class="filter-select">
+            <option value="all">All Statuses</option>
+            <option value="pending">Pending</option>
+            <option value="in_progress">In Progress</option>
+            <option value="completed">Completed</option>
+            <option value="declined">Declined</option>
+          </select>
+          <button
+            type="button"
+            :class="['filter-pill', { active: filterUrgent }]"
+            @click="filterUrgent = !filterUrgent"
+          >⚠️ Urgent / Overdue</button>
         </div>
+        <span class="result-count">{{ filteredReviews.length }} review{{ filteredReviews.length !== 1 ? 's' : '' }}</span>
       </div>
 
-  <!-- Review Statistics -->
-  <div class="dashboard-section">
-        <h2>Review Activity</h2>
-        <div class="reviews-overview">
-          <div v-if="recentReviews.length === 0" class="empty-state">
-            <p>No recent review activity. <button @click="sendNewReview" class="link-btn">Send your first review</button></p>
-          </div>
-          <div v-else class="reviews-grid">
-            <div 
-              v-for="review in recentReviews" 
-              :key="review.id"
-              class="review-card"
-              @click="viewReview(review)"
-            >
-              <div class="card-header">
-                <div class="card-title">
-                  <h3>{{ review.topic_title || 'Unknown Topic' }}</h3>
-                </div>
-                <div class="card-status-group">
-                  <span class="card-status" :class="review.status">{{ formatStatus(review.status) }}</span>
-                  <span v-if="review.email_delivery_unavailable" class="email-delivery-badge">Email delivery unavailable</span>
-                  <span class="topic-id-subtle">Topic #{{ review.topic_id }}</span>
-                </div>
-              </div>
-              <div class="card-content">
-                <p class="card-description">
-                  <strong>Reviewer:</strong> {{ review.reviewer_name || 'Unknown' }}
-                </p>
-                <p class="card-description">
-                  <strong>Sent:</strong> {{ formatRelativeTime(review.requested_at) }}
-                  <span v-if="review.due_date"> • <strong>Due:</strong> {{ formatDueDate(review.due_date) }}</span>
-                </p>
-                <div class="card-metrics" v-if="review.feedback_count">
-                  <span class="card-metric">
-                    <span class="metric-label">Feedback:</span>
-                    {{ review.feedback_count }} comments
-                  </span>
-                </div>
-              </div>
-              <div class="card-footer">
-                <span class="card-date">{{ getLastActivityText(review) }}</span>
-                <div class="card-actions">
-                  <button 
-                    v-if="review.status === 'completed' && review.topic_status === 'revisions_requested'" 
-                    @click.stop="incorporateFeedback(review)" 
-                    class="card-action-btn primary"
-                  >
-                    Incorporate
-                  </button>
-                  <button 
-                    v-else-if="review.status === 'pending'" 
-                    @click.stop="followUp(review)" 
-                    class="card-action-btn"
-                  >
-                    Follow Up
-                  </button>
-                  <button @click.stop="viewReview(review)" class="card-action-btn">View</button>
-                </div>
-              </div>
-            </div>
-          </div>
-        </div>
+      <div v-if="filteredReviews.length === 0" class="empty-state">
+        <p v-if="allReviews.length === 0">
+          No reviews yet. <button @click="sendNewReview" class="link-btn">Send your first review</button>
+        </p>
+        <p v-else>No reviews match your filters.</p>
       </div>
 
+      <div v-else class="reviews-table-wrap">
+        <table class="reviews-table">
+          <thead>
+            <tr>
+              <th>Topic</th>
+              <th>Reviewer</th>
+              <th>Status</th>
+              <th>Due</th>
+              <th>Sent</th>
+              <th>Feedback</th>
+              <th class="col-actions-head">Actions</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              v-for="review in filteredReviews"
+              :key="review.id"
+              class="review-row"
+              :class="{ 'row-urgent': isUrgentReview(review), 'row-overdue': isOverdueReview(review) }"
+              @click="viewReview(review)"
+            >
+              <td class="col-topic">
+                <span class="row-topic-title">{{ review.topic_title || 'Unknown Topic' }}</span>
+                <span class="row-topic-id">Topic #{{ review.topic_id }}</span>
+                <span v-if="review.email_delivery_unavailable" class="email-badge">No email</span>
+              </td>
+              <td class="col-reviewer">{{ review.reviewer_name || '—' }}</td>
+              <td class="col-status">
+                <span :class="['status-badge', review.status]">{{ formatStatus(review.status) }}</span>
+              </td>
+              <td class="col-due" :class="{ 'overdue-text': isOverdueReview(review) }">
+                {{ formatDueDate(review.due_date) }}
+              </td>
+              <td class="col-sent">{{ formatRelativeTime(review.requested_at) }}</td>
+              <td class="col-feedback">{{ review.feedback_count || '—' }}</td>
+              <td class="col-actions" @click.stop>
+                <button
+                  v-if="review.status === 'completed' && review.topic_status === 'revisions_requested'"
+                  @click="incorporateFeedback(review)"
+                  class="row-action-btn primary"
+                >Incorporate</button>
+                <button
+                  v-else-if="review.status === 'pending'"
+                  @click="followUp(review)"
+                  class="row-action-btn"
+                >Follow Up</button>
+                <button @click="viewReview(review)" class="row-action-btn">View</button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
     </div>
 
     <div v-if="showGuide" class="guide-modal-backdrop" @click.self="showGuide = false">
@@ -241,11 +238,14 @@ export default {
         overdue: 0,
         avg_completion_days: 0
       },
-      urgentReviews: [],
-      recentReviews: [],
+      allReviews: [],
       showGuide: false,
       refreshInterval: null,
-      currentUser: JSON.parse(localStorage.getItem('user') || '{}')
+      currentUser: JSON.parse(localStorage.getItem('user') || '{}'),
+      // Filter / search state
+      searchQuery: '',
+      filterStatus: 'all',
+      filterUrgent: false,
     }
   },
 
@@ -269,6 +269,20 @@ export default {
         return true
       })
     },
+
+    filteredReviews() {
+      const q = this.searchQuery.trim().toLowerCase()
+      return this.allReviews.filter(r => {
+        if (this.filterStatus !== 'all' && r.status !== this.filterStatus) return false
+        if (this.filterUrgent && !this.isUrgentReview(r) && !this.isOverdueReview(r)) return false
+        if (q) {
+          const inTitle = (r.topic_title || '').toLowerCase().includes(q)
+          const inReviewer = (r.reviewer_name || '').toLowerCase().includes(q)
+          if (!inTitle && !inReviewer) return false
+        }
+        return true
+      })
+    },
   },
 
   methods: {
@@ -288,48 +302,42 @@ export default {
 
     async loadReviews() {
       try {
-        // Load reviews from the new reviews API
         const { getPendingReviews, getMyReviews, getReviews } = await import('@/api/reviews.js')
-        
-        // Get pending reviews (urgent ones)
-        const pendingReviews = await getPendingReviews()
-        
-        // Filter urgent and overdue reviews
+
         const now = new Date()
-        this.urgentReviews = pendingReviews.filter(review => {
-          const isUrgent = review.priority === 'urgent' || review.priority === 'high'
-          const isOverdue = review.due_date && new Date(review.due_date) < now
-          return isUrgent || isOverdue
-        }).slice(0, 5) // Show top 5
-        
-        // Get recent reviews requested by current user when possible
-        if (this.currentUser.id) {
-          this.recentReviews = await getMyReviews(this.currentUser.id)
+        const isUrgentOrOverdue = (r) =>
+          r.priority === 'urgent' || r.priority === 'high' ||
+          (r.due_date && new Date(r.due_date) < now)
+
+        // Fetch pending and user-scoped reviews in parallel
+        const [pendingReviews, userReviews] = await Promise.all([
+          getPendingReviews(),
+          this.currentUser.id ? getMyReviews(this.currentUser.id) : Promise.resolve([])
+        ])
+
+        // Merge with dedup by id; tag urgent rows
+        const byId = new Map()
+        const add = (r) => {
+          if (!byId.has(r.id)) byId.set(r.id, { ...r, isUrgent: isUrgentOrOverdue(r) })
+        }
+        ;(pendingReviews || []).forEach(add)
+        ;(userReviews || []).forEach(add)
+
+        // Fallback to global reviews if nothing loaded
+        if (byId.size === 0) {
+          const fallback = await getReviews()
+          ;(fallback || []).forEach(add)
         }
 
-        // Fallback: if requester-scoped query returns nothing (or no user id), show recent global reviews.
-        if (!this.recentReviews || this.recentReviews.length === 0) {
-          this.recentReviews = await getReviews()
-        }
-
-        // Ensure newest first and cap visible list
-        this.recentReviews = (this.recentReviews || [])
-          .sort((a, b) => {
-            const aTime = new Date(a.requested_at || 0).getTime()
-            const bTime = new Date(b.requested_at || 0).getTime()
-            return bTime - aTime
-          })
-          .slice(0, 10)
-        
+        this.allReviews = Array.from(byId.values()).sort((a, b) => {
+          const at = new Date(a.requested_at || 0).getTime()
+          const bt = new Date(b.requested_at || 0).getTime()
+          return bt - at
+        })
       } catch (error) {
         console.error('Failed to load reviews:', error)
-        // Fallback to empty arrays
-        this.urgentReviews = []
-        this.recentReviews = []
+        this.allReviews = []
       }
-    },
-
-    async loadStats() {
     },
 
     async loadStats() {
@@ -338,8 +346,16 @@ export default {
         this.stats = await getReviewStats()
       } catch (error) {
         console.error('Failed to load review stats:', error)
-        // Keep default stats
       }
+    },
+
+    isUrgentReview(review) {
+      return review.isUrgent ||
+        review.priority === 'urgent' || review.priority === 'high'
+    },
+
+    isOverdueReview(review) {
+      return review.due_date && new Date(review.due_date) < new Date()
     },
 
     sendNewReview() {
@@ -572,194 +588,230 @@ export default {
   padding-right: 0.5rem; /* For scrollbar */
 }
 
-.review-item {
+/* Reviews Table Section */
+.reviews-table-section {
+  grid-column: 1 / -1;
+}
+
+.table-toolbar {
   display: flex;
   align-items: center;
-  gap: 1rem;
-  padding: 1rem;
-  border: 1px solid transparent;
-  border-bottom: 1px solid var(--border-light-gray);
-  border-radius: var(--border-radius-md);
-  margin-bottom: 0.75rem;
-  cursor: pointer;
-  transition: all 0.2s ease;
+  flex-wrap: wrap;
+  gap: 0.75rem;
+  margin-bottom: 1rem;
 }
 
-.review-item:hover {
-  border-color: var(--primary-deep-teal);
-  background: var(--bg-white);
+.table-toolbar h2 {
+  margin: 0;
+  flex-shrink: 0;
 }
 
-.review-item.urgent {
-  border-left: 4px solid var(--error-coral-red);
-  background: var(--error-light-red);
-}
-
-.review-item:last-child {
-  margin-bottom: 0;
-  border-bottom: 1px solid transparent;
-}
-
-.review-icon {
-  font-size: 1.5rem;
-  min-width: 30px;
-}
-
-.review-content {
+.toolbar-controls {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  flex-wrap: wrap;
   flex: 1;
 }
 
-.review-title {
-  font-weight: 600;
-  color: var(--text-dark-gray);
-  margin-bottom: 0.25rem;
+.search-wrap {
+  position: relative;
+  flex: 1;
+  min-width: 180px;
 }
 
-.review-description {
-  color: var(--text-medium-gray);
-  font-size: 0.875rem;
-  margin-bottom: 0.25rem;
+.search-icon {
+  position: absolute;
+  left: 0.6rem;
+  top: 50%;
+  transform: translateY(-50%);
+  pointer-events: none;
+  font-size: 0.85rem;
 }
 
-.review-meta {
-  color: var(--text-light-gray);
-  font-size: 0.75rem;
-}
-
-.review-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--border-radius-sm);
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-}
-
-.review-status.pending {
-  background: var(--warning-light-yellow);
-  color: var(--warning-dark-yellow);
-}
-
-.review-status.completed {
-  background: var(--success-light-green);
-  color: var(--success-dark-green);
-}
-
-.review-status.overdue {
-  background: var(--error-light-red);
-  color: var(--error-dark-red);
-}
-
-/* Review Cards */
-.reviews-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(350px, 1fr));
-  gap: 1.5rem;
-}
-
-.review-card {
+.search-input {
+  width: 100%;
+  padding: 0.4rem 0.75rem 0.4rem 2rem;
   border: 1px solid var(--border-light-gray);
-  border-radius: var(--border-radius-lg);
-  cursor: pointer;
-  transition: all 0.2s ease;
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
   background: var(--bg-white);
-  display: flex;
-  flex-direction: column;
-}
-
-.review-card:hover {
-  border-color: var(--primary-deep-teal);
-  box-shadow: var(--box-shadow-md);
-  transform: translateY(-3px);
-}
-
-.card-header {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-start;
-  margin-bottom: 1rem;
-  padding: 1.5rem 1.5rem 0 1.5rem;
-}
-
-.card-title h3 {
-  margin: 0;
   color: var(--text-dark-gray);
-  font-size: 1rem;
+  transition: border-color 0.15s;
+}
+
+.search-input:focus {
+  outline: none;
+  border-color: var(--primary-deep-teal);
+}
+
+.filter-select {
+  padding: 0.4rem 0.75rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-sm);
+  font-size: 0.875rem;
+  background: var(--bg-white);
+  color: var(--text-dark-gray);
+  cursor: pointer;
+}
+
+.filter-pill {
+  padding: 0.35rem 0.75rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: 999px;
+  font-size: 0.8rem;
+  background: var(--bg-white);
+  color: var(--text-medium-gray);
+  cursor: pointer;
+  transition: all 0.15s;
+  white-space: nowrap;
+}
+
+.filter-pill.active {
+  background: var(--error-light-red);
+  border-color: var(--error-coral-red);
+  color: var(--error-dark-red);
   font-weight: 600;
 }
 
-.card-status {
-  padding: 0.25rem 0.5rem;
-  border-radius: var(--border-radius-sm);
-  font-size: 0.7rem;
-  font-weight: 500;
-  text-transform: uppercase;
-  letter-spacing: 0.5px;
+.result-count {
+  margin-left: auto;
+  font-size: 0.8rem;
+  color: var(--text-medium-gray);
+  white-space: nowrap;
 }
 
-.card-status.pending {
+.reviews-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-md);
+}
+
+.reviews-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.reviews-table thead th {
+  background: var(--bg-light-gray);
+  color: var(--text-medium-gray);
+  font-weight: 600;
+  font-size: 0.75rem;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+  padding: 0.65rem 0.9rem;
+  text-align: left;
+  white-space: nowrap;
+  border-bottom: 1px solid var(--border-light-gray);
+}
+
+.reviews-table tbody tr {
+  border-bottom: 1px solid var(--border-light-gray);
+  cursor: pointer;
+  transition: background 0.12s;
+}
+
+.reviews-table tbody tr:last-child {
+  border-bottom: none;
+}
+
+.reviews-table tbody tr:hover {
+  background: var(--bg-light-gray);
+}
+
+.reviews-table tbody tr.row-urgent {
+  border-left: 3px solid var(--error-coral-red);
+  background: var(--error-light-red, #fff5f5);
+}
+
+.reviews-table tbody tr.row-overdue td.col-due {
+  color: var(--error-coral-red);
+  font-weight: 600;
+}
+
+.reviews-table td {
+  padding: 0.7rem 0.9rem;
+  vertical-align: middle;
+  color: var(--text-dark-gray);
+}
+
+.col-topic {
+  min-width: 160px;
+}
+
+.row-topic-title {
+  display: block;
+  font-weight: 500;
+  color: var(--text-dark-gray);
+}
+
+.row-topic-id {
+  display: block;
+  font-size: 0.72rem;
+  color: var(--text-light-gray);
+}
+
+.email-badge {
+  display: inline-block;
+  margin-top: 0.15rem;
+  padding: 0.1rem 0.4rem;
+  border-radius: 999px;
+  font-size: 0.65rem;
+  font-weight: 600;
   background: var(--warning-light-yellow);
   color: var(--warning-dark-yellow);
 }
 
-.card-status.completed {
-  background: var(--success-light-green);
-  color: var(--success-dark-green);
+.col-reviewer { white-space: nowrap; }
+.col-sent,
+.col-due     { white-space: nowrap; font-size: 0.8rem; }
+.col-feedback { text-align: center; }
+.col-actions-head,
+.col-actions  { white-space: nowrap; text-align: right; }
+
+.status-badge {
+  display: inline-block;
+  padding: 0.2rem 0.55rem;
+  border-radius: 999px;
+  font-size: 0.7rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.3px;
 }
 
-.card-status.overdue {
-  background: var(--error-light-red);
-  color: var(--error-dark-red);
-}
+.status-badge.pending     { background: var(--warning-light-yellow); color: var(--warning-dark-yellow); }
+.status-badge.in_progress { background: #dbeafe; color: #1e40af; }
+.status-badge.completed   { background: var(--success-light-green); color: var(--success-dark-green); }
+.status-badge.declined    { background: #f3f4f6; color: #6b7280; }
+.status-badge.overdue     { background: var(--error-light-red); color: var(--error-dark-red); }
 
-.card-content {
-  margin-bottom: 1rem;
-  flex-grow: 1;
-  padding: 0 1.5rem;
-}
-
-.card-description {
-  color: var(--text-medium-gray);
-  font-size: 0.875rem;
-  line-height: 1.4;
-  margin: 0 0 0.5rem 0;
-}
-
-.card-metrics {
-  display: flex;
-  flex-wrap: wrap;
-  gap: 1rem;
-  margin-top: 1rem;
-}
-
-.card-metric {
-  font-size: 0.75rem;
-  color: var(--text-medium-gray);
-}
-
-.metric-label {
-  font-weight: 500;
+.row-action-btn {
+  padding: 0.3rem 0.65rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: var(--border-radius-sm);
+  background: var(--bg-white);
   color: var(--text-dark-gray);
+  font-size: 0.78rem;
+  cursor: pointer;
+  margin-left: 0.3rem;
+  transition: all 0.12s;
 }
 
-.card-footer {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-  margin-top: auto;
-  padding: 1rem 1.5rem;
-  border-top: 1px solid var(--border-light-gray);
-  background-color: var(--bg-white);
-  border-radius: 0 0 var(--border-radius-lg) var(--border-radius-lg);
+.row-action-btn:hover {
+  border-color: var(--primary-deep-teal);
+  color: var(--primary-deep-teal);
 }
 
-.card-date {
-  color: var(--text-light-gray);
-  font-size: 0.75rem;
+.row-action-btn.primary {
+  background: var(--primary-deep-teal);
+  color: #fff;
+  border-color: var(--primary-deep-teal);
 }
 
-.card-actions {
-  display: flex;
-  gap: 0.5rem;
+.row-action-btn.primary:hover {
+  background: var(--primary-dark-blue);
+  border-color: var(--primary-dark-blue);
 }
 
 /* Empty States */
@@ -787,31 +839,6 @@ export default {
   color: var(--primary-dark-blue);
 }
 
-.card-status-group {
-  display: flex;
-  flex-direction: column;
-  align-items: center;
-  gap: 0.25rem;
-}
-
-.topic-id-subtle {
-  color: var(--text-light-gray);
-  font-size: 0.7rem;
-  font-weight: 400;
-  text-align: right;
-}
-
-.email-delivery-badge {
-  display: inline-block;
-  margin-top: 0.1rem;
-  padding: 0.15rem 0.45rem;
-  border-radius: 999px;
-  font-size: 0.65rem;
-  font-weight: 600;
-  background: var(--warning-light-yellow);
-  color: var(--warning-dark-yellow);
-}
-
 /* Loading */
 .loading-overlay {
   position: fixed;
@@ -831,22 +858,30 @@ export default {
   font-size: 1.1rem;
 }
 
-/* Responsive Design */
-.two-col { grid-template-columns: 1fr 1fr; }
-
 @media (max-width: 768px) {
   .reviews-dashboard {
     padding: 1rem;
   }
-  .two-col { grid-template-columns: 1fr; }
-  
+
   .metrics-grid,
-  .content-grid,
-  .reviews-grid {
+  .content-grid {
     grid-template-columns: 1fr;
     gap: 1rem;
   }
-  
+
+  .table-toolbar {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .toolbar-controls {
+    flex-direction: column;
+  }
+
+  .result-count {
+    margin-left: 0;
+  }
+
   .dashboard-header h1 {
     font-size: 2rem;
   }
