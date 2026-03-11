@@ -260,11 +260,8 @@ def submit_bulk_topic_feedback(token, review_id):
         if overall_feedback:
             review.feedback = overall_feedback
 
-        if edited_content and overall_recommendation == 'approve_with_changes':
-            review.topic.content = edited_content
-            review.topic.updated_at = datetime.now()
-        elif edited_content:
-            review.edited_content = edited_content
+        if edited_content:
+            review.edited_content = edited_content  # stored for author to review; never applied automatically
 
         review.status = 'completed'
         review.completed_at = datetime.now()

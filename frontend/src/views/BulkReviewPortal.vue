@@ -68,7 +68,37 @@
           <div v-if="batch.message" class="author-message">
             <strong>Message from requester:</strong> {{ batch.message }}
           </div>
-          <div class="topic-content" v-html="currentTopic.topic_content"></div>
+
+          <!-- View toggle -->
+          <div class="content-actions">
+            <div class="view-toggle">
+              <button
+                type="button"
+                :class="['toggle-btn', { active: activeView === 'read' }]"
+                @click="activeView = 'read'"
+              >📖 Read Only</button>
+              <button
+                type="button"
+                :class="['toggle-btn', { active: activeView === 'edit' }]"
+                @click="activeView = 'edit'"
+              >✏️ Edit Content</button>
+            </div>
+            <template v-if="currentHasEdits">
+              <span class="edits-indicator">✏️ Edited</span>
+              <button type="button" class="reset-edits-btn" @click="resetEdits">↩ Reset</button>
+            </template>
+          </div>
+
+          <!-- Read-only view -->
+          <div v-if="activeView === 'read'" class="topic-content" v-html="currentTopic.topic_content"></div>
+
+          <!-- WYSIWYG editor view -->
+          <div v-else class="editor-section">
+            <div class="editor-notice">
+              💡 Your edits are tracked and shared with the author for review — they won't be applied automatically.
+            </div>
+            <div ref="quillEditor" class="quill-editor-area"></div>
+          </div>
         </section>
 
         <!-- Right: feedback panel -->
@@ -215,6 +245,8 @@
 </template>
 
 <script>
+import Quill from 'quill'
+import 'quill/dist/quill.snow.css'
 import { getBulkReview, submitBulkTopicFeedback } from '@/api/reviews.js'
 
 export default {
@@ -228,6 +260,10 @@ export default {
       currentIndex: 0,
       submitting: false,
       form: this.emptyForm(),
+      // Editor state
+      activeView: 'read',       // 'read' | 'edit'
+      quillInstance: null,
+      topicEdits: {},           // { [review_id]: editedHtml }
     }
   },
 
@@ -255,10 +291,34 @@ export default {
       }
       return null
     },
+    currentEditedContent() {
+      if (!this.currentTopic) return null
+      return this.topicEdits[this.currentTopic.review_id] ?? null
+    },
+    currentHasEdits() {
+      const edited = this.currentEditedContent
+      if (!edited) return false
+      return edited !== (this.currentTopic?.topic_content || '')
+    },
+  },
+
+  watch: {
+    activeView(newView) {
+      if (newView === 'edit') {
+        this.$nextTick(() => this.initQuill())
+      } else {
+        // v-if removes the DOM node; just clear the reference
+        this.quillInstance = null
+      }
+    },
   },
 
   async created() {
     await this.loadBatch()
+  },
+
+  unmounted() {
+    this.quillInstance = null
   },
 
   methods: {
@@ -278,9 +338,48 @@ export default {
 
     goTo(index) {
       if (index < 0 || index >= this.batch.total) return
+      // Tear down the editor before switching topics so the ref is fresh
+      this.quillInstance = null
+      this.activeView = 'read'
       this.currentIndex = index
       this.form = this.emptyForm()
       window.scrollTo({ top: 0, behavior: 'smooth' })
+    },
+
+    initQuill() {
+      if (!this.$refs.quillEditor || this.quillInstance) return
+      const toolbarOptions = [
+        [{ header: [1, 2, 3, false] }],
+        ['bold', 'italic', 'underline'],
+        [{ list: 'ordered' }, { list: 'bullet' }],
+        [{ align: [] }],
+        ['link'],
+        ['clean'],
+      ]
+      this.quillInstance = new Quill(this.$refs.quillEditor, {
+        modules: { toolbar: toolbarOptions },
+        theme: 'snow',
+        placeholder: 'Edit the content here…',
+      })
+      // Restore any previously saved edits, otherwise use original content
+      const reviewId = this.currentTopic?.review_id
+      const saved = reviewId != null ? this.topicEdits[reviewId] : null
+      this.quillInstance.root.innerHTML = saved ?? (this.currentTopic?.topic_content || '')
+      // Persist every keystroke to topicEdits
+      this.quillInstance.on('text-change', () => {
+        if (reviewId != null) {
+          this.topicEdits[reviewId] = this.quillInstance.root.innerHTML
+        }
+      })
+    },
+
+    resetEdits() {
+      if (!this.currentTopic) return
+      const reviewId = this.currentTopic.review_id
+      delete this.topicEdits[reviewId]
+      if (this.quillInstance) {
+        this.quillInstance.root.innerHTML = this.currentTopic.topic_content || ''
+      }
     },
 
     addItem() {
@@ -312,10 +411,13 @@ export default {
       this.submitting = true
       try {
         const topic = this.currentTopic
+        const edited = this.topicEdits[topic.review_id]
+        const hasEdits = edited != null && edited !== topic.topic_content
         const payload = {
           recommendation: this.form.recommendation,
           feedback: this.form.feedback,
           feedback_items: this.form.feedback_items.filter(i => i.comment.trim()),
+          ...(hasEdits ? { edited_content: edited } : {}),
         }
         const result = await submitBulkTopicFeedback(this.token, topic.review_id, payload)
 
@@ -324,13 +426,13 @@ export default {
         topic.recommendation = this.form.recommendation
         topic.feedback = this.form.feedback
         this.form = this.emptyForm()
+        // Clear saved edits for this topic now that it's submitted
+        delete this.topicEdits[topic.review_id]
 
         if (result.batch_complete) {
-          // trigger allComplete computed
           this.batch.completed_count = this.batch.total
         } else {
           this.batch.completed_count = result.completed_count
-          // Advance to next incomplete topic
           if (this.nextIncomplete !== null) {
             this.goTo(this.nextIncomplete)
           }
@@ -552,4 +654,61 @@ export default {
 .btn-secondary:hover:not(:disabled) { background: #5c636a; }
 .btn-outline { background: #fff; color: #0d6efd; border-color: #0d6efd; }
 .btn-outline:hover { background: #e7f1ff; }
+
+/* ---- View toggle & editor ---- */
+.content-actions {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-bottom: 16px;
+  flex-wrap: wrap;
+}
+.view-toggle {
+  display: flex;
+  border: 1px solid #dee2e6;
+  border-radius: 6px;
+  overflow: hidden;
+}
+.toggle-btn {
+  padding: 6px 14px;
+  font-size: 13px;
+  background: #f8f9fa;
+  border: none;
+  cursor: pointer;
+  color: #495057;
+  transition: background 0.15s, color 0.15s;
+}
+.toggle-btn:first-child { border-right: 1px solid #dee2e6; }
+.toggle-btn.active { background: #0d6efd; color: #fff; font-weight: 600; }
+.toggle-btn:hover:not(.active) { background: #e9ecef; }
+
+.edits-indicator {
+  font-size: 12px;
+  color: #0d6efd;
+  font-weight: 600;
+}
+.reset-edits-btn {
+  background: none;
+  border: 1px solid #adb5bd;
+  border-radius: 5px;
+  padding: 4px 10px;
+  font-size: 12px;
+  cursor: pointer;
+  color: #6c757d;
+}
+.reset-edits-btn:hover { background: #f8f9fa; color: #212529; }
+
+.editor-section { display: flex; flex-direction: column; }
+.editor-notice {
+  background: #e7f1ff;
+  border-left: 3px solid #0d6efd;
+  padding: 8px 12px;
+  font-size: 13px;
+  color: #0c5460;
+  margin-bottom: 10px;
+  border-radius: 0 4px 4px 0;
+}
+.quill-editor-area { min-height: 400px; }
+.quill-editor-area :deep(.ql-container) { font-size: 15px; min-height: 360px; }
+.quill-editor-area :deep(.ql-editor) { min-height: 360px; line-height: 1.7; }
 </style>
