@@ -48,8 +48,17 @@ def _pdf_sanitize_text(s: str) -> str:
         pass
     # Remove script/style tags entirely
     s = re.sub(r'<\s*(script|style)[^>]*>.*?<\s*/\s*\1\s*>', '', s, flags=re.IGNORECASE|re.DOTALL)
-    # Replace unsupported tags with their inner text
-    s = re.sub(r'</?(div|span|section|article|header|footer|aside|main)[^>]*>', '', s, flags=re.IGNORECASE)
+    # Normalize <br> HTML tags to XHTML self-closing form required by ReportLab's XML parser
+    s = re.sub(r'<br\s*/?>', '<br/>', s, flags=re.IGNORECASE)
+    # Replace unsupported tags with their inner text (expanded list)
+    # Note: ul/ol/li are intentionally excluded here — they are handled by
+    # convert_markdown_to_pdf_paragraphs which converts them to markdown bullets/numbers.
+    s = re.sub(
+        r'</?(div|span|section|article|header|footer|aside|main'
+        r'|table|thead|tbody|tfoot|tr|th|td|caption'
+        r'|figure|figcaption|blockquote|hr)[^>]*>',
+        '', s, flags=re.IGNORECASE
+    )
     # Remove onclick/href/js URLs that ReportLab can't handle
     s = re.sub(r'href\s*=\s*"javascript:[^"]*"', '', s, flags=re.IGNORECASE)
     # Escape stray ampersands
@@ -949,14 +958,19 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 # Use config-based heading styles
                 current_heading_style = config.create_heading_style(base_styles, level)
             
-                story.append(Paragraph(heading_text, current_heading_style))
+                # Guard against empty headings — ReportLab fails on whitespace-only text
+                safe_heading = heading_text.strip() or '&nbsp;'
+                try:
+                    story.append(Paragraph(safe_heading, current_heading_style))
+                except Exception:
+                    story.append(Paragraph('&nbsp;', current_heading_style))
             
                 # Add content with proper indentation for hierarchy
                 if node['content']:
                     # Convert markdown-like content to paragraphs
                     content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
                     for para in content_paragraphs:
-                        if not para:
+                        if not para or not para.strip():
                             continue
                         # Standalone image sentinel — emit as a proper Image flowable so
                         # ReportLab can handle page breaks correctly (inline img in Paragraph
@@ -975,7 +989,10 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                             # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
                             bullet_text = '•&nbsp;&nbsp;' + para[len('__BULLET__:'):]
                             bullet_style = config.create_bullet_style(base_styles, level)
-                            story.append(Paragraph(bullet_text, bullet_style))
+                            try:
+                                story.append(Paragraph(bullet_text, bullet_style))
+                            except Exception:
+                                pass
                             continue
                         # Numbered list item — use hanging-indent numbered style
                         if re.match(r'^__ORDERED__\d+__:', para):
@@ -984,11 +1001,21 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                 # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
                                 num_text = f'{m.group(1)}.&nbsp;&nbsp;{m.group(2)}'
                                 num_style = config.create_numbered_style(base_styles, level)
-                                story.append(Paragraph(num_text, num_style))
+                                try:
+                                    story.append(Paragraph(num_text, num_style))
+                                except Exception:
+                                    pass
                             continue
                         # Create content style that matches the hierarchy level
                         level_content_style = config.create_content_style(base_styles, level)
-                        story.append(Paragraph(para, level_content_style))
+                        try:
+                            story.append(Paragraph(para, level_content_style))
+                        except Exception:
+                            # Log the bad paragraph text for diagnostics and skip it
+                            current_app.logger.debug(
+                                f"PDF: skipped unparseable paragraph text {para!r}"
+                            )
+                            continue
             
                 # Add spacing after content
                 story.append(Spacer(1, 8))
@@ -1084,6 +1111,9 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     # Convert <strong>/<em> to ReportLab-supported <b>/<i>
     safe_text = re.sub(r'<strong>(.*?)</strong>', r'<b>\1</b>', safe_text, flags=re.IGNORECASE | re.DOTALL)
     safe_text = re.sub(r'<em>(.*?)</em>', r'<i>\1</i>', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Normalize HTML <br> to XHTML <br/> required by ReportLab's XML parser;
+    # then convert standalone <br/> separators to blank lines so they act as paragraph breaks.
+    safe_text = re.sub(r'<br\s*/?>', '\n', safe_text, flags=re.IGNORECASE)
     # Convert HTML headings (h1–h6) to markdown heading syntax
     for _lvl in range(6, 0, -1):
         safe_text = re.sub(
@@ -1103,6 +1133,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     safe_text = re.sub(r'<ul[^>]*>(.*?)</ul>', _convert_ul_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
     # Strip any stray <li> tags not caught above
     safe_text = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', safe_text, flags=re.IGNORECASE | re.DOTALL)
+    # Strip table tags (extract text content only — ReportLab has no table flowable here)
+    safe_text = re.sub(r'</?(?:table|thead|tbody|tfoot|tr|th|td|caption)[^>]*>', '\n', safe_text, flags=re.IGNORECASE)
     # Strip <p> wrappers, preserving inner content with a trailing newline
     safe_text = re.sub(r'<p[^>]*>', '', safe_text, flags=re.IGNORECASE)
     safe_text = re.sub(r'</p>', '\n', safe_text, flags=re.IGNORECASE)
