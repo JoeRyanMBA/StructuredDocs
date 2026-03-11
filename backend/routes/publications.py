@@ -133,8 +133,13 @@ def create_publication():
 def get_pub(pub_id):
     p = Publication.query.get_or_404(pub_id)
     def serialize(node):
+        # Prefer snapshots so the preview matches what would actually be exported
+        title   = node.title_snapshot   or (node.topic.title   if node.topic else 'Untitled')
+        content = node.content_snapshot or (node.topic.content if node.topic else '')
         return {
             'id': node.id,
+            'title': title,
+            'content': content,
             'topic': node.topic.to_dict(),
             'position': node.position,
             'children': sorted([serialize(c) for c in node.children],

@@ -1,26 +1,32 @@
 /**
- * Composable for proactive JWT session expiry handling.
+ * Composable for inactivity-based session timeout handling.
  *
- * - Decodes the stored access_token to read the `exp` claim.
- * - Sets a warning timer (WARNING_BEFORE_MS before expiry) to show a modal.
- * - Sets an expiry timer to auto-logout when the token expires.
- * - Provides extendSession() to silently refresh the token and reset timers.
+ * - Shows a warning after INACTIVITY_TIMEOUT_MS of no user activity.
+ * - Auto-logs out WARNING_BEFORE_MS after the warning if no action is taken.
+ * - Any user activity (mouse, keyboard, touch, scroll) resets the inactivity timer.
+ * - Also enforces a hard logout when the JWT token itself expires.
+ * - extendSession() refreshes the token and resets all timers.
  */
 import { ref } from 'vue';
 import axios from 'axios';
 import { store } from '@/store';
 import router from '@/router';
 
-const WARNING_BEFORE_MS = 5 * 60 * 1000; // show warning 5 minutes before expiry
+const INACTIVITY_TIMEOUT_MS = 30 * 60 * 1000; // 30 min idle → show warning
+const WARNING_BEFORE_MS     =  5 * 60 * 1000; // 5 min to act after warning appears
 
 // Module-level state so a single watcher runs regardless of how many
 // components call useSessionTimeout().
 const showWarning = ref(false);
 const secondsRemaining = ref(0);
 
-let warningTimer = null;
-let expiryTimer = null;
-let countdownInterval = null;
+let warningTimer        = null;
+let expiryTimer         = null;
+let tokenExpiryTimer    = null; // hard logout at JWT exp, independent of inactivity
+let countdownInterval   = null;
+let activityAttached    = false;
+
+const ACTIVITY_EVENTS = ['mousemove', 'keydown', 'mousedown', 'touchstart', 'scroll'];
 
 function getTokenExpiry(token) {
   try {
@@ -34,10 +40,9 @@ function getTokenExpiry(token) {
 function clearTimers() {
   clearTimeout(warningTimer);
   clearTimeout(expiryTimer);
+  clearTimeout(tokenExpiryTimer);
   clearInterval(countdownInterval);
-  warningTimer = null;
-  expiryTimer = null;
-  countdownInterval = null;
+  warningTimer = expiryTimer = tokenExpiryTimer = countdownInterval = null;
 }
 
 function startCountdown(ms) {
@@ -54,6 +59,7 @@ function startCountdown(ms) {
 
 function performLogout() {
   clearTimers();
+  detachActivityListeners();
   showWarning.value = false;
   store.setUser(null);
   localStorage.removeItem('access_token');
@@ -63,53 +69,71 @@ function performLogout() {
   router.push('/login');
 }
 
+/** Schedule the inactivity warning + auto-logout timers from NOW. */
+function scheduleInactivityTimers() {
+  clearTimeout(warningTimer);
+  clearTimeout(expiryTimer);
+  clearInterval(countdownInterval);
+
+  warningTimer = setTimeout(() => {
+    showWarning.value = true;
+    startCountdown(WARNING_BEFORE_MS);
+
+    expiryTimer = setTimeout(() => {
+      performLogout();
+    }, WARNING_BEFORE_MS);
+  }, INACTIVITY_TIMEOUT_MS);
+}
+
+/** Called on every user activity event; resets the inactivity clock. */
+function onActivity() {
+  // While the warning is visible, don't silently reset — the user must
+  // consciously click "Stay logged in" so they know the session was at risk.
+  if (showWarning.value) return;
+  scheduleInactivityTimers();
+}
+
+function attachActivityListeners() {
+  if (activityAttached) return;
+  ACTIVITY_EVENTS.forEach(e => document.addEventListener(e, onActivity, { passive: true }));
+  activityAttached = true;
+}
+
+function detachActivityListeners() {
+  if (!activityAttached) return;
+  ACTIVITY_EVENTS.forEach(e => document.removeEventListener(e, onActivity));
+  activityAttached = false;
+}
+
 function startWatcher() {
   clearTimers();
+  detachActivityListeners();
 
   const token = localStorage.getItem('access_token');
   if (!token) return;
 
+  // Hard logout at JWT expiry regardless of activity
   const expiry = getTokenExpiry(token);
-  if (!expiry) return;
-
-  const now = Date.now();
-  const msUntilExpiry = expiry - now;
-
-  if (msUntilExpiry <= 0) {
-    performLogout();
-    return;
+  if (expiry) {
+    const msUntilExpiry = expiry - Date.now();
+    if (msUntilExpiry <= 0) { performLogout(); return; }
+    tokenExpiryTimer = setTimeout(() => performLogout(), msUntilExpiry);
   }
 
-  const msUntilWarning = msUntilExpiry - WARNING_BEFORE_MS;
-
-  if (msUntilWarning > 0) {
-    // Token still has plenty of time; schedule warning for later
-    warningTimer = setTimeout(() => {
-      showWarning.value = true;
-      startCountdown(WARNING_BEFORE_MS);
-    }, msUntilWarning);
-  } else {
-    // Already within the warning window
-    showWarning.value = true;
-    startCountdown(msUntilExpiry);
-  }
-
-  expiryTimer = setTimeout(() => {
-    performLogout();
-  }, msUntilExpiry);
+  // Start inactivity tracking
+  attachActivityListeners();
+  scheduleInactivityTimers();
 }
 
 function stopWatcher() {
   clearTimers();
+  detachActivityListeners();
   showWarning.value = false;
 }
 
 async function extendSession() {
   const refreshToken = localStorage.getItem('refresh_token');
-  if (!refreshToken) {
-    performLogout();
-    return;
-  }
+  if (!refreshToken) { performLogout(); return; }
   try {
     const resp = await axios.post('/api/users/refresh', {}, {
       headers: { Authorization: `Bearer ${refreshToken}` }
@@ -118,7 +142,7 @@ async function extendSession() {
     localStorage.setItem('access_token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     showWarning.value = false;
-    startWatcher();
+    startWatcher(); // restart with fresh token expiry + fresh inactivity clock
   } catch {
     performLogout();
   }

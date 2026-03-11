@@ -1086,6 +1086,11 @@ td:nth-child(4) {
   border-radius: var(--border-radius-md);
 }
 
+.bulk-actions .btn {
+  margin: 0 !important;
+  align-self: center;
+}
+
 .selection-count {
   color: var(--text-medium-gray);
   font-size: 0.9rem;

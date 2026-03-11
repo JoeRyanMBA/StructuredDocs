@@ -889,7 +889,6 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 else:
                     # Nested levels: indented entries with consistent right alignment
                     indent_width = level * config.INDENTS['toc_per_level']
-                    spaces_for_indent = " " * int(indent_width / 4)
                 
                     title_style = ParagraphStyle(
                         f'TOCTitle{level}',
@@ -897,7 +896,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         fontSize=font_size,
                         textColor=config.COLORS['text'],
                         alignment=TA_LEFT,
-                        leftIndent=0,
+                        leftIndent=indent_width,
                         spaceAfter=0,
                         spaceBefore=0,
                         leading=font_size + 4,
@@ -913,7 +912,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         leading=font_size + 4,
                     )
                     link_color = _color_hex(config.COLORS['text'])
-                    title_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{spaces_for_indent}{title_text}</link>', title_style)
+                    title_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{title_text}</link>', title_style)
                     page_para = Paragraph(f'<link href="#{anchor_id}" color="{link_color}">{page_num}</link>', page_style)
                     toc_data = [[title_para, page_para]]
                 
