@@ -117,3 +117,146 @@ export default {
   }
 }
 </script>
+
+<style>
+.topic-wrapper {
+  display: block;
+}
+
+.collection-topic-item {
+  background-color: white;
+  border: 1px solid var(--extended-lavender-gray);
+  padding: 0.5rem;
+  margin-bottom: 0.5rem;
+  border-radius: 4px;
+  display: flex;
+  align-items: center;
+  cursor: pointer;
+}
+
+.collection-topic-item.selected {
+  background-color: var(--extended-sky-blue);
+  border-color: var(--primary-deep-teal);
+}
+
+.collection-topic-item.drop-target {
+  background-color: var(--extended-cool-mint);
+}
+
+.collection-topic-item-row {
+  display: flex;
+  align-items: center;
+  width: 100%;
+}
+
+.expand-toggle {
+  cursor: pointer;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+
+.expand-toggle svg path {
+  stroke: var(--primary-deep-teal);
+}
+
+.expand-spacer {
+  width: 12px;
+  margin-right: 0.25rem;
+  flex-shrink: 0;
+}
+
+.drag-handle {
+  cursor: grab;
+  margin-right: 0.5rem;
+  flex-shrink: 0;
+}
+
+.topic-content-row {
+  display: flex;
+  align-items: center;
+  flex: 1;
+  min-width: 0;
+}
+
+.topic-id-badge {
+  font-size: 0.7rem;
+  font-family: monospace;
+  color: var(--text-secondary-cool-gray);
+  background: var(--bg-light-mist-gray);
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  margin-right: 0.35rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+}
+
+.topic-title {
+  flex-grow: 1;
+}
+
+.topic-status-badge {
+  font-size: 0.65rem;
+  border-radius: 3px;
+  padding: 0.1rem 0.3rem;
+  margin-left: 0.25rem;
+  flex-shrink: 0;
+  white-space: nowrap;
+  text-transform: uppercase;
+  letter-spacing: 0.02em;
+}
+
+.child-count {
+  color: var(--text-secondary-cool-gray);
+  margin-left: 0.5rem;
+  flex-shrink: 0;
+}
+
+.topic-actions {
+  margin-left: auto;
+  flex-shrink: 0;
+}
+
+.topic-actions button {
+  background: none;
+  border: none;
+  cursor: pointer;
+  padding: 0.25rem;
+}
+
+.topic-btn {
+  color: var(--primary-deep-teal);
+}
+
+.icon-btn {
+  background: #ffffff;
+  color: var(--primary-deep-teal, #205493);
+  border: 1px solid var(--border-light-gray);
+  width: 32px;
+  height: 32px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+}
+
+.icon-btn:hover {
+  background: var(--extended-seafoam-green);
+  border-color: var(--extended-seafoam-green);
+  color: var(--primary-medium-teal, #2b9cd8);
+}
+
+.icon-btn i {
+  font-size: 16px;
+  line-height: 1;
+}
+
+.child-topics {
+  margin-left: 2rem;
+  padding-left: 1rem;
+  border-left: 2px solid var(--extended-lavender-gray);
+}
+
+.child-topics-list {
+  min-height: 10px;
+}
+</style>
