@@ -4,84 +4,98 @@
 
 ### 1️⃣ How are reviews currently created?
 
-**Single at a time**: One request = one topic + one reviewer
-- User selects 1 topic → Opens modal → Selects 1 reviewer → Creates 1 Review record
-- **Endpoint**: `POST /api/reviews/request`
-- **Sequential reviews**: Can add multiple reviewers to same topic (in queue), but each requires separate setup
+**Single-topic or bulk**: Reviews can be created one at a time or in bulk (multiple topics to one reviewer in a single email).
 
-**NO bulk creation endpoint exists** - must repeat for each topic-reviewer pair
+- **Single**: User selects 1 topic → Opens modal → Selects 1 reviewer → Creates 1 Review record
+  - **Endpoint**: `POST /api/reviews/request`
+- **Bulk**: User selects ≥2 topics → Opens bulk modal → Selects 1 reviewer → Creates a `ReviewBatch` + N Review records + one shared token
+  - **Endpoint**: `POST /api/reviews/bulk-request`
+- **Sequential reviews**: Can add multiple reviewers to same topic (in queue), each reviewer is automatically notified when the previous completes
 
 ---
 
 ### 2️⃣ How are review emails sent?
 
-**Per-topic emails**: 
-- 1 email per review (not per batch)
-- Subject: `"Review Request: {topic_title} (Topic #{id})"`
-- Contains: topic info, priority, due_date, message from author
-- Includes secure token URL: `/review/{token}` 
-- Called immediately when Review created via `email_service.send_review_notification()`
-
-**No batch/digest emails** - each reviewer gets individual email per topic
+**Per-review or per-batch emails**:
+- **Single review**: 1 email per review
+  - Subject: `"Review Request: {topic_title} (Topic #{id})"`
+  - Contains: topic info, priority, due_date, message from author
+  - Includes secure token URL: `/review/{token}`
+- **Bulk review**: 1 email per batch (N topics, one link)
+  - Subject: `"Review Request: {N} Topics Assigned for Review"`
+  - Contains: numbered list of topic titles + single portal link: `/bulk-review/{token}`
+- Sent immediately when Review/ReviewBatch is created
 
 ---
 
 ### 3️⃣ Are there bulk review endpoints or UI?
 
-**❌ NO**
-- No `/api/reviews/batch` endpoint
-- No `/api/reviews/request-multiple` endpoint
-- No `BulkReviewModal` component
-- No batch tracking UI
-- No reviewer dashboard showing all assigned reviews
-
-**Only single-topic workflows exist**
+**✅ YES — implemented**
+- `POST /api/reviews/bulk-request` — creates a `ReviewBatch` + N reviews + shared token + sends one email
+- `GET /api/bulk-review/<token>` — reviewer portal: all topics with progress bar + prev/next navigation
+- `POST /api/bulk-review/<token>/review/<id>/feedback` — per-topic feedback submission
+- `GET /api/bulk-review/<token>/status` — per-topic completion state
+- `BulkRequestReviewModal.vue` — select ≥2 topics, pick reviewer, configure and send
+- `BulkReviewPortal.vue` — reviewer-facing portal with WYSIWYG editor and view toggle
 
 ---
 
 ### 4️⃣ What does the reviewer experience look like?
 
-**One link per topic**:
-- Reviewer receives email with unique token: `/review/{token}`
-- That token gives access to ONLY that one topic
-- View topic content + existing feedback
-- Submit feedback via form (structured: comments, text edits, suggestions)
-- **Can't navigate** between topics with same token
-- Each topic = separate email + separate link + separate browser tab
+**Single-topic review**: Reviewer gets one email → one token link → `/review/{token}` for that topic only.
 
-**No reviewer dashboard** - no way to see all assigned reviews in one place without logging in
+**Bulk review portal**: Reviewer gets one email → one token link → `/bulk-review/{token}`. The portal shows all assigned topics with a progress bar and prev/next navigation. Each topic has a WYSIWYG editor for inline edits plus a structured feedback form. Completed topics show a checkmark.
+
+Both flows: reviewer leaves inline feedback (comments, text edits, recommendations), submits, and sees a confirmation screen.
 
 ---
 
 ### 5️⃣ What frontend UI exists?
 
 **Frontend Components**:
-- `ReviewsDashboard.vue` - Main review management dashboard
-- `RequestReviewModal.vue` - Single-topic review request form
-- `SequentialReviewModal.vue` - Multi-step reviewer queue (same topic)
-- `ReviewFeedbackView.vue` - Viewing feedback from reviewers
-- `ReviewCard.vue` - Card component in dashboard
+- `ReviewsDashboard.vue` — Combined reviews table with search, filter, and status badges
+- `IncorporateFeedback.vue` — Filtered list of completed reviews needing author action
+- `ReviewFeedbackView.vue` — Word-level diff (accept/reject individual changes) + per-item feedback responses; Update Topic saves everything and returns topic to `draft`
+- `ReviewDiffEditor.vue` — Word-level diff component; Accept All / Reject All or toggle individual segments
+- `RequestReviewModal.vue` — Single-topic review request form
+- `BulkRequestReviewModal.vue` — Multi-topic review request (≥2 topics, one reviewer, one email)
+- `BulkReviewPortal.vue` — Reviewer-facing bulk review portal with WYSIWYG editor and progress tracking
+- `SequentialReviewModal.vue` — Multi-step reviewer queue (same topic, ordered reviewers)
+- `ReviewPortal.vue` — Single-topic reviewer portal (accessed via token link)
 
 **API Methods** (reviews.js):
-- `requestReview()` - Create single review
-- `getReviewers()` - Get available reviewers
-- `getPendingReviews()` - Get pending reviews
-- `submitReview()` - Submit completed review
-
-**No bulk methods exist**
+- `requestReview()` — Create single review
+- `requestBulkReview()` — Create bulk review batch
+- `getReviews()` — List all reviews
+- `getReviewers()` — Get available reviewers
+- `getPendingReviews()` — Get pending reviews
+- `submitReview()` — Submit completed review
+- `getBulkReview(token)` — Get bulk review portal data
+- `submitBulkTopicFeedback(token, reviewId, data)` — Submit feedback for one topic in a batch
 
 ---
 
 ## Data Model
 
 ```
-reviews (single topic-reviewer pair per row)
+reviews (one topic-reviewer pair per row)
   ├─ topic_id, reviewer_id, requested_by
   ├─ status, priority, due_date
-  ├─ feedback, recommendation
-  └─ sequence_id (optional, for sequential reviews)
+  ├─ feedback, recommendation, edited_content
+  ├─ sequence_id (optional, for sequential reviews)
+  └─ batch_id, batch_position (optional, for bulk reviews)
 
-review_tokens (external access)
+review_batches (groups N reviews for one reviewer)
+  ├─ reviewer_id, requester_id
+  ├─ status (pending / in_progress / completed)
+  └─ priority, due_date, message
+
+review_batch_tokens (portal access for bulk reviews)
+  ├─ token (unique, shared across all topics in batch)
+  ├─ batch_id
+  └─ expires_at, access_count limits
+
+review_tokens (external access for single reviews)
   ├─ token (unique per review)
   ├─ review_id (binds to 1 review)
   └─ expires_at, access_count limits
@@ -90,7 +104,7 @@ review_feedback (structured comments)
   ├─ review_id (N items per review)
   ├─ type: general_comment, text_edit, etc.
   ├─ section targeting (section_title, page_number, etc.)
-  └─ priority, impact, author_response
+  └─ priority, impact, author_response, status (pending/accepted/rejected/modified)
 
 review_sequences (for multi-reviewer same topic)
   ├─ Defines sequence of reviewers
@@ -99,99 +113,54 @@ review_sequences (for multi-reviewer same topic)
 
 ---
 
-## What's Missing for Bulk Review Feature
+## Email Flow
 
-| Component | Status | Gap |
-|-----------|--------|-----|
-| **Multi-topic request** | ❌ Missing | API + UI for selecting multiple topics |
-| **Batch tracking** | ❌ Missing | DB table + progress endpoints + UI |
-| **Reviewer dashboard** | ❌ Missing | View all assigned reviews in one place |
-| **Email aggregation** | ❌ Missing | Digest email or batch notification |
-| **Bulk feedback** | ❌ Missing | Accept all changes at once |
-| **Topic navigation** | ❌ Missing | See related reviews from same batch |
-| **Templates** | ❌ Missing | Save/reuse review configurations |
-
----
-
-## Email Flow (Current)
-
+**Single review:**
 ```
-User requests review
-  ↓
-Review created in DB
-  ↓
-ReviewToken created (unique per review)
-  ↓
-email_service.send_review_notification() called
-  ├─ Format HTML email
-  ├─ Format text email  
-  ├─ Send via SendGrid
-  └─ Log delivery status
-  
-Reviewer receives email
-  ↓
-Click /review/{token} link
-  ↓
-GET /api/review/{token} - fetch review content
-  ↓
-View topic + provide feedback
-  ↓
-POST /api/review/{token}/feedback - submit feedback
-  ↓
-Review marked completed
+POST /api/reviews/request
+  ↓ Review + ReviewToken created
+  ↓ email_service.send_review_notification()
+Reviewer receives email → clicks /review/{token}
+  ↓ GET /api/review/{token}
+  ↓ POST /api/review/{token}/feedback
+Review marked completed → topic status updated
+```
+
+**Bulk review:**
+```
+POST /api/reviews/bulk-request
+  ↓ ReviewBatch + N Reviews + ReviewBatchToken created
+  ↓ email_service.send_bulk_review_notification()
+Reviewer receives email → clicks /bulk-review/{token}
+  ↓ GET /api/bulk-review/{token}
+  ↓ POST /api/bulk-review/{token}/review/{id}/feedback (per topic)
+All topics reviewed → batch marked completed
 ```
 
 ---
 
 ## Database Files Location
 
-- **Models**: `/workspaces/StructuredDocs/backend/models.py` (lines 1107-1450)
-- **Endpoints**: `/workspaces/StructuredDocs/backend/routes/reviews.py` (626 lines)
-- **Token handling**: `/workspaces/StructuredDocs/backend/routes/review_tokens.py` (293 lines)
-- **Email templates**: `/workspaces/StructuredDocs/backend/utils/email_service.py` (lines 633-715)
-
----
-
-## Implementation Path (Phases)
-
-### Phase 1: MVP Bulk (1-2 weeks)
-- Add `POST /api/reviews/batch` endpoint
-- Create `RequestBulkReviewModal.vue` (topic multi-select)
-- Add ReviewBatch DB table
-- Send reviews in async job
-
-### Phase 2: Batch Tracking (1-2 weeks)  
-- Progress endpoints
-- BatchProgressTracker UI
-- Cancel batch functionality
-
-### Phase 3: Reviewer Dashboard (2 weeks)
-- `GET /api/reviews/my-assigned` endpoint
-- ReviewerDashboard.vue component
-- Filter + search interface
-
-### Phase 4: Advanced (3-4 weeks)
-- Email aggregation
-- Parallel reviewers
-- Templates
-- Bulk feedback incorporation
+- **Models**: `backend/models.py`
+- **Single-review endpoints**: `backend/routes/reviews.py`
+- **Bulk-review endpoints**: `backend/routes/bulk_reviews.py`
+- **Token handling**: `backend/routes/review_tokens.py`
+- **Email templates**: `backend/utils/email_service.py`
 
 ---
 
 ## Key Insights
 
-1. **Current system is optimized for single-topic reviews** - all components assume 1 topic → 1 reviewer
-2. **Sequential reviews work but are topic-scoped** - multiple reviewers for SAME topic, not multiple topics
-3. **Email is per-topic** - no batching, no digest emails
-4. **Reviewer experience is fragmented** - each topic requires separate link + email
-5. **Schema is ready for bulk** - just need batch_id FK + ReviewBatch table
-6. **Token system prevents reviewer dashboard** - tokens are topic-specific, not user-scoped
+1. **Both single-topic and bulk workflows are supported** — use bulk when sending the same reviewer multiple topics at once
+2. **Sequential reviews are topic-scoped** — multiple reviewers for the SAME topic in order
+3. **Feedback incorporation uses word-level diff** — `ReviewDiffEditor` shows reviewer edits as accept/reject toggles; `Update Topic` saves and returns the topic to `draft`
+4. **Topic status is the source of truth** — `revisions_requested` means feedback awaits incorporation; `draft` means the author has incorporated changes (or is still writing)
+5. **Tokens are scoped** — single-review tokens (`/review/{token}`) give access to one topic; batch tokens (`/bulk-review/{token}`) give access to the full portal for all topics in the batch
 
 ---
 
 ## Files to Read
 
-- **Full Analysis**: `/workspaces/StructuredDocs/REVIEW_WORKFLOW_ANALYSIS.md` (742 lines)
-- **Implementation Roadmap**: `/workspaces/StructuredDocs/BULK_REVIEW_TODO.md` (extensive code examples)
-- **This Summary**: `/workspaces/StructuredDocs/REVIEW_SUMMARY.md` (you are here)
+- **Full Analysis**: `REVIEW_WORKFLOW_ANALYSIS.md`
+- **This Summary**: `REVIEW_SUMMARY.md` (you are here)
 
