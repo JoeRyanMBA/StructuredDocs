@@ -71,7 +71,7 @@ export default {
         this.reviews = (all || []).filter(
           r => r.status === 'completed' &&
             ['approve_with_changes', 'needs_more_info'].includes(r.recommendation) &&
-            !['approved', 'published', 'archived'].includes(r.topic_status)
+            r.topic_status === 'revisions_requested'
         ).sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0))
       } catch (e) {
         console.error('Failed to load reviews:', e)

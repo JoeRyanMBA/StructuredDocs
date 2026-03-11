@@ -287,13 +287,14 @@ export default {
       this.applyError   = null
       this.applySuccess = false
       try {
-        // 1. Update the topic content with the accepted diff result (only when there are edits to apply)
-        if (this.review?.edited_content) {
-          await apiPut(`/api/topics/${this.topicId}`, {
-            title:   this.topic.title,
-            content: this.finalContentHtml
-          })
-        }
+        // 1. Update the topic content and mark as draft (feedback incorporated).
+        //    Always update status so the topic leaves 'revisions_requested' and
+        //    drops off the Incorporate Feedback list.
+        await apiPut(`/api/topics/${this.topicId}`, {
+          title:   this.topic.title,
+          content: this.review?.edited_content ? this.finalContentHtml : this.topic.content,
+          status:  'draft'
+        })
 
         // 2. Persist each feedback-item response that was set
         const pending = Object.entries(this.itemResponses).filter(([, v]) => v.status)
@@ -305,7 +306,7 @@ export default {
         ))
 
         this.applySuccess = true
-        this.$router.push({ name: 'ReviewsHome' })
+        this.$router.push({ name: 'IncorporateFeedback' })
       } catch (err) {
         console.error('Error applying changes:', err)
         this.applyError = err.message || 'Failed to update topic. Please try again.'

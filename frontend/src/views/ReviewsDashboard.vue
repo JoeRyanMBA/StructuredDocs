@@ -162,7 +162,7 @@
               <td class="col-feedback">{{ review.feedback_count || '—' }}</td>
               <td class="col-actions" @click.stop>
                 <button
-                  v-if="review.status === 'completed' && ['approve_with_changes', 'needs_more_info'].includes(review.recommendation) && !['approved', 'published', 'archived'].includes(review.topic_status)"
+                  v-if="review.status === 'completed' && ['approve_with_changes', 'needs_more_info'].includes(review.recommendation) && review.topic_status === 'revisions_requested'"
                   @click="incorporateFeedback(review)"
                   class="btn btn-primary btn-sm"
                 >Incorporate</button>
