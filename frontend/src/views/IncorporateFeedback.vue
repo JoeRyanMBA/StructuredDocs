@@ -69,7 +69,9 @@ export default {
         const { getReviews } = await import('@/api/reviews.js')
         const all = await getReviews()
         this.reviews = (all || []).filter(
-          r => r.status === 'completed' && r.topic_status === 'revisions_requested'
+          r => r.status === 'completed' &&
+            ['approve_with_changes', 'needs_more_info'].includes(r.recommendation) &&
+            !['approved', 'published', 'archived'].includes(r.topic_status)
         ).sort((a, b) => new Date(b.completed_at || 0) - new Date(a.completed_at || 0))
       } catch (e) {
         console.error('Failed to load reviews:', e)
