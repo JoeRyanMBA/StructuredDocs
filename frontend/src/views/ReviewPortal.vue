@@ -126,7 +126,7 @@
           <h4>📝 Your Changes</h4>
           <div class="changes-info">
             <span class="changes-count">{{ changeCount }} modification{{ changeCount !== 1 ? 's' : '' }} detected</span>
-            <button @click="showChangesDetail = !showChangesDetail" class="btn btn-sm">
+            <button @click="showChangesDetail = !showChangesDetail" class="btn btn-outline btn-sm">
               {{ showChangesDetail ? 'Hide' : 'Show' }} Details
             </button>
           </div>
@@ -1210,6 +1210,7 @@ export default {
   display: flex;
   gap: 1rem;
   justify-content: flex-end;
+  align-items: center;
   margin-top: 2rem;
   padding-top: 1.5rem;
   border-top: 1px solid var(--border-light-gray);
@@ -1259,11 +1260,12 @@ export default {
 }
 
 .btn-secondary {
-  background-color: var(--secondary-slate-gray);
-  color: var(--bg-white);
+  background-color: var(--border-light-gray);
+  color: var(--text-primary-charcoal);
+  border-color: var(--extended-lavender-gray) !important;
 }
 .btn-secondary:hover:not(:disabled) {
-  background-color: var(--secondary-dark-gray);
+  background-color: var(--extended-lavender-gray);
 }
 
 .btn-success {

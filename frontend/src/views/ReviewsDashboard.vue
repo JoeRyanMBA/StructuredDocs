@@ -244,13 +244,18 @@ export default {
       urgentReviews: [],
       recentReviews: [],
       showGuide: false,
-      
+      refreshInterval: null,
       currentUser: JSON.parse(localStorage.getItem('user') || '{}')
     }
   },
 
   async created() {
     await this.loadDashboardData()
+    this.refreshInterval = setInterval(() => this.loadDashboardData(), 60000)
+  },
+
+  beforeUnmount() {
+    clearInterval(this.refreshInterval)
   },
 
   computed: {
