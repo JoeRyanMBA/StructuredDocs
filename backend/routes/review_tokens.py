@@ -159,17 +159,10 @@ def submit_review_feedback(token):
         if overall_feedback:
             review.feedback = overall_feedback
             
-        # NEW: Handle edited content based on recommendation
-        if edited_content and overall_recommendation == 'approve_with_changes':
-            # Apply the edits directly to the topic
-            topic = review.topic
-            topic.content = edited_content
-            topic.updated_at = datetime.now()
-            print(f"✅ Applied reviewer edits to Topic {topic.id}")
-        elif edited_content:
-            # Store edited content for author review (future enhancement)
+        # Always store edited content for author review — never apply silently.
+        # The author uses the ReviewFeedbackView to accept/reject changes.
+        if edited_content:
             review.edited_content = edited_content
-            print(f"📝 Stored edited content for author review of Topic {review.topic.id}")
         
         review.status = 'completed'
         review.completed_at = datetime.now()

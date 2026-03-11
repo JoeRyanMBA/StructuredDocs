@@ -199,6 +199,7 @@
 <script>
 import axios from 'axios'
 import { marked } from 'marked'
+import { apiGet, apiPut } from '@/api/base'
 import ReviewDiffEditor from '@/components/ReviewDiffEditor.vue'
 
 export default {
@@ -254,12 +255,12 @@ export default {
       try {
         this.loading = true
         this.error   = null
-        const [topicRes, reviewRes] = await Promise.all([
-          axios.get(`/api/topics/${this.topicId}`),
-          axios.get(`/api/reviews/${this.reviewId}`)
+        const [topicData, reviewData] = await Promise.all([
+          apiGet(`/api/topics/${this.topicId}`),
+          apiGet(`/api/reviews/${this.reviewId}`)
         ])
-        this.topic  = topicRes.data
-        this.review = reviewRes.data
+        this.topic  = topicData
+        this.review = reviewData
         if (this.review.topic_id !== this.topicId) {
           throw new Error('Review does not belong to this topic')
         }
@@ -267,7 +268,7 @@ export default {
         this.finalContentHtml = this.review.edited_content || this.originalHtml
       } catch (err) {
         console.error('Error loading review feedback:', err)
-        this.error = err.response?.data?.error || 'Failed to load review feedback'
+        this.error = err.message || 'Failed to load review feedback'
       } finally {
         this.loading = false
       }
@@ -286,31 +287,28 @@ export default {
       this.applyError   = null
       this.applySuccess = false
       try {
-        // 1. Update the topic content with the accepted diff result
-        const contentToSave = this.review?.edited_content
-          ? this.finalContentHtml
-          : this.topic.content
-
-        await axios.put(`/api/topics/${this.topicId}`, {
-          title:   this.topic.title,
-          content: contentToSave
-        })
+        // 1. Update the topic content with the accepted diff result (only when there are edits to apply)
+        if (this.review?.edited_content) {
+          await apiPut(`/api/topics/${this.topicId}`, {
+            title:   this.topic.title,
+            content: this.finalContentHtml
+          })
+        }
 
         // 2. Persist each feedback-item response that was set
         const pending = Object.entries(this.itemResponses).filter(([, v]) => v.status)
         await Promise.all(pending.map(([id, val]) =>
-          axios.put(`/api/feedback/${id}/respond`, {
+          apiPut(`/api/feedback/${id}/respond`, {
             status:          val.status,
             author_response: val.response || ''
           })
         ))
 
         this.applySuccess = true
-        // Navigate back to reviews after a brief confirmation moment
-        setTimeout(() => this.$router.push('/reviews'), 1500)
+        this.$router.push({ name: 'ReviewsHome' })
       } catch (err) {
         console.error('Error applying changes:', err)
-        this.applyError = err.response?.data?.error || 'Failed to update topic. Please try again.'
+        this.applyError = err.message || 'Failed to update topic. Please try again.'
       } finally {
         this.applying = false
       }
@@ -321,7 +319,7 @@ export default {
     },
 
     goBack() {
-      this.$router.push('/reviews')
+      this.$router.push({ name: 'ReviewsHome' })
     },
 
     formatFeedbackType(type) {
