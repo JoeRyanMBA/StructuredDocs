@@ -2,25 +2,21 @@
 import { reactive, readonly } from 'vue'
 import { getHelpLinksMap } from '@/api/helpLinks'
 
-// Module-level cache so the map is fetched once per page load
 const state = reactive({
-  map: {},       // { [feature_key]: HelpLink }
-  loaded: false,
-  loading: false,
+  map: {},  // { [feature_key]: HelpLink }
 })
 
+// Deduplicates parallel calls from multiple HelpIcon components on the same page,
+// but does NOT cache across page navigations so admins see changes immediately.
+let inflightPromise = null
+
 async function ensureLoaded() {
-  if (state.loaded || state.loading) return
-  state.loading = true
-  try {
-    state.map = await getHelpLinksMap()
-    state.loaded = true
-  } catch (e) {
-    // Non-critical — fail silently so a backend error doesn't break the UI
-    console.warn('[useHelpLinks] Failed to load help links:', e)
-  } finally {
-    state.loading = false
-  }
+  if (inflightPromise) return inflightPromise
+  inflightPromise = getHelpLinksMap()
+    .then(map => { state.map = map })
+    .catch(e => console.warn('[useHelpLinks] Failed to load help links:', e))
+    .finally(() => { inflightPromise = null })
+  return inflightPromise
 }
 
 /** Returns the HelpLink object for a feature key, or null if absent/disabled. */
