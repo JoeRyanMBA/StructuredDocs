@@ -50,6 +50,7 @@ def create_tag():
         # Avoid kwargs for SQLAlchemy model init to keep type checkers happy
         tag = Tag()
         tag.name = name
+        tag.description = (data.get('description') or '').strip() or None
         db.session.add(tag)
         db.session.commit()
         
@@ -82,6 +83,7 @@ def update_tag(tag_id):
             
         old_name = tag.name
         tag.name = name
+        tag.description = (data.get('description') or '').strip() or None
         
         # Update tag name in all tasks that use this tag
         if old_name != name:

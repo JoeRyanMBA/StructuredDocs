@@ -96,6 +96,7 @@
             <tr>
               <th class="id-column">ID</th>
               <th>Tag Name</th>
+              <th>Description</th>
               <th>Created Date</th>
               <th>Usage Count</th>
               <th>Actions</th>
@@ -106,6 +107,10 @@
               <td class="id-cell">{{ tag.id }}</td>
               <td class="tag-name-cell">
                 <div class="tag-name-display">{{ formatTagName(tag.name) }}</div>
+              </td>
+              <td class="tag-description-cell">
+                <span v-if="tag.description" class="tag-description">{{ tag.description }}</span>
+                <span v-else class="no-description">—</span>
               </td>
               <td class="created-date">{{ formatDate(tag.created_at) }}</td>
               <td class="usage-count">{{ tag.total_count || tag.usage_count || 0 }}</td>
@@ -146,6 +151,18 @@
                 required
                 maxlength="100"
               />
+            </div>
+            <div class="form-group">
+              <label for="tagDescription">Description <span class="optional">(optional)</span></label>
+              <textarea
+                id="tagDescription"
+                v-model="tagForm.description"
+                class="form-input"
+                rows="3"
+                placeholder="Explain how this tag is used…"
+                maxlength="500"
+              ></textarea>
+              <small class="form-help">Helps other users understand when to apply this tag.</small>
             </div>
           </form>
         </div>
@@ -201,7 +218,8 @@ export default {
       tagToDelete: null,
   tagForm: {
         id: null,
-        name: ''
+        name: '',
+        description: ''
   },
   lastSavedSnapshot: ''
     }
@@ -226,6 +244,7 @@ export default {
             return {
               id: item.id ?? null,
               name: item.name ?? String(item.tag || item.title || ''),
+              description: item.description ?? null,
               created_at: item.created_at ?? null,
               usage_count: item.total_count ?? item.usage_count ?? item.task_count ?? 0
             }
@@ -291,7 +310,8 @@ export default {
       this.isEditing = false
       this.tagForm = {
         id: null,
-        name: ''
+        name: '',
+        description: ''
       }
       this.showModal = true
       this.$nextTick(() => { this.lastSavedSnapshot = JSON.stringify(this.tagForm) })
@@ -301,7 +321,8 @@ export default {
       this.isEditing = true
       this.tagForm = {
         id: tag.id,
-        name: tag.name
+        name: tag.name,
+        description: tag.description || ''
       }
       this.showModal = true
       this.$nextTick(() => { this.lastSavedSnapshot = JSON.stringify(this.tagForm) })
@@ -311,7 +332,8 @@ export default {
       this.showModal = false
       this.tagForm = {
         id: null,
-        name: ''
+        name: '',
+        description: ''
       }
       this.lastSavedSnapshot = ''
     },
@@ -327,7 +349,8 @@ export default {
             'Content-Type': 'application/json'
           },
           body: JSON.stringify({
-            name: this.tagForm.name.trim()
+            name: this.tagForm.name.trim(),
+            description: this.tagForm.description.trim() || null
           })
         })
         
@@ -529,6 +552,23 @@ export default {
   max-width: 250px;
 }
 
+.tag-description-cell {
+  max-width: 320px;
+  color: #555;
+  font-size: 0.875rem;
+}
+
+.tag-description {
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  -webkit-box-orient: vertical;
+  overflow: hidden;
+}
+
+.no-description {
+  color: #bbb;
+}
+
 .tag-name-display {
   font-weight: 600;
   color: #333;
@@ -647,6 +687,19 @@ export default {
   outline: none;
   border-color: var(--primary-medium-teal);
   box-shadow: 0 0 0 2px rgba(0, 123, 255, 0.25);
+}
+
+.optional {
+  font-weight: 400;
+  color: #888;
+  font-size: 0.875em;
+}
+
+.form-help {
+  display: block;
+  margin-top: 0.25rem;
+  font-size: 0.8rem;
+  color: #888;
 }
 
 .warning {
