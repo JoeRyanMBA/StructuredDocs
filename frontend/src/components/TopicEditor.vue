@@ -2043,10 +2043,11 @@ export default {
   margin-top:.75rem;
   padding:.5rem .75rem;
   background:#fff8e1;
-  border:1px solid #ffe082;
+  border:1px solid #f59e0b;
   border-radius:6px;
-  color:#7a5c00;
+  color:#4a2e00;
   font-size:.875rem;
+  font-weight:500;
 }
 .image-grid { display:grid; grid-template-columns: repeat(auto-fill, minmax(120px, 1fr)); gap:.75rem; max-height:320px; overflow:auto; }
 .image-item { border:1px solid #eee; border-radius:6px; padding:.5rem; cursor:pointer; text-align:center; }
