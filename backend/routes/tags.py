@@ -204,6 +204,7 @@ def tag_usage():
             usage_stats.append({
                 'id': tag.id,
                 'name': tag.name,
+                'description': tag.description,
                 'task_count': task_count,
                 'entity_count': entity_count,
                 'total_count': task_count + entity_count,
