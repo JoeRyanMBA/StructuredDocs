@@ -7,6 +7,41 @@
       without deleting it.
     </p>
 
+    <!-- Available feature keys reference panel -->
+    <div class="registry-panel">
+      <div class="registry-header" @click="showRegistry = !showRegistry">
+        <span><i class="bi bi-map me-2"></i><strong>Available Feature Keys</strong> — where icons can appear in the app</span>
+        <i class="bi" :class="showRegistry ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
+      </div>
+      <div v-if="showRegistry" class="registry-body">
+        <table class="registry-table">
+          <thead>
+            <tr>
+              <th>Feature Key</th>
+              <th>Where it appears</th>
+              <th>Suggested use</th>
+              <th></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr v-for="entry in registryWithStatus" :key="entry.key">
+              <td><code>{{ entry.key }}</code></td>
+              <td>{{ entry.location }}</td>
+              <td class="hint-cell">{{ entry.hint }}</td>
+              <td>
+                <span v-if="entry.configured" class="badge-configured">
+                  <i class="bi bi-check-circle-fill me-1"></i>Configured
+                </span>
+                <button v-else class="btn btn-outline-primary btn-xs" @click="openCreateForKey(entry)">
+                  <i class="bi bi-plus me-1"></i>Set up
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </div>
+
     <div class="toolbar">
       <button class="btn btn-primary btn-sm" @click="openCreate">
         <i class="bi bi-plus-lg me-1"></i>Add Help Link
@@ -20,6 +55,7 @@
         <thead>
           <tr>
             <th>Feature Key</th>
+            <th>Where it appears</th>
             <th>Title</th>
             <th>Description</th>
             <th>KB URL</th>
@@ -30,6 +66,7 @@
         <tbody>
           <tr v-for="link in links" :key="link.id" :class="{ disabled: !link.enabled }">
             <td class="feature-key"><code>{{ link.feature_key }}</code></td>
+            <td class="location-cell">{{ locationFor(link.feature_key) }}</td>
             <td>{{ link.title }}</td>
             <td class="description-cell">{{ link.description }}</td>
             <td class="url-cell">
@@ -74,10 +111,23 @@
           <div class="mb-3">
             <label class="form-label">
               Feature Key <span class="text-danger">*</span>
-              <small class="text-muted ms-1">e.g. <code>import.upload</code> or <code>review.token</code></small>
             </label>
-            <input v-model="form.feature_key" class="form-control" placeholder="feature.name" :disabled="!isNew" />
-            <div v-if="!isNew" class="form-text text-muted">Feature key cannot be changed after creation.</div>
+            <!-- Dropdown for new entries; read-only display for edits -->
+            <select v-if="isNew" v-model="form.feature_key" class="form-select" @change="onKeySelected">
+              <option value="">— choose a location —</option>
+              <optgroup label="Available locations">
+                <option
+                  v-for="entry in availableKeys"
+                  :key="entry.key"
+                  :value="entry.key"
+                >{{ entry.label }} · {{ entry.location }}</option>
+              </optgroup>
+            </select>
+            <div v-else class="form-control-plaintext">
+              <code>{{ form.feature_key }}</code>
+              <span class="text-muted ms-2">— {{ locationFor(form.feature_key) }}</span>
+              <div class="form-text text-muted">Feature key cannot be changed after creation.</div>
+            </div>
           </div>
           <div class="mb-3">
             <label class="form-label">Title <span class="text-danger">*</span></label>
@@ -134,6 +184,7 @@
 <script>
 import { getAdminHelpLinks, createHelpLink, updateHelpLink, deleteHelpLink } from '@/api/helpLinks'
 import { toast } from '@/composables/useToast'
+import { HELP_FEATURE_KEYS, HELP_KEY_MAP } from '@/config/helpFeatureKeys'
 
 export default {
   name: 'AdminHelpLinks',
@@ -150,7 +201,24 @@ export default {
       saving: false,
       saveError: null,
       deleting: null,
+      showRegistry: true,
     }
+  },
+
+  computed: {
+    configuredKeys() {
+      return new Set(this.links.map(l => l.feature_key))
+    },
+    registryWithStatus() {
+      return HELP_FEATURE_KEYS.map(e => ({
+        ...e,
+        configured: this.configuredKeys.has(e.key),
+      }))
+    },
+    /** Only show keys that aren't already configured in the dropdown */
+    availableKeys() {
+      return HELP_FEATURE_KEYS.filter(e => !this.configuredKeys.has(e.key))
+    },
   },
 
   async mounted() {
@@ -158,6 +226,15 @@ export default {
   },
 
   methods: {
+    locationFor(key) {
+      return HELP_KEY_MAP[key]?.location || '—'
+    },
+    onKeySelected() {
+      const entry = HELP_KEY_MAP[this.form.feature_key]
+      if (entry && !this.form.title) {
+        this.form.title = entry.label
+      }
+    },
     async load() {
       this.loading = true
       this.error = null
@@ -174,6 +251,14 @@ export default {
       this.isNew = true
       this.editId = null
       this.form = { feature_key: '', title: '', description: '', kb_url: '', enabled: true }
+      this.saveError = null
+      this.editing = true
+    },
+
+    openCreateForKey(entry) {
+      this.isNew = true
+      this.editId = null
+      this.form = { feature_key: entry.key, title: entry.label, description: entry.hint, kb_url: '', enabled: true }
       this.saveError = null
       this.editing = true
     },
@@ -263,6 +348,70 @@ export default {
 
 h1 { margin-bottom: 4px; }
 .subtitle { color: #6c757d; margin-bottom: 20px; }
+
+/* Registry panel */
+.registry-panel {
+  border: 1px solid #dee2e6;
+  border-radius: 8px;
+  margin-bottom: 20px;
+  overflow: hidden;
+}
+
+.registry-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 10px 16px;
+  background: #f8f9fa;
+  cursor: pointer;
+  user-select: none;
+  font-size: 0.9rem;
+}
+
+.registry-header:hover { background: #e9ecef; }
+
+.registry-body { padding: 0; }
+
+.registry-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+}
+
+.registry-table th,
+.registry-table td {
+  padding: 8px 16px;
+  border-bottom: 1px solid #dee2e6;
+  vertical-align: middle;
+}
+
+.registry-table th {
+  font-weight: 600;
+  background: #fff;
+  color: #6c757d;
+  font-size: 0.8rem;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.registry-table tr:last-child td { border-bottom: none; }
+
+.hint-cell { color: #6c757d; }
+
+.badge-configured {
+  display: inline-flex;
+  align-items: center;
+  font-size: 0.8rem;
+  color: #198754;
+  font-weight: 500;
+}
+
+.btn-xs {
+  padding: 2px 8px;
+  font-size: 0.8rem;
+}
+
+.location-cell { color: #6c757d; font-size: 0.85em; }
 
 .toolbar {
   margin-bottom: 16px;
