@@ -10,13 +10,13 @@
       <h3>Import Type</h3>
       <p class="section-help">Choose how to structure your import.</p>
       <div class="card-options" role="group" aria-label="Import type">
-        <label class="card-option" :class="{ selected: importType === 'topics' }" tabindex="0">
-          <input type="radio" class="visually-hidden" v-model="importType" value="topics" :disabled="isUploading" />
+        <label class="card-option" :class="{ selected: importType === 'topic' }" tabindex="0">
+          <input type="radio" class="visually-hidden" v-model="importType" value="topic" :disabled="isUploading" />
           <div class="card-content">
-            <div class="card-icon" aria-hidden="true">📑</div>
+            <div class="card-icon" aria-hidden="true">📝</div>
             <div class="card-text">
-              <div class="card-title">Individual Topics</div>
-              <div class="card-desc">Import as separate topics that you can organize later.</div>
+              <div class="card-title">Import Topic</div>
+              <div class="card-desc">Import a single file as one topic. Review and edit before saving.</div>
             </div>
           </div>
         </label>
@@ -26,44 +26,27 @@
           <div class="card-content">
             <div class="card-icon" aria-hidden="true">🗂️</div>
             <div class="card-text">
-              <div class="card-title">Collection (Document)</div>
-              <div class="card-desc">Import as a single collection with hierarchy preserved.</div>
+              <div class="card-title">Collection</div>
+              <div class="card-desc">Import a document as a collection with headings becoming topics.</div>
+            </div>
+          </div>
+        </label>
+
+        <label class="card-option" :class="{ selected: importType === 'bulk-collection' }" tabindex="0">
+          <input type="radio" class="visually-hidden" v-model="importType" value="bulk-collection" :disabled="isUploading" />
+          <div class="card-content">
+            <div class="card-icon" aria-hidden="true">📚</div>
+            <div class="card-text">
+              <div class="card-title">Create Collection</div>
+              <div class="card-desc">Select multiple files — each file becomes one topic in a new collection.</div>
             </div>
           </div>
         </label>
       </div>
     </div>
 
-    <!-- Advanced Options (only shown when importing as individual topics) -->
-    <div v-if="importType === 'topics'" class="advanced-options">
-      <h3>Import Options</h3>
-      <div class="form-group">
-        <label class="checkbox-label">
-          <input 
-            type="checkbox" 
-            v-model="preserveHierarchy" 
-            :disabled="isUploading"
-          />
-          <span class="checkbox-text">
-            <strong>Preserve Document Hierarchy</strong>
-            <span v-if="source === 'word'" class="recommended-badge">Recommended for Word docs</span>
-            <br>
-            <small class="form-help">
-              Automatically create a collection with topics organized by heading levels (H1, H2, H3). 
-              <span v-if="source === 'word'">
-                <strong>Word documents:</strong> Maintains your original document structure with proper nesting.
-              </span>
-              <span v-else>
-                Perfect for structured documents where you want to maintain the original organization.
-              </span>
-            </small>
-          </span>
-        </label>
-      </div>
-    </div>
-
-    <!-- Collection Details (only shown when importing as collection) -->
-    <div v-if="importType === 'collection'" class="collection-details">
+    <!-- Collection Details (shown for both 'collection' and 'bulk-collection') -->
+    <div v-if="importType === 'collection' || importType === 'bulk-collection'" class="collection-details">
       <h3>Collection Details</h3>
       <div class="form-group">
         <label for="projectSelect">Project *</label>
@@ -134,7 +117,10 @@
       <div class="loading-content">
         <div class="spinner"></div>
         <h3>Processing Import...</h3>
-        <p>Parsing document and extracting content. Please wait...</p>
+        <p v-if="bulkProgress">
+          Uploading file {{ bulkProgress.current }} of {{ bulkProgress.total }}…
+        </p>
+        <p v-else>Parsing document and extracting content. Please wait...</p>
       </div>
     </div>
 
@@ -154,9 +140,11 @@
         @change="onFileSelected"
         :accept="acceptedTypes"
         :disabled="isUploading"
+        :multiple="importType === 'bulk-collection'"
       />
 
-      <div v-if="selectedFile" class="file-preview">
+      <!-- Single-file preview -->
+      <div v-if="selectedFile && importType !== 'bulk-collection'" class="file-preview">
         <div class="file-info">
           <div class="file-icon">📄</div>
           <div class="file-details">
@@ -166,12 +154,24 @@
         </div>
       </div>
 
+      <!-- Multi-file preview -->
+      <div v-if="selectedFiles.length > 0 && importType === 'bulk-collection'" class="file-preview">
+        <div class="file-count-badge">{{ selectedFiles.length }} file{{ selectedFiles.length !== 1 ? 's' : '' }} selected</div>
+        <div v-for="(f, idx) in selectedFiles" :key="idx" class="file-info">
+          <div class="file-icon">📄</div>
+          <div class="file-details">
+            <div class="file-name">{{ f.name }}</div>
+            <div class="file-size">{{ formatFileSize(f.size) }}</div>
+          </div>
+        </div>
+      </div>
+
       <div v-if="error" class="error">{{ error }}</div>
 
       <!-- Import Button -->
       <div class="import-actions">
         <button 
-          v-if="selectedFile" 
+          v-if="hasSelectedFiles" 
           @click="startImport" 
           :disabled="isUploading || !canStartImport"
           class="import-btn"
@@ -180,7 +180,7 @@
           <span v-else>📥 Start Import</span>
         </button>
         <button 
-          v-if="selectedFile && !isUploading" 
+          v-if="hasSelectedFiles && !isUploading" 
           @click="clearFile" 
           class="clear-btn"
         >
@@ -201,12 +201,13 @@ export default {
       error: null,
       isUploading: false,
       preparingImport: false,
-      importType: 'topics',
-      preserveHierarchy: false,  // Will be updated based on source type
+      importType: 'topic',
       collectionName: '',
       collectionFormNumber: '',
       collectionDescription: '',
       selectedFile: null,
+      selectedFiles: [],
+      bulkProgress: null,
       projects: [],
       selectedProjectId: '',
       loadingProjects: true
@@ -217,35 +218,42 @@ export default {
     acceptedTypes() {
       return this.source === 'word' ? '.docx' : '.md,.markdown'
     },
-    
+
+    hasSelectedFiles() {
+      return this.importType === 'bulk-collection'
+        ? this.selectedFiles.length > 0
+        : !!this.selectedFile
+    },
+
     canStartImport() {
-      if (!this.selectedFile) return false
-      
-      // For collection imports, require collection details and project selection
-      if (this.importType === 'collection') {
-        return this.collectionName.trim() && 
-               this.collectionFormNumber.trim() && 
-               this.selectedProjectId
+      const needsCollection = this.importType === 'collection' || this.importType === 'bulk-collection'
+      const collectionValid = this.collectionName.trim() &&
+                              this.collectionFormNumber.trim() &&
+                              this.selectedProjectId
+
+      if (this.importType === 'bulk-collection') {
+        return this.selectedFiles.length > 0 && collectionValid
       }
-      
-      return true
+      if (needsCollection) {
+        return !!this.selectedFile && collectionValid
+      }
+      return !!this.selectedFile
     }
   },
 
   watch: {
-    // Automatically enable hierarchy preservation for Word documents
-    source() {
-      this.updateHierarchyDefault()
-    },
     importType() {
-      this.updateHierarchyDefault()
+      // Clear file selections when switching import modes
+      this.selectedFile = null
+      this.selectedFiles = []
+      if (this.$refs.fileInput) {
+        this.$refs.fileInput.value = null
+      }
     }
   },
 
   mounted() {
     this.fetchProjects()
-    // Set hierarchy preservation based on initial source
-    this.updateHierarchyDefault()
   },
 
   methods: {
@@ -267,30 +275,35 @@ export default {
     },
 
     updateHierarchyDefault() {
-      // Enable hierarchy preservation by default for Word documents when importing as topics
-      if (this.source === 'word' && this.importType === 'topics') {
-        this.preserveHierarchy = true
-      }
+      // No-op kept for backward compatibility; hierarchy is now determined by import type
     },
 
     onFileSelected(event) {
       this.error = null
-      const file = event.target.files[0]
-      if (!file) {
-        this.selectedFile = null
-        this.preparingImport = false
-        return
+      if (this.importType === 'bulk-collection') {
+        this.selectedFiles = Array.from(event.target.files)
+        if (this.selectedFiles.length > 0) {
+          this.preparingImport = true
+          setTimeout(() => { this.preparingImport = false }, 800)
+        }
+      } else {
+        const file = event.target.files[0]
+        if (!file) {
+          this.selectedFile = null
+          this.preparingImport = false
+          return
+        }
+        this.selectedFile = file
+        this.preparingImport = true
+        setTimeout(() => {
+          this.preparingImport = false
+        }, 800)
       }
-      this.selectedFile = file
-      this.preparingImport = true
-      // Simulate a short delay for UX (remove if not desired)
-      setTimeout(() => {
-        this.preparingImport = false
-      }, 800)
     },
 
     clearFile() {
       this.selectedFile = null
+      this.selectedFiles = []
       this.$refs.fileInput.value = null
       this.error = null
     },
@@ -305,6 +318,12 @@ export default {
 
     async startImport() {
       this.preparingImport = false
+
+      if (this.importType === 'bulk-collection') {
+        await this.startBulkImport()
+        return
+      }
+
       if (!this.selectedFile) {
         this.error = 'Please select a file to import'
         return
@@ -336,12 +355,7 @@ export default {
       form.append('file', this.selectedFile)
       form.append('source', this.source)
       form.append('import_type', this.importType)
-      
-      // Add hierarchy preservation setting for individual topic imports
-      if (this.importType === 'topics') {
-        form.append('preserve_hierarchy', this.preserveHierarchy.toString())
-      }
-      
+
       // Add collection details if importing as collection
       if (this.importType === 'collection') {
         form.append('collection_name', this.collectionName)
@@ -374,9 +388,8 @@ export default {
 
         console.log('Upload successful, result:', result) // Debug log
 
-        // Handle different import types and responses
-        if (this.importType === 'collection' || (this.importType === 'topics' && this.preserveHierarchy)) {
-          // For collection imports or hierarchical topic imports, redirect to the collection organize page
+        if (this.importType === 'collection') {
+          // Redirect to the collection organize page
           const collectionId = result.collection_id || result.id
           if (collectionId) {
             this.$router.push({
@@ -387,7 +400,7 @@ export default {
             throw new Error('Collection creation failed - no collection ID returned')
           }
         } else {
-          // For regular flat topic imports, go to the import review page
+          // 'topic' → go to import review page
           if (result.id) {
             this.$router.push({
               name: 'ImportReview',
@@ -406,6 +419,88 @@ export default {
         // Clear the file selection after successful import
         if (!this.error) {
           this.selectedFile = null
+          this.$refs.fileInput.value = null
+        }
+      }
+    },
+
+    async startBulkImport() {
+      if (this.selectedFiles.length === 0) {
+        this.error = 'Please select at least one file'
+        return
+      }
+      if (!this.collectionName.trim()) {
+        this.error = 'Collection name is required'
+        return
+      }
+      if (!this.collectionFormNumber.trim()) {
+        this.error = 'Collection ID (Form Number) is required'
+        return
+      }
+      if (!this.selectedProjectId) {
+        this.error = 'Project selection is required'
+        return
+      }
+
+      this.error = null
+      this.isUploading = true
+      let collectionId = null
+      let completedCount = 0
+
+      try {
+        for (let i = 0; i < this.selectedFiles.length; i++) {
+          this.bulkProgress = { current: i + 1, total: this.selectedFiles.length }
+
+          const form = new FormData()
+          form.append('file', this.selectedFiles[i])
+          form.append('source', this.source)
+          form.append('import_type', 'bulk-collection')
+
+          if (collectionId) {
+            form.append('existing_collection_id', String(collectionId))
+          } else {
+            form.append('collection_name', this.collectionName)
+            form.append('collection_form_number', this.collectionFormNumber)
+            form.append('collection_description', this.collectionDescription)
+            form.append('project_id', String(this.selectedProjectId))
+          }
+
+          const res = await fetch('/api/import/upload', {
+            method: 'POST',
+            body: form
+          })
+
+          const text = await res.text()
+          let result = null
+          const ct = res.headers.get('content-type') || ''
+          if (ct.includes('application/json')) {
+            result = JSON.parse(text)
+          }
+
+          if (!res.ok) {
+            const msg = result?.error || text || `HTTP ${res.status}`
+            throw new Error(`"${this.selectedFiles[i].name}": ${msg}`)
+          }
+
+          collectionId = result.collection_id
+          completedCount++
+        }
+
+        if (collectionId) {
+          this.$router.push({ name: 'Organize', params: { id: collectionId } })
+        }
+
+      } catch (err) {
+        console.error('Bulk import failed:', err)
+        this.error = `Import failed: ${err.message}`
+        if (completedCount > 0) {
+          this.error += ` (${completedCount} of ${this.selectedFiles.length} files imported successfully)`
+        }
+      } finally {
+        this.isUploading = false
+        this.bulkProgress = null
+        if (!this.error) {
+          this.selectedFiles = []
           this.$refs.fileInput.value = null
         }
       }
@@ -696,6 +791,14 @@ input[type="file"] {
   display: flex;
   align-items: center;
   gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.file-count-badge {
+  font-size: 0.875rem;
+  font-weight: 600;
+  color: var(--text-primary-charcoal);
+  margin-bottom: 0.5rem;
 }
 
 .file-icon {

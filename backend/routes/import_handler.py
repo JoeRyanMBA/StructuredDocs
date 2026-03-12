@@ -1030,11 +1030,14 @@ def _upload_file(source):
         return jsonify({'error': 'Missing file or invalid source'}), 400
 
     try:
-        # Handle collection import
         if import_type == 'collection':
             return _import_as_collection(file, source)
+        elif import_type == 'topic':
+            return _import_as_single_topic(file, source)
+        elif import_type == 'bulk-collection':
+            return _import_as_bulk_collection_item(file, source)
         else:
-            # Handle regular topic import
+            # 'topics' and legacy values → regular topic import
             return _import_as_topics(file, source, preserve_hierarchy)
 
     except Exception as e:
@@ -1233,6 +1236,183 @@ def _import_as_topics(file, source, preserve_hierarchy=False):
     db.session.commit()
     current_app.logger.debug(f"UPLOAD: Committed to database")
     return jsonify(imp_doc.to_dict(include_items=True)), 201
+
+
+def _import_as_single_topic(file, source):
+    """Import an entire document as a single topic without heading splitting.
+
+    The full file content becomes one ImportItem so the user can review and
+    optionally rename it before committing.
+    """
+    imp_doc = ImportDocument(
+        filename=secure_filename(file.filename),
+        source_type=source
+    )
+    db.session.add(imp_doc)
+    db.session.flush()
+
+    file.stream.seek(0)
+    markdown_content = ''
+
+    if source == 'word':
+        file_content = file.read()
+        try:
+            markdown_content = _convert_word_to_markdown(file_content, imp_doc.id)
+        except Exception as e:
+            current_app.logger.error(f'Single-topic pandoc conversion failed: {e}', exc_info=True)
+            try:
+                doc = Document(io.BytesIO(file_content))
+                lines = [p.text.strip() for p in doc.paragraphs if (p.text or '').strip()]
+                markdown_content = '\n\n'.join(lines)
+            except Exception as e2:
+                current_app.logger.error(f'Single-topic python-docx fallback failed: {e2}', exc_info=True)
+    else:
+        markdown_content = file.read().decode('utf-8')
+
+    title = os.path.splitext(secure_filename(file.filename))[0]
+    content = _clean_topic_content(markdown_content)
+
+    if not content:
+        db.session.delete(imp_doc)
+        db.session.commit()
+        return jsonify({'error': 'No content could be extracted from the file.'}), 422
+
+    db.session.add(ImportItem(
+        document_id=imp_doc.id,
+        heading_order=0,
+        title=title,
+        content=content
+    ))
+
+    try:
+        _extract_and_store_links(imp_doc.id, markdown_content)
+    except Exception as e:
+        current_app.logger.error(f'Link extraction failed for single topic import: {e}')
+
+    db.session.commit()
+    return jsonify(imp_doc.to_dict(include_items=True)), 201
+
+
+def _import_as_bulk_collection_item(file, source):
+    """Import a single file as one topic, adding it to a new or existing collection.
+
+    When ``existing_collection_id`` is present in the form data the topic is
+    appended to that collection.  Otherwise a new collection is created from
+    the form fields ``collection_name``, ``collection_form_number``,
+    ``collection_description``, and ``project_id``.
+    """
+    from ..models import Project
+    from sqlalchemy import func as sqlfunc
+
+    existing_collection_id = request.form.get('existing_collection_id', '').strip()
+
+    if existing_collection_id:
+        try:
+            collection = Collection.query.get(int(existing_collection_id))
+            if not collection:
+                return jsonify({'error': 'Collection not found'}), 404
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid collection ID'}), 400
+    else:
+        collection_name = request.form.get('collection_name', '').strip()
+        collection_form_number = request.form.get('collection_form_number', '').strip()
+        collection_description = request.form.get('collection_description', '').strip()
+        project_id_str = request.form.get('project_id', '').strip()
+
+        if not collection_name:
+            return jsonify({'error': 'Collection name is required'}), 400
+        if not collection_form_number:
+            return jsonify({'error': 'Collection ID (Form Number) is required'}), 400
+        if not project_id_str:
+            return jsonify({'error': 'Project selection is required'}), 400
+
+        try:
+            project_id = int(project_id_str)
+            project = Project.query.get(project_id)
+            if not project:
+                return jsonify({'error': 'Selected project does not exist'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'Invalid project ID'}), 400
+
+        if Collection.query.filter_by(form_number=collection_form_number).first():
+            return jsonify({'error': f'Collection ID "{collection_form_number}" already exists'}), 400
+
+        collection = Collection(
+            name=collection_name,
+            form_number=collection_form_number,
+            description=collection_description or None,
+            project_id=project_id
+        )
+        db.session.add(collection)
+        db.session.flush()
+
+    # Use a temporary ImportDocument so pandoc image extraction works correctly
+    temp_imp_doc = ImportDocument(filename=secure_filename(file.filename), source_type=source)
+    db.session.add(temp_imp_doc)
+    db.session.flush()
+
+    file.stream.seek(0)
+    markdown_content = ''
+
+    if source == 'word':
+        file_content = file.read()
+        try:
+            markdown_content = _convert_word_to_markdown(file_content, temp_imp_doc.id)
+        except Exception as e:
+            current_app.logger.error(f'Bulk-collection pandoc conversion failed: {e}', exc_info=True)
+            try:
+                doc = Document(io.BytesIO(file_content))
+                lines = [p.text.strip() for p in doc.paragraphs if (p.text or '').strip()]
+                markdown_content = '\n\n'.join(lines)
+            except Exception as e2:
+                current_app.logger.error(f'Bulk-collection python-docx fallback failed: {e2}', exc_info=True)
+    else:
+        markdown_content = file.read().decode('utf-8')
+
+    title = os.path.splitext(secure_filename(file.filename))[0]
+    content = _strip_fragment_links(_clean_topic_content(markdown_content))
+
+    if not content:
+        db.session.rollback()
+        return jsonify({'error': f'No content could be extracted from "{file.filename}".'}), 422
+
+    # Determine the next position within the collection
+    max_pos = db.session.execute(
+        db.select(sqlfunc.max(collection_topic_tree.c.position))
+        .where(collection_topic_tree.c.collection_id == collection.id)
+    ).scalar()
+    next_pos = (max_pos + 1) if max_pos is not None else 0
+
+    topic = Topic(title=title, content=content)
+    db.session.add(topic)
+    db.session.flush()
+
+    db.session.execute(
+        collection_topic_tree.insert().values(
+            collection_id=collection.id,
+            topic_id=topic.id,
+            parent_topic_id=None,
+            position=next_pos
+        )
+    )
+
+    temp_imp_doc.status = 'approved'
+    temp_imp_doc.review_step = 'final_approved'
+    db.session.commit()
+
+    topics_count = db.session.execute(
+        db.select(sqlfunc.count())
+        .select_from(collection_topic_tree)
+        .where(collection_topic_tree.c.collection_id == collection.id)
+    ).scalar()
+
+    return jsonify({
+        'collection_id': collection.id,
+        'collection_name': collection.name,
+        'topic_id': topic.id,
+        'topics_count': topics_count,
+        'message': f'Added topic "{title}" to collection "{collection.name}"'
+    }), 201
 
 
 def _parse_hierarchical_structure_with_images(file, source, import_doc_id):
