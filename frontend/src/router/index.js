@@ -1,5 +1,6 @@
 import { createRouter, createWebHistory } from 'vue-router'
 import TopicsListView from '@/views/TopicsListView.vue'
+import TopicView from '@/views/TopicView.vue'
 import EditTopicView from '@/views/EditTopicView.vue'
 import ImportView from '@/views/ImportView.vue'
 import StartPage from '@/views/StartPage.vue'
@@ -270,6 +271,12 @@ const routes = [
     props: route => ({ topicId: parseInt(route.params.id, 10) })
   },
   {
+    path: '/topics/:id',
+    name: 'ViewTopic',
+    component: TopicView,
+    props: route => ({ topicId: parseInt(route.params.id, 10) })
+  },
+  {
     path: '/topics/:topicId/review-feedback/:reviewId',
     name: 'ReviewFeedback',
     component: () => import('@/views/ReviewFeedbackView.vue'),
@@ -468,6 +475,9 @@ const router = createRouter({
   scrollBehavior(to, from, savedPosition) {
     if (savedPosition) {
       return savedPosition
+    }
+    if (to.hash) {
+      return { el: to.hash, behavior: 'smooth' }
     }
     return { top: 0 }
   }
