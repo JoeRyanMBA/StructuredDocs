@@ -2,150 +2,113 @@
   <section class="admin-page">
     <h1>Help Links</h1>
     <p class="subtitle">
-      Manage contextual help entries shown as <i class="bi bi-info-circle"></i> icons throughout the
-      app. Each entry is keyed to a feature name used in the code. Disable an entry to hide its icon
-      without deleting it.
+      Control which <i class="bi bi-info-circle"></i> help icons appear in the app.
+      Toggle any location on to create its help entry (pre-filled with defaults you can edit),
+      or off to hide the icon without losing your content.
     </p>
-
-    <!-- Available feature keys reference panel -->
-    <div class="registry-panel">
-      <div class="registry-header" @click="showRegistry = !showRegistry">
-        <span><i class="bi bi-map me-2"></i><strong>Available Feature Keys</strong> — where icons can appear in the app</span>
-        <i class="bi" :class="showRegistry ? 'bi-chevron-up' : 'bi-chevron-down'"></i>
-      </div>
-      <div v-if="showRegistry" class="registry-body">
-        <table class="registry-table">
-          <thead>
-            <tr>
-              <th>Feature Key</th>
-              <th>Where it appears</th>
-              <th>Suggested use</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr v-for="entry in registryWithStatus" :key="entry.key">
-              <td><code>{{ entry.key }}</code></td>
-              <td>{{ entry.location }}</td>
-              <td class="hint-cell">{{ entry.hint }}</td>
-              <td>
-                <span v-if="entry.configured" class="badge-configured">
-                  <i class="bi bi-check-circle-fill me-1"></i>Configured
-                </span>
-                <button v-else class="btn btn-outline-primary btn-xs" @click="openCreateForKey(entry)">
-                  <i class="bi bi-plus me-1"></i>Set up
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-    </div>
-
-    <div class="toolbar">
-      <button class="btn btn-primary btn-sm" @click="openCreate">
-        <i class="bi bi-plus-lg me-1"></i>Add Help Link
-      </button>
-    </div>
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
-    <div v-else>
-      <table v-if="links.length" class="help-links-table">
-        <thead>
-          <tr>
-            <th>Feature Key</th>
-            <th>Where it appears</th>
-            <th>Title</th>
-            <th>Description</th>
-            <th>KB URL</th>
-            <th>Enabled</th>
-            <th>Actions</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr v-for="link in links" :key="link.id" :class="{ disabled: !link.enabled }">
-            <td class="feature-key"><code>{{ link.feature_key }}</code></td>
-            <td class="location-cell">{{ locationFor(link.feature_key) }}</td>
-            <td>{{ link.title }}</td>
-            <td class="description-cell">{{ link.description }}</td>
-            <td class="url-cell">
-              <a v-if="link.kb_url" :href="link.kb_url" target="_blank" rel="noopener noreferrer" class="kb-url-link">
-                <i class="bi bi-box-arrow-up-right me-1"></i>Open
-              </a>
-              <span v-else class="text-muted">—</span>
-            </td>
-            <td>
-              <button
-                class="btn btn-sm"
-                :class="link.enabled ? 'btn-success' : 'btn-outline-secondary'"
-                @click="toggleEnabled(link)"
-                :title="link.enabled ? 'Click to disable' : 'Click to enable'"
-              >
-                <i class="bi" :class="link.enabled ? 'bi-toggle-on' : 'bi-toggle-off'"></i>
-                {{ link.enabled ? 'On' : 'Off' }}
-              </button>
-            </td>
-            <td class="actions">
-              <button class="btn-icon btn-secondary" title="Edit" @click="openEdit(link)">
-                <i class="bi bi-pencil-square"></i>
-              </button>
-              <button class="btn-icon btn-danger" title="Delete" @click="confirmDelete(link)">
-                <i class="bi bi-trash"></i>
-              </button>
-            </td>
-          </tr>
-        </tbody>
-      </table>
-      <div v-else class="empty">No help links yet. Click <strong>Add Help Link</strong> to create the first one.</div>
-    </div>
 
-    <!-- Create / Edit modal -->
+    <table v-else class="locations-table">
+      <thead>
+        <tr>
+          <th style="width:26px"></th>
+          <th>Location</th>
+          <th>Where it appears</th>
+          <th>Title</th>
+          <th>Description</th>
+          <th>KB URL</th>
+          <th>Actions</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr
+          v-for="row in rows"
+          :key="row.key"
+          :class="{ 'row-off': !row.link || !row.link.enabled, 'row-saving': row.saving }"
+        >
+          <!-- Enabled toggle -->
+          <td class="toggle-cell">
+            <button
+              class="toggle-btn"
+              :class="row.link && row.link.enabled ? 'is-on' : 'is-off'"
+              :title="row.link && row.link.enabled ? 'Disable icon' : 'Enable icon'"
+              :disabled="row.saving"
+              @click="toggleRow(row)"
+            >
+              <i class="bi" :class="row.link && row.link.enabled ? 'bi-toggle-on' : 'bi-toggle-off'"></i>
+            </button>
+          </td>
+
+          <!-- Location label -->
+          <td class="label-cell">
+            <strong>{{ row.label }}</strong>
+          </td>
+
+          <!-- Where it appears -->
+          <td class="location-cell">{{ row.location }}</td>
+
+          <!-- Title -->
+          <td class="content-cell">
+            <span v-if="row.link">{{ row.link.title }}</span>
+            <span v-else class="text-muted fst-italic">not set up</span>
+          </td>
+
+          <!-- Description -->
+          <td class="content-cell desc-col">
+            <span v-if="row.link && row.link.description">{{ row.link.description }}</span>
+            <span v-else class="text-muted">—</span>
+          </td>
+
+          <!-- KB URL -->
+          <td class="url-cell">
+            <a
+              v-if="row.link && row.link.kb_url"
+              :href="row.link.kb_url"
+              target="_blank"
+              rel="noopener noreferrer"
+            ><i class="bi bi-box-arrow-up-right"></i></a>
+            <span v-else class="text-muted">—</span>
+          </td>
+
+          <!-- Edit -->
+          <td class="actions-cell">
+            <button
+              v-if="row.link"
+              class="btn-icon btn-secondary"
+              title="Edit content"
+              @click="openEdit(row)"
+            ><i class="bi bi-pencil-square"></i></button>
+          </td>
+        </tr>
+      </tbody>
+    </table>
+
+    <!-- Edit modal -->
     <div v-if="editing" class="modal-overlay" @click.self="closeEdit">
       <div class="modal-box" @click.stop>
         <div class="modal-header-row modal-header">
-          <h3>{{ isNew ? 'Add Help Link' : 'Edit Help Link' }}</h3>
+          <h3>Edit: {{ editing.label }}</h3>
           <button class="plain-close btn-close" @click="closeEdit" aria-label="Close"></button>
         </div>
         <div class="modal-body">
-          <div class="mb-3">
-            <label class="form-label">
-              Feature Key <span class="text-danger">*</span>
-            </label>
-            <!-- Dropdown for new entries; read-only display for edits -->
-            <select v-if="isNew" v-model="form.feature_key" class="form-select" @change="onKeySelected">
-              <option value="">— choose a location —</option>
-              <optgroup label="Available locations">
-                <option
-                  v-for="entry in availableKeys"
-                  :key="entry.key"
-                  :value="entry.key"
-                >{{ entry.label }} · {{ entry.location }}</option>
-              </optgroup>
-            </select>
-            <div v-else class="form-control-plaintext">
-              <code>{{ form.feature_key }}</code>
-              <span class="text-muted ms-2">— {{ locationFor(form.feature_key) }}</span>
-              <div class="form-text text-muted">Feature key cannot be changed after creation.</div>
-            </div>
-          </div>
+          <p class="text-muted mb-3" style="font-size:0.875rem">
+            <i class="bi bi-geo-alt me-1"></i>{{ editing.location }}
+          </p>
           <div class="mb-3">
             <label class="form-label">Title <span class="text-danger">*</span></label>
             <input v-model="form.title" class="form-control" placeholder="Short title shown in the modal header" />
           </div>
           <div class="mb-3">
             <label class="form-label">Description</label>
-            <textarea v-model="form.description" class="form-control" rows="4"
+            <textarea v-model="form.description" class="form-control" rows="5"
               placeholder="Explain the feature. Shown when the user clicks the info icon."></textarea>
           </div>
           <div class="mb-3">
-            <label class="form-label">Knowledge Base URL</label>
+            <label class="form-label">Knowledge Base URL <span class="text-muted">(optional)</span></label>
             <input v-model="form.kb_url" class="form-control" type="url"
-              placeholder="https://… (optional — shows a 'Learn More' button)" />
-          </div>
-          <div class="mb-3 form-check">
-            <input v-model="form.enabled" class="form-check-input" type="checkbox" id="editEnabled" />
-            <label class="form-check-label" for="editEnabled">Enabled (icon visible to users)</label>
+              placeholder="https://… — shows a 'Learn More' button in the help popup" />
           </div>
           <div v-if="saveError" class="alert alert-danger py-2">{{ saveError }}</div>
         </div>
@@ -158,31 +121,11 @@
         </div>
       </div>
     </div>
-
-    <!-- Delete confirmation -->
-    <div v-if="deleting" class="modal-overlay" @click.self="cancelDelete">
-      <div class="modal-box modal-box--sm" @click.stop>
-        <div class="modal-header-row modal-header">
-          <h3>Delete Help Link</h3>
-          <button class="plain-close btn-close" @click="cancelDelete" aria-label="Close"></button>
-        </div>
-        <div class="modal-body">
-          <p>Delete <strong>{{ deleting.feature_key }}</strong>? This cannot be undone.</p>
-        </div>
-        <div class="modal-footer">
-          <button class="btn btn-secondary" @click="cancelDelete">Cancel</button>
-          <button class="btn btn-danger" @click="doDelete" :disabled="saving">
-            <span v-if="saving" class="spinner-border spinner-border-sm me-1" role="status"></span>
-            {{ saving ? 'Deleting…' : 'Delete' }}
-          </button>
-        </div>
-      </div>
-    </div>
   </section>
 </template>
 
 <script>
-import { getAdminHelpLinks, createHelpLink, updateHelpLink, deleteHelpLink } from '@/api/helpLinks'
+import { getAdminHelpLinks, createHelpLink, updateHelpLink } from '@/api/helpLinks'
 import { toast } from '@/composables/useToast'
 import { HELP_FEATURE_KEYS, HELP_KEY_MAP } from '@/config/helpFeatureKeys'
 
@@ -191,33 +134,26 @@ export default {
 
   data() {
     return {
-      links: [],
+      linksByKey: {},   // { [feature_key]: link }
       loading: true,
       error: null,
-      editing: false,
-      isNew: false,
-      editId: null,
-      form: { feature_key: '', title: '', description: '', kb_url: '', enabled: true },
+      // per-row saving spinners
+      rowSaving: {},
+      // edit modal
+      editing: null,    // the row being edited
+      form: { title: '', description: '', kb_url: '' },
       saving: false,
       saveError: null,
-      deleting: null,
-      showRegistry: true,
     }
   },
 
   computed: {
-    configuredKeys() {
-      return new Set(this.links.map(l => l.feature_key))
-    },
-    registryWithStatus() {
-      return HELP_FEATURE_KEYS.map(e => ({
-        ...e,
-        configured: this.configuredKeys.has(e.key),
+    rows() {
+      return HELP_FEATURE_KEYS.map(entry => ({
+        ...entry,
+        link: this.linksByKey[entry.key] || null,
+        saving: !!this.rowSaving[entry.key],
       }))
-    },
-    /** Only show keys that aren't already configured in the dropdown */
-    availableKeys() {
-      return HELP_FEATURE_KEYS.filter(e => !this.configuredKeys.has(e.key))
     },
   },
 
@@ -226,20 +162,12 @@ export default {
   },
 
   methods: {
-    locationFor(key) {
-      return HELP_KEY_MAP[key]?.location || '—'
-    },
-    onKeySelected() {
-      const entry = HELP_KEY_MAP[this.form.feature_key]
-      if (entry && !this.form.title) {
-        this.form.title = entry.label
-      }
-    },
     async load() {
       this.loading = true
       this.error = null
       try {
-        this.links = await getAdminHelpLinks()
+        const links = await getAdminHelpLinks()
+        this.linksByKey = Object.fromEntries(links.map(l => [l.feature_key, l]))
       } catch (e) {
         this.error = e?.response?.data?.error || e.message
       } finally {
@@ -247,91 +175,62 @@ export default {
       }
     },
 
-    openCreate() {
-      this.isNew = true
-      this.editId = null
-      this.form = { feature_key: '', title: '', description: '', kb_url: '', enabled: true }
-      this.saveError = null
-      this.editing = true
+    async toggleRow(row) {
+      this.rowSaving = { ...this.rowSaving, [row.key]: true }
+      try {
+        if (!row.link) {
+          // First enable — auto-create with registry defaults
+          const created = await createHelpLink({
+            feature_key: row.key,
+            title: row.label,
+            description: row.hint,
+            kb_url: '',
+            enabled: true,
+          })
+          this.linksByKey = { ...this.linksByKey, [row.key]: created }
+          toast.success(`Help icon enabled for "${row.label}"`)
+        } else {
+          const updated = await updateHelpLink(row.link.id, { enabled: !row.link.enabled })
+          this.linksByKey = { ...this.linksByKey, [row.key]: updated }
+          toast.success(`Help icon ${updated.enabled ? 'enabled' : 'disabled'}`)
+        }
+      } catch (e) {
+        toast.error(e?.response?.data?.error || e.message)
+      } finally {
+        const next = { ...this.rowSaving }
+        delete next[row.key]
+        this.rowSaving = next
+      }
     },
 
-    openCreateForKey(entry) {
-      this.isNew = true
-      this.editId = null
-      this.form = { feature_key: entry.key, title: entry.label, description: entry.hint, kb_url: '', enabled: true }
-      this.saveError = null
-      this.editing = true
-    },
-
-    openEdit(link) {
-      this.isNew = false
-      this.editId = link.id
+    openEdit(row) {
+      this.editing = row
       this.form = {
-        feature_key: link.feature_key,
-        title: link.title,
-        description: link.description,
-        kb_url: link.kb_url,
-        enabled: link.enabled,
+        title: row.link.title,
+        description: row.link.description,
+        kb_url: row.link.kb_url,
       }
       this.saveError = null
-      this.editing = true
     },
 
     closeEdit() {
-      this.editing = false
+      this.editing = null
     },
 
     async save() {
       this.saveError = null
-      if (!this.form.feature_key.trim() || !this.form.title.trim()) {
-        this.saveError = 'Feature key and title are required.'
+      if (!this.form.title.trim()) {
+        this.saveError = 'Title is required.'
         return
       }
       this.saving = true
       try {
-        if (this.isNew) {
-          await createHelpLink(this.form)
-          toast.success('Help link created')
-        } else {
-          await updateHelpLink(this.editId, this.form)
-          toast.success('Help link updated')
-        }
-        this.editing = false
-        await this.load()
+        const updated = await updateHelpLink(this.editing.link.id, this.form)
+        this.linksByKey = { ...this.linksByKey, [this.editing.key]: updated }
+        toast.success('Help link updated')
+        this.editing = null
       } catch (e) {
         this.saveError = e?.response?.data?.error || e.message
-      } finally {
-        this.saving = false
-      }
-    },
-
-    async toggleEnabled(link) {
-      try {
-        await updateHelpLink(link.id, { enabled: !link.enabled })
-        link.enabled = !link.enabled
-        toast.success(`Help link ${link.enabled ? 'enabled' : 'disabled'}`)
-      } catch (e) {
-        toast.error(e?.response?.data?.error || e.message)
-      }
-    },
-
-    confirmDelete(link) {
-      this.deleting = link
-    },
-
-    cancelDelete() {
-      this.deleting = null
-    },
-
-    async doDelete() {
-      this.saving = true
-      try {
-        await deleteHelpLink(this.deleting.id)
-        toast.success('Help link deleted')
-        this.deleting = null
-        await this.load()
-      } catch (e) {
-        toast.error(e?.response?.data?.error || e.message)
       } finally {
         this.saving = false
       }
@@ -343,125 +242,74 @@ export default {
 <style scoped>
 .admin-page {
   padding: 24px;
-  max-width: 1100px;
+  max-width: 1000px;
 }
 
 h1 { margin-bottom: 4px; }
-.subtitle { color: #6c757d; margin-bottom: 20px; }
+.subtitle { color: #6c757d; margin-bottom: 24px; }
 
-/* Registry panel */
-.registry-panel {
+.loading, .error { padding: 24px 0; color: #6c757d; }
+.error { color: #dc3545; }
+
+/* Main table */
+.locations-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.9rem;
   border: 1px solid #dee2e6;
   border-radius: 8px;
-  margin-bottom: 20px;
   overflow: hidden;
 }
 
-.registry-header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 10px 16px;
-  background: #f8f9fa;
-  cursor: pointer;
-  user-select: none;
-  font-size: 0.9rem;
-}
-
-.registry-header:hover { background: #e9ecef; }
-
-.registry-body { padding: 0; }
-
-.registry-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.875rem;
-}
-
-.registry-table th,
-.registry-table td {
-  padding: 8px 16px;
+.locations-table th,
+.locations-table td {
+  padding: 11px 14px;
   border-bottom: 1px solid #dee2e6;
   vertical-align: middle;
 }
 
-.registry-table th {
+.locations-table thead th {
+  background: #f8f9fa;
   font-weight: 600;
-  background: #fff;
-  color: #6c757d;
+  white-space: nowrap;
   font-size: 0.8rem;
   text-transform: uppercase;
   letter-spacing: 0.04em;
+  color: #495057;
 }
 
-.registry-table tr:last-child td { border-bottom: none; }
+.locations-table tbody tr:last-child td { border-bottom: none; }
 
-.hint-cell { color: #6c757d; }
+.locations-table tbody tr.row-off td:not(.toggle-cell) { opacity: 0.5; }
+.locations-table tbody tr.row-saving { pointer-events: none; opacity: 0.7; }
 
-.badge-configured {
-  display: inline-flex;
-  align-items: center;
-  font-size: 0.8rem;
-  color: #198754;
-  font-weight: 500;
+/* Toggle button */
+.toggle-cell { width: 32px; padding-right: 4px; }
+
+.toggle-btn {
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+  font-size: 1.5rem;
+  line-height: 1;
+  transition: color 0.15s;
 }
 
-.btn-xs {
-  padding: 2px 8px;
-  font-size: 0.8rem;
-}
+.toggle-btn.is-on  { color: #198754; }
+.toggle-btn.is-off { color: #adb5bd; }
+.toggle-btn:disabled { cursor: not-allowed; }
 
+/* Column widths */
+.label-cell    { white-space: nowrap; }
 .location-cell { color: #6c757d; font-size: 0.85em; }
+.content-cell  { max-width: 220px; }
+.desc-col      { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
 
-.toolbar {
-  margin-bottom: 16px;
-}
+.url-cell { text-align: center; white-space: nowrap; }
+.url-cell a { color: #0d6efd; }
 
-.help-links-table {
-  width: 100%;
-  border-collapse: collapse;
-  font-size: 0.9rem;
-}
-
-.help-links-table th,
-.help-links-table td {
-  padding: 10px 12px;
-  border-bottom: 1px solid #dee2e6;
-  vertical-align: middle;
-}
-
-.help-links-table th {
-  background: #f8f9fa;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.help-links-table tr.disabled td {
-  opacity: 0.55;
-}
-
-.feature-key code {
-  background: #f0f0f0;
-  padding: 2px 6px;
-  border-radius: 4px;
-  font-size: 0.85em;
-}
-
-.description-cell {
-  max-width: 280px;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
-}
-
-.url-cell { white-space: nowrap; }
-.kb-url-link { font-size: 0.85em; }
-
-.actions {
-  display: flex;
-  gap: 6px;
-  white-space: nowrap;
-}
+.actions-cell { width: 40px; text-align: center; }
 
 .btn-icon {
   background: none;
@@ -470,23 +318,10 @@ h1 { margin-bottom: 4px; }
   padding: 4px 6px;
   cursor: pointer;
   font-size: 0.95em;
-  transition: background 0.15s, border-color 0.15s;
+  transition: background 0.15s;
 }
 .btn-icon.btn-secondary { color: #6c757d; }
 .btn-icon.btn-secondary:hover { background: #e9ecef; border-color: #adb5bd; }
-.btn-icon.btn-danger { color: #dc3545; }
-.btn-icon.btn-danger:hover { background: #f8d7da; border-color: #f1aeb5; }
-
-.empty {
-  color: #6c757d;
-  padding: 24px 0;
-}
-
-.loading, .error {
-  padding: 24px 0;
-  color: #6c757d;
-}
-.error { color: #dc3545; }
 
 /* Modal */
 .modal-overlay {
@@ -503,14 +338,12 @@ h1 { margin-bottom: 4px; }
   background: #fff;
   border-radius: 8px;
   box-shadow: 0 8px 32px rgba(0,0,0,0.2);
-  width: min(560px, 92vw);
+  width: min(540px, 92vw);
   max-height: 90vh;
   display: flex;
   flex-direction: column;
   overflow: hidden;
 }
-
-.modal-box--sm { width: min(420px, 92vw); }
 
 .modal-header-row {
   display: flex;
@@ -520,17 +353,9 @@ h1 { margin-bottom: 4px; }
   border-bottom: 1px solid #dee2e6;
 }
 
-.modal-header-row h3 {
-  margin: 0;
-  font-size: 1.05rem;
-  font-weight: 600;
-}
+.modal-header-row h3 { margin: 0; font-size: 1.05rem; font-weight: 600; }
 
-.modal-body {
-  padding: 16px 20px;
-  overflow-y: auto;
-  flex: 1;
-}
+.modal-body { padding: 16px 20px; overflow-y: auto; flex: 1; }
 
 .modal-footer {
   padding: 12px 20px 16px;
@@ -540,3 +365,4 @@ h1 { margin-bottom: 4px; }
   gap: 8px;
 }
 </style>
+
