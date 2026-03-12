@@ -1661,3 +1661,34 @@ class Snippet(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None,
         }
+
+
+class HelpLink(db.Model):
+    """Admin-configured contextual help entries displayed as info icons throughout the UI."""
+    __tablename__ = 'help_links'
+
+    id = db.Column(db.Integer, primary_key=True)
+    feature_key = db.Column(db.String(100), nullable=False, unique=True)
+    title = db.Column(db.String(200), nullable=False)
+    description = db.Column(db.Text, nullable=True)
+    kb_url = db.Column(db.String(500), nullable=True)
+    enabled = db.Column(db.Boolean, nullable=False, server_default='true')
+    created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    updated_at = db.Column(
+        db.DateTime,
+        server_default=func.now(),
+        onupdate=func.now(),
+        nullable=False
+    )
+
+    def to_dict(self):
+        return {
+            'id': self.id,
+            'feature_key': self.feature_key,
+            'title': self.title,
+            'description': self.description or '',
+            'kb_url': self.kb_url or '',
+            'enabled': self.enabled,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
+            'updated_at': self.updated_at.isoformat() if self.updated_at else None,
+        }

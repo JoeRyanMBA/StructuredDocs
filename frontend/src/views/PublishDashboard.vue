@@ -2,7 +2,7 @@
   
   <div class="publish-dashboard">
     <div class="dashboard-header">
-      <h1>Publication Dashboard</h1>
+      <h1>Publication Dashboard <HelpIcon feature="publish.dashboard" /></h1>
       <p class="subtitle">Manage and download your publications</p>
     </div>
     <!-- Compact Toolbar for Metrics -->
@@ -182,10 +182,12 @@
 </template>
 <script>
 import CompactToolbar from '@/components/CompactToolbar.vue'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   components: { 
-    CompactToolbar
+    CompactToolbar,
+    HelpIcon,
   },
   name: 'PublishDashboard',
   props: {

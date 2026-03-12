@@ -92,6 +92,12 @@
               <h3>Audit Log</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="navigateTo('/admin/help-links')">
+            <div class="action-icon">ℹ️</div>
+            <div class="action-content" title="Configure contextual help icons shown throughout the app">
+              <h3>Help Links</h3>
+            </div>
+          </button>
           <button class="quick-action-card" @click="showLimitsModal = true">
             <div class="action-icon">⚙️</div>
             <div class="action-content" title="Configure upload size limits and rate limits">

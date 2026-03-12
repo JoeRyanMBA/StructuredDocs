@@ -52,7 +52,7 @@
     </CompactToolbar>
     
     <div class="dashboard-header">
-      <h1>Reviews Dashboard</h1>
+      <h1>Reviews Dashboard <HelpIcon feature="reviews.dashboard" /></h1>
       <p class="subtitle">Manage topic reviews and stakeholder feedback</p>
     </div>
 
@@ -207,10 +207,11 @@
 
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'ReviewsDashboard',
-  components: { CompactToolbar },
+  components: { CompactToolbar, HelpIcon },
   props: {
     notifications: {
       type: Array,
