@@ -2,9 +2,8 @@
   <section class="admin-page">
     <h1>Help Links</h1>
     <p class="subtitle">
-      Control which <i class="bi bi-info-circle"></i> help icons appear in the app.
-      Toggle any location on to create its help entry (pre-filled with defaults you can edit),
-      or off to hide the icon without losing your content.
+      Every location in the app where a <i class="bi bi-info-circle"></i> help icon can appear is listed below.
+      Click <i class="bi bi-pencil-square"></i> to add a description (and optional KB link), then toggle the row on to show the icon to users.
     </p>
 
     <div v-if="loading" class="loading">Loading…</div>
@@ -13,13 +12,13 @@
     <table v-else class="locations-table">
       <thead>
         <tr>
-          <th style="width:26px"></th>
+          <th class="col-toggle"></th>
           <th>Location</th>
           <th>Where it appears</th>
           <th>Title</th>
           <th>Description</th>
-          <th>KB URL</th>
-          <th>Actions</th>
+          <th class="col-url">KB</th>
+          <th class="col-edit"></th>
         </tr>
       </thead>
       <tbody>
@@ -33,7 +32,7 @@
             <button
               class="toggle-btn"
               :class="row.link && row.link.enabled ? 'is-on' : 'is-off'"
-              :title="row.link && row.link.enabled ? 'Disable icon' : 'Enable icon'"
+              :title="row.link && row.link.enabled ? 'Disable icon' : 'Enable icon (save description first)'"
               :disabled="row.saving"
               @click="toggleRow(row)"
             >
@@ -42,23 +41,18 @@
           </td>
 
           <!-- Location label -->
-          <td class="label-cell">
-            <strong>{{ row.label }}</strong>
-          </td>
+          <td class="label-cell"><strong>{{ row.label }}</strong></td>
 
           <!-- Where it appears -->
           <td class="location-cell">{{ row.location }}</td>
 
-          <!-- Title -->
-          <td class="content-cell">
-            <span v-if="row.link">{{ row.link.title }}</span>
-            <span v-else class="text-muted fst-italic">not set up</span>
-          </td>
+          <!-- Title (always from registry) -->
+          <td class="title-cell">{{ row.label }}</td>
 
           <!-- Description -->
-          <td class="content-cell desc-col">
+          <td class="desc-cell">
             <span v-if="row.link && row.link.description">{{ row.link.description }}</span>
-            <span v-else class="text-muted">—</span>
+            <span v-else class="text-muted fst-italic">no description yet</span>
           </td>
 
           <!-- KB URL -->
@@ -68,16 +62,17 @@
               :href="row.link.kb_url"
               target="_blank"
               rel="noopener noreferrer"
+              title="Open KB article"
             ><i class="bi bi-box-arrow-up-right"></i></a>
             <span v-else class="text-muted">—</span>
           </td>
 
-          <!-- Edit -->
-          <td class="actions-cell">
+          <!-- Edit (always visible) -->
+          <td class="edit-cell">
             <button
-              v-if="row.link"
               class="btn-icon btn-secondary"
-              title="Edit content"
+              :title="row.link ? 'Edit description' : 'Add description'"
+              :disabled="row.saving"
               @click="openEdit(row)"
             ><i class="bi bi-pencil-square"></i></button>
           </td>
@@ -176,24 +171,16 @@ export default {
     },
 
     async toggleRow(row) {
+      if (!row.link) {
+        // No entry yet — nudge them to add a description first
+        this.openEdit(row)
+        return
+      }
       this.rowSaving = { ...this.rowSaving, [row.key]: true }
       try {
-        if (!row.link) {
-          // First enable — auto-create with registry defaults
-          const created = await createHelpLink({
-            feature_key: row.key,
-            title: row.label,
-            description: row.hint,
-            kb_url: '',
-            enabled: true,
-          })
-          this.linksByKey = { ...this.linksByKey, [row.key]: created }
-          toast.success(`Help icon enabled for "${row.label}"`)
-        } else {
-          const updated = await updateHelpLink(row.link.id, { enabled: !row.link.enabled })
-          this.linksByKey = { ...this.linksByKey, [row.key]: updated }
-          toast.success(`Help icon ${updated.enabled ? 'enabled' : 'disabled'}`)
-        }
+        const updated = await updateHelpLink(row.link.id, { enabled: !row.link.enabled })
+        this.linksByKey = { ...this.linksByKey, [row.key]: updated }
+        toast.success(`Help icon ${updated.enabled ? 'enabled' : 'disabled'}`)
       } catch (e) {
         toast.error(e?.response?.data?.error || e.message)
       } finally {
@@ -206,9 +193,9 @@ export default {
     openEdit(row) {
       this.editing = row
       this.form = {
-        title: row.link.title,
-        description: row.link.description,
-        kb_url: row.link.kb_url,
+        title: row.link ? row.link.title : row.label,
+        description: row.link ? row.link.description : '',
+        kb_url: row.link ? row.link.kb_url : '',
       }
       this.saveError = null
     },
@@ -225,9 +212,19 @@ export default {
       }
       this.saving = true
       try {
-        const updated = await updateHelpLink(this.editing.link.id, this.form)
-        this.linksByKey = { ...this.linksByKey, [this.editing.key]: updated }
-        toast.success('Help link updated')
+        if (this.editing.link) {
+          const updated = await updateHelpLink(this.editing.link.id, this.form)
+          this.linksByKey = { ...this.linksByKey, [this.editing.key]: updated }
+        } else {
+          // Create the entry disabled — user turns it on with the toggle
+          const created = await createHelpLink({
+            feature_key: this.editing.key,
+            ...this.form,
+            enabled: false,
+          })
+          this.linksByKey = { ...this.linksByKey, [this.editing.key]: created }
+        }
+        toast.success('Saved — use the toggle to show the icon to users')
         this.editing = null
       } catch (e) {
         this.saveError = e?.response?.data?.error || e.message
@@ -301,15 +298,19 @@ h1 { margin-bottom: 4px; }
 .toggle-btn:disabled { cursor: not-allowed; }
 
 /* Column widths */
-.label-cell    { white-space: nowrap; }
-.location-cell { color: #6c757d; font-size: 0.85em; }
-.content-cell  { max-width: 220px; }
-.desc-col      { max-width: 260px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+.col-toggle { width: 36px; }
+.col-url    { width: 44px; text-align: center; }
+.col-edit   { width: 40px; }
 
-.url-cell { text-align: center; white-space: nowrap; }
+.label-cell    { white-space: nowrap; font-size: 0.9rem; }
+.location-cell { color: #6c757d; font-size: 0.85em; }
+.title-cell    { white-space: nowrap; font-size: 0.85rem; color: #495057; }
+.desc-cell     { max-width: 300px; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; font-size: 0.85rem; color: #495057; }
+
+.url-cell { text-align: center; }
 .url-cell a { color: #0d6efd; }
 
-.actions-cell { width: 40px; text-align: center; }
+.edit-cell { text-align: center; }
 
 .btn-icon {
   background: none;
