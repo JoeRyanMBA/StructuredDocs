@@ -192,11 +192,10 @@
 </template>
 
 <script>
+import HelpIcon from '@/components/HelpIcon.vue'
 export default {
   name: 'ImportView',
-  components: {
-    HelpIcon: () => import('@/components/HelpIcon.vue'),
-  },
+  components: { HelpIcon },
 
   data() {
     return {
