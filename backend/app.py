@@ -513,6 +513,15 @@ p { color: #666; }
                 except Exception as _snip_e:
                     print(f"⚠️ Could not create snippets fallback table: {_snip_e}")
 
+            # Safety net: ensure help_links table exists
+            if 'help_links' not in existing_tables:
+                try:
+                    from backend.models import HelpLink
+                    print("🛠  Creating missing table: help_links (fallback until migration applied)")
+                    HelpLink.__table__.create(bind=db.engine, checkfirst=True)
+                except Exception as _hl_e:
+                    print(f"⚠️ Could not create help_links fallback table: {_hl_e}")
+
             # Safety net: ensure tags / entity_tags tables exist (used by snippets, topics, etc.)
             for _model_name, _table_name in [('Tag', 'tags'), ('EntityTag', 'entity_tags')]:
                 if _table_name not in existing_tables:
@@ -658,6 +667,7 @@ p { color: #666; }
                 'collections': ('collections', 'collections_bp'),
                 'dashboard': ('dashboard', 'bp'),
                 'feedback': ('feedback', 'feedback_bp'),
+                'help_links': ('help_links', 'help_links_bp'),
                 'images': ('images', 'images_bp'),
                 'import_handler': ('import_handler', 'import_bp'),
                 'links': ('links', 'links_bp'),
@@ -717,6 +727,7 @@ p { color: #666; }
                 dashboard,
                 diagnostics,
                 feedback,
+                help_links,
                 images,
                 import_handler,
                 links,
@@ -744,6 +755,7 @@ p { color: #666; }
             app.register_blueprint(dashboard.bp)
             app.register_blueprint(diagnostics.diagnostics_bp)
             app.register_blueprint(feedback.feedback_bp)
+            app.register_blueprint(help_links.help_links_bp)
             app.register_blueprint(images.images_bp)
             app.register_blueprint(import_handler.import_bp)
             app.register_blueprint(links.links_bp)

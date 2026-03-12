@@ -119,6 +119,16 @@ const routes = [
       }
     }
   },
+  {
+    path: '/admin/help-links',
+    name: 'AdminHelpLinks',
+    component: () => import('@/views/admin/AdminHelpLinks.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
   // 📦 Archived Resources
   {
     path: '/admin/archived/projects',

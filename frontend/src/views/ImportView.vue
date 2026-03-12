@@ -1,7 +1,7 @@
 <template>
   <div class="import-view">
     <div class="page-header">
-      <h1>Import Content</h1>
+      <h1>Import Content <HelpIcon feature="import.upload" /></h1>
   <p class="subtitle" style="margin-bottom: 1rem;">Use this tool to import content from outside this app. You can import Markdown (.md) documents (preferred) or Word (.docx) documents.</p>
     </div>
 
@@ -194,6 +194,9 @@
 <script>
 export default {
   name: 'ImportView',
+  components: {
+    HelpIcon: () => import('@/components/HelpIcon.vue'),
+  },
 
   data() {
     return {
