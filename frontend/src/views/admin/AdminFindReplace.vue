@@ -467,6 +467,7 @@ export default {
   position: fixed; bottom: 0; left: 0; right: 0; z-index: 100;
   background: #212529; color: #fff;
   display: flex; align-items: center; gap: 1rem; padding: 0.75rem 2rem;
+  padding-right: 280px;
   box-shadow: 0 -2px 12px rgba(0,0,0,.25);
 }
 .replace-bar-label { font-weight: 500; white-space: nowrap; }
@@ -491,7 +492,7 @@ export default {
 
 @media (max-width: 640px) {
   .form-row { flex-direction: column; }
-  .replace-bar { flex-direction: column; align-items: stretch; gap: 0.5rem; }
+  .replace-bar { flex-direction: column; align-items: stretch; gap: 0.5rem; padding-right: 2rem; }
   .hit-meta { width: 140px; }
 }
 </style>
