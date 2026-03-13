@@ -55,7 +55,7 @@
     <!-- Page Header -->
     <div class="page-header">
       <div class="page-header-content">
-  <h1>Task Management</h1>
+  <h1>Task Management <HelpIcon feature="projects.tasks" /></h1>
   <p class="subtitle">Organize and track tasks across projects, collections, and topics</p>
       </div>
       <div class="header-actions">
@@ -473,11 +473,12 @@
 
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
+import HelpIcon from '@/components/HelpIcon.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TasksView',
-  components: { CompactToolbar },
+  components: { CompactToolbar, HelpIcon },
   props: {
     notifications: {
       type: Array,

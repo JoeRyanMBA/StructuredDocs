@@ -120,11 +120,17 @@
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📎 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
+              <button
+                @click="spellcheckEnabled = !spellcheckEnabled"
+                :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
+                :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
+              >🔤 Spell Check</button>
             </div>
             <textarea 
               ref="markdownEditor"
               v-model="content" 
               @paste="handleMarkdownPaste"
+              :spellcheck="spellcheckEnabled"
               class="markdown-textarea"
               placeholder="Write your content in Markdown..."
               rows="20"
@@ -135,6 +141,7 @@
           <RichTextEditor
             v-if="editorMode === 'wysiwyg'"
             ref="richEditor"
+            :spellcheck="spellcheckEnabled"
             @update:model-value="onRichEditorUpdate"
             @paste="handleWysiwygPaste"
           >
@@ -143,6 +150,11 @@
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📎 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
+              <button
+                @click="spellcheckEnabled = !spellcheckEnabled"
+                :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
+                :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
+              >🔤 Spell Check</button>
             </template>
           </RichTextEditor>
 
@@ -574,6 +586,7 @@ export default {
       showTableModal: false,
       showReviewModal: false,
       editorMode: 'wysiwyg',
+      spellcheckEnabled: false,
       wysiwygUpdateTimeout: null,
       allTags: [],
       selectedTagIds: [],
@@ -2353,6 +2366,16 @@ export default {
 .toolbar-btn:active {
   background: #dee2e6;
   color: #000;
+}
+
+.toolbar-btn--active {
+  background: #205493;
+  color: #fff;
+  border-color: #205493;
+}
+.toolbar-btn--active:hover {
+  background: #1a4475;
+  border-color: #1a4475;
 }
 
 .toolbar-btn.active {

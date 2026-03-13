@@ -208,6 +208,16 @@ ENTRIES = [
         ),
     },
     {
+        "feature_key": "reviews.history",
+        "title": "Review History",
+        "description": (
+            "Review History gives you a searchable, filterable log of all past and "
+            "in-progress reviews across every topic. Filter by status, reviewer, or "
+            "requester to audit the review trail, re-open completed reviews, or follow "
+            "up on outstanding feedback."
+        ),
+    },
+    {
         "feature_key": "reviews.bulk",
         "title": "Bulk Review",
         "description": (
