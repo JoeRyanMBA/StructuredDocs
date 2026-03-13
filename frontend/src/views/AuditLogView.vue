@@ -1,7 +1,7 @@
 <template>
   <div class="audit-log-view">
     <div class="audit-header">
-      <h2><i class="bi bi-shield-check me-2"></i>Audit Log</h2>
+      <h2><i class="bi bi-shield-check me-2"></i>Audit Log <HelpIcon feature="admin.audit" /></h2>
       <p class="text-muted">Immutable record of create / update / delete actions on key resources.</p>
     </div>
 
@@ -101,9 +101,11 @@
 
 <script>
 import axios from 'axios';
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'AuditLogView',
+  components: { HelpIcon },
   data() {
     return {
       entries: [],

@@ -3,7 +3,7 @@
     <HeaderBar />
     <div class="page-content">
       <div class="page-header">
-  <h2>User Management</h2>
+  <h2>User Management <HelpIcon feature="admin.users" /></h2>
   <p class="subtitle">Manage user accounts, roles, and permissions</p>
       </div>
       
@@ -15,6 +15,8 @@
 <script>
 import HeaderBar from '../components/HeaderBar.vue'
 import UserManagement from '../components/UserManagement.vue'
+
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'AdminUserManagement',

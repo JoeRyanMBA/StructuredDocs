@@ -1,6 +1,6 @@
 <template>
   <div class="all-stakeholders">
-  <h1>All Stakeholders</h1>
+  <h1>All Stakeholders <HelpIcon feature="projects.stakeholders" /></h1>
     
   <p class="subtitle">
       Manage stakeholders who can be associated with projects and involved in reviews. Stakeholders represent key individuals and subject matter experts.
@@ -284,10 +284,11 @@
 <script>
 import { toast } from '@/composables/useToast'
 import TagEditor from '@/components/TagEditor.vue'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'AllStakeholdersView',
-  components: { TagEditor },
+  components: { TagEditor, HelpIcon },
   data() {
     return {
       stakeholders: [],

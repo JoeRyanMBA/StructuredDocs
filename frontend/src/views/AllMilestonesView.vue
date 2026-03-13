@@ -1,6 +1,6 @@
 <template>
   <div class="all-milestones">
-  <h1>All Milestones</h1>
+  <h1>All Milestones <HelpIcon feature="projects.milestones" /></h1>
     
   <p class="subtitle">
       Manage project milestones and deadlines. Milestones help track important dates and deliverables across all projects.
@@ -215,8 +215,10 @@
 <script>
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
+import HelpIcon from '@/components/HelpIcon.vue'
 export default {
   name: 'AllMilestonesView',
+  components: { HelpIcon },
   mixins: [unsavedChangesGuard],
   data() {
     return {

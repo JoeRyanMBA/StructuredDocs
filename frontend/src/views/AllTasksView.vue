@@ -1,6 +1,6 @@
 <template>
   <div class="all-tasks">
-  <h1>All Tasks</h1>
+  <h1>All Tasks <HelpIcon feature="projects.tasks" /></h1>
     
   <p class="subtitle">
       Comprehensive task management view. Create, edit, and organize all tasks across projects, collections, and topics.
@@ -324,8 +324,10 @@
 <script>
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
+import HelpIcon from '@/components/HelpIcon.vue'
 export default {
   name: 'AllTasksView',
+  components: { HelpIcon },
   mixins: [unsavedChangesGuard],
   data() {
     return {

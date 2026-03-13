@@ -1,7 +1,7 @@
 <template>
   <div class="snippets-library">
     <div class="page-header">
-      <h1>📎 Snippets Library</h1>
+      <h1>📎 Snippets Library <HelpIcon feature="snippets.library" /></h1>
       <p class="subtitle">Manage reusable audience-specific content blocks</p>
     </div>
 
@@ -245,9 +245,11 @@ import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import TagEditor from '@/components/TagEditor.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'SnippetsLibrary',
-  components: { TagEditor, RichTextEditor },
+  components: { TagEditor, RichTextEditor, HelpIcon },
   data() {
     return {
       snippets: [],

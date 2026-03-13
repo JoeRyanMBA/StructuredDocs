@@ -1,7 +1,7 @@
 <template>
   <div class="all-links">
     <div class="page-header">
-      <h1>🔗 All Links</h1>
+      <h1>🔗 All Links <HelpIcon feature="links.list" /></h1>
       <p class="guidance-text">
         Browse and manage all reusable links available for use in your content. Create links once and reuse them across multiple topics with reference codes like "AB-123" or "DOC-456".
       </p>
@@ -337,9 +337,11 @@ import { apiRequest } from '../api/base.js'
 import UsageBadge from '@/components/UsageBadge.vue'
 import TagEditor from '@/components/TagEditor.vue'
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'AllLinksView',
-  components: { UsageBadge, TagEditor },
+  components: { UsageBadge, TagEditor, HelpIcon },
   mixins: [unsavedChangesGuard],
   data() {
     return {

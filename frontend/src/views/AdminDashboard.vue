@@ -2,7 +2,7 @@
   <div class="admin-dashboard">
     
     <div class="dashboard-header">
-      <h1>Admin Dashboard</h1>
+      <h1>Admin Dashboard <HelpIcon feature="admin.dashboard" /></h1>
       <p class="subtitle">System administration and user management</p>
     </div>
 
@@ -191,6 +191,7 @@ import DatabaseMetricsPanel from '../components/DatabaseMetricsPanel.vue'
 import CompactToolbar from '@/components/CompactToolbar.vue'
 import LimitsModal from '@/components/LimitsModal.vue'
 import { toast } from '@/composables/useToast'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'AdminDashboard',
@@ -198,6 +199,7 @@ export default {
     DatabaseMetricsPanel,
     CompactToolbar,
     LimitsModal,
+    HelpIcon,
   },
   props: {
     notifications: {

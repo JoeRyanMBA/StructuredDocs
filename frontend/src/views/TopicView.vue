@@ -9,7 +9,7 @@
 
     <template v-else-if="topic">
       <div class="topic-header">
-        <h1 class="topic-title">{{ topic.title }}</h1>
+        <h1 class="topic-title">{{ topic.title }} <HelpIcon feature="topics.view" /></h1>
         <div class="topic-meta">
           <span v-if="topic.status" class="status-badge" :class="topic.status">{{ topic.status }}</span>
           <router-link
@@ -76,8 +76,11 @@ function buildRenderer() {
   return renderer
 }
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'TopicView',
+  components: { HelpIcon },
 
   props: {
     topicId: { type: Number, required: true }

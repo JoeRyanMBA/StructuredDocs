@@ -3,7 +3,7 @@
     
     
     <div class="dashboard-header">
-      <h1>All Topics</h1>
+      <h1>All Topics <HelpIcon feature="topics.list" /></h1>
       <p class="subtitle">Browse, review, and manage topics</p>
     </div>
     <div v-if="loading" class="loading">Loading…</div>
@@ -256,10 +256,11 @@ import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 import BulkRequestReviewModal from '@/components/BulkRequestReviewModal.vue'
 import UsageBadge from '@/components/UsageBadge.vue'
 import { toast } from '@/composables/useToast'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'TopicListView',
-  components: { SequentialReviewModal, BulkRequestReviewModal, UsageBadge },
+  components: { SequentialReviewModal, BulkRequestReviewModal, UsageBadge, HelpIcon },
   props: {
     globalNotifications: {
       type: Array,

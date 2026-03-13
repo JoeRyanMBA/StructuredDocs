@@ -28,6 +28,7 @@
           <span class="app-name">StructuredDocs</span>
           <span class="divider">|</span>
           <span class="batch-label">Bulk Review</span>
+          <HelpIcon feature="reviews.bulk" />
         </div>
         <div class="header-center">
           <div class="progress-bar-wrap">
@@ -248,9 +249,11 @@
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { getBulkReview, submitBulkTopicFeedback } from '@/api/reviews.js'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'BulkReviewPortal',
+  components: { HelpIcon },
 
   data() {
     return {
