@@ -98,6 +98,12 @@
               <h3>Help Links</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="navigateTo('/admin/find-replace')">
+            <div class="action-icon">🔍</div>
+            <div class="action-content" title="Find and replace text across all user-editable content">
+              <h3>Find &amp; Replace</h3>
+            </div>
+          </button>
           <button class="quick-action-card" @click="showLimitsModal = true">
             <div class="action-icon">⚙️</div>
             <div class="action-content" title="Configure upload size limits and rate limits">

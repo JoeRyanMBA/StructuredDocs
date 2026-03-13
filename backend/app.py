@@ -673,6 +673,7 @@ p { color: #666; }
             print("🔧 Registering selective blueprints...")
             # Map short names to (module_name, blueprint_attr_name)
             blueprint_map = {
+                'find_replace': ('find_replace', 'find_replace_bp'),
                 'admin': ('admin', 'admin_bp'),
                 'collections': ('collections', 'collections_bp'),
                 'dashboard': ('dashboard', 'bp'),
@@ -733,6 +734,7 @@ p { color: #666; }
             # Import and register all blueprints
             from .routes import (
                 admin,
+                find_replace,
                 collections,
                 dashboard,
                 diagnostics,
@@ -761,6 +763,7 @@ p { color: #666; }
             )
 
             app.register_blueprint(admin.admin_bp)
+            app.register_blueprint(find_replace.find_replace_bp)
             app.register_blueprint(collections.collections_bp)
             app.register_blueprint(dashboard.bp)
             app.register_blueprint(diagnostics.diagnostics_bp)
