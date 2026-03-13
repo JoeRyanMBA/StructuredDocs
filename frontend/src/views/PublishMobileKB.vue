@@ -1,6 +1,6 @@
 <template>
   <div class="publish-mobile-kb">
-    <h2>Publish Mobile Knowledge Base</h2>
+    <h2>Publish Mobile Knowledge Base <HelpIcon feature="publish.mobile-kb" /></h2>
     <p class="description">
       Create mobile-first knowledge bases optimized for field staff on iPhones and iPads.
       These are lightweight, offline-ready HTML files that work without internet connectivity.
@@ -77,8 +77,11 @@
 
 <script>
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'PublishMobileKB',
+  components: { HelpIcon },
   computed: {
     recentPublishedPublications() {
       return (this.publications || [])

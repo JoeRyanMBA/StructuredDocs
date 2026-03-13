@@ -2,7 +2,7 @@
   <div class="organize-view">
     
     <div class="organize-header">
-      <h1>{{ isEditMode ? '✏️ Edit Collection' : '📋 Organize Collection' }}</h1>
+      <h1>{{ isEditMode ? '✏️ Edit Collection' : '📋 Organize Collection' }} <HelpIcon feature="collections.organize" /></h1>
       <p class="guidance-text">
         Add topics to your collection by dragging topics from the Available Topics area to your collection. 
         Use the drag handles to drag topics. You can organize your topics within the collection by reordering them and dragging them onto other topics to create a hierarchy.
@@ -354,6 +354,8 @@ import TagEditor from '@/components/TagEditor.vue'
 import VariableSelectionModal from '@/components/VariableSelectionModal.vue'
 import OrganizeTopicNode from '@/components/OrganizeTopicNode.vue'
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'OrganizeView',
   props: {
@@ -362,7 +364,7 @@ export default {
       required: true
     }
   },
-  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal, TagEditor, OrganizeTopicNode },
+  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal, TagEditor, OrganizeTopicNode, HelpIcon },
   provide() {
     return { organizeView: this }
   },

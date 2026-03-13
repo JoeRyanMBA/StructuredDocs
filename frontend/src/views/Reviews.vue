@@ -1,7 +1,7 @@
 <template>
   <div class="reviews">
     
-    <h2>Review Dashboard</h2>
+    <h2>Review Dashboard <HelpIcon feature="reviews.request" /></h2>
     
     <p class="guidance-text">
       Review and approve topics, collections, and imported content before publication. Use this dashboard to manage the content approval workflow.
@@ -172,9 +172,11 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'Reviews',
+  components: { HelpIcon },
   data() {
     return {
       activeTab: 'topics',

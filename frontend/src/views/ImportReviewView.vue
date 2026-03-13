@@ -7,7 +7,7 @@
       <!-- Header -->
       <div class="review-header">
         <div>
-          <h2>Review Import</h2>
+          <h2>Review Import <HelpIcon feature="import.review" /></h2>
           <p class="filename">{{ doc.filename }}</p>
         </div>
         <span class="status-badge" :class="doc.review_step">
@@ -84,8 +84,11 @@
 </template>
 
 <script>
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'ImportReviewView',
+  components: { HelpIcon },
 
   props: {
     id: { type: [String, Number], required: true }

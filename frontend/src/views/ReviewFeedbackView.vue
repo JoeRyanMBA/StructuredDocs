@@ -22,7 +22,7 @@
       <div class="card mb-4">
         <div class="card-header bg-primary-subtle text-primary-emphasis">
           <h3 class="card-title mb-0">
-            <i class="bi bi-file-text me-2"></i>{{ topic?.title }}
+            <i class="bi bi-file-text me-2"></i>{{ topic?.title }} <HelpIcon feature="reviews.feedback" />
           </h3>
         </div>
         <div class="card-body">
@@ -201,10 +201,11 @@ import axios from 'axios'
 import { marked } from 'marked'
 import { apiGet, apiPut } from '@/api/base'
 import ReviewDiffEditor from '@/components/ReviewDiffEditor.vue'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'ReviewFeedbackView',
-  components: { ReviewDiffEditor },
+  components: { ReviewDiffEditor, HelpIcon },
   props: {
     topicId:  { type: Number, required: true },
     reviewId: { type: Number, required: true }

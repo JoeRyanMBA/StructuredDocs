@@ -1,7 +1,7 @@
 <template>
   <div class="import-dashboard">
     <div class="dashboard-header">
-      <h1>Import Dashboard</h1>
+      <h1>Import Dashboard <HelpIcon feature="import.dashboard" /></h1>
       <p class="subtitle">Import and manage your document imports</p>
     </div>
 
@@ -173,6 +173,8 @@
 
 <script>
 import CompactToolbar from '@/components/CompactToolbar.vue'
+
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'ImportDashboard',

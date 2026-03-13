@@ -1,6 +1,6 @@
 <template>
   <div class="all-tags">
-  <h1>All Tags</h1>
+  <h1>All Tags <HelpIcon feature="tags.list" /></h1>
     
   <p class="subtitle">
       Manage all tags used throughout the system. Tags help categorize and organize tasks and other content.
@@ -201,8 +201,10 @@
 <script>
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
+import HelpIcon from '@/components/HelpIcon.vue'
 export default {
   name: 'AllTagsView',
+  components: { HelpIcon },
   mixins: [unsavedChangesGuard],
   data() {
     return {

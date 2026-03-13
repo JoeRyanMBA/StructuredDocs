@@ -48,7 +48,7 @@
     
     <!-- Dashboard Header -->
     <div class="dashboard-header">
-      <h1>Projects Dashboard</h1>
+      <h1>Projects Dashboard <HelpIcon feature="projects.list" /></h1>
       <p class="subtitle">Manage projects, stakeholders, milestones, and tasks</p>
     </div>
 
@@ -598,8 +598,10 @@ import TagEditor from '@/components/TagEditor.vue'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { toast } from '@/composables/useToast'
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
-  components: { CalendarWidget, CompactToolbar, ArchiveToggleButton, TagEditor },
+  components: { CalendarWidget, CompactToolbar, ArchiveToggleButton, TagEditor, HelpIcon },
   mixins: [unsavedChangesGuard],
   props: {
     notifications: {

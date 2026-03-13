@@ -1,7 +1,7 @@
 <template>
   <div class="publish-pdf-view">
     <div class="page-header">
-      <h1>Publish PDF</h1>
+      <h1>Publish PDF <HelpIcon feature="publish.pdf" /></h1>
       <p class="subtitle">Generate and download PDF documents</p>
     </div>
 
@@ -50,8 +50,11 @@
 </template>
 
 <script>
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'PublishPDFView',
+  components: { HelpIcon },
   data() {
     return {
       publications: [],

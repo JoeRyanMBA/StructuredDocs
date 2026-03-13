@@ -49,7 +49,7 @@
 
     <!-- New Topic Mode -->
     <div v-if="!hasId && !loading" class="new-mode">
-      <h2 class="page-title">📄 Create a New Topic</h2>
+      <h2 class="page-title">📄 Create a New Topic <HelpIcon feature="topics.edit" /></h2>
       <TopicEditor
         :topicId="null"
         :initialTitle="''"
@@ -78,10 +78,11 @@
 
 <script>
 import TopicEditor from '@/components/TopicEditor.vue'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'EditTopicView',
-  components: { TopicEditor },
+  components: { TopicEditor, HelpIcon },
 
   data() {
     return {

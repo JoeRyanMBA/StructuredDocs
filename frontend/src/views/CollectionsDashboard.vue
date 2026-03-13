@@ -43,7 +43,7 @@
     </CompactToolbar>
     
     <div class="dashboard-header">
-      <h1>Collections Dashboard</h1>
+      <h1>Collections Dashboard <HelpIcon feature="collections.dashboard" /></h1>
       <p class="subtitle">Manage and organize your document collections</p>
     </div>
 
@@ -273,9 +273,11 @@ import { getCollections, saveCollections } from '@/api/collections.js'
 import { apiRequest } from '@/api/base.js'
 import { toast } from '@/composables/useToast'
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'CollectionsDashboard',
-  components: { CompactToolbar, ArchiveToggleButton, IconPlus },
+  components: { CompactToolbar, ArchiveToggleButton, IconPlus, HelpIcon },
   props: {
     notifications: {
       type: Array,

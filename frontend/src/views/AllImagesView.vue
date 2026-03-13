@@ -1,7 +1,7 @@
 <template>
   <div class="all-images">
     <div class="page-header">
-      <h1>🖼️ All Images</h1>
+      <h1>🖼️ All Images <HelpIcon feature="images.list" /></h1>
       <p class="subtitle">
         Browse and manage all images available for use in your content. Click on any image to copy its path for use in topics and documents.
       </p>
@@ -264,9 +264,11 @@ import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services
 import UsageBadge from '@/components/UsageBadge.vue'
 import TagEditor from '@/components/TagEditor.vue'
 
+import HelpIcon from '@/components/HelpIcon.vue'
+
 export default {
   name: 'AllImagesView',
-  components: { UsageBadge, TagEditor },
+  components: { UsageBadge, TagEditor, HelpIcon },
   data() {
     return {
       allImages: [],

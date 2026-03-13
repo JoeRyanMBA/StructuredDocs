@@ -1,6 +1,6 @@
 <template>
   <div class="admin-variables">
-    <h1>Manage Variables</h1>
+    <h1>Manage Variables <HelpIcon feature="variables.list" /></h1>
     <p class="subtitle">Create variables and define allowed values for publish-time substitution.</p>
 
     <div class="actions-bar">
@@ -113,8 +113,10 @@
 <script>
 import { toast } from '@/composables/useToast'
 import { apiRequest } from '@/api/base.js'
+import HelpIcon from '@/components/HelpIcon.vue'
 export default {
   name:'AdminVariablesView',
+  components: { HelpIcon },
   data(){
     return {
   variables:[],
