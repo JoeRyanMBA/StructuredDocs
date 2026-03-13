@@ -209,6 +209,7 @@
           <div class="project-card-footer">
             <div class="project-meta">Project {{ project.id }} was created on {{ formatDate(project.created_at) }}</div>
             <div class="project-footer-actions">
+              <button @click="$router.push(`/projects/${project.id}/timeline`)" class="edit-btn">📅 Timeline</button>
               <button @click="editProject(project)" class="edit-btn">✏️ Edit</button>
               <ArchiveToggleButton
                 v-if="isAdmin"
