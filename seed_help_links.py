@@ -323,31 +323,45 @@ ENTRIES = [
 ]
 
 
+def seed_help_links(db, HelpLink):
+    """Seed or backfill help link descriptions.
+
+    - Creates entries that don't exist yet (enabled=False so admins review first).
+    - Backfills the description on any row whose description is currently empty,
+      so re-deploying without a prior seed never leaves rows blank.
+    - Leaves rows that already have a custom description untouched.
+
+    Returns a (created, updated, skipped) tuple.
+    """
+    created = updated = skipped = 0
+    for entry in ENTRIES:
+        existing = HelpLink.query.filter_by(feature_key=entry["feature_key"]).first()
+        if existing is None:
+            db.session.add(HelpLink(
+                feature_key=entry["feature_key"],
+                title=entry["title"],
+                description=entry["description"],
+                kb_url="",
+                enabled=False,
+            ))
+            created += 1
+        elif not existing.description:
+            existing.description = entry["description"]
+            updated += 1
+        else:
+            skipped += 1
+    db.session.commit()
+    return created, updated, skipped
+
+
 def run():
     from backend.app import create_app
     from backend.models import db, HelpLink
 
     app = create_app()
     with app.app_context():
-        created = 0
-        skipped = 0
-        for entry in ENTRIES:
-            existing = HelpLink.query.filter_by(feature_key=entry["feature_key"]).first()
-            if existing:
-                skipped += 1
-                continue
-            link = HelpLink(
-                feature_key=entry["feature_key"],
-                title=entry["title"],
-                description=entry["description"],
-                kb_url="",
-                enabled=False,
-            )
-            db.session.add(link)
-            created += 1
-
-        db.session.commit()
-        print(f"✅  Created {created} help link(s).  Skipped {skipped} already-existing.")
+        created, updated, skipped = seed_help_links(db, HelpLink)
+        print(f"✅  Created {created}, updated {updated}, skipped {skipped} help link(s).")
 
 
 if __name__ == "__main__":
