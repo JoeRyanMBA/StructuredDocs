@@ -629,9 +629,7 @@ p { color: #666; }
 
             # Seed help-link descriptions (creates missing rows, backfills empty descriptions)
             try:
-                import sys as _sys, os as _os
-                _sys.path.insert(0, _os.path.dirname(_os.path.dirname(__file__)))
-                from seed_help_links import seed_help_links
+                from .utils.seed_help_links import seed_help_links
                 from .models import HelpLink
                 _hl_created, _hl_updated, _hl_skipped = seed_help_links(db, HelpLink)
                 if _hl_created or _hl_updated:
