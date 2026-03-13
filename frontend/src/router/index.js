@@ -129,6 +129,16 @@ const routes = [
       if (user.role === 'admin') next(); else next('/dashboard');
     }
   },
+  {
+    path: '/admin/find-replace',
+    name: 'AdminFindReplace',
+    component: () => import('@/views/admin/AdminFindReplace.vue'),
+    meta: { requiresAuth: true, adminOnly: true },
+    beforeEnter: (to, from, next) => {
+      const user = JSON.parse(localStorage.getItem('user') || '{}');
+      if (user.role === 'admin') next(); else next('/dashboard');
+    }
+  },
   // 📦 Archived Resources
   {
     path: '/admin/archived/projects',
