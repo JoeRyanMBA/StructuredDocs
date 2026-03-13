@@ -13,6 +13,7 @@
     <div
       ref="editorEl"
       contenteditable="true"
+      :spellcheck="spellcheck"
       class="wysiwyg-content"
       @input="onInput"
       @paste="onPaste"
@@ -26,6 +27,7 @@ export default {
   name: 'RichTextEditor',
   props: {
     modelValue: { type: String, default: '' },
+    spellcheck: { type: Boolean, default: false },
   },
   emits: ['update:modelValue', 'paste'],
   data() {
@@ -174,6 +176,11 @@ export default {
 .rte-toolbar .toolbar-btn:active {
   background: #dee2e6;
   color: #000;
+}
+.rte-toolbar .toolbar-btn.is-active {
+  background: #205493;
+  color: #fff;
+  border-color: #205493;
 }
 
 /* wysiwyg-content is defined globally in TopicEditor but included here for standalone pages */

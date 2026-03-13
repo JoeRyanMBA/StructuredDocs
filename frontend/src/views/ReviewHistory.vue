@@ -1,6 +1,6 @@
 <template>
   <div class="review-history">
-    <h1>Review History</h1>
+    <h1>Review History <HelpIcon feature="reviews.history" /></h1>
     <p class="subtitle">Track completed and in-progress reviews across topics.</p>
 
     <div class="filters-section">
@@ -65,9 +65,11 @@
 
 <script>
 import { getReviews } from '@/api/reviews'
+import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'ReviewHistory',
+  components: { HelpIcon },
   data() {
     return {
       loading: false,
