@@ -4,18 +4,69 @@ Handles CRUD operations for tasks and their associations with projects, collecti
 """
 
 from flask import Blueprint, request, jsonify
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc, and_, or_
 from datetime import datetime, date
 import json
 
 # Import models
-from ..models import db, Task, Project, Collection, Topic, Tag
+from ..models import db, Task, Project, Collection, Topic, Tag, User, Stakeholder
+from ..utils.email_service import email_service
 from backend.utils.tasks import enqueue_task  # enqueue helper
 from backend.extensions import limiter  # optional limiter
 
 tasks_bp = Blueprint('tasks', __name__, url_prefix='/api/tasks')
+
+
+def _resolve_assignee(assigned_to: str):
+    """Return (email, display_name) for an assigned_to string.
+
+    Looks up the string in User (by email then name) and Stakeholder (by email
+    then name). If it already looks like an email address it is used directly.
+    Returns (None, None) when the assignee cannot be resolved to an email.
+    """
+    if not assigned_to:
+        return None, None
+    val = assigned_to.strip()
+    # Direct email address
+    if "@" in val:
+        # Still try to get a display name from the DB
+        user = User.query.filter(User.email.ilike(val)).first()
+        if user:
+            return user.email, user.name
+        sth = Stakeholder.query.filter(Stakeholder.email.ilike(val)).first()
+        if sth:
+            return sth.email, sth.name
+        return val, val  # use the address itself as the name fallback
+    # Name lookup
+    user = User.query.filter(User.name.ilike(val)).first()
+    if user:
+        return user.email, user.name
+    sth = Stakeholder.query.filter(Stakeholder.name.ilike(val)).first()
+    if sth:
+        return sth.email, sth.name
+    return None, val
+
+
+def _notify_task_changes(task, changes: dict, actor_name: str):
+    """Fire-and-forget task notification; never raises."""
+    if not changes:
+        return
+    assigned_email, assigned_name = _resolve_assignee(task.assigned_to)
+    if not assigned_email:
+        return
+    try:
+        email_service.send_task_notification(
+            to_email=assigned_email,
+            to_name=assigned_name or task.assigned_to,
+            task_title=task.title,
+            task_id=task.id,
+            changes=changes,
+            actor_name=actor_name,
+        )
+    except Exception:
+        pass  # Email failure must never break the API response
 
 @tasks_bp.route('/', methods=['GET'])
 @jwt_required()
@@ -172,6 +223,17 @@ def create_task():
         db.session.add(task)
         db.session.commit()
 
+        # Notify assignee of the new task
+        if task.assigned_to:
+            actor = get_jwt_identity()
+            actor_user = User.query.get(actor) if actor else None
+            actor_name = actor_user.name if actor_user else "Someone"
+            _notify_task_changes(task, {
+                "Status":   (None, task.status),
+                "Priority": (None, task.priority),
+                "Due date": (None, task.due_date.isoformat() if task.due_date else None),
+            }, actor_name)
+
         return jsonify(task.to_dict()), 201
 
     except Exception as e:
@@ -247,12 +309,20 @@ def update_task(task_id):
         if sum(1 for a in associations if a is not None) > 1:
             return jsonify({"error": "Task can only be associated with one project, collection, or topic"}), 400
 
+        # Snapshot the tracked fields before any mutations
+        old_assigned_to = task.assigned_to
+        old_status      = task.status
+        old_priority    = task.priority
+        old_due_date    = task.due_date.isoformat() if task.due_date else None
+
         # Parse due_date if provided
         if data.get('due_date'):
             try:
                 task.due_date = datetime.strptime(data['due_date'], '%Y-%m-%d').date()
             except ValueError:
                 return jsonify({"error": "Invalid due_date format. Use YYYY-MM-DD"}), 400
+        elif 'due_date' in data and not data['due_date']:
+            task.due_date = None
 
         # Update fields
         task.title = data.get('title', task.title)
@@ -281,13 +351,33 @@ def update_task(task_id):
                 ensure_tags_exist(normalized_tags)
             task.tags = json.dumps(normalized_tags)
 
-        # Mark as completed if status changed to completed
-        if data.get('status') == 'completed' and task.status != 'completed':
+        # Track completed_at (snapshot BEFORE status is applied above, so compare with old)
+        new_status = task.status
+        if new_status == 'completed' and old_status != 'completed':
             task.completed_at = datetime.utcnow()
-        elif data.get('status') != 'completed':
+        elif new_status != 'completed':
             task.completed_at = None
 
         db.session.commit()
+
+        # Build a dict of fields that actually changed, then notify the assignee
+        new_due_date = task.due_date.isoformat() if task.due_date else None
+        changes = {}
+        if task.assigned_to != old_assigned_to:
+            changes["Assigned to"] = (old_assigned_to or "—", task.assigned_to or "—")
+        if task.status != old_status:
+            changes["Status"] = (old_status, task.status)
+        if task.priority != old_priority:
+            changes["Priority"] = (old_priority, task.priority)
+        if new_due_date != old_due_date:
+            changes["Due date"] = (old_due_date or "—", new_due_date or "—")
+
+        if changes and task.assigned_to:
+            actor = get_jwt_identity()
+            actor_user = User.query.get(actor) if actor else None
+            actor_name = actor_user.name if actor_user else "Someone"
+            _notify_task_changes(task, changes, actor_name)
+
         return jsonify(task.to_dict())
 
     except Exception as e:
