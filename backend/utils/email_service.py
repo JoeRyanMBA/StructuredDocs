@@ -101,9 +101,66 @@ class EmailService:
         self.debug_mode = os.getenv('EMAIL_DEBUG', 'false').strip().lower() == 'true'
         self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
         self.last_error = None
-        
-    def send_review_notification(self, reviewer_email, reviewer_name, topic_title, 
-                                topic_id, author_message, due_date, priority, 
+
+    # ── Shared layout helpers ────────────────────────────────────────────
+
+    def _get_base_url(self, base_url=None):
+        return (base_url or os.getenv('FRONTEND_URL', 'http://localhost:5173')).rstrip('/')
+
+    def _email_layout(self, title: str, body: str, base_url: str = None) -> str:
+        """Return a full branded HTML email wrapping *body* with the logo header and footer."""
+        base = self._get_base_url(base_url)
+        logo_url = f'{base}/StructuredDocs_logo.svg'
+        return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"></head>
+<body style="margin:0;padding:0;background:#f0f4f5;font-family:Arial,sans-serif;color:#333;">
+  <table width="100%" cellpadding="0" cellspacing="0" style="background:#f0f4f5;padding:24px 0;">
+    <tr><td align="center">
+      <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
+        <tr>
+          <td style="background:#005B6E;padding:20px 28px;border-radius:8px 8px 0 0;">
+            <img src="{logo_url}" alt="StructuredDocs" height="36"
+                 style="display:block;margin-bottom:10px;max-width:220px;" />
+            <p style="color:#fff;margin:0;font-size:20px;font-weight:600;">{title}</p>
+          </td>
+        </tr>
+        <tr>
+          <td style="background:#fff;padding:28px;border:1px solid #dee2e6;border-top:none;border-radius:0 0 8px 8px;">
+            {body}
+          </td>
+        </tr>
+        <tr>
+          <td style="padding:16px 0;text-align:center;color:#6c757d;font-size:12px;">
+            StructuredDocs &mdash; Collaborative Documentation Platform
+          </td>
+        </tr>
+      </table>
+    </td></tr>
+  </table>
+</body>
+</html>"""
+
+    @staticmethod
+    def _cta_button(label: str, url: str, color: str = '#008C9E') -> str:
+        """Return a branded call-to-action button for use inside email body HTML."""
+        return (
+            f'<div style="text-align:center;margin:28px 0;">'
+            f'<a href="{url}" style="background:{color};color:#fff;padding:13px 28px;'
+            f'text-decoration:none;border-radius:6px;font-weight:bold;font-size:15px;">'
+            f'{label}</a></div>'
+        )
+
+    @staticmethod
+    def _fallback_link(url: str) -> str:
+        return (
+            f'<p style="color:#6c757d;font-size:12px;margin-top:4px;">'
+            f'If the button above does not work, copy this link into your browser:<br>'
+            f'<a href="{url}" style="color:#008C9E;">{url}</a></p>'
+        )
+
+    def send_review_notification(self, reviewer_email, reviewer_name, topic_title,
+                                topic_id, author_message, due_date, priority,
                                 review_token, base_url=None):
         """Send review notification email to reviewer"""
         try:
@@ -143,7 +200,8 @@ class EmailService:
             subject = f"Review Request: {n} Topic{'s' if n != 1 else ''} Assigned for Review"
 
             html_content = self._create_bulk_review_email_html(
-                reviewer_name, topic_titles, author_message, due_date, priority, portal_url
+                reviewer_name, topic_titles, author_message, due_date, priority, portal_url,
+                base_url=base_url
             )
             text_content = self._create_bulk_review_email_text(
                 reviewer_name, topic_titles, author_message, due_date, priority, portal_url
@@ -155,10 +213,10 @@ class EmailService:
             return False
 
     def _create_bulk_review_email_html(self, reviewer_name, topic_titles, author_message,
-                                       due_date, priority, portal_url):
+                                       due_date, priority, portal_url, base_url=None):
         due_str = due_date.strftime('%B %d, %Y') if due_date else 'No deadline set'
-        priority_colors = {'urgent': '#dc3545', 'high': '#fd7e14', 'medium': '#0d6efd', 'low': '#6c757d'}
-        priority_color = priority_colors.get(priority or 'medium', '#0d6efd')
+        priority_colors = {'urgent': '#dc3545', 'high': '#fd7e14', 'medium': '#008C9E', 'low': '#6c757d'}
+        priority_color = priority_colors.get(priority or 'medium', '#008C9E')
 
         topics_html = ''.join(
             f'<li style="padding:4px 0;">{i + 1}. {title}</li>'
@@ -166,20 +224,13 @@ class EmailService:
         )
 
         message_block = (
-            f'<div style="background:#f8f9fa;border-left:4px solid #0d6efd;padding:12px 16px;'
+            f'<div style="background:#f0f9f9;border-left:4px solid #008C9E;padding:12px 16px;'
             f'margin:16px 0;border-radius:4px;">'
             f'<strong>Message from requester:</strong><br>{author_message}</div>'
             if author_message else ''
         )
 
-        return f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333;">
-  <div style="background:#0d6efd;padding:20px 24px;border-radius:8px 8px 0 0;">
-    <h1 style="color:#fff;margin:0;font-size:22px;">Review Request: {len(topic_titles)} Topics</h1>
-  </div>
-  <div style="background:#fff;border:1px solid #dee2e6;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+        body = f"""
     <p>Hello {reviewer_name},</p>
     <p>You have been assigned <strong>{len(topic_titles)} topic{'s' if len(topic_titles) != 1 else ''}</strong> for review.</p>
     <div style="background:#f8f9fa;padding:16px;border-radius:6px;margin:16px 0;">
@@ -189,16 +240,12 @@ class EmailService:
     <p><strong>Priority:</strong> <span style="color:{priority_color};font-weight:bold;">{(priority or 'medium').upper()}</span></p>
     <p><strong>Due Date:</strong> {due_str}</p>
     {message_block}
-    <div style="text-align:center;margin:28px 0;">
-      <a href="{portal_url}" style="background:#0d6efd;color:#fff;padding:14px 28px;text-decoration:none;border-radius:6px;font-weight:bold;font-size:16px;">Open Review Portal</a>
-    </div>
+    {self._cta_button('Open Review Portal', portal_url)}
     <p style="color:#6c757d;font-size:13px;">The portal lets you navigate between topics, leave feedback, and track your progress in one place.</p>
     <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
-    <p style="color:#6c757d;font-size:12px;">If the button above does not work, copy this link into your browser:<br>
-    <a href="{portal_url}" style="color:#0d6efd;">{portal_url}</a></p>
-  </div>
-</body>
-</html>"""
+    {self._fallback_link(portal_url)}"""
+
+        return self._email_layout(f'Review Request: {len(topic_titles)} Topics', body, base_url)
 
     def _create_bulk_review_email_text(self, reviewer_name, topic_titles, author_message,
                                        due_date, priority, portal_url):
@@ -262,7 +309,8 @@ class EmailService:
             # Create HTML content
             html_content = self._create_review_request_email_html(
                 reviewer_name, topic_title, author_name, due_date, review_url,
-                author_message, is_sequential, sequence_position, total_reviewers
+                author_message, is_sequential, sequence_position, total_reviewers,
+                base_url=self._get_base_url()
             )
             
             # Create text content
@@ -578,7 +626,7 @@ class EmailService:
 
     def _create_task_notification_html(self, to_name, task_title, task_id,
                                        changes, actor_name, base_url, is_new):
-        header_color = "#198754" if is_new else "#0d6efd"
+        header_title = "✅ New Task Assigned" if is_new else "🔔 Task Updated"
         action_text = "A task has been assigned to you" if is_new else "A task you are assigned to has been updated"
 
         rows_html = ""
@@ -598,14 +646,7 @@ class EmailService:
                     f' &rarr; <strong>{new_str}</strong></td></tr>'
                 )
 
-        return f"""<!DOCTYPE html>
-<html>
-<head><meta charset="utf-8"></head>
-<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333;">
-  <div style="background:{header_color};padding:20px 24px;border-radius:8px 8px 0 0;">
-    <h1 style="color:#fff;margin:0;font-size:20px;">{"✅ New Task Assigned" if is_new else "🔔 Task Updated"}</h1>
-  </div>
-  <div style="background:#fff;border:1px solid #dee2e6;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+        body = f"""
     <p>Hello {to_name},</p>
     <p>{action_text} by <strong>{actor_name}</strong>.</p>
     <div style="background:#f8f9fa;border-radius:6px;margin:16px 0;overflow:hidden;border:1px solid #dee2e6;">
@@ -620,10 +661,9 @@ class EmailService:
     <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
     <p style="color:#6c757d;font-size:12px;margin:0;">
       You are receiving this email because you are assigned to this task.
-    </p>
-  </div>
-</body>
-</html>"""
+    </p>"""
+
+        return self._email_layout(header_title, body, base_url)
 
     def _create_task_notification_text(self, to_name, task_title, task_id,
                                        changes, actor_name, base_url, is_new):
@@ -656,20 +696,15 @@ class EmailService:
                 base_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
 
             subject = "StructuredDocs Test Email"
-            html_content = f"""
-            <html>
-            <body style=\"font-family: Arial, sans-serif; line-height: 1.6; color: #333;\"> 
-                <h2>StructuredDocs Email Test</h2>
-                <p>This is a test email to confirm SMTP delivery from StructuredDocs.</p>
-                <ul>
-                    <li>From: {self.from_name} &lt;{self.from_email}&gt;</li>
-                    <li>Server: {self.smtp_server}:{self.smtp_port}</li>
-                </ul>
-                <p>You can visit the app here: <a href=\"{base_url}\">{base_url}</a></p>
-                <p>Timestamp: {datetime.now().isoformat()}</p>
-            </body>
-            </html>
-            """
+            body = f"""
+    <p>This is a test email to confirm SMTP delivery from StructuredDocs.</p>
+    <ul>
+      <li><strong>From:</strong> {self.from_name} &lt;{self.from_email}&gt;</li>
+      <li><strong>Server:</strong> {self.smtp_server}:{self.smtp_port}</li>
+    </ul>
+    <p>You can visit the app here: <a href="{base_url}" style="color:#008C9E;">{base_url}</a></p>
+    <p style="color:#6c757d;font-size:13px;">Timestamp: {datetime.now().isoformat()}</p>"""
+            html_content = self._email_layout('Email Configuration Test', body, base_url)
             text_content = (
                 "StructuredDocs Email Test\n\n"
                 f"From: {self.from_name} <{self.from_email}>\n"
@@ -702,71 +737,56 @@ class EmailService:
         except Exception as e:
             logger.error(f"Failed to write debug email: {str(e)}")
     
-    def _create_review_request_email_html(self, reviewer_name, topic_title, author_name, 
-                                         due_date, review_url, author_message="", 
-                                         is_sequential=False, sequence_position=None, total_reviewers=None):
+    def _create_review_request_email_html(self, reviewer_name, topic_title, author_name,
+                                         due_date, review_url, author_message="",
+                                         is_sequential=False, sequence_position=None,
+                                         total_reviewers=None, base_url=None):
         """Create HTML email content for review request"""
         due_date_str = 'Not specified'
         if due_date:
             if isinstance(due_date, str):
                 try:
-                    # Handle ISO format with 'Z'
-                    if due_date.endswith('Z'):
-                        due_date_obj = datetime.fromisoformat(due_date.replace('Z', '+00:00'))
-                    else:
-                        # Handle other common date formats
-                        due_date_obj = datetime.strptime(due_date, '%Y-%m-%d')
+                    due_date_obj = datetime.fromisoformat(due_date.replace('Z', '+00:00')) \
+                        if due_date.endswith('Z') else datetime.strptime(due_date, '%Y-%m-%d')
                     due_date_str = due_date_obj.strftime('%B %d, %Y')
                 except ValueError:
-                    due_date_str = due_date # Fallback to original string
+                    due_date_str = due_date
             elif hasattr(due_date, 'strftime'):
                 due_date_str = due_date.strftime('%B %d, %Y')
 
-        # Sequential review specific text
-        sequential_text = ""
+        sequential_block = ""
         if is_sequential and sequence_position and total_reviewers:
-            sequential_text = f"""
-            <p><strong>Sequential Review:</strong> This is step {sequence_position} of {total_reviewers} in a sequential review process.</p>
-            """
-        
-        # Author message
-        message_section = ""
+            sequential_block = (
+                f'<p><strong>Sequential Review:</strong> This is step {sequence_position} '
+                f'of {total_reviewers} in a sequential review process.</p>'
+            )
+
+        message_block = ""
         if author_message:
-            message_section = f"""
-            <div style="background-color: #f8f9fa; padding: 15px; border-left: 4px solid #00796B; margin: 20px 0;">
-                <h4>Message from {author_name}:</h4>
-                <p>{author_message}</p>
-            </div>
-            """
-        
-        return f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h2>Review Request</h2>
-            
-            <p>Hello {reviewer_name},</p>
-            
-            <p>You have been requested to review the following topic:</p>
-            
-            <div style="background-color: #f8f9fa; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0;">{topic_title}</h3>
-                <p><strong>Requested by:</strong> {author_name}</p>
-                <p><strong>Due Date:</strong> {due_date_str}</p>
-            </div>
-            
-            {sequential_text}
-            {message_section}
-            
-            <p>To access the review, please click the link below:</p>
-            <p><a href="{review_url}" style="background-color: #00796B; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Access Review</a></p>
-            
-            <p>Thank you for your time and expertise.</p>
-            
-            <p>Best regards,<br>
-            StructuredDocs Review System</p>
-        </body>
-        </html>
-        """
+            message_block = (
+                f'<div style="background:#f0f9f9;border-left:4px solid #008C9E;'
+                f'padding:12px 16px;margin:16px 0;border-radius:4px;">'
+                f'<strong>Message from {author_name}:</strong><br>{author_message}</div>'
+            )
+
+        body = f"""
+    <p>Hello {reviewer_name},</p>
+    <p>You have been requested to review the following topic:</p>
+    <div style="background:#f8f9fa;padding:16px;border-radius:6px;margin:16px 0;">
+      <p style="margin:0 0 6px;font-weight:bold;font-size:1.05em;">{topic_title}</p>
+      <p style="margin:4px 0;"><strong>Requested by:</strong> {author_name}</p>
+      <p style="margin:4px 0;"><strong>Due Date:</strong> {due_date_str}</p>
+    </div>
+    {sequential_block}
+    {message_block}
+    {self._cta_button('Start Review', review_url)}
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    {self._fallback_link(review_url)}
+    <p style="color:#6c757d;font-size:13px;margin-top:16px;">
+      Thank you for your time and expertise.<br>StructuredDocs Review System
+    </p>"""
+
+        return self._email_layout('Review Request', body, base_url)
     
     def _create_review_request_email_text(self, reviewer_name, topic_title, author_name, 
                                          due_date, review_url, author_message="",
@@ -818,47 +838,40 @@ Best regards,
 StructuredDocs Review System
 """
     
-    def _create_review_email_html(self, reviewer_name, topic_title, topic_id, author_message, 
-                                 due_date, priority, review_url):
+    def _create_review_email_html(self, reviewer_name, topic_title, topic_id,
+                                  author_message, due_date, priority, review_url,
+                                  base_url=None):
         """Create HTML email content for review notification"""
-        # Handle due_date formatting - convert string to datetime if needed
         if isinstance(due_date, str):
             try:
-                due_date_obj = datetime.strptime(due_date, '%Y-%m-%d')
-                formatted_due_date = due_date_obj.strftime('%B %d, %Y')
-            except:
+                formatted_due_date = datetime.strptime(due_date, '%Y-%m-%d').strftime('%B %d, %Y')
+            except Exception:
                 formatted_due_date = due_date
         else:
             formatted_due_date = due_date.strftime('%B %d, %Y') if due_date else 'Not specified'
-            
-        return f"""
-        <html>
-        <body>
-            <h2>Review Request</h2>
-            <p>Hello {reviewer_name},</p>
-            
-            <p>You have been requested to review the following document:</p>
-            
-            <div style="background-color: #f5f5f5; padding: 15px; margin: 10px 0; border-left: 4px solid #00796B;">
-                <h3>Topic #{topic_id}: {topic_title}</h3>
-                <p><strong>Priority:</strong> {priority.title()}</p>
-                <p><strong>Due Date:</strong> {formatted_due_date}</p>
-                {f'<p><strong>Message from Author:</strong></p><p>{author_message}</p>' if author_message else ''}
-            </div>
-            
-            <p>Please click the link below to access the review portal:</p>
-            <p><a href="{review_url}" style="background-color: #00796B; color: white; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Start Review</a></p>
-            
-            <p>Or copy and paste this URL into your browser:<br>
-            <code>{review_url}</code></p>
-            
-            <p>Thank you for your time and expertise.</p>
-            
-            <p>Best regards,<br>
-            StructuredDocs Review System</p>
-        </body>
-        </html>
-        """
+
+        message_block = (
+            f'<p><strong>Message from Author:</strong></p><p>{author_message}</p>'
+            if author_message else ''
+        )
+
+        body = f"""
+    <p>Hello {reviewer_name},</p>
+    <p>You have been requested to review the following document:</p>
+    <div style="background:#f8f9fa;padding:16px;border-radius:6px;margin:16px 0;border-left:4px solid #008C9E;">
+      <p style="margin:0 0 6px;font-weight:bold;font-size:1.05em;">Topic #{topic_id}: {topic_title}</p>
+      <p style="margin:4px 0;"><strong>Priority:</strong> {priority.title()}</p>
+      <p style="margin:4px 0;"><strong>Due Date:</strong> {formatted_due_date}</p>
+      {message_block}
+    </div>
+    {self._cta_button('Start Review', review_url)}
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    {self._fallback_link(review_url)}
+    <p style="color:#6c757d;font-size:13px;margin-top:16px;">
+      Thank you for your time and expertise.<br>StructuredDocs Review System
+    </p>"""
+
+        return self._email_layout('Review Request', body, base_url)
     
     def _create_review_email_text(self, reviewer_name, topic_title, topic_id, author_message, 
                                  due_date, priority, review_url):
@@ -899,36 +912,27 @@ StructuredDocs Review System
 """
         return content
     
-    def _create_reminder_email_html(self, reviewer_name, topic_title, due_date, review_url, is_follow_up=False):
+    def _create_reminder_email_html(self, reviewer_name, topic_title, due_date,
+                                    review_url, is_follow_up=False, base_url=None):
         """Create HTML email content for review reminder"""
         reminder_text = "This is a follow-up reminder" if is_follow_up else "This is a friendly reminder"
-        
-        return f"""
-        <html>
-        <body>
-            <h2>Review Reminder</h2>
-            <p>Hello {reviewer_name},</p>
-            
-            <p>{reminder_text} that you have a pending review:</p>
-            
-            <div style="background-color: #fff3cd; padding: 15px; margin: 10px 0; border-left: 4px solid #ffc107;">
-                <h3>{topic_title}</h3>
-                <p><strong>Due Date:</strong> {due_date.strftime('%B %d, %Y')}</p>
-            </div>
-            
-            <p>Please click the link below to access the review portal:</p>
-            <p><a href="{review_url}" style="background-color: #ffc107; color: black; padding: 10px 20px; text-decoration: none; border-radius: 5px;">Complete Review</a></p>
-            
-            <p>Or copy and paste this URL into your browser:<br>
-            <code>{review_url}</code></p>
-            
-            <p>Thank you for your time and expertise.</p>
-            
-            <p>Best regards,<br>
-            StructuredDocs Review System</p>
-        </body>
-        </html>
-        """
+        header_title = "⏰ Follow-up: Review Pending" if is_follow_up else "⏰ Review Reminder"
+
+        body = f"""
+    <p>Hello {reviewer_name},</p>
+    <p>{reminder_text} that you have a pending review:</p>
+    <div style="background:#fff8e1;padding:16px;border-radius:6px;margin:16px 0;border-left:4px solid #ffc107;">
+      <p style="margin:0 0 6px;font-weight:bold;font-size:1.05em;">{topic_title}</p>
+      <p style="margin:4px 0;"><strong>Due Date:</strong> {due_date.strftime('%B %d, %Y')}</p>
+    </div>
+    {self._cta_button('Complete Review', review_url)}
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    {self._fallback_link(review_url)}
+    <p style="color:#6c757d;font-size:13px;margin-top:16px;">
+      Thank you for your time and expertise.<br>StructuredDocs Review System
+    </p>"""
+
+        return self._email_layout(header_title, body, base_url)
     
     def _create_reminder_email_text(self, reviewer_name, topic_title, due_date, review_url, is_follow_up=False):
         """Create plain text email content for review reminder"""
@@ -953,57 +957,37 @@ Best regards,
 StructuredDocs Review System
 """
 
-    def _create_password_setup_email_html(self, user_name, setup_url, created_by_admin=True, admin_name=None):
+    def _create_password_setup_email_html(self, user_name, setup_url,
+                                          created_by_admin=True, admin_name=None,
+                                          base_url=None):
         """Create HTML email content for password setup"""
         greeting = f"Hello {user_name}," if user_name else "Hello,"
-        
         if created_by_admin and admin_name:
             intro = f"An administrator ({admin_name}) has created an account for you on StructuredDocs."
         elif created_by_admin:
             intro = "An administrator has created an account for you on StructuredDocs."
         else:
             intro = "Welcome to StructuredDocs! Your account has been created."
-        
-        return f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h2>Welcome to StructuredDocs</h2>
-            
-            <p>{greeting}</p>
-            
-            <p>{intro}</p>
-            
-            <div style="background-color: #e8f5e8; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #2e7d32;">Set Your Password</h3>
-                <p>To complete your account setup and start using StructuredDocs, you need to create a password.</p>
-            </div>
-            
-            <p>Click the link below to set your password:</p>
-            <p><a href="{setup_url}" style="background-color: #00796B; color: white; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Set My Password</a></p>
-            
-            <p>Or copy and paste this URL into your browser:<br>
-            <code style="background-color: #f8f9fa; padding: 5px; border-radius: 3px;">{setup_url}</code></p>
-            
-            <div style="background-color: #fff3cd; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #ffc107;">
-                <p><strong>Important:</strong> This link will expire in 24 hours for security reasons. If the link expires, please contact an administrator to resend the setup email.</p>
-            </div>
-            
-            <h3>About StructuredDocs</h3>
-            <p>StructuredDocs is a collaborative documentation platform that helps teams create, review, and manage structured documents. Once you set your password, you'll be able to:</p>
-            <ul>
-                <li>Create and edit documents and topics</li>
-                <li>Participate in collaborative review processes</li>
-                <li>Manage projects and collections</li>
-                <li>Track document workflows and approvals</li>
-            </ul>
-            
-            <p>If you have any questions or need assistance, please contact your system administrator.</p>
-            
-            <p>Best regards,<br>
-            StructuredDocs Team</p>
-        </body>
-        </html>
-        """
+
+        body = f"""
+    <p>{greeting}</p>
+    <p>{intro}</p>
+    <div style="background:#f0f9f9;padding:16px;border-radius:6px;margin:16px 0;border-left:4px solid #008C9E;">
+      <p style="margin:0 0 6px;font-weight:bold;color:#005B6E;">Set Your Password</p>
+      <p style="margin:0;">To complete your account setup, you need to create a password.</p>
+    </div>
+    {self._cta_button('Set My Password', setup_url)}
+    <div style="background:#fff8e1;padding:12px 16px;border-radius:6px;margin:16px 0;border-left:4px solid #ffc107;">
+      <p style="margin:0;"><strong>Important:</strong> This link will expire in 24 hours.
+      If it expires, please contact an administrator to resend the setup email.</p>
+    </div>
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    {self._fallback_link(setup_url)}
+    <p style="color:#6c757d;font-size:13px;margin-top:16px;">
+      If you have any questions, please contact your system administrator.
+    </p>"""
+
+        return self._email_layout('Welcome to StructuredDocs', body, base_url)
 
     def _create_password_setup_email_text(self, user_name, setup_url, created_by_admin=True, admin_name=None):
         """Create plain text email content for password setup"""
@@ -1045,45 +1029,29 @@ Best regards,
 StructuredDocs Team
 """
 
-    def _create_password_reset_email_html(self, user_name, reset_url):
+    def _create_password_reset_email_html(self, user_name, reset_url, base_url=None):
         """Create HTML email content for password reset"""
         greeting = f"Hello {user_name}," if user_name else "Hello,"
-        
-        return f"""
-        <html>
-        <body style="font-family: Arial, sans-serif; line-height: 1.6; color: #333;">
-            <h2>Password Reset Request</h2>
-            
-            <p>{greeting}</p>
-            
-            <p>We received a request to reset your password for your StructuredDocs account.</p>
-            
-            <div style="background-color: #fff3cd; padding: 20px; border-radius: 5px; margin: 20px 0;">
-                <h3 style="margin-top: 0; color: #856404;">Reset Your Password</h3>
-                <p>Click the link below to create a new password for your account.</p>
-            </div>
-            
-            <p><a href="{reset_url}" style="background-color: #ffc107; color: black; padding: 12px 24px; text-decoration: none; border-radius: 5px; font-weight: bold;">Reset My Password</a></p>
-            
-            <p>Or copy and paste this URL into your browser:<br>
-            <code style="background-color: #f8f9fa; padding: 5px; border-radius: 3px;">{reset_url}</code></p>
-            
-            <div style="background-color: #f8d7da; padding: 15px; border-radius: 5px; margin: 20px 0; border-left: 4px solid #dc3545;">
-                <p><strong>Security Notice:</strong></p>
-                <ul>
-                    <li>This link will expire in 1 hour for security reasons</li>
-                    <li>If you didn't request this password reset, please ignore this email</li>
-                    <li>Your password won't be changed until you click the link and set a new one</li>
-                </ul>
-            </div>
-            
-            <p>If you continue to have problems accessing your account, please contact your system administrator.</p>
-            
-            <p>Best regards,<br>
-            StructuredDocs Team</p>
-        </body>
-        </html>
-        """
+
+        body = f"""
+    <p>{greeting}</p>
+    <p>We received a request to reset your password for your StructuredDocs account.</p>
+    {self._cta_button('Reset My Password', reset_url)}
+    <div style="background:#fde8ea;padding:12px 16px;border-radius:6px;margin:16px 0;border-left:4px solid #dc3545;">
+      <p style="margin:0;"><strong>Security Notice:</strong></p>
+      <ul style="margin:6px 0 0;padding-left:20px;">
+        <li>This link will expire in 1 hour</li>
+        <li>If you didn't request this reset, you can safely ignore this email</li>
+        <li>Your password won't change until you click the link and set a new one</li>
+      </ul>
+    </div>
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    {self._fallback_link(reset_url)}
+    <p style="color:#6c757d;font-size:13px;margin-top:16px;">
+      If you continue to have trouble accessing your account, contact your system administrator.
+    </p>"""
+
+        return self._email_layout('Password Reset Request', body, base_url)
 
     def _create_password_reset_email_text(self, user_name, reset_url):
         """Create plain text email content for password reset"""
