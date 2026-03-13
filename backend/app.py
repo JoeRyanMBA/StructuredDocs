@@ -626,6 +626,18 @@ p { color: #666; }
                 app.config['MAX_CONTENT_LENGTH'] = _size_mb * 1024 * 1024
             except Exception as _seed_err:
                 print(f"⚠️ Could not seed system settings: {_seed_err}")
+
+            # Seed help-link descriptions (creates missing rows, backfills empty descriptions)
+            try:
+                import sys as _sys, os as _os
+                _sys.path.insert(0, _os.path.dirname(_os.path.dirname(__file__)))
+                from seed_help_links import seed_help_links
+                from .models import HelpLink
+                _hl_created, _hl_updated, _hl_skipped = seed_help_links(db, HelpLink)
+                if _hl_created or _hl_updated:
+                    print(f"✅ Help links seeded: {_hl_created} created, {_hl_updated} updated, {_hl_skipped} skipped")
+            except Exception as _hl_err:
+                print(f"⚠️ Could not seed help links: {_hl_err}")
                 
         except Exception as e:
             print(f"⚠️ Could not create admin user: {e}")
