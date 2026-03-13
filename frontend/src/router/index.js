@@ -370,6 +370,12 @@ const routes = [
     component: () => import('@/views/AllMilestonesView.vue')
   },
   {
+    path: '/projects/:id/timeline',
+    name: 'ProjectTimeline',
+    component: () => import('@/views/ProjectTimelineView.vue'),
+    meta: { requiresAuth: true }
+  },
+  {
     path: '/all-images',
     name: 'AllImages',
     component: () => import('@/views/AllImagesView.vue')

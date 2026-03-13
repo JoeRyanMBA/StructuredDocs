@@ -8,7 +8,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, get_jwt_identity
 from sqlalchemy.orm import joinedload
 from sqlalchemy import desc
-from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, Topic, User
+from ..models import db, Project, Stakeholder, ProjectStakeholder, Collection, Topic, User, Task, ProjectMilestone
 from ..utils.audit import log_audit
 
 projects_bp = Blueprint('projects', __name__, url_prefix='/api/projects')
@@ -118,6 +118,40 @@ def list_projects():
         current_app.logger.debug('Error in /api/projects:', e)
         traceback.print_exc()
         return jsonify({"error": str(e)}), 500
+
+@projects_bp.route('/<int:project_id>/timeline', methods=['GET'])
+@jwt_required()
+def get_project_timeline(project_id):
+    """Return all milestones and tasks for a project timeline view."""
+    try:
+        project = Project.query.get_or_404(project_id)
+
+        milestones = ProjectMilestone.query.filter_by(project_id=project_id)\
+            .order_by(ProjectMilestone.date.asc().nullslast()).all()
+
+        tasks = Task.query.filter_by(project_id=project_id)\
+            .order_by(Task.due_date.asc().nullslast()).all()
+
+        milestone_list = []
+        for m in milestones:
+            d = m.to_dict()
+            d['project_name'] = project.name
+            milestone_list.append(d)
+
+        task_list = []
+        for t in tasks:
+            d = t.to_dict()
+            task_list.append(d)
+
+        return jsonify({
+            'project': project.to_dict(),
+            'milestones': milestone_list,
+            'tasks': task_list,
+        }), 200
+    except Exception as e:
+        current_app.logger.exception(f'Error fetching timeline for project {project_id}')
+        return jsonify({'error': str(e)}), 500
+
 
 @projects_bp.route('/<int:project_id>', methods=['GET'])
 @jwt_required()
