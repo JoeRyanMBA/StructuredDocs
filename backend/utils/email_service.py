@@ -544,6 +544,108 @@ class EmailService:
             self.last_error = f"Provider error: {e}"
             return False
 
+    # ------------------------------------------------------------------ #
+    #  Task notifications                                                  #
+    # ------------------------------------------------------------------ #
+
+    def send_task_notification(self, to_email: str, to_name: str,
+                               task_title: str, task_id: int,
+                               changes: dict, actor_name: str,
+                               base_url: Optional[str] = None) -> bool:
+        """Send an email when a task is created (assigned) or key fields change.
+
+        ``changes`` is a dict mapping field label → (old_value, new_value).
+        For a new assignment pass ``changes={"Assigned to": (None, to_name)}``.
+        """
+        try:
+            if base_url is None:
+                base_url = os.getenv('FRONTEND_URL', 'http://localhost:5173')
+
+            is_new = all(old is None for old, _ in changes.values())
+            action = "assigned to you" if is_new else "updated"
+            subject = f"Task {action}: {task_title}"
+
+            html_content = self._create_task_notification_html(
+                to_name, task_title, task_id, changes, actor_name, base_url, is_new
+            )
+            text_content = self._create_task_notification_text(
+                to_name, task_title, task_id, changes, actor_name, base_url, is_new
+            )
+            return self._send_email(to_email, subject, html_content, text_content)
+        except Exception as e:
+            logger.error(f"Failed to send task notification: {e}")
+            return False
+
+    def _create_task_notification_html(self, to_name, task_title, task_id,
+                                       changes, actor_name, base_url, is_new):
+        header_color = "#198754" if is_new else "#0d6efd"
+        action_text = "A task has been assigned to you" if is_new else "A task you are assigned to has been updated"
+
+        rows_html = ""
+        for label, (old_val, new_val) in changes.items():
+            old_str = str(old_val) if old_val not in (None, "") else "—"
+            new_str = str(new_val) if new_val not in (None, "") else "—"
+            if is_new:
+                rows_html += (
+                    f'<tr><td style="padding:6px 12px;color:#6c757d;width:140px">{label}</td>'
+                    f'<td style="padding:6px 12px"><strong>{new_str}</strong></td></tr>'
+                )
+            else:
+                rows_html += (
+                    f'<tr><td style="padding:6px 12px;color:#6c757d;width:140px">{label}</td>'
+                    f'<td style="padding:6px 12px">'
+                    f'<span style="text-decoration:line-through;color:#adb5bd">{old_str}</span>'
+                    f' &rarr; <strong>{new_str}</strong></td></tr>'
+                )
+
+        return f"""<!DOCTYPE html>
+<html>
+<head><meta charset="utf-8"></head>
+<body style="font-family:Arial,sans-serif;max-width:600px;margin:0 auto;padding:20px;color:#333;">
+  <div style="background:{header_color};padding:20px 24px;border-radius:8px 8px 0 0;">
+    <h1 style="color:#fff;margin:0;font-size:20px;">{"✅ New Task Assigned" if is_new else "🔔 Task Updated"}</h1>
+  </div>
+  <div style="background:#fff;border:1px solid #dee2e6;border-top:none;padding:24px;border-radius:0 0 8px 8px;">
+    <p>Hello {to_name},</p>
+    <p>{action_text} by <strong>{actor_name}</strong>.</p>
+    <div style="background:#f8f9fa;border-radius:6px;margin:16px 0;overflow:hidden;border:1px solid #dee2e6;">
+      <div style="background:#e9ecef;padding:8px 12px;font-weight:bold;">{task_title}</div>
+      <table style="width:100%;border-collapse:collapse;font-size:0.9rem">
+        {rows_html}
+      </table>
+    </div>
+    <p style="color:#6c757d;font-size:13px;margin-top:24px;">
+      Log in to StructuredDocs to view or update this task.
+    </p>
+    <hr style="border:none;border-top:1px solid #dee2e6;margin:20px 0;">
+    <p style="color:#6c757d;font-size:12px;margin:0;">
+      You are receiving this email because you are assigned to this task.
+    </p>
+  </div>
+</body>
+</html>"""
+
+    def _create_task_notification_text(self, to_name, task_title, task_id,
+                                       changes, actor_name, base_url, is_new):
+        action_text = "A task has been assigned to you" if is_new else "A task you are assigned to has been updated"
+        lines = [
+            f"Hello {to_name},",
+            "",
+            f"{action_text} by {actor_name}.",
+            "",
+            f"Task: {task_title}",
+            "",
+        ]
+        for label, (old_val, new_val) in changes.items():
+            old_str = str(old_val) if old_val not in (None, "") else "—"
+            new_str = str(new_val) if new_val not in (None, "") else "—"
+            if is_new:
+                lines.append(f"  {label}: {new_str}")
+            else:
+                lines.append(f"  {label}: {old_str} → {new_str}")
+        lines += ["", "Log in to StructuredDocs to view or update this task."]
+        return "\n".join(lines)
+
     def send_test_email(self, to_email: str, base_url: str | None = None) -> bool:
         """Send a simple test email to verify SMTP configuration.
 
