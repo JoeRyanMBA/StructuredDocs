@@ -253,6 +253,20 @@ p { color: #666; }
     # Environment-specific database configuration
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
+        # Detect unresolved DigitalOcean encrypted variable (EV[...]) — the platform
+        # is supposed to decrypt these before the process starts. If we see the raw
+        # ciphertext it means decryption was skipped, and passing it to SQLAlchemy
+        # would cause a confusing "Could not parse SQLAlchemy URL" crash.
+        if db_url.startswith('EV['):
+            raise RuntimeError(
+                'DATABASE_URL contains an unresolved DigitalOcean encrypted variable '
+                '(value starts with "EV["). The App Platform did not decrypt it before '
+                'startup. Check your DigitalOcean App spec: make sure the DATABASE_URL '
+                'env var is bound to the correct database component or that the '
+                'encryption key is available. Do NOT copy the EV[...] ciphertext '
+                'manually — let the platform inject the value.'
+            )
+
         # Normalize postgres scheme and enforce SSL if not provided
         if db_url.startswith('postgres://'):
             db_url = 'postgresql://' + db_url[len('postgres://'):]
