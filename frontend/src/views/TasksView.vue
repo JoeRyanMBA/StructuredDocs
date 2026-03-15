@@ -33,7 +33,7 @@
         </div>
 
         <div class="metric-card">
-          <div class="metric-icon">👀</div>
+          <div class="metric-icon">💬</div>
           <div class="metric-content">
             <h3>In Review</h3>
             <div class="metric-number">{{ taskMetrics.review }}</div>
@@ -224,7 +224,7 @@
                     class="btn btn-sm"
                     :class="getStatusButtonClass(task.status)"
                   >
-                    {{ getStatusButtonText(task.status) }}
+                    <i v-if="getStatusButtonIcon(task.status)" :class="getStatusButtonIcon(task.status)" class="me-1"></i>{{ getStatusButtonText(task.status) }}
                   </button>
                   <button 
                     v-if="isAdmin" 

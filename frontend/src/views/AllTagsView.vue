@@ -442,6 +442,10 @@ export default {
   margin: 0 auto;
 }
 
+.subtitle {
+  margin-bottom: 1.5rem;
+}
+
 .info-panel {
   background: #f8f9fa;
   border: 1px solid #dee2e6;
