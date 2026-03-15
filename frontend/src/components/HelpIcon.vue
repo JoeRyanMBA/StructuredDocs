@@ -88,17 +88,17 @@ export default {
 .help-icon-wrapper {
   display: inline-flex;
   align-items: center;
-  margin-left: 4px;
-  vertical-align: middle;
+  margin-left: 2px;
+  vertical-align: super;
 }
 
 .help-icon-btn {
   background: none;
   border: none;
-  padding: 0 2px;
+  padding: 0 1px;
   cursor: pointer;
   color: #6c757d;
-  font-size: 0.95em;
+  font-size: 0.5em;
   line-height: 1;
   transition: color 0.15s ease;
 }
