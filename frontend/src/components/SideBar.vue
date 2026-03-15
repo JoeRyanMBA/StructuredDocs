@@ -83,7 +83,7 @@ export default {
         {
           key: 'snippets',
           label: 'Snippets',
-          icon: '📎',
+          icon: '📑',
           route: 'SnippetsLibrary'
         },
         {

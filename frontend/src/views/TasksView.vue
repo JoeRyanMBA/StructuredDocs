@@ -9,7 +9,7 @@
           <div class="metric-icon">📋</div>
           <div class="metric-content">
             <h3>Total Tasks</h3>
-            <div class="metric-number">{{ taskSummary.total }}</div>
+            <div class="metric-number">{{ taskMetrics.total }}</div>
             <div class="metric-detail">All tasks</div>
           </div>
         </div>
@@ -18,7 +18,7 @@
           <div class="metric-icon">⏳</div>
           <div class="metric-content">
             <h3>To Do</h3>
-            <div class="metric-number">{{ taskSummary.todo }}</div>
+            <div class="metric-number">{{ taskMetrics.todo }}</div>
             <div class="metric-detail">To do</div>
           </div>
         </div>
@@ -27,8 +27,17 @@
           <div class="metric-icon">🚀</div>
           <div class="metric-content">
             <h3>In Progress</h3>
-            <div class="metric-number">{{ taskSummary.in_progress }}</div>
+            <div class="metric-number">{{ taskMetrics.in_progress }}</div>
             <div class="metric-detail">In progress</div>
+          </div>
+        </div>
+
+        <div class="metric-card">
+          <div class="metric-icon">👀</div>
+          <div class="metric-content">
+            <h3>In Review</h3>
+            <div class="metric-number">{{ taskMetrics.review }}</div>
+            <div class="metric-detail">In review</div>
           </div>
         </div>
 
@@ -36,7 +45,7 @@
           <div class="metric-icon">✅</div>
           <div class="metric-content">
             <h3>Completed</h3>
-            <div class="metric-number">{{ taskSummary.completed }}</div>
+            <div class="metric-number">{{ taskMetrics.completed }}</div>
             <div class="metric-detail">Completed</div>
           </div>
         </div>
@@ -45,7 +54,7 @@
           <div class="metric-icon">⚠️</div>
           <div class="metric-content">
             <h3>Overdue</h3>
-            <div class="metric-number">{{ taskSummary.overdue }}</div>
+            <div class="metric-number">{{ taskMetrics.overdue }}</div>
             <div class="metric-detail">Past due</div>
           </div>
         </div>
@@ -505,14 +514,7 @@ export default {
       // User role (simplified for now - in real app this would come from auth)
       isAdmin: false, // Set to true for admin users, false for regular users
       
-      // Task summary
-      taskSummary: {
-        total: 0,
-        todo: 0,
-        in_progress: 0,
-        completed: 0,
-        overdue: 0
-      },
+      // Task summary is now computed from this.tasks (see taskMetrics computed property)
       
       // Filters
       searchQuery: '',
@@ -555,6 +557,20 @@ export default {
   },
   
   computed: {
+    taskMetrics() {
+      const today = new Date()
+      today.setHours(0, 0, 0, 0)
+      return {
+        total: this.tasks.length,
+        todo: this.tasks.filter(t => t.status === 'todo').length,
+        in_progress: this.tasks.filter(t => t.status === 'in_progress').length,
+        review: this.tasks.filter(t => t.status === 'review').length,
+        completed: this.tasks.filter(t => t.status === 'completed').length,
+        overdue: this.tasks.filter(t =>
+          t.due_date && new Date(t.due_date) < today && t.status !== 'completed'
+        ).length
+      }
+    },
     mergedNotifications() {
       // Combine global and dashboard-specific notifications, removing duplicates by id
       const all = [...(this.globalNotifications || []), ...(this.notifications || [])]
@@ -639,17 +655,6 @@ export default {
       } catch (error) {
         console.error('Error fetching tags:', error)
         this.allStoredTags = []
-      }
-    },
-    
-    async fetchTaskSummary() {
-      try {
-        const response = await fetch('/api/tasks/summary')
-        if (response.ok) {
-          this.taskSummary = await response.json()
-        }
-      } catch (error) {
-        console.error('Failed to fetch task summary:', error)
       }
     },
     
@@ -998,9 +1003,9 @@ export default {
       if (!nextStatus) return ''
       
       const classMap = {
-        'in_progress': 'start-btn',
-        'review': 'review-btn', 
-        'completed': 'complete-btn'
+        'in_progress': 'btn-primary',
+        'review': 'btn-warning', 
+        'completed': 'btn-success'
       }
       return classMap[nextStatus] || 'advance-btn'
     },
@@ -1028,7 +1033,6 @@ export default {
   
   mounted() {
     this.fetchTasks()
-    this.fetchTaskSummary()
     this.fetchAssociations()
     this.fetchAllTags()
   }
@@ -1298,11 +1302,7 @@ export default {
   gap: 0.5rem;
 }
 
-/* Use global button system from assets/style.css */
-
-.start-btn { background-color: var(--primary-deep-teal); color: var(--bg-white); }
-.review-btn { background-color: var(--warning-dark-yellow); color: var(--bg-white); }
-.complete-btn { background-color: var(--success-dark-green); color: var(--bg-white); }
+/* Status advance buttons use global button system from assets/style.css */
 
 /* Modal Styles */
 /* Using global .modal-overlay and .modal styles from assets/style.css */

@@ -2,7 +2,7 @@
   <div class="modal-overlay" @click.self="$emit('close')">
     <div class="modal-content" @click.stop>
       <div class="modal-header">
-        <h3>📎 Insert Snippet</h3>
+        <h3>📑 Insert Snippet</h3>
         <button class="close-btn" @click="$emit('close')" aria-label="Close">×</button>
       </div>
       <div class="modal-body">

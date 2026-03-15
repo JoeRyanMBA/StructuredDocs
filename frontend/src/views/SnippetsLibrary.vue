@@ -1,7 +1,7 @@
 <template>
   <div class="snippets-library">
     <div class="page-header">
-      <h1>📎 Snippets Library <HelpIcon feature="snippets.library" /></h1>
+      <h1>📑 Snippets Library <HelpIcon feature="snippets.library" /></h1>
       <p class="subtitle">Manage reusable audience-specific content blocks</p>
     </div>
 
