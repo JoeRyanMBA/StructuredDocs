@@ -118,7 +118,7 @@
               <button @click="insertMarkdown('1. ', '')" class="toolbar-btn">1. List</button>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
-              <button @click="openSnippetSelector" class="toolbar-btn">📎 Insert Snippet</button>
+              <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
                 @click="spellcheckEnabled = !spellcheckEnabled"
@@ -148,7 +148,7 @@
             <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
-              <button @click="openSnippetSelector" class="toolbar-btn">📎 Insert Snippet</button>
+              <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
                 @click="spellcheckEnabled = !spellcheckEnabled"
@@ -174,7 +174,7 @@
 
         <!-- Active Snippets Bar -->
         <div v-if="activeSnippets.length > 0" class="active-snippets-bar">
-          <div class="active-snippets-label">📎 Snippets in this topic:</div>
+          <div class="active-snippets-label">📑 Snippets in this topic:</div>
           <div class="active-snippets-list">
             <div v-for="s in activeSnippets" :key="s.id" class="active-snippet-item">
               <span class="active-snippet-title">{{ s.title }}</span>
@@ -1544,7 +1544,7 @@ export default {
             el.insertAdjacentHTML('afterend', this._buildSnippetPlaceholder(snippet))
           } else {
             el.insertAdjacentHTML('afterend',
-              `<div class="sd-snippet-ref" data-snippet-id="${id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;padding:0.4rem 0.75rem;color:#205493;font-style:italic;">📎 Snippet #${id}</div>`)
+              `<div class="sd-snippet-ref" data-snippet-id="${id}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;padding:0.4rem 0.75rem;color:#205493;font-style:italic;">📑 Snippet #${id}</div>`)
           }
           el.remove()
         })
@@ -1616,7 +1616,7 @@ export default {
       const snippetHtml = snippet.content ? marked.parse(snippet.content) : '<em>(empty snippet)</em>'
       const tagInfo = snippet.tags && snippet.tags.length ? ' — ' + snippet.tags.map(t => t.name).join(', ') : ''
       const tagIds = snippet.tags && snippet.tags.length ? snippet.tags.map(t => t.id).join(',') : ''
-      return `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" data-tag-ids="${tagIds}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📎 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
+      return `<div class="sd-snippet-ref" data-snippet-id="${snippet.id}" data-tag-ids="${tagIds}" contenteditable="false" style="border:2px dashed #205493;border-radius:6px;margin:0.5rem 0;overflow:hidden;"><div class="sd-snippet-header" style="background:#e8eef7;color:#205493;padding:0.2rem 0.75rem;font-size:0.8rem;font-style:italic;user-select:none;">📑 Snippet: <strong>${snippet.title}</strong>${tagInfo}</div><div class="sd-snippet-body" style="padding:0.25rem 0.75rem;">${snippetHtml}</div></div>`
     },
 
     openCreateSnippet() {
