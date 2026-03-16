@@ -1,5 +1,8 @@
 # StructuredDocs
 
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
+[![Contributions Welcome](https://img.shields.io/badge/contributions-welcome-brightgreen.svg)](CONTRIBUTING.md)
+
 StructuredDocs is a document management and knowledge-base platform. Users organize content into a **Project → Collection → Topic** hierarchy, edit rich HTML content with TinyMCE or Quill, route topics through a structured review and approval workflow, and publish finished content as PDFs, HTML knowledge bases, or mobile-optimised sites. Word (`.docx`), HTML, and Markdown documents can be imported and automatically parsed into the hierarchy.
 
 ## Features
@@ -255,3 +258,11 @@ python -c "from backend.utils.tasks import enqueue_task; print(enqueue_task('bac
 - Nonce / hashed CSP
 
 - Scheduled tasks (cron + RQ)
+
+## Contributing
+
+Contributions are welcome! Please read [CONTRIBUTING.md](CONTRIBUTING.md) for guidelines on how to open issues and submit pull requests.
+
+## License
+
+This project is licensed under the [MIT License](LICENSE).
