@@ -22,7 +22,7 @@ SPACES_SECRET_KEY=<your-spaces-secret-key>
 ### 2. Database (already configured)
 
 ```
-DATABASE_URL=postgresql://doadmin:AVNS__oWTY7Ax1_1r-c7pCEV@structureddocs-postgres-do-user-25179902-0.l.db.ondigitalocean.com:25060/defaultdb?sslmode=require
+DATABASE_URL=postgresql://<username>:<password>@<host>:25060/defaultdb?sslmode=require
 ```
 
 ### 3. Other Required Variables
