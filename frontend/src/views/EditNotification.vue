@@ -27,6 +27,7 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import { apiGet, apiPut } from '@/api/base.js'
 export default {
   name: 'EditNotification',
   data() {
@@ -43,10 +44,7 @@ export default {
   async created() {
     const id = this.$route.params.id
     try {
-      // Fetch notification from backend API
-      const response = await fetch(`/api/notifications/${id}`)
-      if (!response.ok) throw new Error('Failed to fetch notification')
-      const data = await response.json()
+      const data = await apiGet(`/api/notifications/${id}`)
       this.notification = {
         title: data.title || '',
         message: data.message || '',
@@ -60,15 +58,9 @@ export default {
   },
   methods: {
     async saveNotification() {
-      // Update notification via backend API
       const id = this.$route.params.id
       try {
-        const response = await fetch(`/api/notifications/${id}`, {
-          method: 'PUT',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.notification)
-        })
-        if (!response.ok) throw new Error('Failed to update notification')
+        await apiPut(`/api/notifications/${id}`, this.notification)
         toast.success('Notification updated!')
         this.$router.push('/admin')
       } catch (err) {

@@ -112,6 +112,7 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import { apiGet, apiPost, apiDelete } from '@/api/base.js'
 export default {
   name: 'NotificationManagement',
   data() {
@@ -129,9 +130,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/notifications')
-        if (!response.ok) throw new Error('Failed to fetch notifications')
-        this.notifications = await response.json()
+        this.notifications = await apiGet('/api/notifications')
       } catch (error) {
         console.error('Error fetching notifications:', error)
         this.error = error.message
@@ -144,8 +143,7 @@ export default {
     },
     async toggleNotification(notification) {
       try {
-        const response = await fetch(`/api/notifications/${notification.id}/toggle`, { method: 'POST' })
-        if (!response.ok) throw new Error('Failed to toggle notification')
+        await apiPost(`/api/notifications/${notification.id}/toggle`)
         await this.fetchNotifications()
       } catch (error) {
         console.error('Error toggling notification:', error)
@@ -155,8 +153,7 @@ export default {
     async deleteNotification(notification) {
       if (!confirm(`Are you sure you want to delete the notification "${notification.message}"?`)) return
       try {
-        const response = await fetch(`/api/notifications/${notification.id}`, { method: 'DELETE' })
-        if (!response.ok) throw new Error('Failed to delete notification')
+        await apiDelete(`/api/notifications/${notification.id}`)
         await this.fetchNotifications()
       } catch (error) {
         console.error('Error deleting notification:', error)

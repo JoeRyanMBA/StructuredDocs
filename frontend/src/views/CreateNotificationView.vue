@@ -35,6 +35,7 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import { apiPost } from '@/api/base.js'
 export default {
   name: 'CreateNotificationView',
   data() {
@@ -49,27 +50,18 @@ export default {
     async submitNotification() {
       this.loading = true
       try {
-        const res = await fetch('/api/notifications', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            title: this.title,
-            message: this.message,
-            type: this.type
-          })
+        await apiPost('/api/notifications', {
+          title: this.title,
+          message: this.message,
+          type: this.type
         })
-        if (res.ok) {
-          toast.success('Notification created!')
-          // Trigger global notification refresh if available
-          if (this.$root && typeof this.$root.fetchNotifications === 'function') {
-            await this.$root.fetchNotifications()
-          }
-          this.$router.push('/admin')
-        } else {
-          toast.error('Failed to create notification.')
+        toast.success('Notification created!')
+        if (this.$root && typeof this.$root.fetchNotifications === 'function') {
+          await this.$root.fetchNotifications()
         }
+        this.$router.push('/admin')
       } catch (err) {
-        toast.error('Error creating notification.')
+        toast.error('Failed to create notification.')
         console.error(err)
       } finally {
         this.loading = false
