@@ -13,10 +13,16 @@
       <div class="form-group">
         <label for="type">Type</label>
         <select id="type" v-model="notification.type">
-          <option value="global">Global</option>
-          <option value="admin">Admin</option>
-          <option value="reviewer">Reviewer</option>
+          <option value="global">Global (All Dashboards)</option>
+          <option value="admin">Admin (Admin Dashboard Only)</option>
+          <option value="projects">Projects</option>
           <option value="author">Author</option>
+          <option value="collections">Collections</option>
+          <option value="import">Import</option>
+          <option value="publish">Publish</option>
+          <option value="topics">Topics</option>
+          <option value="reviews">Reviews</option>
+          <option value="snippets">Snippets</option>
         </select>
       </div>
       <button type="submit" class="section-btn">Save Changes</button>
