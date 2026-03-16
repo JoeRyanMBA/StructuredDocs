@@ -459,8 +459,12 @@ p { color: #666; }
             if updated:
                 db.session.commit()
         except Exception:
-            # Never let last_seen tracking break a real request
-            pass
+            # Never let last_seen tracking break a real request.
+            # Roll back any partial transaction so the DB session stays clean.
+            try:
+                db.session.rollback()
+            except Exception:
+                pass
 
     @app.after_request
     def _after(resp):  # type: ignore
