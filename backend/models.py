@@ -403,6 +403,9 @@ class Notification(db.Model):
     type = db.Column(db.String(32), nullable=False, default='global')
     date = db.Column(db.DateTime, default=datetime.utcnow)
     read = db.Column(db.Boolean, default=False)
+    is_active = db.Column(db.Boolean, nullable=False, default=True, server_default='true')
+    target_audience = db.Column(db.String(64), nullable=True)
+    created_at = db.Column(db.DateTime, default=datetime.utcnow, server_default=db.func.now())
 
     def to_dict(self):
         return {
@@ -413,7 +416,10 @@ class Notification(db.Model):
             'link': self.link,
             'type': self.type,
             'date': self.date.isoformat() if self.date else None,
-            'read': self.read
+            'read': self.read,
+            'is_active': self.is_active,
+            'target_audience': self.target_audience,
+            'created_at': self.created_at.isoformat() if self.created_at else None,
         }
 
 class Link(db.Model):
