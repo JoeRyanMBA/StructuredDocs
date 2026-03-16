@@ -25,7 +25,9 @@ def create_notification():
         message=message,
         link=link,
         type=type_,
-        user_id=user_id
+        user_id=user_id,
+        is_active=data.get('is_active', True),
+        target_audience=data.get('target_audience'),
     )
     db.session.add(notification)
     db.session.commit()
@@ -61,6 +63,18 @@ def update_notification(notification_id):
         notification.type = data['type']
     if 'read' in data:
         notification.read = bool(data['read'])
+    if 'is_active' in data:
+        notification.is_active = bool(data['is_active'])
+    if 'target_audience' in data:
+        notification.target_audience = data['target_audience']
+    db.session.commit()
+    return jsonify(notification.to_dict())
+
+@notifications_bp.route('/<int:notification_id>/toggle', methods=['POST'])
+@jwt_required()
+def toggle_notification(notification_id):
+    notification = Notification.query.get_or_404(notification_id)
+    notification.is_active = not notification.is_active
     db.session.commit()
     return jsonify(notification.to_dict())
 
