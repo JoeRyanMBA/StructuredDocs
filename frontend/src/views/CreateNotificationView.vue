@@ -23,6 +23,7 @@
           <option value="publish">Publish</option>
           <option value="topics">Topics</option>
           <option value="reviews">Reviews</option>
+          <option value="snippets">Snippets</option>
         </select>
         <small style="color:#6c757d;display:block;margin-top:0.5rem;">
           Select where this notification should appear. "Global" shows on all dashboards. Others show only on their respective dashboard.

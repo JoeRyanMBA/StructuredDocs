@@ -95,6 +95,7 @@ export default {
       if (path.startsWith('/publications') || path.startsWith('/publish')) return 'publish'
       if (path.startsWith('/reviews') || path.startsWith('/review/')) return 'reviews'
       if (path.startsWith('/topics') || path.startsWith('/all-images') || path.startsWith('/all-links')) return 'topics'
+      if (path.startsWith('/snippets')) return 'snippets'
 
       return 'global'
     }
