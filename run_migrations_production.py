@@ -223,13 +223,25 @@ def run_migrations():
                 )"""
             )
 
+            def ensure_nullable_column(table: str, column: str, col_type: str = 'TIMESTAMP'):
+                cols = [c['name'] for c in inspector.get_columns(table)]
+                if column not in cols:
+                    print(f"➕ Adding missing column {table}.{column} ...")
+                    db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {column} {col_type}"))
+                    db.session.commit()
+                    print(f"✅ Added column {table}.{column}")
+                    return True
+                return False
+
             # Expected boolean columns we defensively backfill if missing
             added_collections_archived = ensure_boolean_column('collections', 'archived', 'FALSE')
             added_projects_archived = ensure_boolean_column('projects', 'archived', 'FALSE')
             added_publications_form_number = ensure_varchar_column('publications', 'form_number', 100)
+            # users.last_seen — critical: missing column causes login 500
+            added_users_last_seen = ensure_nullable_column('users', 'last_seen', 'TIMESTAMP')
 
             # Summarize drift outcome
-            if not (added_collections_archived or added_projects_archived or added_publications_form_number):
+            if not (added_collections_archived or added_projects_archived or added_publications_form_number or added_users_last_seen):
                 print("✅ No hot-fix column additions required")
             else:
                 print("ℹ️ One or more columns were added directly (consider verifying Alembic revisions are stamped correctly)")
@@ -238,6 +250,7 @@ def run_migrations():
             expected = {
                 'projects': {'archived'},
                 'collections': {'archived'},
+                'users': {'last_seen'},
             }
             for table, exp_cols in expected.items():
                 existing = {c['name'] for c in inspector.get_columns(table)}
