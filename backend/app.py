@@ -428,6 +428,40 @@ p { color: #666; }
         if log_json:
             log_event('request_start', path=request.path, method=request.method, rid=rid, ip=request.remote_addr)
 
+    @app.before_request
+    def _update_last_seen():  # type: ignore
+        """Stamp last_seen on the User row for every authenticated request.
+
+        Writes are throttled: the UPDATE is skipped if last_seen was already
+        set within the last 60 seconds, keeping DB overhead negligible.
+        """
+        try:
+            from flask_jwt_extended import verify_jwt_in_request, get_jwt_identity
+            verify_jwt_in_request(optional=True)
+            user_id = get_jwt_identity()
+            if user_id is None:
+                return
+            try:
+                uid = int(user_id)
+            except (TypeError, ValueError):
+                return
+            from .models import User
+            now = datetime.utcnow()
+            threshold = now - timedelta(seconds=60)
+            updated = (
+                db.session.query(User)
+                .filter(
+                    User.id == uid,
+                    db.or_(User.last_seen.is_(None), User.last_seen < threshold),
+                )
+                .update({"last_seen": now}, synchronize_session=False)
+            )
+            if updated:
+                db.session.commit()
+        except Exception:
+            # Never let last_seen tracking break a real request
+            pass
+
     @app.after_request
     def _after(resp):  # type: ignore
         rid = request.environ.get('request_id')

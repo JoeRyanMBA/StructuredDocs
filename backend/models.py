@@ -26,6 +26,7 @@ class User(db.Model):
         server_default=func.now(),
         nullable=False
     )
+    last_seen = db.Column(db.DateTime, nullable=True)
 
     password_reset_tokens = relationship("PasswordResetToken", back_populates="user", cascade="all, delete-orphan")
 
@@ -36,11 +37,12 @@ class User(db.Model):
             "email": self.email,
             "role": self.role,
             "active": self.active,
-            "created_at": self.created_at.isoformat() if self.created_at else None
+            "created_at": self.created_at.isoformat() if self.created_at else None,
+            "last_seen": self.last_seen.isoformat() if self.last_seen else None,
         }
 
     if TYPE_CHECKING:
-        def __init__(self, id: int | None = None, name: str = ..., email: str = ..., password_hash: str | None = None, role: str = 'author', active: bool = True, created_at: datetime | None = None): ...
+        def __init__(self, id: int | None = None, name: str = ..., email: str = ..., password_hash: str | None = None, role: str = 'author', active: bool = True, created_at: datetime | None = None, last_seen: datetime | None = None): ...
 
 # Pivot table: tracks topic ordering within a collection
 collection_topic_tree = Table(

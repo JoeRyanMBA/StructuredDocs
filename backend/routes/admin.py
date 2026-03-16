@@ -21,6 +21,13 @@ def get_admin_stats():
         active_users = User.query.filter(User.active == True).count() if hasattr(User, 'active') else total_users
         authors = User.query.filter(User.role == 'author').count() if hasattr(User, 'role') else 0
         reviewers = User.query.filter(User.role == 'reviewer').count() if hasattr(User, 'role') else 0
+
+        # Users seen in the last 15 minutes
+        fifteen_min_ago = datetime.utcnow() - timedelta(minutes=15)
+        online_now = (
+            User.query.filter(User.last_seen >= fifteen_min_ago).count()
+            if hasattr(User, 'last_seen') else 0
+        )
         
         # Get content statistics
         total_topics = Topic.query.count()
@@ -59,15 +66,17 @@ def get_admin_stats():
         stats = {
             'totalUsers': total_users,
             'activeUsers': active_users,
+            'onlineNow': online_now,
             'authors': authors,
             'reviewers': reviewers,
             'systemHealth': system_performance.get('systemHealth', 'Good'),
             'uptime': system_performance.get('uptime', '99.9%')
         }
-        
+
         user_stats = {
             'totalUsers': total_users,
             'activeUsers': active_users,
+            'onlineNow': online_now,
             'newUsersThisWeek': max(0, total_users - 10)  # Placeholder calculation
         }
         
