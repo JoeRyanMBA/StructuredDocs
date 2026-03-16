@@ -1,0 +1,18 @@
+# StructuredDocs Caddy reverse proxy with auto HTTPS
+# Set DOMAIN env var (e.g. structureddocs.online) or falls back to localhost for dev
+
+{$DOMAIN:localhost} {
+    # Proxy all traffic to the nginx frontend container
+    reverse_proxy frontend:80
+
+    # Compress responses
+    encode gzip
+
+    # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
