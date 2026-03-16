@@ -65,7 +65,8 @@ class LocalStorage(StorageBackend):
 class SpacesStorage(StorageBackend):
     """Digital Ocean Spaces storage (S3-compatible)"""
     
-    def __init__(self, region: str, bucket: str, access_key: str, secret_key: str, cdn_endpoint: Optional[str] = None):
+    def __init__(self, region: str, bucket: str, access_key: str, secret_key: str,
+                 cdn_endpoint: Optional[str] = None, key_prefix: Optional[str] = None):
         try:
             import boto3
             from botocore.exceptions import ClientError
@@ -76,6 +77,11 @@ class SpacesStorage(StorageBackend):
         self.region = region
         self.bucket = bucket
         self.cdn_endpoint = cdn_endpoint
+        # Normalise prefix: strip leading slash, ensure trailing slash if non-empty
+        if key_prefix:
+            self.key_prefix = key_prefix.strip('/') + '/'
+        else:
+            self.key_prefix = ''
         
         # Initialize S3 client for DO Spaces
         self.s3_client = boto3.client(
@@ -92,46 +98,51 @@ class SpacesStorage(StorageBackend):
         else:
             self.base_url = f'https://{bucket}.{region}.digitaloceanspaces.com'
     
+    def _key(self, path: str) -> str:
+        """Prepend environment prefix to a storage key."""
+        return f"{self.key_prefix}{path.lstrip('/')}"
+
     def save_file(self, file_data: bytes, path: str, content_type: Optional[str] = None) -> str:
         """Upload file to Spaces"""
         extra_args = {}
         if content_type:
             extra_args['ContentType'] = content_type
         extra_args['ACL'] = 'public-read'
-        
+
+        key = self._key(path)
         self.s3_client.put_object(
             Bucket=self.bucket,
-            Key=path,
+            Key=key,
             Body=file_data,
             **extra_args
         )
-        
-        return f"{self.base_url}/{path}"
-    
+
+        return f"{self.base_url}/{key}"
+
     def read_file(self, path: str) -> bytes:
         """Download file from Spaces"""
-        response = self.s3_client.get_object(Bucket=self.bucket, Key=path)
+        response = self.s3_client.get_object(Bucket=self.bucket, Key=self._key(path))
         return response['Body'].read()
-    
+
     def delete_file(self, path: str) -> bool:
         """Delete file from Spaces"""
         try:
-            self.s3_client.delete_object(Bucket=self.bucket, Key=path)
+            self.s3_client.delete_object(Bucket=self.bucket, Key=self._key(path))
             return True
         except self.ClientError:
             return False
-    
+
     def file_exists(self, path: str) -> bool:
         """Check if file exists in Spaces"""
         try:
-            self.s3_client.head_object(Bucket=self.bucket, Key=path)
+            self.s3_client.head_object(Bucket=self.bucket, Key=self._key(path))
             return True
         except self.ClientError:
             return False
-    
+
     def get_url(self, path: str) -> str:
         """Get public URL for file"""
-        return f"{self.base_url}/{path}"
+        return f"{self.base_url}/{self._key(path)}"
 
 
 def get_storage_backend() -> StorageBackend:
@@ -154,12 +165,14 @@ def get_storage_backend() -> StorageBackend:
         
         try:
             cdn_endpoint = os.environ.get('SPACES_CDN_ENDPOINT')
+            key_prefix = os.environ.get('SPACES_KEY_PREFIX', '')
             storage = SpacesStorage(
                 region=spaces_region,
                 bucket=spaces_bucket,
                 access_key=spaces_access_key,
                 secret_key=spaces_secret_key,
-                cdn_endpoint=cdn_endpoint
+                cdn_endpoint=cdn_endpoint,
+                key_prefix=key_prefix
             )
             logger.info(f"✅ SpacesStorage initialized successfully! Base URL: {storage.base_url}")
             return storage
