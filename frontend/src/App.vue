@@ -44,6 +44,7 @@ import ToastContainer from '@/components/ToastContainer.vue'
 import VersionFooter from '@/components/VersionFooter.vue'
 import SessionTimeoutModal from '@/components/SessionTimeoutModal.vue'
 import { useSessionTimeout } from '@/composables/useSessionTimeout'
+import { apiGet, apiRequest } from '@/api/base.js'
 
 export default {
   components: { Sidebar, HeaderBar, NotificationTicker, FeedbackWidget, ToastContainer, VersionFooter, SessionTimeoutModal },
@@ -149,13 +150,8 @@ export default {
     async fetchNotifications() {
       this.notificationsLoading = true
       try {
-        const res = await fetch('/api/notifications')
-        if (res.ok) {
-          const data = await res.json()
-          this.notifications = Array.isArray(data) ? data : []
-        } else {
-          this.notifications = []
-        }
+        const data = await apiGet('/api/notifications')
+        this.notifications = Array.isArray(data) ? data : []
       } catch (err) {
         console.error('Failed to fetch notifications:', err)
         this.notifications = []
@@ -165,9 +161,7 @@ export default {
     },
     async markNotificationRead(id) {
       try {
-        await fetch(`/api/notifications/${id}`, {
-          method: 'PATCH'
-        })
+        await apiRequest(`/api/notifications/${id}`, { method: 'PATCH' })
         this.notifications = this.notifications.map(n => n.id === id ? { ...n, read: true } : n)
       } catch (err) {
         console.error('Failed to mark notification as read:', err)

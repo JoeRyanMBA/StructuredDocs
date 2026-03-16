@@ -84,7 +84,7 @@ def delete_notification(notification_id):
     notification = Notification.query.get_or_404(notification_id)
     db.session.delete(notification)
     db.session.commit()
-    return ('', 204)
+    return jsonify({'deleted': True})
 
 # Register this blueprint in your main app (usually in app.py)
 # from backend.routes.notifications import notifications_bp
