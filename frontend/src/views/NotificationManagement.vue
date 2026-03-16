@@ -130,7 +130,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        this.notifications = await apiGet('/api/notifications')
+        this.notifications = await apiGet('/api/notifications?include_inactive=true')
       } catch (error) {
         console.error('Error fetching notifications:', error)
         this.error = error.message

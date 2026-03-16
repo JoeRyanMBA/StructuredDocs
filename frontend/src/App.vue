@@ -126,8 +126,10 @@ export default {
     _onUserUpdated() {
       if (localStorage.getItem('access_token')) {
         this.startSessionWatcher()
+        this.fetchNotifications()
       } else {
         this.stopSessionWatcher()
+        this.notifications = []
       }
     },
     toggleSidebar() {

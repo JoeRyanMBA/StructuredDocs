@@ -7,8 +7,11 @@ notifications_bp = Blueprint('notifications', __name__, url_prefix='/api/notific
 @notifications_bp.route('', methods=['GET'])
 @jwt_required()
 def get_notifications():
-    # Fetch all notifications (user-specific logic disabled for debugging)
-    notifications = Notification.query.order_by(Notification.date.desc()).all()
+    include_inactive = request.args.get('include_inactive', 'false').lower() == 'true'
+    query = Notification.query
+    if not include_inactive:
+        query = query.filter_by(is_active=True)
+    notifications = query.order_by(Notification.date.desc()).all()
     return jsonify([n.to_dict() for n in notifications])
 
 @notifications_bp.route('', methods=['POST'])
