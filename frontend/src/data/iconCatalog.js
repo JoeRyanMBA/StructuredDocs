@@ -840,9 +840,9 @@ export const dashboardEmojiIcons = [
     ]
   },
   {
-    "key": "dashboard-🐛",
-    "label": "🐛",
-    "token": "🐛",
+    "key": "dashboard-🐞",
+    "label": "🐞",
+    "token": "🐞",
     "meaning": "Bug management actions.",
     "usedIn": [
       "AdminDashboard.vue"
@@ -1043,4 +1043,3 @@ export const iconCatalogNotes = [
   "Emoji icons are used for navigation, dashboard metrics, and quick-action cards to keep high-level screens visually distinct.",
   "The legacy `frontend/src/icons.css` mask icons are not imported by `main.js`, so they are intentionally excluded from this active catalog."
 ]
-

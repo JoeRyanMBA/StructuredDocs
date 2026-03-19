@@ -84,7 +84,7 @@
             </div>
           </button>
           <button class="quick-action-card" @click="navigateTo('/admin/bugs')">
-            <div class="action-icon">🐛</div>
+            <div class="action-icon">🐞</div>
             <div class="action-content" title="Review user-submitted bug reports">
               <h3>View Bug Reports</h3>
             </div>
