@@ -10,16 +10,25 @@
     <CompactToolbar :showMetrics="true" :showCalendar="false">
       <template #metrics>
         <div class="metrics-grid">
-          <div class="metric-card">
+          <div class="metric-card" title="Total number of registered user accounts in the system">
             <div class="metric-icon">👥</div>
             <div class="metric-content">
               <h3>Total Users</h3>
               <div class="metric-number">{{ stats.totalUsers || 0 }}</div>
-              <div class="metric-detail">{{ stats.activeUsers || 0 }} Active</div>
+              <div class="metric-detail">{{ stats.activeUsers || 0 }} Active accounts</div>
             </div>
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card" title="Users who have made a request in the last 15 minutes">
+            <div class="metric-icon">🟢</div>
+            <div class="metric-content">
+              <h3>Online Now</h3>
+              <div class="metric-number">{{ stats.onlineNow || 0 }}</div>
+              <div class="metric-detail">Active last 15 min</div>
+            </div>
+          </div>
+
+          <div class="metric-card" title="Users with the Author role — can create and edit projects, collections, and topics">
             <div class="metric-icon">✏️</div>
             <div class="metric-content">
               <h3>Authors</h3>
@@ -28,7 +37,7 @@
             </div>
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card" title="Users with the Reviewer role — can review topics and submit feedback via review links">
             <div class="metric-icon">📝</div>
             <div class="metric-content">
               <h3>Reviewers</h3>
@@ -37,12 +46,12 @@
             </div>
           </div>
 
-          <div class="metric-card">
+          <div class="metric-card" title="Overall system health based on CPU, memory, and disk usage. Healthy = all under 70%, Warning = any over 70%, Critical = any over 90%">
             <div class="metric-icon">🔧</div>
             <div class="metric-content">
               <h3>System Health</h3>
               <div class="metric-number">{{ stats.systemHealth || 'Good' }}</div>
-              <div class="metric-detail">{{ stats.uptime || '99.9%' }} Uptime</div>
+              <div class="metric-detail">{{ stats.uptime || 'Unknown' }} uptime</div>
             </div>
           </div>
         </div>
@@ -141,21 +150,21 @@
           <div class="system-section">
             <h3>System Performance</h3>
             <div class="performance-metrics">
-              <div class="metric-row">
+              <div class="metric-row" title="Approximate CPU load based on 1-minute system load average">
                 <span class="metric-name">CPU Usage</span>
                 <div class="metric-bar">
                   <div class="metric-fill" :style="{width: systemMetrics.cpu + '%'}"></div>
                 </div>
                 <span class="metric-value">{{ systemMetrics.cpu }}%</span>
               </div>
-              <div class="metric-row">
+              <div class="metric-row" title="Percentage of system RAM in use">
                 <span class="metric-name">Memory</span>
                 <div class="metric-bar">
                   <div class="metric-fill" :style="{width: systemMetrics.memory + '%'}"></div>
                 </div>
                 <span class="metric-value">{{ systemMetrics.memory }}%</span>
               </div>
-              <div class="metric-row">
+              <div class="metric-row" title="Percentage of disk space used on the server filesystem">
                 <span class="metric-name">Storage</span>
                 <div class="metric-bar">
                   <div class="metric-fill" :style="{width: systemMetrics.storage + '%'}"></div>
@@ -309,10 +318,11 @@ export default {
             this.stats = {
               totalUsers: statsData.keyMetrics?.totalUsers || 0,
               activeUsers: statsData.userStats?.activeUsers || 0,
+              onlineNow: statsData.userStats?.onlineNow || 0,
               authors: statsData.userStats?.totalUsers ? Math.floor(statsData.userStats.totalUsers * 0.6) : 0,
               reviewers: statsData.userStats?.totalUsers ? Math.floor(statsData.userStats.totalUsers * 0.4) : 0,
               systemHealth: statsData.systemOverview?.systemHealth || 'Good',
-              uptime: statsData.systemOverview?.uptime || '99.9%'
+              uptime: statsData.systemOverview?.uptime || 'Unknown'
             }
             this.userStats = {
               totalUsers: statsData.userStats?.totalUsers || 0,
@@ -369,6 +379,9 @@ export default {
         // Load database metrics
         await this.loadDbMetrics()
 
+        // Load real system performance metrics
+        await this.loadSystemMetrics()
+
       } catch (e) {
         this.error = e.message || 'Failed to load dashboard data'
         console.error(this.error)
@@ -391,6 +404,41 @@ export default {
         }
       } catch (error) {
         console.error('Failed to load database metrics:', error)
+      }
+    },
+
+    async loadSystemMetrics() {
+      try {
+        const response = await fetch('/api/admin/stats', { headers: this.getAuthHeaders() })
+        if (!response.ok) return
+        const data = await response.json()
+
+        // Real CPU / memory / disk from backend
+        const perf = data.performanceMetrics || {}
+        if (perf.cpuUsage !== undefined || perf.memoryUsage !== undefined || perf.diskUsage !== undefined) {
+          this.systemMetrics = {
+            cpu: Math.round(perf.cpuUsage ?? this.systemMetrics.cpu),
+            memory: Math.round(perf.memoryUsage ?? this.systemMetrics.memory),
+            storage: Math.round(perf.diskUsage ?? this.systemMetrics.storage)
+          }
+        }
+
+        // Authoritative user breakdown and online-now from admin stats
+        const s = data.stats || {}
+        if (s.totalUsers !== undefined) {
+          this.stats = {
+            ...this.stats,
+            totalUsers: s.totalUsers,
+            activeUsers: s.activeUsers ?? this.stats.activeUsers,
+            onlineNow: s.onlineNow ?? this.stats.onlineNow,
+            authors: s.authors ?? this.stats.authors,
+            reviewers: s.reviewers ?? this.stats.reviewers,
+            systemHealth: s.systemHealth ?? this.stats.systemHealth,
+            uptime: s.uptime ?? this.stats.uptime
+          }
+        }
+      } catch (error) {
+        console.error('Failed to load system metrics:', error)
       }
     },
 

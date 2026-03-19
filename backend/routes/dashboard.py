@@ -22,6 +22,11 @@ def get_stats():
         # User Stats
         active_users = db.session.query(func.count(User.id)).filter(User.active == True).scalar()
         inactive_users = total_users - active_users
+        fifteen_min_ago = datetime.utcnow() - timedelta(minutes=15)
+        online_now = (
+            db.session.query(func.count(User.id)).filter(User.last_seen >= fifteen_min_ago).scalar()
+            if hasattr(User, 'last_seen') else 0
+        )
         
         # Content Stats
         draft_topics = db.session.query(func.count(Topic.id)).filter(Topic.status == 'draft').scalar()
@@ -59,6 +64,7 @@ def get_stats():
                 'totalUsers': total_users,
                 'activeUsers': active_users,
                 'inactiveUsers': inactive_users,
+                'onlineNow': online_now,
                 'newUsersWeekly': new_users_weekly,
             },
             'contentStats': {
