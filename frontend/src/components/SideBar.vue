@@ -104,6 +104,7 @@ export default {
           route: 'Admin',
           children: [
             { key: 'design-buttons', label: 'Button Catalog', route: 'ButtonCatalog', icon: '🎛️' },
+            { key: 'design-icons', label: 'Icon Catalog', route: 'IconCatalog', icon: '🖼️' },
             { key: 'admin-users', label: 'Manage Users', route: 'AdminUsers', icon: '👥' },
             { key: 'admin-feedback', label: 'Feedback', route: 'AdminFeedback', icon: '💬' },
             { key: 'admin-bugs', label: 'Bugs', route: 'AdminBugs', icon: '🐞' }
