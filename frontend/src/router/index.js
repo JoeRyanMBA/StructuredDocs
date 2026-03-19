@@ -269,6 +269,11 @@ const routes = [
     component: () => import('@/views/ButtonCatalog.vue')
   },
   {
+    path: '/design/icons',
+    name: 'IconCatalog',
+    component: () => import('@/views/IconCatalog.vue')
+  },
+  {
     path: '/topics',
     name: 'TopicsList',
     component: TopicsListView
