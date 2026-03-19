@@ -17,6 +17,7 @@
   "engines": {
     "node": ">=16.0.0"
   },
-  "dependencies": {},
-  "devDependencies": {}
+  "devDependencies": {
+    "cypress": "^15.12.0"
+  }
 }
