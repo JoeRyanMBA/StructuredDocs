@@ -71,10 +71,10 @@ def login():
             # Avoid 500s on malformed hashes; treat as invalid credentials
             current_app.logger.error(f" Password check error: {e}")
     except Exception as e:
-        current_app.logger.error(f" Login error: {e}")
         import traceback
-        traceback.print_exc()
-        return jsonify({"error": "Internal server error"}), 500
+        tb = traceback.format_exc()
+        current_app.logger.error(f"LOGIN ERROR: {type(e).__name__}: {e}\n{tb}")
+        return jsonify({"error": "Internal server error", "detail": str(e)}), 500
 
     current_app.logger.debug("❌ Invalid credentials")
     return jsonify({"msg": "Bad email or password"}), 401
