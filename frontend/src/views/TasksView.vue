@@ -483,11 +483,12 @@
 <script>
 import CompactToolbar from '../components/CompactToolbar.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
+import IconPlus from '@/components/icons/IconPlus.vue'
 import { toast } from '@/composables/useToast'
 
 export default {
   name: 'TasksView',
-  components: { CompactToolbar, HelpIcon },
+  components: { CompactToolbar, HelpIcon, IconPlus },
   props: {
     notifications: {
       type: Array,
