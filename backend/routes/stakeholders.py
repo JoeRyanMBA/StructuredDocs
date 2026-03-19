@@ -29,26 +29,30 @@ def list_stakeholders():
     try:
         stakeholders = Stakeholder.query.order_by(Stakeholder.name).all()
 
-        # Build a map of stakeholder_id -> most recent last_accessed_at across all token types
-        review_token_rows = (
-            db.session.query(Review.reviewer_id, sa_func.max(ReviewToken.last_accessed_at))
-            .join(ReviewToken, ReviewToken.review_id == Review.id)
-            .filter(ReviewToken.last_accessed_at.isnot(None))
-            .group_by(Review.reviewer_id)
-            .all()
-        )
-        batch_token_rows = (
-            db.session.query(ReviewBatch.reviewer_id, sa_func.max(ReviewBatchToken.last_accessed_at))
-            .join(ReviewBatchToken, ReviewBatchToken.batch_id == ReviewBatch.id)
-            .filter(ReviewBatchToken.last_accessed_at.isnot(None))
-            .group_by(ReviewBatch.reviewer_id)
-            .all()
-        )
-
+        # Build a map of stakeholder_id -> most recent last_accessed_at across all token types.
+        # Wrapped in a nested try so a missing column (pre-migration) degrades gracefully.
         last_active_map: dict = {}
-        for sid, ts in review_token_rows + batch_token_rows:
-            if sid not in last_active_map or (ts and ts > last_active_map[sid]):
-                last_active_map[sid] = ts
+        try:
+            review_token_rows = (
+                db.session.query(Review.reviewer_id, sa_func.max(ReviewToken.last_accessed_at))
+                .join(ReviewToken, ReviewToken.review_id == Review.id)
+                .filter(ReviewToken.last_accessed_at.isnot(None))
+                .group_by(Review.reviewer_id)
+                .all()
+            )
+            batch_token_rows = (
+                db.session.query(ReviewBatch.reviewer_id, sa_func.max(ReviewBatchToken.last_accessed_at))
+                .join(ReviewBatchToken, ReviewBatchToken.batch_id == ReviewBatch.id)
+                .filter(ReviewBatchToken.last_accessed_at.isnot(None))
+                .group_by(ReviewBatch.reviewer_id)
+                .all()
+            )
+            for sid, ts in review_token_rows + batch_token_rows:
+                if sid not in last_active_map or (ts and ts > last_active_map[sid]):
+                    last_active_map[sid] = ts
+        except Exception:
+            # Column may not exist yet on older deployments; fall back to no activity data.
+            db.session.rollback()
 
         def serialize(s):
             d = s.to_dict()
