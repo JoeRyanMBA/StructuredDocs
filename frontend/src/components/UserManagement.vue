@@ -22,7 +22,15 @@
         </thead>
         <tbody>
           <tr v-for="user in users" :key="user.id">
-            <td>{{ user.name }}</td>
+            <td>
+              <span class="user-name-cell">
+                <span
+                  :class="['activity-dot', isRecentlyActive(user) ? 'activity-dot--online' : 'activity-dot--offline']"
+                  :title="activityTooltip(user)"
+                ></span>
+                {{ user.name }}
+              </span>
+            </td>
             <td>{{ user.email }}</td>
             <td>
               <span :class="['role-badge', `role-${user.role}`]">
@@ -388,6 +396,27 @@ export default {
     formatDate(dateString) {
       if (!dateString) return ''
       return new Date(dateString).toLocaleDateString()
+    },
+
+    isRecentlyActive(user) {
+      if (!user.last_seen) return false
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
+      return new Date(user.last_seen) > fifteenMinutesAgo
+    },
+
+    activityTooltip(user) {
+      if (!user.last_seen) return 'Never logged in'
+      const lastSeen = new Date(user.last_seen)
+      if (this.isRecentlyActive(user)) {
+        return `Active now (last seen ${lastSeen.toLocaleTimeString()})`
+      }
+      const diffMs = Date.now() - lastSeen.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMins / 60)
+      const diffDays = Math.floor(diffHours / 24)
+      if (diffMins < 60) return `Last active ${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
+      if (diffHours < 24) return `Last active ${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+      return `Last active ${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
     }
   }
 }
@@ -480,6 +509,29 @@ td {
 /* Ensure Created column uses consistent font size */
 td:nth-child(5) {
   font-size: 14px;
+}
+
+.user-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.activity-dot--online {
+  background-color: #28a745;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+}
+
+.activity-dot--offline {
+  background-color: #adb5bd;
 }
 
 .actions {

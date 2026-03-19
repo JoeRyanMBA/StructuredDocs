@@ -82,7 +82,15 @@
             <tr v-for="stakeholder in filteredStakeholders" :key="stakeholder.id" 
                 @click="editStakeholder(stakeholder)" class="clickable-row">
               <td class="id-cell">{{ stakeholder.id }}</td>
-              <td class="name-cell">{{ stakeholder.name }}</td>
+              <td class="name-cell">
+                <span class="stakeholder-name-cell">
+                  <span
+                    :class="['activity-dot', isRecentlyActive(stakeholder) ? 'activity-dot--online' : 'activity-dot--offline']"
+                    :title="activityTooltip(stakeholder)"
+                  ></span>
+                  {{ stakeholder.name }}
+                </span>
+              </td>
               <td>{{ stakeholder.title || '-' }}</td>
               <td>{{ stakeholder.organization || '-' }}</td>
               <td>{{ stakeholder.division || '-' }}</td>
@@ -520,6 +528,27 @@ export default {
         this.error = error.message || 'Failed to delete stakeholder. Please try again.'
   toast.error(this.error)
       }
+    },
+
+    isRecentlyActive(stakeholder) {
+      if (!stakeholder.last_active) return false
+      const fifteenMinutesAgo = new Date(Date.now() - 15 * 60 * 1000)
+      return new Date(stakeholder.last_active) > fifteenMinutesAgo
+    },
+
+    activityTooltip(stakeholder) {
+      if (!stakeholder.last_active) return 'No review activity recorded'
+      const lastActive = new Date(stakeholder.last_active)
+      if (this.isRecentlyActive(stakeholder)) {
+        return `Engaged in review now (last seen ${lastActive.toLocaleTimeString()})`
+      }
+      const diffMs = Date.now() - lastActive.getTime()
+      const diffMins = Math.floor(diffMs / 60000)
+      const diffHours = Math.floor(diffMins / 60)
+      const diffDays = Math.floor(diffHours / 24)
+      if (diffMins < 60) return `Last active in review ${diffMins} minute${diffMins !== 1 ? 's' : ''} ago`
+      if (diffHours < 24) return `Last active in review ${diffHours} hour${diffHours !== 1 ? 's' : ''} ago`
+      return `Last active in review ${diffDays} day${diffDays !== 1 ? 's' : ''} ago`
     }
   }
 }
@@ -572,6 +601,29 @@ export default {
 .stakeholders-table td {
   padding: 0.25rem;
   font-size: 0.85rem;
+}
+
+.stakeholder-name-cell {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+
+.activity-dot {
+  flex-shrink: 0;
+  width: 10px;
+  height: 10px;
+  border-radius: 50%;
+  display: inline-block;
+}
+
+.activity-dot--online {
+  background-color: #28a745;
+  box-shadow: 0 0 0 2px rgba(40, 167, 69, 0.25);
+}
+
+.activity-dot--offline {
+  background-color: #adb5bd;
 }
 
 .clickable-row {
