@@ -239,9 +239,12 @@ def run_migrations():
             added_publications_form_number = ensure_varchar_column('publications', 'form_number', 100)
             # users.last_seen — critical: missing column causes login 500
             added_users_last_seen = ensure_nullable_column('users', 'last_seen', 'TIMESTAMP')
+            # review token activity tracking
+            added_rt_last_accessed = ensure_nullable_column('review_tokens', 'last_accessed_at', 'TIMESTAMP')
+            added_rbt_last_accessed = ensure_nullable_column('review_batch_tokens', 'last_accessed_at', 'TIMESTAMP')
 
             # Summarize drift outcome
-            if not (added_collections_archived or added_projects_archived or added_publications_form_number or added_users_last_seen):
+            if not (added_collections_archived or added_projects_archived or added_publications_form_number or added_users_last_seen or added_rt_last_accessed or added_rbt_last_accessed):
                 print("✅ No hot-fix column additions required")
             else:
                 print("ℹ️ One or more columns were added directly (consider verifying Alembic revisions are stamped correctly)")
@@ -251,6 +254,8 @@ def run_migrations():
                 'projects': {'archived'},
                 'collections': {'archived'},
                 'users': {'last_seen'},
+                'review_tokens': {'last_accessed_at'},
+                'review_batch_tokens': {'last_accessed_at'},
             }
             for table, exp_cols in expected.items():
                 existing = {c['name'] for c in inspector.get_columns(table)}
