@@ -18,14 +18,12 @@ export PYTHONPATH="/app:$PYTHONPATH"
 # Change to app directory
 cd /app
 
-# Optionally run DB migrations before starting
-if [[ "${RUN_DB_MIGRATIONS}" == "1" ]]; then
-    echo "🗄️ Running DB migrations before start..."
-    if [[ -f /app/run_migrations_production.py ]]; then
-        python3 /app/run_migrations_production.py || echo "⚠️ Migrations script failed (continuing to start)"
-    else
-        echo "⚠️ Migration script not found at /app/run_migrations_production.py"
-    fi
+# Always run DB migrations/schema drift checks on startup
+echo "🗄️ Running DB migrations before start..."
+if [[ -f /app/run_migrations_production.py ]]; then
+    python3 /app/run_migrations_production.py || echo "⚠️ Migrations script failed (continuing to start)"
+else
+    echo "⚠️ Migration script not found at /app/run_migrations_production.py"
 fi
 
 # Start Gunicorn
