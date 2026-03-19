@@ -79,6 +79,7 @@ def get_review_by_token(token):
         review_token.access_count += 1
         if not review_token.accessed_at:
             review_token.accessed_at = datetime.now()
+        review_token.last_accessed_at = datetime.now()
         db.session.commit()
         
         # Get review and topic data

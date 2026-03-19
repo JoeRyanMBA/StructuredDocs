@@ -1272,6 +1272,7 @@ class ReviewToken(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     accessed_at = db.Column(db.DateTime, nullable=True)
+    last_accessed_at = db.Column(db.DateTime, nullable=True)
     used_at = db.Column(db.DateTime, nullable=True)
     
     # Security
@@ -1291,6 +1292,7 @@ class ReviewToken(db.Model):
             "created_at": self.created_at.isoformat() if self.created_at else None,
             "expires_at": self.expires_at.isoformat() if self.expires_at else None,
             "accessed_at": self.accessed_at.isoformat() if self.accessed_at else None,
+            "last_accessed_at": self.last_accessed_at.isoformat() if self.last_accessed_at else None,
             "used_at": self.used_at.isoformat() if self.used_at else None,
             "is_active": self.is_active,
             "access_count": self.access_count,
@@ -1523,6 +1525,7 @@ class ReviewBatchToken(db.Model):
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
     expires_at = db.Column(db.DateTime, nullable=False)
     accessed_at = db.Column(db.DateTime, nullable=True)
+    last_accessed_at = db.Column(db.DateTime, nullable=True)
 
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     access_count = db.Column(db.Integer, default=0, nullable=False)
@@ -1548,6 +1551,7 @@ class ReviewBatchToken(db.Model):
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'expires_at': self.expires_at.isoformat() if self.expires_at else None,
             'accessed_at': self.accessed_at.isoformat() if self.accessed_at else None,
+            'last_accessed_at': self.last_accessed_at.isoformat() if self.last_accessed_at else None,
             'is_active': self.is_active,
             'access_count': self.access_count,
             'max_access_count': self.max_access_count,

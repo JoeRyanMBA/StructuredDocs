@@ -6,9 +6,9 @@ Handles CRUD operations for stakeholders
 from flask import Blueprint, request, jsonify
 from flask_jwt_extended import jwt_required
 from sqlalchemy.orm import joinedload
-from sqlalchemy import desc
+from sqlalchemy import desc, func as sa_func
 import json
-from ..models import db, Stakeholder, Project, ProjectStakeholder
+from ..models import db, Stakeholder, Project, ProjectStakeholder, Review, ReviewToken, ReviewBatch, ReviewBatchToken
 
 stakeholders_bp = Blueprint('stakeholders', __name__, url_prefix='/api/stakeholders')
 
@@ -28,7 +28,35 @@ def list_stakeholders():
     """Get all stakeholders"""
     try:
         stakeholders = Stakeholder.query.order_by(Stakeholder.name).all()
-        return jsonify([s.to_dict() for s in stakeholders])
+
+        # Build a map of stakeholder_id -> most recent last_accessed_at across all token types
+        review_token_rows = (
+            db.session.query(Review.reviewer_id, sa_func.max(ReviewToken.last_accessed_at))
+            .join(ReviewToken, ReviewToken.review_id == Review.id)
+            .filter(ReviewToken.last_accessed_at.isnot(None))
+            .group_by(Review.reviewer_id)
+            .all()
+        )
+        batch_token_rows = (
+            db.session.query(ReviewBatch.reviewer_id, sa_func.max(ReviewBatchToken.last_accessed_at))
+            .join(ReviewBatchToken, ReviewBatchToken.batch_id == ReviewBatch.id)
+            .filter(ReviewBatchToken.last_accessed_at.isnot(None))
+            .group_by(ReviewBatch.reviewer_id)
+            .all()
+        )
+
+        last_active_map: dict = {}
+        for sid, ts in review_token_rows + batch_token_rows:
+            if sid not in last_active_map or (ts and ts > last_active_map[sid]):
+                last_active_map[sid] = ts
+
+        def serialize(s):
+            d = s.to_dict()
+            ts = last_active_map.get(s.id)
+            d['last_active'] = ts.isoformat() if ts else None
+            return d
+
+        return jsonify([serialize(s) for s in stakeholders])
         
     except Exception as e:
         return jsonify({"error": str(e)}), 500

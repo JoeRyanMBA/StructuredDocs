@@ -175,6 +175,7 @@ def get_bulk_review_portal(token):
         bt.access_count += 1
         if not bt.accessed_at:
             bt.accessed_at = datetime.now()
+        bt.last_accessed_at = datetime.now()
         db.session.commit()
 
         batch = bt.batch
