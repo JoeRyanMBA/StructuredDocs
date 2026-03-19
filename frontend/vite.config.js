@@ -13,6 +13,8 @@ export default defineConfig({
     port: 5173,
     host: '0.0.0.0',
     logLevel: 'info',
+    // Disable HMR in CI to prevent WebSocket connections from interfering with Cypress
+    hmr: process.env.CI ? false : { port: 5173 },
     proxy: {
       '/api': {
         // Proxy API calls to local Flask backend

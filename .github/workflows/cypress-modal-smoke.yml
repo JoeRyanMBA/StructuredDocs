@@ -53,7 +53,7 @@ jobs:
         with:
           install: false
           browser: chrome
-          command: npm run cy:modal-smoke
+          spec: cypress/e2e/modal-smoke.cy.js
           start: npm --prefix frontend run dev -- --host 0.0.0.0 --port 5173
           wait-on: 'http://127.0.0.1:5173'
           wait-on-timeout: 120
