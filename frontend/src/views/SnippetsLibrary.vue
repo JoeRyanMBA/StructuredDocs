@@ -576,7 +576,13 @@ export default {
 </script>
 
 <style scoped>
-.snippets-library { padding: 1.5rem; max-width: 1100px; }
+.snippets-library {
+  width: 100%;
+  max-width: 1100px;
+  margin: 0 auto;
+  padding: 0 2rem 2rem;
+  box-sizing: border-box;
+}
 .page-header { margin-bottom: 1.5rem; }
 .page-header h1 { margin: 0 0 0.25rem; font-size: 2.5rem; font-weight: 300; color: var(--primary-deep-teal); }
 .subtitle { color: #6c757d; margin: 0; font-size: 0.95rem; }

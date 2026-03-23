@@ -173,7 +173,7 @@ export default {
   top: calc(var(--header-height) + var(--ticker-height));
   left: 0;
   bottom: 0;
-  background: #343a40;
+  background: var(--primary-deep-teal);
   color: #f8f9fa;
   padding-top: 1rem;
   z-index: 1000;
@@ -228,11 +228,15 @@ export default {
   color: white;
 }
 
+.sidebar-nav .router-link-active .nav-label {
+  font-weight: 700;
+}
+
 .submenu {
   list-style: none;
   padding-left: 0;
   margin: 0;
-  background-color: #2c3e50; /* Slightly different background for submenu */
+  background-color: var(--primary-medium-teal);
 }
 
 .submenu li a {
@@ -261,7 +265,7 @@ export default {
 .submenu {
   list-style: none;
   padding-left: 1.5rem;
-  background: #2c3034;
+  background: var(--primary-medium-teal);
 }
 
 .submenu li a {
