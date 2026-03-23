@@ -1010,6 +1010,18 @@ export default {
       }
       return classMap[nextStatus] || 'advance-btn'
     },
+
+    getStatusButtonIcon(currentStatus) {
+      const nextStatus = this.getNextStatus(currentStatus)
+      if (!nextStatus) return ''
+
+      const iconMap = {
+        'in_progress': 'bi bi-arrow-right-circle',
+        'review': 'bi bi-chat-square-text',
+        'completed': 'bi bi-check-circle'
+      }
+      return iconMap[nextStatus] || ''
+    },
     
     formatPriority(priority) {
       const priorityMap = {
