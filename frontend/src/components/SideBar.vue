@@ -212,7 +212,7 @@ export default {
 .sidebar-nav li a, .sidebar-nav li > a {
   display: flex;
   align-items: center;
-  padding: 0.75rem 1.5rem;
+  padding: 0.75rem 1.5rem 0.75rem 0.75rem;
   color: #f8f9fa;
   text-decoration: none;
   transition: background 0.2s;
