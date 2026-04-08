@@ -57,7 +57,7 @@
             <IconPlus className="plus-svg" size="28" />
           </div>
           <div class="action-content" title="Start organizing topics into collections">
-            <h3>Create New Collection</h3>
+            <h3>Create Collection</h3>
           </div>
         </button>
         <button class="quick-action-card" @click="navigateTo('/import')">
