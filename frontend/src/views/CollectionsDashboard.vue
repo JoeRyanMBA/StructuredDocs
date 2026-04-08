@@ -412,7 +412,7 @@ export default {
           form_number: this.newCollection.form_number,
           description: this.newCollection.description,
           status: this.newCollection.status,
-          project_id: this.newCollection.projectId
+          projectId: this.newCollection.projectId ? Number(this.newCollection.projectId) : null
         }
         await apiRequest('/api/collections', {
           method: 'POST',
@@ -430,8 +430,9 @@ export default {
     assignProjectNames(collections) {
       if (!this.projects || this.projects.length === 0) return collections;
       return collections.map(col => {
-  // Robustly match projectId (number or string)
-  const colProjId = col.projectId !== undefined && col.projectId !== null ? Number(col.projectId) : null;
+  // Support both camelCase and snake_case project id keys
+  const rawProjectId = col.projectId ?? col.project_id ?? null;
+  const colProjId = rawProjectId !== null ? Number(rawProjectId) : null;
   const proj = this.projects.find(p => Number(p.id) === colProjId);
         return { ...col, projectName: proj ? proj.name : 'Unknown Project' };
       });
