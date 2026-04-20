@@ -121,6 +121,7 @@ export default {
 <style>
 .topic-wrapper {
   display: block;
+  user-select: none;
 }
 
 .collection-topic-item {
@@ -132,6 +133,7 @@ export default {
   display: flex;
   align-items: center;
   cursor: pointer;
+  user-select: none;
 }
 
 .collection-topic-item.selected {
@@ -169,6 +171,7 @@ export default {
   cursor: grab;
   margin-right: 0.5rem;
   flex-shrink: 0;
+  user-select: none;
 }
 
 .topic-content-row {

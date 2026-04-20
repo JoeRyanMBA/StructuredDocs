@@ -1630,6 +1630,7 @@ export default {
   border-radius: 8px;
   padding: 1.5rem;
   box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+  user-select: none;
 }
 
 .topics-panel {
@@ -1847,6 +1848,7 @@ export default {
   display: flex;
   align-items: center;
   cursor: pointer;
+  user-select: none;
 }
 
 .collection-topic-item.selected, .unassigned-topic-item.selected {
@@ -1857,6 +1859,7 @@ export default {
 .drag-handle {
   cursor: grab;
   margin-right: 0.5rem;
+  user-select: none;
 }
 
 .topic-title {
