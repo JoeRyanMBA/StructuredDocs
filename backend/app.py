@@ -4,7 +4,7 @@ import sys
 import os
 import mimetypes
 import secrets
-from flask import Flask, jsonify, send_from_directory, send_file, request, make_response
+from flask import Flask, jsonify, send_from_directory, send_file, request, make_response, current_app
 from flask_cors import CORS
 from werkzeug.exceptions import HTTPException
 from .extensions import db, migrate, jwt, limiter, init_sentry, redis_conn, task_queue
