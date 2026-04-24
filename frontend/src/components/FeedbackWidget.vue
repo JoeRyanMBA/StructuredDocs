@@ -73,6 +73,7 @@
 
 <script>
 import { toast } from '@/composables/useToast'
+import { apiPost } from '@/api/base'
 export default {
   name: 'FeedbackWidget',
   data() {
@@ -92,12 +93,7 @@ export default {
           message: this.feedback.message,
           metadata: { source: 'FeedbackWidget' }
         }
-        const res = await fetch('/api/feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (!res.ok) throw new Error('Submit failed')
+        await apiPost('/api/feedback', payload)
         this.showFeedbackModal = false
         this.feedback = { type: 'general', message: '' }
         toast.success('Thank you for your feedback!')
@@ -114,12 +110,7 @@ export default {
           message: `${this.bugReport.description || ''}\n\nRepro:\n${this.bugReport.reproduction_steps || ''}`.trim(),
           metadata: { source: 'FeedbackWidget' }
         }
-        const res = await fetch('/api/feedback', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (!res.ok) throw new Error('Submit failed')
+        await apiPost('/api/feedback', payload)
         this.showBugModal = false
         this.bugReport = { area: '', description: '', reproduction_steps: '' }
         toast.success('Thank you for reporting this bug!')
