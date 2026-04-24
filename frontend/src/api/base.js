@@ -29,6 +29,24 @@ function computeApiBase() {
 
 export const API_BASE = computeApiBase();
 
+function isLikelyJwt(token) {
+  if (!token || typeof token !== 'string') return false;
+  const parts = token.split('.');
+  return parts.length === 3 && parts.every(Boolean);
+}
+
+function getStoredAccessToken() {
+  if (typeof localStorage === 'undefined') return null;
+  const token = localStorage.getItem('access_token');
+  if (!isLikelyJwt(token)) {
+    if (token) {
+      localStorage.removeItem('access_token');
+    }
+    return null;
+  }
+  return token;
+}
+
 async function _doRefresh() {
   const refreshToken = typeof localStorage !== 'undefined' ? localStorage.getItem('refresh_token') : null;
   if (!refreshToken) return null;
@@ -51,7 +69,7 @@ async function _doRefresh() {
 export async function apiRequest(endpoint, options = {}, _isRetry = false) {
   const url = `${API_BASE}${endpoint}`;
   
-  const token = typeof localStorage !== 'undefined' ? localStorage.getItem('access_token') : null;
+  const token = getStoredAccessToken();
   const defaultOptions = {
     credentials: 'include',
     headers: {
@@ -83,11 +101,31 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
 
   if (!response.ok) {
     let message = `API Error: ${response.status} ${response.statusText}`;
+    let body = null;
     try {
-      const body = await response.json();
+      body = await response.json();
       if (body?.error) message = body.error;
+      else if (body?.msg) message = body.msg;
       else if (body?.message) message = body.message;
     } catch (_) { /* body not JSON, keep default message */ }
+
+    // JWT parsing/validation errors from Flask-JWT-Extended often return 422.
+    // Treat these as auth logout signals to avoid endless failing retries.
+    if (
+      response.status === 422 &&
+      typeof message === 'string' &&
+      /(jwt|token|segments|signature|subject|claims|authorization)/i.test(message)
+    ) {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('access_token');
+        localStorage.removeItem('refresh_token');
+        localStorage.removeItem('isAuthenticated');
+      }
+      if (typeof window !== 'undefined') {
+        window.dispatchEvent(new CustomEvent('auth:logout'));
+      }
+    }
+
     throw new Error(message);
   }
   
