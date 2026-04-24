@@ -299,7 +299,9 @@ export default {
     },
     getAuthHeaders() {
       const token = localStorage.getItem('access_token')
-      return token ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' } : { 'Content-Type': 'application/json' }
+      return token && token.split('.').length === 3
+        ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' }
     },
 
     async loadDashboardData() {
