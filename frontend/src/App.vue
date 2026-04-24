@@ -106,7 +106,9 @@ export default {
     }
   },
   created() {
-    this.fetchNotifications()
+    if (localStorage.getItem('access_token')) {
+      this.fetchNotifications()
+    }
     // Start session watcher if user is already logged in
     if (localStorage.getItem('access_token')) {
       this.startSessionWatcher()
@@ -151,6 +153,10 @@ export default {
       }
     },
     async fetchNotifications() {
+      if (!localStorage.getItem('access_token')) {
+        this.notifications = []
+        return
+      }
       this.notificationsLoading = true
       try {
         const data = await apiGet('/api/notifications')
