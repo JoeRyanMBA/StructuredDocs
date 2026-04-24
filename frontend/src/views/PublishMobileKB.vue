@@ -76,6 +76,8 @@
 </template>
 
 <script>
+import { apiGet } from '@/api/base'
+import { downloadMobileKnowledgeBase, getPublications, previewMobileKnowledgeBase } from '@/api/publications'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -107,10 +109,7 @@ export default {
       this.error = null
       
       try {
-        const res = await fetch('/api/publications')
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        
-        const data = await res.json()
+        const data = await getPublications()
         // Ensure publications are sorted by most recent first
         const pubs = Array.isArray(data) ? data : (data.publications || [])
         this.publications = pubs.sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
@@ -124,11 +123,8 @@ export default {
 
     async loadTags() {
       try {
-        const res = await fetch('/api/tags/')
-        if (res.ok) {
-          const data = await res.json()
-          this.allTags = Array.isArray(data) ? data : (data.tags || [])
-        }
+        const data = await apiGet('/api/tags/')
+        this.allTags = Array.isArray(data) ? data : (data.tags || [])
       } catch (e) {
         console.error('Failed to load tags', e)
       }
@@ -143,22 +139,24 @@ export default {
       this.$router.push({ name: 'PublicationView', params: { id: pub.id } })
     },
     
-    previewMobileKB(pubId) {
-      const params = this._tagParams()
-      const previewUrl = `/api/publications/${pubId}/preview/mobile-kb${params ? '?' + params : ''}`
-      const previewWindow = window.open(
-        previewUrl, 
-        '_blank', 
-        'width=375,height=812,scrollbars=yes,resizable=yes,toolbar=no,menubar=no'
-      )
-      if (previewWindow) {
-        previewWindow.focus()
+    async previewMobileKB(pubId) {
+      try {
+        await previewMobileKnowledgeBase(pubId, this.selectedTagIds)
+      } catch (e) {
+        console.error('Failed to preview mobile KB:', e)
+        this.error = e.message || 'Failed to preview mobile knowledge base'
       }
     },
     
-    exportMobileKB(pubId) {
-      const params = this._tagParams()
-      window.open(`/api/publications/${pubId}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
+    async exportMobileKB(pubId) {
+      const publication = this.publications.find(pub => pub.id === pubId)
+      const filename = `${publication?.title || 'publication'}_mobile_kb.html`
+      try {
+        await downloadMobileKnowledgeBase(pubId, filename, this.selectedTagIds)
+      } catch (e) {
+        console.error('Failed to export mobile KB:', e)
+        this.error = e.message || 'Failed to export mobile knowledge base'
+      }
     },
     scrollToAllPublications() {
       this.$refs.allPublicationsSection?.scrollIntoView({ behavior: 'smooth', block: 'start' })

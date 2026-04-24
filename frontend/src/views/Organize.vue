@@ -345,6 +345,8 @@
 import CollectionTree from '@/components/CollectionTree.vue'
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
+import axiosInstance from '@/api/axiosInstance'
+import { apiGet } from '@/api/base'
 import { getCollections, getCollection, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { getTopics, getTopicTagsMap } from '@/api/topics.js' // You may need to implement this
@@ -1348,37 +1350,24 @@ export default {
 
       try {
         console.log(`Publishing HTML for collection ${collectionId}`)
-        
-        const response = await fetch(`/api/collections/${collectionId}/publish`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-        
-        if (response.ok) {
-          const result = await response.json()
-          console.log('Publication created:', result)
-          this.$router.push({ name: 'PublishMobileKB' })
-        } else if (response.status === 400) {
-          let errorData = null
-          try { errorData = await response.json() } catch(_) {}
-          if (errorData?.requires_variable_selection) {
-            this.pendingPublishAction = { type: 'html', collectionId, button }
-            this.variableModalData = {
-              collectionId,
-              variablesInfo: errorData.variables_info,
-              unresolvedVariables: errorData.unresolved_variables
-            }
-            this.showVariableModal = true
-            return
-          }
-          throw new Error(errorData?.message || `Failed to publish collection: ${response.status}`)
-        } else {
-          throw new Error(`Failed to publish collection: ${response.status}`)
-        }
+        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
+        console.log('Publication created:', result)
+        this.$router.push({ name: 'PublishMobileKB' })
         
       } catch (error) {
+        const errorData = error?.response?.data
+        if (error?.response?.status === 400 && errorData?.requires_variable_selection) {
+          this.pendingPublishAction = { type: 'html', collectionId, button }
+          this.variableModalData = {
+            collectionId,
+            variablesInfo: errorData.variables_info,
+            unresolvedVariables: errorData.unresolved_variables
+          }
+          this.showVariableModal = true
+          return
+        }
         console.error('Error publishing collection:', error)
-  toast.error(`Error publishing collection: ${error.message}`)
+  toast.error(`Error publishing collection: ${errorData?.message || errorData?.error || error.message}`)
         
         if (button) {
           button.disabled = false
@@ -1396,37 +1385,24 @@ export default {
 
       try {
         console.log(`Publishing PDF for collection ${collectionId}`)
-        
-        const response = await fetch(`/api/collections/${collectionId}/publish`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-        
-        if (response.ok) {
-          const result = await response.json()
-          console.log('Publication created:', result)
-          this.$router.push({ name: 'PublishPDF' })
-        } else if (response.status === 400) {
-          let errorData = null
-          try { errorData = await response.json() } catch(_) {}
-          if (errorData?.requires_variable_selection) {
-            this.pendingPublishAction = { type: 'pdf', collectionId, button }
-            this.variableModalData = {
-              collectionId,
-              variablesInfo: errorData.variables_info,
-              unresolvedVariables: errorData.unresolved_variables
-            }
-            this.showVariableModal = true
-            return
-          }
-          throw new Error(errorData?.message || `Failed to publish collection: ${response.status}`)
-        } else {
-          throw new Error(`Failed to publish collection: ${response.status}`)
-        }
+        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
+        console.log('Publication created:', result)
+        this.$router.push({ name: 'PublishPDF' })
         
       } catch (error) {
+        const errorData = error?.response?.data
+        if (error?.response?.status === 400 && errorData?.requires_variable_selection) {
+          this.pendingPublishAction = { type: 'pdf', collectionId, button }
+          this.variableModalData = {
+            collectionId,
+            variablesInfo: errorData.variables_info,
+            unresolvedVariables: errorData.unresolved_variables
+          }
+          this.showVariableModal = true
+          return
+        }
         console.error('Error publishing collection:', error)
-  toast.error(`Error publishing collection: ${error.message}`)
+  toast.error(`Error publishing collection: ${errorData?.message || errorData?.error || error.message}`)
         
         if (button) {
           button.disabled = false
@@ -1451,9 +1427,7 @@ export default {
       const btn = event?.target
       if (btn) { btn.disabled = true; btn.textContent = 'Loading…' }
       try {
-        const resp = await fetch(`/api/variables/collections/${collectionId}/publish-setup`)
-        const data = await resp.json().catch(()=>({}))
-        if (!resp.ok) throw new Error(data.error || 'Failed to load variable setup')
+        const data = await apiGet(`/api/variables/collections/${collectionId}/publish-setup`)
         const variablesInfo = (data.variables_in_content||[]).map(v => ({
           id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection
         }))
@@ -1476,20 +1450,13 @@ export default {
           toast.success('Variables configured. You can now publish HTML or PDF.')
           return
         }
-        const response = await fetch(`/api/collections/${collectionId}/publish`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' }
-        })
-        if (!response.ok) {
-          const errData = await response.json().catch(() => null)
-          throw new Error(errData?.message || `Failed to publish collection: ${response.status}`)
-        }
-        const result = await response.json()
+        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
         toast.success('Collection published successfully!')
         if (type === 'html') this.$router.push({ name: 'PublishMobileKB' })
         else this.$router.push({ name: 'PublishPDF' })
       } catch (e) {
         console.error(e)
-        toast.error(e.message)
+        toast.error(e?.response?.data?.message || e?.response?.data?.error || e.message)
       } finally {
         this.closeVariableModal()
       }

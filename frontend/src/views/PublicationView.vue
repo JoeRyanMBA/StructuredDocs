@@ -66,6 +66,8 @@
 
 <script>
 import { marked } from 'marked'
+import { apiGet } from '@/api/base'
+import { downloadMobileKnowledgeBase, downloadPublicationPdf, getPublication, previewMobileKnowledgeBase } from '@/api/publications'
 import PublicationNodeView from '@/components/PublicationNodeView.vue'
 
 export default {
@@ -95,20 +97,15 @@ export default {
   },
   async created() {
     try {
-      const [pubRes, tagsRes] = await Promise.all([
-        fetch(`/api/publications/${this.id}`),
-        fetch('/api/tags/')
+      const [json, tagsData] = await Promise.all([
+        getPublication(this.id),
+        apiGet('/api/tags/')
       ])
-      if (!pubRes.ok) throw new Error(`Failed to fetch publication: ${pubRes.status}`)
-      const json = await pubRes.json()
       this.pub  = { title: json.title, description: json.description }
       this.tree = json.tree
       // Auto-select the first topic so the panel is never empty
       if (this.tree.length) this._autoSelectFirst(this.tree)
-      if (tagsRes.ok) {
-        const tagsData = await tagsRes.json()
-        this.allTags = Array.isArray(tagsData) ? tagsData : (tagsData.tags || [])
-      }
+      this.allTags = Array.isArray(tagsData) ? tagsData : (tagsData.tags || [])
     } catch (err) {
       console.error('Error loading publication:', err)
       this.error = 'Failed to load publication'
@@ -127,25 +124,29 @@ export default {
     _tagParams() {
       return this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
     },
-    downloadPDF() {
-      const params  = this._tagParams()
-      const pdfUrl  = `/api/publications/${this.id}/export/pdf${params ? '?' + params : ''}`
-      const link    = document.createElement('a')
-      link.href     = pdfUrl
-      link.download = `${this.pub?.title || 'publication'}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+    async downloadPDF() {
+      try {
+        await downloadPublicationPdf(this.id, `${this.pub?.title || 'publication'}.pdf`, this.selectedTagIds)
+      } catch (e) {
+        console.error('PDF export failed:', e)
+        this.error = e.message || 'Failed to export PDF'
+      }
     },
-    exportMobileKB() {
-      const params = this._tagParams()
-      window.open(`/api/publications/${this.id}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
+    async exportMobileKB() {
+      try {
+        await downloadMobileKnowledgeBase(this.id, `${this.pub?.title || 'publication'}_mobile_kb.html`, this.selectedTagIds)
+      } catch (e) {
+        console.error('Mobile KB export failed:', e)
+        this.error = e.message || 'Failed to export mobile knowledge base'
+      }
     },
-    previewMobileKB() {
-      const params        = this._tagParams()
-      const previewUrl    = `/api/publications/${this.id}/preview/mobile-kb${params ? '?' + params : ''}`
-      const previewWindow = window.open(previewUrl, '_blank', 'width=375,height=812,scrollbars=yes,resizable=yes')
-      if (previewWindow) previewWindow.focus()
+    async previewMobileKB() {
+      try {
+        await previewMobileKnowledgeBase(this.id, this.selectedTagIds)
+      } catch (e) {
+        console.error('Mobile KB preview failed:', e)
+        this.error = e.message || 'Failed to preview mobile knowledge base'
+      }
     }
   }
 }

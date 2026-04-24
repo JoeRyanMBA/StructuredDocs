@@ -50,6 +50,8 @@
 </template>
 
 <script>
+import { apiGet } from '@/api/base'
+import { downloadPublicationPdf, getPublications } from '@/api/publications'
 import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
@@ -70,9 +72,7 @@ export default {
   methods: {
     async loadPublications() {
       try {
-        const res = await fetch('/api/publications')
-        if (!res.ok) throw new Error(`Failed to fetch publications: ${res.statusText}`)
-        const data = await res.json()
+        const data = await getPublications()
         this.publications = Array.isArray(data) ? data : (data.publications || [])
       } catch (err) {
         console.error('Failed to fetch publications:', err)
@@ -83,24 +83,19 @@ export default {
     },
     async loadTags() {
       try {
-        const res = await fetch('/api/tags/')
-        if (res.ok) {
-          const data = await res.json()
-          this.allTags = Array.isArray(data) ? data : (data.tags || [])
-        }
+        const data = await apiGet('/api/tags/')
+        this.allTags = Array.isArray(data) ? data : (data.tags || [])
       } catch (e) {
         console.error('Failed to load tags', e)
       }
     },
-    downloadPDF(pub) {
-      const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
-      const pdfUrl = `/api/publications/${pub.id}/export/pdf${params ? '?' + params : ''}`
-      const link = document.createElement('a')
-      link.href = pdfUrl
-      link.download = `${pub.title || 'publication'}.pdf`
-      document.body.appendChild(link)
-      link.click()
-      document.body.removeChild(link)
+    async downloadPDF(pub) {
+      try {
+        await downloadPublicationPdf(pub.id, `${pub.title || 'publication'}.pdf`, this.selectedTagIds)
+      } catch (e) {
+        console.error('PDF export failed:', e)
+        this.error = e.message || 'Failed to export PDF'
+      }
     },
     formatDate(dateString) {
       if (!dateString) return 'Unknown'
