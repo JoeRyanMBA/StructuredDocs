@@ -256,6 +256,7 @@ import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 import BulkRequestReviewModal from '@/components/BulkRequestReviewModal.vue'
 import UsageBadge from '@/components/UsageBadge.vue'
 import { toast } from '@/composables/useToast'
+import { apiGet, apiPost } from '@/api/base'
 import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
@@ -378,14 +379,12 @@ export default {
       this.error = null
 
       try {
-        const [res, usageRes] = await Promise.all([
-          fetch('/api/topics/'),
-          fetch('/api/topics/usage-summary')
+        const [data, usageData] = await Promise.all([
+          apiGet('/api/topics/'),
+          apiGet('/api/topics/usage-summary').catch(() => null)
         ])
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        const data = await res.json()
         this.topics = Array.isArray(data) ? data : (data.topics || [])
-        if (usageRes.ok) this.topicUsage = await usageRes.json()
+        if (usageData) this.topicUsage = usageData
         this.applyFilters()
       } catch (err) {
         console.error('API fetch failed, using sample data:', err)
@@ -600,9 +599,7 @@ export default {
 
     async fetchReviewers() {
       try {
-        const res = await fetch('/api/reviews/reviewers')
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        this.availableReviewers = await res.json()
+        this.availableReviewers = await apiGet('/api/reviews/reviewers')
       } catch (err) {
         console.error('Failed to fetch reviewers:', err)
         // Set fallback reviewers if API fails
@@ -614,9 +611,7 @@ export default {
 
     async fetchProjects() {
       try {
-        const res = await fetch('/api/projects/')
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        this.availableProjects = await res.json()
+        this.availableProjects = await apiGet('/api/projects/')
       } catch (err) {
         console.error('Failed to fetch projects:', err)
         this.availableProjects = []
@@ -626,9 +621,7 @@ export default {
     async fetchProjectStakeholders(projectId) {
       try {
         console.log('Fetching stakeholders for project:', projectId)
-        const res = await fetch(`/api/projects/${projectId}/stakeholders`)
-        if (!res.ok) throw new Error(`Status ${res.status}`)
-        const stakeholders = await res.json()
+        const stakeholders = await apiGet(`/api/projects/${projectId}/stakeholders`)
         // Filter out any invalid stakeholder objects
         this.projectStakeholders = (stakeholders || []).filter(s => s && s.id && s.name)
         console.log('Loaded stakeholders:', this.projectStakeholders)
@@ -740,19 +733,9 @@ export default {
 
           console.log('Sending sequential review request:', sequencePayload)
 
-          const res = await fetch('/api/sequences/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(sequencePayload)
-          })
-
-          if (!res.ok) {
-            const errorData = await res.json()
-            console.error('Sequential review request failed:', errorData)
-            throw new Error(`Sequential review request failed: ${errorData.error || res.status}`)
-          }
-
-          const result = await res.json()
+          const result = await apiPost('/api/sequences/', sequencePayload)
+          if (!result) throw new Error('Sequential review request failed')
+          console.log('Sequential review created:', result)
           console.log('Sequential review created:', result)
           
           // Store topic title before closing modal
@@ -781,21 +764,9 @@ export default {
 
             console.log('Sending review request:', reviewPayload)
 
-            const res = await fetch('/api/reviews/request', {
-              method: 'POST',
-              headers: { 'Content-Type': 'application/json' },
-              body: JSON.stringify(reviewPayload)
-            })
-
-            console.log('Review request response status:', res.status)
-
-            if (!res.ok) {
-              const errorData = await res.json()
-              console.error('Review request failed:', errorData)
-              throw new Error(`Review request failed: ${errorData.error || res.status}`)
-            }
-
-            return await res.json()
+            const result = await apiPost('/api/reviews/request', reviewPayload)
+            console.log('Review request response:', result)
+            return result
           })
 
           // Wait for all review requests to complete
