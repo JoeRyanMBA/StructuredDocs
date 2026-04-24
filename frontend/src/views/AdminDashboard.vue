@@ -234,7 +234,12 @@ export default {
     return {
       loading: true,
       stats: {},
-      dbMetrics: {},
+      dbMetrics: {
+        tables: 0,
+        rows: 0,
+        size: 'N/A',
+        lastBackup: 'Unknown'
+      },
       userStats: {},
       systemMetrics: {
         cpu: 15,
@@ -270,6 +275,17 @@ export default {
     await this.loadDashboardData()
   },
   methods: {
+    normalizeDbMetricsFromDashboard(statsData) {
+      const raw = statsData?.databaseMetrics || {}
+      const tableLike = Object.keys(raw).length
+      const rowLike = Object.values(raw).reduce((sum, v) => sum + (Number(v) || 0), 0)
+      return {
+        tables: tableLike,
+        rows: rowLike,
+        size: statsData?.systemOverview?.databaseSize || 'N/A',
+        lastBackup: 'Unknown'
+      }
+    },
     async confirmClearDatabase() {
       const storageNote = this.purgeStorageOnClear ? `\n\nStorage purge enabled for prefix: ${this.clearStoragePrefix || 'images/'}` : ''
       if (!window.confirm(`Are you sure you want to clear ALL data except the admin user? This cannot be undone!${storageNote}`)) return;
@@ -331,7 +347,7 @@ export default {
               newUsersThisWeek: statsData.userStats?.newUsersWeekly || 0,
               activeUsers: statsData.userStats?.activeUsers || 0
             }
-            this.dbMetrics = statsData.databaseMetrics || statsData.databaseMetrics || {}
+            this.dbMetrics = this.normalizeDbMetricsFromDashboard(statsData)
 
           } else if (statsData.projects || statsData.users || statsData.topics) {
             // Older / simpler endpoint shape (safe fallbacks)
@@ -349,18 +365,22 @@ export default {
               activeUsers: statsData.users?.active || 0
             }
             // Map database metrics if present
-            this.dbMetrics = statsData.databaseMetrics || {
-              projects: statsData.projects?.total || statsData.projects || 0,
-              collections: statsData.collections?.total || statsData.collections || 0,
-              topics: statsData.topics?.total || statsData.topics || 0,
-              users: (statsData.users && (statsData.users.total || statsData.users)) || 0
+            this.dbMetrics = {
+              tables: 4,
+              rows:
+                (statsData.projects?.total || statsData.projects || 0) +
+                (statsData.collections?.total || statsData.collections || 0) +
+                (statsData.topics?.total || statsData.topics || 0) +
+                ((statsData.users && (statsData.users.total || statsData.users)) || 0),
+              size: 'N/A',
+              lastBackup: 'Unknown'
             }
           } else {
             // Unknown shape: keep safe defaults
             console.warn('Unrecognized dashboard stats shape; using safe defaults')
             this.stats = { totalUsers: 0, activeUsers: 0, authors: 0, reviewers: 0, systemHealth: 'Good', uptime: '99.9%' }
             this.userStats = { totalUsers: 0, newUsersThisWeek: 0, activeUsers: 0 }
-            this.dbMetrics = {}
+            this.dbMetrics = { tables: 0, rows: 0, size: 'N/A', lastBackup: 'Unknown' }
           }
         } else {
           console.warn('Dashboard stats API returned non-OK:', statsResponse.status)
@@ -395,7 +415,10 @@ export default {
     async loadDbMetrics() {
       try {
         const response = await fetch('/api/metrics/')
-        if (!response.ok) throw new Error('Failed to fetch database metrics')
+        if (!response.ok) {
+          console.warn('Database metrics endpoint unavailable; keeping dashboard fallback metrics')
+          return
+        }
         const data = await response.json()
         const db = data.database || {}
         this.dbMetrics = {
