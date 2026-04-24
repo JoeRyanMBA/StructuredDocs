@@ -16,6 +16,7 @@ import tempfile
 import os
 import shutil
 import uuid
+import zipfile
 from urllib.parse import urlparse
 
 import_bp = Blueprint('import_handler', __name__, url_prefix='/api/import')
@@ -112,6 +113,14 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             current_app.logger.debug(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             current_app.logger.info(f"✅ PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             
+            # If pandoc misses embedded media, pull files directly from DOCX package.
+            fallback_media_count = _extract_docx_media_fallback(file_content, temp_media_dir)
+            if fallback_media_count:
+                current_app.logger.info(
+                    f"🧩 DOCX fallback extracted {fallback_media_count} embedded media file(s) "
+                    f"for import {import_doc_id}"
+                )
+
             # Initialize image handler
             image_handler = ImageHandler(import_doc_id)
             
@@ -200,6 +209,39 @@ def _convert_word_to_markdown(file_content, import_doc_id):
         if "pandoc" in str(e).lower() and ("not found" in str(e).lower() or "command not found" in str(e).lower()):
             raise Exception("Pandoc is not installed. Please contact your system administrator to install pandoc for Word document conversion.")
         raise Exception(f"Failed to convert Word to Markdown: {str(e)}")
+
+
+def _extract_docx_media_fallback(file_content, temp_media_dir):
+    """Extract /word/media/* files directly from DOCX as a fallback for missed pandoc media."""
+    extracted_count = 0
+    try:
+        os.makedirs(temp_media_dir, exist_ok=True)
+        with zipfile.ZipFile(io.BytesIO(file_content)) as docx_zip:
+            media_entries = [
+                name for name in docx_zip.namelist()
+                if name.lower().startswith('word/media/') and not name.endswith('/')
+            ]
+
+            for entry in media_entries:
+                filename = os.path.basename(entry)
+                if not filename:
+                    continue
+
+                target_path = os.path.join(temp_media_dir, filename)
+                # Keep pandoc-extracted files when present.
+                if os.path.exists(target_path):
+                    continue
+
+                with docx_zip.open(entry) as src, open(target_path, 'wb') as dst:
+                    shutil.copyfileobj(src, dst)
+                extracted_count += 1
+
+    except zipfile.BadZipFile:
+        current_app.logger.warning("DOCX fallback media extraction skipped: invalid zip payload")
+    except Exception as e:
+        current_app.logger.warning(f"DOCX fallback media extraction failed: {e}")
+
+    return extracted_count
 
 
 def _convert_word_to_markdown_no_images(file_content):

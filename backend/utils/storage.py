@@ -151,6 +151,16 @@ def get_storage_backend() -> StorageBackend:
     Checks environment variables to determine which backend to use.
     Falls back gracefully if boto3 is not available.
     """
+    # Allow explicit backend pinning so production can force local VPS storage.
+    backend_mode = (os.environ.get('STORAGE_BACKEND') or '').strip().lower()
+    import logging
+    logger = logging.getLogger(__name__)
+
+    storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
+    if backend_mode in {'local', 'filesystem', 'vps'}:
+        logger.info(f"✅ STORAGE_BACKEND={backend_mode}; using LocalStorage at {storage_root}")
+        return LocalStorage(storage_root)
+
     # Check if Spaces is configured
     spaces_bucket = os.environ.get('SPACES_BUCKET')
     spaces_region = os.environ.get('SPACES_REGION')
@@ -159,8 +169,6 @@ def get_storage_backend() -> StorageBackend:
     
     if all([spaces_bucket, spaces_region, spaces_access_key, spaces_secret_key]):
         # Try to use Spaces
-        import logging
-        logger = logging.getLogger(__name__)
         logger.info(f"🔧 Attempting to initialize Spaces storage: bucket={spaces_bucket}, region={spaces_region}")
         
         try:
@@ -183,8 +191,5 @@ def get_storage_backend() -> StorageBackend:
             logger.error(f"❌ Failed to initialize Spaces storage: {e}. Falling back to local storage.", exc_info=True)
     
     # Fall back to local storage
-    import logging
-    logger = logging.getLogger(__name__)
-    storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
     logger.warning(f"⚠️ Using LocalStorage fallback: {storage_root} (Spaces not configured or failed to initialize)")
     return LocalStorage(storage_root)

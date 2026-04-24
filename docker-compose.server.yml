@@ -8,7 +8,8 @@ services:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
-      - IMAGE_STORAGE_ROOT=/app/backend/static/images
+      - STORAGE_BACKEND=local
+      - IMAGE_STORAGE_ROOT=/app/data/images
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
@@ -24,6 +25,7 @@ services:
     volumes:
       - ./.enable_blueprints:/app/.enable_blueprints:ro
       - ./instance:/app/instance
+      - ./data/images:/app/data/images
       - ./data/images:/app/backend/static/images
     command: ["./start.sh"]
     # Optional: Run permission fix on startup (if needed)

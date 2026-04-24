@@ -13,6 +13,7 @@ class ImageHandler:
     """Handles image extraction, storage, and path management for imports"""
     
     SUPPORTED_FORMATS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
+    VECTOR_FORMATS = {'.emf', '.wmf'}
     MAX_IMAGE_SIZE = (1920, 1080)  # Max dimensions for optimization
     
     def __init__(self, import_doc_id):
@@ -132,9 +133,9 @@ class ImageHandler:
         except Exception as e:
             current_app.logger.error(f"❌ Pre-flight check failed: {str(e)}")
         
-        # Find all image files in temp directory, including .emf
+        # Find all image files in temp directory, including vector formats
         image_files = []
-        emf_files = []
+        vector_files = []
         all_files_found = []
         
         for root, dirs, files in os.walk(temp_media_dir):
@@ -145,37 +146,25 @@ class ImageHandler:
                 if file_path.suffix.lower() in self.SUPPORTED_FORMATS:
                     image_files.append(file_path)
                     current_app.logger.info(f"✅ Found supported image: {file}")
-                elif file_path.suffix.lower() == '.emf':
-                    emf_files.append(file_path)
-                    current_app.logger.info(f"🔄 Found EMF file (will convert): {file}")
+                elif file_path.suffix.lower() in self.VECTOR_FORMATS:
+                    vector_files.append(file_path)
+                    current_app.logger.info(f"🔄 Found vector image (will convert): {file}")
                 else:
                     current_app.logger.info(f"⚠️  Found unsupported file: {file} (type: {file_path.suffix})")
         
-        if not image_files and not emf_files:
+        if not image_files and not vector_files:
             current_app.logger.warning(f"⚠️  No images found in temp directory. All files found: {all_files_found}")
 
-        # Convert .emf files to .png using libreoffice (headless)
-        for emf_path in emf_files:
-            try:
-                png_path = emf_path.with_suffix('.png')
-                # Use libreoffice to convert emf to png
-                import subprocess
-                result = subprocess.run([
-                    'libreoffice', '--headless', '--convert-to', 'png', str(emf_path), '--outdir', str(emf_path.parent)
-                ], capture_output=True, timeout=30)
-                if result.returncode == 0 and png_path.exists():
-                    image_files.append(png_path)
-                    current_app.logger.info(f"Converted {emf_path} to {png_path}")
-                    # Update markdown references from .emf to .png
-                    old_ref = f"media/{emf_path.name}"
-                    new_ref = f"media/{png_path.name}"
-                    updated_content = updated_content.replace(old_ref, new_ref)
-                else:
-                    current_app.logger.error(f"Failed to convert {emf_path} to PNG: {result.stderr.decode()}")
-            except subprocess.TimeoutExpired:
-                current_app.logger.error(f"EMF conversion timeout for {emf_path}")
-            except Exception as e:
-                current_app.logger.error(f"Exception during EMF to PNG conversion for {emf_path}: {str(e)}")
+        # Convert vector files to .png when possible so they can be stored and displayed.
+        for vector_path in vector_files:
+            png_path = self._convert_vector_to_png(vector_path)
+            if png_path is None:
+                continue
+            image_files.append(png_path)
+            current_app.logger.info(f"Converted {vector_path} to {png_path}")
+            old_ref = f"media/{vector_path.name}"
+            new_ref = f"media/{png_path.name}"
+            updated_content = updated_content.replace(old_ref, new_ref)
 
         current_app.logger.info(f"🔍 Found {len(image_files)} images to process (after EMF conversion)")
         success_count = 0
@@ -217,6 +206,35 @@ class ImageHandler:
         current_app.logger.info(f"📊 Image extraction summary: {success_count} succeeded, {failed_count} failed out of {len(image_files)} total")
         
         return updated_content, stored_images
+
+    def _convert_vector_to_png(self, vector_path: Path):
+        """Convert a vector image (EMF/WMF) to PNG via LibreOffice/soffice."""
+        png_path = vector_path.with_suffix('.png')
+        converter_cmds = ('libreoffice', 'soffice')
+
+        for cmd in converter_cmds:
+            try:
+                import subprocess
+                result = subprocess.run(
+                    [cmd, '--headless', '--convert-to', 'png', str(vector_path), '--outdir', str(vector_path.parent)],
+                    capture_output=True,
+                    timeout=45
+                )
+                if result.returncode == 0 and png_path.exists():
+                    return png_path
+                stderr = (result.stderr or b'').decode(errors='ignore').strip()
+                if stderr:
+                    current_app.logger.warning(f"{cmd} could not convert {vector_path.name}: {stderr}")
+            except subprocess.TimeoutExpired:
+                current_app.logger.error(f"Vector conversion timeout for {vector_path.name} using {cmd}")
+            except FileNotFoundError:
+                # Try next converter command name.
+                continue
+            except Exception as e:
+                current_app.logger.error(f"Exception converting {vector_path.name} using {cmd}: {e}")
+
+        current_app.logger.error(f"Failed to convert vector image to PNG: {vector_path.name}")
+        return None
     
     def _store_single_image(self, temp_image_path):
         """
