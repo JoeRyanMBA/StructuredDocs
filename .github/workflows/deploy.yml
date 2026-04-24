@@ -53,7 +53,9 @@ jobs:
           ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
             set -euo pipefail
             cd ~/StructuredDocs
-            git pull --ff-only origin main
+            git fetch origin main
+            git reset --hard origin/main
+            git clean -fd
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml ps
             ok=0
