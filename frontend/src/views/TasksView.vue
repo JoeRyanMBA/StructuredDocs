@@ -831,14 +831,12 @@ export default {
 
           // Re-apply filters and update summary
           this.applyFilters();
-          this.fetchTaskSummary();
           this.fetchAllTags();
           this.closeModal();
           toast.success(this.showCreateModal ? 'Task created.' : 'Task updated.')
         } else {
           // Fallback to refetching if the response format is not as expected
           await this.fetchTasks();
-          await this.fetchTaskSummary();
           await this.fetchAllTags();
           this.closeModal();
           toast.success('Task saved.')
@@ -861,7 +859,6 @@ export default {
         
         // Refresh tasks
         await this.fetchTasks()
-        await this.fetchTaskSummary()
   toast.success('Task deleted.')
         
       } catch (error) {
@@ -906,8 +903,7 @@ export default {
         // Force re-render
         this.refreshKey++
         
-        // Refresh summary after status change
-        await this.fetchTaskSummary()
+          // Summary cards are derived from this.tasks via computed state
   toast.info('Task status updated.')
         
       } catch (error) {
