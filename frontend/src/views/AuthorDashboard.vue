@@ -285,6 +285,7 @@ import CompactToolbar from '../components/CompactToolbar.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
 import { toast } from '@/composables/useToast'
 import UsageBadge from '@/components/UsageBadge.vue'
+import { apiGet, apiPost } from '@/api/base'
 
 export default {
   name: 'AuthorDashboard',
@@ -383,21 +384,16 @@ export default {
 
     async loadMyTopics() {
       try {
-        const [res, usageRes] = await Promise.all([
-          fetch('/api/topics/'),
-          fetch('/api/topics/usage-summary')
+        const [allTopics, usageData] = await Promise.all([
+          apiGet('/api/topics/'),
+          apiGet('/api/topics/usage-summary').catch(() => null)
         ])
-        if (res.ok) {
-          const allTopics = await res.json()
-          this.myTopics = Array.isArray(allTopics) ? allTopics : (allTopics.topics || [])
-          this.recentTopics = [...this.myTopics]
-            .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
-            .slice(0, 5)
-          this.applyFilters()
-        }
-        if (usageRes.ok) {
-          this.topicUsage = await usageRes.json()
-        }
+        this.myTopics = Array.isArray(allTopics) ? allTopics : (allTopics?.topics || [])
+        this.recentTopics = [...this.myTopics]
+          .sort((a, b) => new Date(b.updated_at || b.created_at) - new Date(a.updated_at || a.created_at))
+          .slice(0, 5)
+        this.applyFilters()
+        if (usageData) this.topicUsage = usageData
       } catch (error) {
         console.error('Failed to load topics:', error)
         this.myTopics = []
@@ -529,9 +525,7 @@ export default {
     async loadReviewers() {
       if (this.availableReviewers.length) return
       try {
-        const res = await fetch('/api/reviews/reviewers')
-        if (!res.ok) throw new Error(`Failed to fetch reviewers (${res.status})`)
-        const reviewers = await res.json()
+        const reviewers = await apiGet('/api/reviews/reviewers')
         this.availableReviewers = Array.isArray(reviewers) ? reviewers : []
       } catch (err) {
         console.error('Failed to load reviewers:', err)
@@ -555,23 +549,14 @@ export default {
         }
 
         const reviewPromises = this.selectedReviewerIds.map(async (reviewerId) => {
-          const res = await fetch('/api/reviews/request', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify({
-              topic_id: this.selectedTopicForReview.id,
-              reviewer_id: Number(reviewerId),
-              ...requesterPayload,
-              priority: this.reviewPriority,
-              due_date: this.reviewDueDate || null,
-              message: this.reviewMessage || `Review requested for: ${this.selectedTopicForReview.title}`
-            })
+          return apiPost('/api/reviews/request', {
+            topic_id: this.selectedTopicForReview.id,
+            reviewer_id: Number(reviewerId),
+            ...requesterPayload,
+            priority: this.reviewPriority,
+            due_date: this.reviewDueDate || null,
+            message: this.reviewMessage || `Review requested for: ${this.selectedTopicForReview.title}`
           })
-
-          const payload = await res.json().catch(() => null)
-          if (!res.ok) throw new Error(payload?.error || 'Failed to submit for review')
-
-          return payload
         })
 
         await Promise.all(reviewPromises)
