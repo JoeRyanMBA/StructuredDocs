@@ -595,6 +595,7 @@ import { createStakeholder, addStakeholderToProject } from '../api/stakeholders'
 import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
 import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
+import { apiGet, apiPost, apiRequest } from '../api/base';
 import TagEditor from '@/components/TagEditor.vue'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { toast } from '@/composables/useToast'
@@ -763,12 +764,9 @@ export default {
   methods: {
     async fetchProjectRoles() {
       try {
-        const res = await fetch('/api/projects/roles')
-        if (res.ok) {
-          const data = await res.json()
-          if (Array.isArray(data.project_roles) && data.project_roles.length) {
-            this.projectRoles = data.project_roles
-          }
+        const data = await apiGet('/api/projects/roles')
+        if (Array.isArray(data.project_roles) && data.project_roles.length) {
+          this.projectRoles = data.project_roles
         }
       } catch (e) {
         // Leave defaults; show a toast for visibility
@@ -788,13 +786,10 @@ export default {
     },
     async toggleArchiveProject(project, newState) {
       try {
-        const res = await fetch(`/api/projects/${project.id}/archive`, {
+        const data = await apiRequest(`/api/projects/${project.id}/archive`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify({ archived: newState })
         });
-        if (!res.ok) throw new Error('Archive toggle failed');
-        const data = await res.json();
         project.archived = data.project?.archived ?? newState;
       } catch (e) {
         console.error('Failed to toggle archive', e);
@@ -815,23 +810,14 @@ export default {
     async handleUpdateProject() {
       try {
         // First, update the basic project information
-        const response = await fetch(`/api/projects/${this.editingProject.id}`, {
+        const updatedProject = await apiRequest(`/api/projects/${this.editingProject.id}`, {
           method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
           body: JSON.stringify({
             name: this.editingProject.name,
             description: this.editingProject.description,
             status: this.editingProject.status
           })
         })
-
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-
-        const updatedProject = await response.json()
         
         // Handle stakeholder updates
         const newStakeholders = this.editingProject.stakeholders.filter(s => s.isNew)
@@ -839,11 +825,8 @@ export default {
           try {
             if (stakeholder.stakeholder_id) {
               // Add existing stakeholder to project
-              await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+              await apiRequest(`/api/projects/${this.editingProject.id}/stakeholders`, {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                   stakeholder_id: stakeholder.stakeholder_id,
                   role: stakeholder.role,
@@ -852,11 +835,8 @@ export default {
               })
             } else {
               // Create new stakeholder and add to project
-              await fetch(`/api/projects/${this.editingProject.id}/stakeholders`, {
+              await apiRequest(`/api/projects/${this.editingProject.id}/stakeholders`, {
                 method: 'POST',
-                headers: {
-                  'Content-Type': 'application/json'
-                },
                 body: JSON.stringify({
                   name: stakeholder.name,
                   email: stakeholder.email,
@@ -899,11 +879,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/projects/')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const projects = await response.json()
+        const projects = await apiGet('/api/projects/')
         
         // Transform API data to match frontend expectations
         this.projects = projects.map(project => ({
@@ -931,11 +907,7 @@ export default {
     async fetchStakeholders() {
       this.loadingStakeholders = true
       try {
-        const response = await fetch('/api/stakeholders/')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const stakeholders = await response.json()
+        const stakeholders = await apiGet('/api/stakeholders/')
         this.availableStakeholders = stakeholders
         console.log('Loaded stakeholders:', this.availableStakeholders)
       } catch (error) {
@@ -980,16 +952,7 @@ export default {
           start_date: this.newProject.start_date || null,
           target_completion: this.newProject.target_completion || null
         }
-        const response = await fetch('/api/projects/', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(payload)
-        })
-        if (!response.ok) {
-          const errorText = await response.text()
-          throw new Error(`Failed to create project: ${response.status} ${errorText}`)
-        }
-        const createdProject = await response.json()
+        const createdProject = await apiPost('/api/projects/', payload)
         this.createdProjectId = createdProject.id
         this.createdProjectName = createdProject.name
         // Immediately reflect in dashboard list/metrics
@@ -1210,13 +1173,10 @@ export default {
           description: '',
           project_id: this.newProject.id || this.editingProject.id
         }
-        const res = await fetch('/api/collections', {
+        const newCollection = await apiRequest('/api/collections', {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!res.ok) throw new Error(await res.text())
-        const newCollection = await res.json()
         target.collections.push(newCollection)
       } catch (error) {
   toast.error('Failed to add collection: ' + error.message)
@@ -1231,10 +1191,9 @@ export default {
         return
       }
       try {
-        const res = await fetch(`/api/collections/${collection.id}`, {
+        await apiRequest(`/api/collections/${collection.id}`, {
           method: 'DELETE'
         })
-        if (!res.ok) throw new Error(await res.text())
         target.collections.splice(index, 1)
       } catch (error) {
   toast.error('Failed to remove collection: ' + error.message)
@@ -1429,23 +1388,10 @@ export default {
         if (this.newStakeholder.title) payload.title = this.newStakeholder.title
         if (this.newStakeholder.organization) payload.organization = this.newStakeholder.organization
         
-        const res = await fetch(`/api/projects/${this.createdProjectId}/stakeholders`, {
+        const added = await apiRequest(`/api/projects/${this.createdProjectId}/stakeholders`, {
           method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
           body: JSON.stringify(payload)
         })
-        if (!res.ok) {
-          let errorMsg = 'Failed to add stakeholder';
-          try {
-            const errorData = await res.json()
-            errorMsg = errorData.error || errorMsg
-          } catch (e) {
-            const text = await res.text()
-            errorMsg = text || errorMsg
-          }
-          throw new Error(errorMsg)
-        }
-        const added = await res.json()
         this.projectStakeholders.push({
           id: added.stakeholder_id || added.id,
           name: added.name,
