@@ -9,6 +9,8 @@
 </template>
 
 <script>
+import { apiGet } from '@/api/base'
+
 export default {
   name: 'VersionFooter',
   data() {
@@ -33,11 +35,14 @@ export default {
     }
   },
   mounted() {
-    fetch('/api/version').then(r => r.ok ? r.json() : null).then(data => {
-      if (data) this.meta = data
-    }).catch(() => {}).finally(() => {
-      this.metaLoaded = true
-    })
+    apiGet('/api/version')
+      .then(data => {
+        if (data) this.meta = data
+      })
+      .catch(() => {})
+      .finally(() => {
+        this.metaLoaded = true
+      })
   }
 }
 </script>

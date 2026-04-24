@@ -538,7 +538,8 @@
 <script>
 import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
-import { API_BASE } from '@/api/base'
+import { API_BASE, apiGet, apiPost, apiPut } from '@/api/base'
+import axiosInstance from '@/api/axiosInstance'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
@@ -929,24 +930,18 @@ export default {
     },
     async loadTags() {
       try {
-        const res = await fetch('/api/tags/')
-        if (res.ok) {
-          const data = await res.json()
-          this.allTags = Array.isArray(data) ? data : (data.tags || [])
-        }
+        const data = await apiGet('/api/tags/')
+        this.allTags = Array.isArray(data) ? data : (data.tags || [])
       } catch (e) {
         console.warn('Failed to load tags for preview', e)
       }
     },
 
     async loadVariables(){      try {
-        const res = await fetch('/api/variables')
-        if(res.ok){
-          const arr = await res.json()
-          if(Array.isArray(arr)) {
-            this.variableSlugs = arr.map(v=>v.slug).sort()
-            this.filteredVariables = this.variableSlugs.slice()
-          }
+        const arr = await apiGet('/api/variables')
+        if(Array.isArray(arr)) {
+          this.variableSlugs = arr.map(v=>v.slug).sort()
+          this.filteredVariables = this.variableSlugs.slice()
         }
       } catch(e){ /* silent */ }
     },
@@ -1061,11 +1056,8 @@ export default {
     async fetchLinks() {
       try {
         const qs = this.linkSearch ? `?search=${encodeURIComponent(this.linkSearch)}&include_usage=true` : '?include_usage=true'
-        const res = await fetch(`/api/links/${qs}`)
-        if (res.ok) {
-          const data = await res.json()
-          this.availableLinks = data.links || []
-        }
+        const data = await apiGet(`/api/links/${qs}`)
+        this.availableLinks = data.links || []
       } catch (e) { console.error('Failed to fetch links', e) }
     },
     debouncedFetchLinks() {
@@ -1081,11 +1073,8 @@ export default {
       // Load the current topic's collections once so we can do the membership check
       if (this.topicId && this.currentTopicCollectionIds.length === 0) {
         try {
-          const res = await fetch(`/api/topics/${this.topicId}`)
-          if (res.ok) {
-            const data = await res.json()
-            this.currentTopicCollectionIds = data.collection_ids || []
-          }
+          const data = await apiGet(`/api/topics/${this.topicId}`)
+          this.currentTopicCollectionIds = data.collection_ids || []
         } catch (e) { console.error('Failed to load current topic collections', e) }
       }
       if (this.topicSearch) await this.fetchTopics()
@@ -1116,14 +1105,9 @@ export default {
     async fetchImages() {
       try {
         console.log('📥 Fetching images from /api/images')
-        const res = await fetch('/api/images')
-        if (res.ok) {
-          this.availableImages = await res.json()
-          this.filteredImages = this.availableImages
-          console.log(`✅ Fetched ${this.availableImages.length} images`)
-        } else {
-          console.error('❌ Failed to fetch images:', res.status)
-        }
+        this.availableImages = await apiGet('/api/images')
+        this.filteredImages = this.availableImages
+        console.log(`✅ Fetched ${this.availableImages.length} images`)
       } catch (e) { 
         console.error('❌ Failed to fetch images', e) 
       }
@@ -1196,12 +1180,7 @@ export default {
         const formData = new FormData()
         formData.append('image', this.imageUploadFile)
         console.log('📤 Uploading image:', this.imageUploadFile.name)
-        const res = await fetch('/api/images/upload', {
-          method: 'POST',
-          body: formData
-        })
-        if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-        const uploadData = await res.json()
+        const { data: uploadData } = await axiosInstance.post('/api/images/upload', formData)
         console.log('✅ Upload response:', uploadData)
         
         // Refresh the image list to get the new image with proper metadata
@@ -1258,12 +1237,7 @@ export default {
       try {
         const formData = new FormData()
         formData.append('image', this.linkUploadFile)
-        const res = await fetch('/api/images/upload', {
-          method: 'POST',
-          body: formData
-        })
-        if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-        const data = await res.json()
+        const { data } = await axiosInstance.post('/api/images/upload', formData)
         // Use uploaded image URL as link target
         this.linkUrl = data.public_url || data.file_path
         if (!this.linkText) {
@@ -1299,25 +1273,13 @@ export default {
         let response
         if (this.topicId) {
           // Update existing topic
-          response = await fetch(`/api/topics/${this.topicId}`, {
-            method: 'PUT',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
+          response = await apiPut(`/api/topics/${this.topicId}`, payload)
         } else {
           // Create new topic
-          response = await fetch('/api/topics/', {
-            method: 'POST',
-            headers: { 'Content-Type': 'application/json' },
-            body: JSON.stringify(payload)
-          })
+          response = await apiPost('/api/topics/', payload)
         }
         
-        if (!response.ok) {
-          throw new Error(`Save failed: ${response.status}`)
-        }
-        
-        const result = await response.json()
+        const result = response
         
         if (!this.topicId && result.id) {
           // New topic created, emit the full result so parent can preserve content
@@ -1773,13 +1735,7 @@ export default {
           const formData = new FormData()
           formData.append('image', imageFile, generatedName)
 
-          const res = await fetch('/api/images/upload', {
-            method: 'POST',
-            body: formData
-          })
-          if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-
-          const uploaded = await res.json()
+          const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
           const src = uploaded.public_url || uploaded.file_path
           if (!src) throw new Error('Upload succeeded but no image URL returned')
 

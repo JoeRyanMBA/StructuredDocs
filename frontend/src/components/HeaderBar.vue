@@ -63,6 +63,7 @@
 
 <script>
 import { store } from '../store';
+import { apiRequest } from '@/api/base'
 
 export default {
   name: 'HeaderBar',
@@ -140,7 +141,7 @@ export default {
     },
     async logout() {
       // Clear server-side HttpOnly cookies
-      try { await fetch('/api/users/logout', { method: 'POST', credentials: 'include' }); } catch (_) {}
+      try { await apiRequest('/api/users/logout', { method: 'POST' }); } catch (_) {}
       store.setUser(null);
       localStorage.removeItem('isAuthenticated');
       localStorage.removeItem('access_token');
