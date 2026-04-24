@@ -325,7 +325,7 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import HelpIcon from '@/components/HelpIcon.vue'
-import { apiGet } from '@/api/base'
+import { apiDelete, apiGet, apiPost, apiPut } from '@/api/base'
 export default {
   name: 'AllTasksView',
   components: { HelpIcon },
@@ -549,40 +549,36 @@ export default {
     
   async saveTask() {
       try {
-        const url = this.isEditing ? `/api/tasks/${this.taskForm.id}` : '/api/tasks/'
-        const method = this.isEditing ? 'PUT' : 'POST'
-        
         // Send tags as an array; backend now normalizes both array and JSON-string inputs.
         const taskData = {
           title: this.taskForm.title,
           description: this.taskForm.description,
           status: this.taskForm.status,
           priority: this.taskForm.priority,
-          due_date: this.taskForm.due_date,
+          due_date: this.taskForm.due_date || null,
           assigned_to: this.taskForm.assigned_to,
           tags: this.taskForm.tags
+        }
+
+        const normalizeId = (value) => {
+          if (value === '' || value === null || value === undefined) return null
+          const n = Number(value)
+          return Number.isFinite(n) ? n : null
         }
         
         // Set association based on type
         if (this.taskForm.associationType === 'project') {
-          taskData.project_id = this.taskForm.project_id
+          taskData.project_id = normalizeId(this.taskForm.project_id)
         } else if (this.taskForm.associationType === 'collection') {
-          taskData.collection_id = this.taskForm.collection_id
+          taskData.collection_id = normalizeId(this.taskForm.collection_id)
         } else if (this.taskForm.associationType === 'topic') {
-          taskData.topic_id = this.taskForm.topic_id
+          taskData.topic_id = normalizeId(this.taskForm.topic_id)
         }
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(taskData)
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+
+        if (this.isEditing) {
+          await apiPut(`/api/tasks/${this.taskForm.id}`, taskData)
+        } else {
+          await apiPost('/api/tasks/', taskData)
         }
         
   await this.fetchTasks()
@@ -611,14 +607,7 @@ export default {
     
     async confirmDelete() {
       try {
-        const response = await fetch(`/api/tasks/${this.taskToDelete.id}`, {
-          method: 'DELETE'
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-        }
+        await apiDelete(`/api/tasks/${this.taskToDelete.id}`)
         
         await this.fetchTasks()
         this.closeDeleteModal()
