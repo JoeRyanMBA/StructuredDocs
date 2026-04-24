@@ -256,7 +256,7 @@ import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 import BulkRequestReviewModal from '@/components/BulkRequestReviewModal.vue'
 import UsageBadge from '@/components/UsageBadge.vue'
 import { toast } from '@/composables/useToast'
-import { apiGet, apiPost } from '@/api/base'
+import { apiGet, apiPost, apiRequestRaw } from '@/api/base'
 import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
@@ -520,7 +520,6 @@ export default {
     async bulkDelete() {
       this.deleting = true
       try {
-        const token = localStorage.getItem('access_token')
         // Sanitize & normalize selected IDs (remove null/undefined/NaN, coerce to integers)
         const cleanedIds = Array.from(new Set(
           (this.selectedTopicIds || [])
@@ -542,23 +541,15 @@ export default {
           })
         }
         // Prefer POST alias first (most proxies are fine with POST)
-        let res = await fetch('/api/topics/bulk/delete', {
+        let res = await apiRequestRaw('/api/topics/bulk/delete', {
           method: 'POST',
-          headers: {
-            'Content-Type': 'application/json',
-            ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-          },
           body: JSON.stringify({ ids: cleanedIds })
         })
 
         // Fallback to DELETE in case POST alias is unavailable in older deployments
         if (res.status === 404 || res.status === 405) {
-          res = await fetch('/api/topics/bulk', {
+          res = await apiRequestRaw('/api/topics/bulk', {
             method: 'DELETE',
-            headers: {
-              'Content-Type': 'application/json',
-              ...(token ? { 'Authorization': `Bearer ${token}` } : {})
-            },
             body: JSON.stringify({ ids: cleanedIds })
           })
         }
