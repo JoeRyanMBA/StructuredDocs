@@ -846,7 +846,7 @@ export default {
         
       } catch (error) {
         console.error('Failed to save task:', error)
-        this.error = 'Failed to save task. Please try again.'
+        this.error = error?.message || 'Failed to save task. Please try again.'
         toast.error(this.error)
       }
     },
