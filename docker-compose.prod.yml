@@ -1,13 +1,10 @@
-version: '3.8'
-
 services:
   app:
     build: .
     container_name: structureddocs_app
     environment:
       - PORT=8080
-      # Use absolute path for SQLite database (4 slashes: sqlite:// + //)
-      - DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
+      - DATABASE_URL=${DATABASE_URL}
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       - IMAGE_STORAGE_ROOT=/app/data/images
       # Email configuration (set these in your deployment environment)
@@ -20,6 +17,7 @@ services:
       - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
       - ADMIN_API_KEY=${ADMIN_API_KEY:-}
       - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY}
     ports:
       - "8080:8080"
     restart: unless-stopped
