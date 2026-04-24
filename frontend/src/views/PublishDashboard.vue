@@ -60,7 +60,7 @@
     <div class="dashboard-section publications-table-section">
       <h2>Manage Publications</h2>
       <div v-if="publications.length === 0" class="empty-state">
-        <p>No publications found. <button @click="navigateTo('/publications?template=new')" class="link-btn">Create your first publication</button></p>
+        <p>No publications found. <button @click="goCreateFirstPublication" class="link-btn">Create your first publication</button></p>
       </div>
       <div v-else class="publications-table-wrapper">
         <table class="publications-table">
@@ -130,7 +130,7 @@
         <h2>Publication Overview</h2>
         <div class="publications-overview">
           <div v-if="publications.length === 0" class="empty-state">
-            <p>No publications found. <button @click="navigateTo('/publications')" class="link-btn">Create your first publication</button></p>
+            <p>No publications found. <button @click="goCreateFirstPublication" class="link-btn">Create your first publication</button></p>
           </div>
           <div v-else class="publications-grid">
             <div v-for="publication in publications" :key="publication.id" class="publication-card" @click="viewPublication(publication)">
@@ -181,6 +181,9 @@
   </div>
 </template>
 <script>
+import axiosInstance from '@/api/axiosInstance'
+import { apiGet } from '@/api/base'
+import { downloadMobileKnowledgeBase, downloadPublicationPdf, getPublications } from '@/api/publications'
 import CompactToolbar from '@/components/CompactToolbar.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -257,14 +260,7 @@ export default {
     },
     async loadPublications() {
       try {
-        // Fetch real data from backend API
-        const res = await fetch('/api/publications')
-        if (res.ok) {
-          const data = await res.json()
-          this.publications = Array.isArray(data) ? data : (data.publications ?? [])
-        } else {
-          this.publications = []
-        }
+        this.publications = await getPublications()
         // Get recent publications (last 5, sorted by updated_at)
         this.recentPublications = [...this.publications]
           .sort((a, b) => new Date(b.updated_at) - new Date(a.updated_at))
@@ -318,11 +314,7 @@ export default {
     async publishNow(publication) {
       // Persist publish action to backend
       try {
-        const res = await fetch(`/api/publications/${publication.id}/publish`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' }
-        })
-        if (!res.ok) throw new Error('Failed to publish')
+        await axiosInstance.post(`/api/publications/${publication.id}/publish`, {})
         await this.loadPublications()
       } catch (err) {
         console.error('Error publishing:', err)
@@ -332,10 +324,7 @@ export default {
       if (this.exportingKb.has(publication.id)) return
       this.exportingKb = new Set([...this.exportingKb, publication.id])
       try {
-        const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
-        window.open(`/api/publications/${publication.id}/export/mobile-kb${params ? '?' + params : ''}`, '_blank')
-        // Give the browser a moment to initiate the download before re-enabling
-        await new Promise(r => setTimeout(r, 2000))
+        await downloadMobileKnowledgeBase(publication.id, `${publication.title || 'publication'}_mobile_kb.html`, this.selectedTagIds)
       } finally {
         const next = new Set(this.exportingKb)
         next.delete(publication.id)
@@ -346,22 +335,7 @@ export default {
       if (this.exportingPdf.has(publication.id)) return
       this.exportingPdf = new Set([...this.exportingPdf, publication.id])
       try {
-        const params = this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
-        const pdfUrl = `/api/publications/${publication.id}/export/pdf${params ? '?' + params : ''}`
-        const token = localStorage.getItem('access_token')
-        const response = await fetch(pdfUrl, {
-          headers: token ? { 'Authorization': `Bearer ${token}` } : {}
-        })
-        if (!response.ok) throw new Error(`Export failed (${response.status})`)
-        const blob = await response.blob()
-        const objectUrl = URL.createObjectURL(blob)
-        const link = document.createElement('a')
-        link.href = objectUrl
-        link.download = `${publication.title || 'publication'}.pdf`
-        document.body.appendChild(link)
-        link.click()
-        document.body.removeChild(link)
-        URL.revokeObjectURL(objectUrl)
+        await downloadPublicationPdf(publication.id, `${publication.title || 'publication'}.pdf`, this.selectedTagIds)
       } catch (e) {
         console.error('PDF export failed:', e)
         alert(`Export failed: ${e.message}`)
@@ -376,17 +350,18 @@ export default {
     },
     async loadTags() {
       try {
-        const res = await fetch('/api/tags/')
-        if (res.ok) {
-          const data = await res.json()
-          this.allTags = Array.isArray(data) ? data : (data.tags || [])
-        }
+        const data = await apiGet('/api/tags/')
+        this.allTags = Array.isArray(data) ? data : (data.tags || [])
       } catch (e) {
         console.error('Failed to load tags', e)
       }
     },
     navigateTo(path) {
       this.$router.push(path)
+    },
+    goCreateFirstPublication() {
+      // Publications are generated from collections via publish actions.
+      this.$router.push('/collections')
     },
     getPublicationIcon(type) {
       const icons = {

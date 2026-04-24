@@ -134,6 +134,7 @@
 
 <script>
 import { toast } from '../composables/useToast.js'
+import { apiPost } from '@/api/base'
 import { sanitizeHtml } from '@/utils/sanitize'
 
 export default {
@@ -244,20 +245,9 @@ export default {
         }))
         
         // Configure variables for the collection
-        const configResponse = await fetch(`/api/variables/collections/${this.collectionId}/configure-for-publish`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({
-            variable_selections: variableSelections
-          })
+        const configResult = await apiPost(`/api/variables/collections/${this.collectionId}/configure-for-publish`, {
+          variable_selections: variableSelections
         })
-        
-        if (!configResponse.ok) {
-          const errorData = await configResponse.json()
-          throw new Error(errorData.error || 'Failed to configure variables')
-        }
-        
-        const configResult = await configResponse.json()
         console.log('Variables configured:', configResult)
         
         if (!configResult.ready_to_publish) {
@@ -290,12 +280,9 @@ export default {
           variable_id: parseInt(variableId),
           variable_value_id: parseInt(valueId)
         }))
-        const configResponse = await fetch(`/api/variables/collections/${this.collectionId}/configure-for-publish`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ variable_selections: variableSelections })
+        await apiPost(`/api/variables/collections/${this.collectionId}/configure-for-publish`, {
+          variable_selections: variableSelections
         })
-        const data = await configResponse.json()
-        if (!configResponse.ok) throw new Error(data.error || 'Failed to save')
         toast.success('Variables saved')
       } catch(e) {
         toast.error(e.message)
@@ -318,12 +305,7 @@ export default {
             if (valObj) slugMap[v.slug] = valObj.value
           }
         })
-        const resp = await fetch(`/api/variables/collections/${this.collectionId}/preview`, {
-          method: 'POST', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ map: slugMap })
-        })
-        const data = await resp.json()
-        if (!resp.ok) throw new Error(data.error || 'Preview failed')
+        const data = await apiPost(`/api/variables/collections/${this.collectionId}/preview`, { map: slugMap })
         this.previewResult = data
         this.showPreviewPanel = true
         toast.success('Preview generated')
