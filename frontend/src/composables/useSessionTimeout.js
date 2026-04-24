@@ -138,7 +138,17 @@ function startWatcher() {
 
   // Register global event listener for API-interceptor-triggered logouts (once only)
   if (!expiredListenerAdded) {
-    window.addEventListener('auth:logout', () => showWarningThenLogout(EXPIRED_GRACE_MS, true));
+    window.addEventListener('auth:logout', () => {
+      const token = localStorage.getItem('access_token');
+      if (!token) {
+        showWarningThenLogout(EXPIRED_GRACE_MS, true);
+        return;
+      }
+      const expiry = getTokenExpiry(token);
+      if (!expiry || expiry <= Date.now()) {
+        showWarningThenLogout(EXPIRED_GRACE_MS, true);
+      }
+    });
     expiredListenerAdded = true;
   }
 
