@@ -194,6 +194,7 @@
 <script>
 import HelpIcon from '@/components/HelpIcon.vue'
 import { getProjects } from '@/api/projects.js'
+import axiosInstance from '@/api/axiosInstance'
 export default {
   name: 'ImportView',
   components: { HelpIcon },
@@ -364,26 +365,7 @@ export default {
       }
 
       try {
-        const res = await fetch('/api/import/upload', {
-          method: 'POST',
-          body: form
-        })
-
-        // Always read text first
-        const text = await res.text()
-
-        // Try parse JSON if appropriate
-        let result = null
-        const ct = res.headers.get('content-type') || ''
-        if (ct.includes('application/json')) {
-          result = JSON.parse(text)
-        }
-
-        // On error status, throw with message from payload or raw text
-        if (!res.ok) {
-          const msg = result?.error || text || `HTTP ${res.status}`
-          throw new Error(msg)
-        }
+        const { data: result } = await axiosInstance.post('/api/import/upload', form)
 
         console.log('Upload successful, result:', result) // Debug log
 
@@ -412,7 +394,8 @@ export default {
 
       } catch (err) {
         console.error('Import failed:', err)
-        this.error = `Import failed: ${err.message}`
+        const message = err?.response?.data?.error || err?.response?.data?.msg || err?.message || 'Upload failed'
+        this.error = `Import failed: ${message}`
       } finally {
         this.isUploading = false
         // Clear the file selection after successful import
@@ -464,22 +447,7 @@ export default {
             form.append('project_id', String(this.selectedProjectId))
           }
 
-          const res = await fetch('/api/import/upload', {
-            method: 'POST',
-            body: form
-          })
-
-          const text = await res.text()
-          let result = null
-          const ct = res.headers.get('content-type') || ''
-          if (ct.includes('application/json')) {
-            result = JSON.parse(text)
-          }
-
-          if (!res.ok) {
-            const msg = result?.error || text || `HTTP ${res.status}`
-            throw new Error(`"${this.selectedFiles[i].name}": ${msg}`)
-          }
+          const { data: result } = await axiosInstance.post('/api/import/upload', form)
 
           collectionId = result.collection_id
           completedCount++
@@ -491,7 +459,8 @@ export default {
 
       } catch (err) {
         console.error('Bulk import failed:', err)
-        this.error = `Import failed: ${err.message}`
+        const message = err?.response?.data?.error || err?.response?.data?.msg || err?.message || 'Upload failed'
+        this.error = `Import failed: ${message}`
         if (completedCount > 0) {
           this.error += ` (${completedCount} of ${this.selectedFiles.length} files imported successfully)`
         }
