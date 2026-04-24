@@ -920,6 +920,10 @@ p { color: #666; }
                 'timestamp': datetime.utcnow().isoformat() + 'Z',
             }), status_code
 
+        # Health endpoint is polled by Docker and should not be rate-limited.
+        if limiter:
+            health_check = limiter.exempt(health_check)  # type: ignore
+
         # --- Specific endpoint rate limits (post-registration) ---------------
         try:
             if limiter:
