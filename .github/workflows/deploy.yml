@@ -1,11 +1,60 @@
-name: legacy-placeholder
+name: Deploy To VPS
 
 on:
+  push:
+    branches: [ main ]
   workflow_dispatch:
 
+concurrency:
+  group: deploy-vps-main
+  cancel-in-progress: true
+
 jobs:
-  noop:
+  deploy:
     runs-on: ubuntu-latest
+    timeout-minutes: 20
     steps:
-      - name: Legacy workflow disabled
-        run: echo "Deployment now happens through DigitalOcean and Vercel workflows."
+      - name: Configure SSH key
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+
+      - name: Configure known_hosts
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?VPS_HOST secret is required}"
+          PORT="${VPS_PORT:-22}"
+          if [[ -n "${VPS_HOST_KEY:-}" ]]; then
+            printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Deploy on VPS
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?VPS_HOST secret is required}"
+          : "${VPS_USER:?VPS_USER secret is required}"
+          PORT="${VPS_PORT:-22}"
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
+            set -euo pipefail
+            cd ~/StructuredDocs
+            git pull --ff-only origin main
+            docker compose -f docker-compose.prod.yml up -d --build
+            docker compose -f docker-compose.prod.yml ps
+            curl -fsS http://localhost:8080/api/health > /dev/null
+          EOF
