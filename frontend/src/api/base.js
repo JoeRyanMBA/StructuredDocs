@@ -101,30 +101,12 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
 
   if (!response.ok) {
     let message = `API Error: ${response.status} ${response.statusText}`;
-    let body = null;
     try {
-      body = await response.json();
+      const body = await response.json();
       if (body?.error) message = body.error;
       else if (body?.msg) message = body.msg;
       else if (body?.message) message = body.message;
     } catch (_) { /* body not JSON, keep default message */ }
-
-    // JWT parsing/validation errors from Flask-JWT-Extended often return 422.
-    // Treat these as auth logout signals to avoid endless failing retries.
-    if (
-      response.status === 422 &&
-      typeof message === 'string' &&
-      /(jwt|token|segments|signature|subject|claims|authorization)/i.test(message)
-    ) {
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('access_token');
-        localStorage.removeItem('refresh_token');
-        localStorage.removeItem('isAuthenticated');
-      }
-      if (typeof window !== 'undefined') {
-        window.dispatchEvent(new CustomEvent('auth:logout'));
-      }
-    }
 
     throw new Error(message);
   }
