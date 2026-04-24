@@ -193,6 +193,7 @@
 
 <script>
 import HelpIcon from '@/components/HelpIcon.vue'
+import { getProjects } from '@/api/projects.js'
 export default {
   name: 'ImportView',
   components: { HelpIcon },
@@ -262,15 +263,11 @@ export default {
     async fetchProjects() {
       this.loadingProjects = true
       try {
-        const response = await fetch('/api/projects/')
-        if (response.ok) {
-          const data = await response.json()
-          this.projects = data || []
-        } else {
-          console.error('Failed to fetch projects:', response.statusText)
-        }
+        const data = await getProjects()
+        this.projects = Array.isArray(data) ? data : []
       } catch (error) {
         console.error('Error fetching projects:', error)
+        this.projects = []
       } finally {
         this.loadingProjects = false
       }

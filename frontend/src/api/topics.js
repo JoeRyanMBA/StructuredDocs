@@ -1,8 +1,9 @@
+import { apiDelete, apiGet, apiPost, apiPut } from './base'
+
 export async function getTopicTagsMap() {
   try {
-    const res = await fetch('/api/tags/entity/topic')
-    if (!res.ok) throw new Error(res.statusText)
-    return await res.json() // {topic_id_str: [{id, name}]}
+    const data = await apiGet('/api/tags/entity/topic')
+    return data && typeof data === 'object' ? data : {} // {topic_id_str: [{id, name}]}
   } catch (error) {
     console.warn('Failed to load topic tags:', error)
     return {}
@@ -12,9 +13,7 @@ export async function getTopicTagsMap() {
 
 export async function getTopics() {
   try {
-    const res = await fetch('/api/topics')
-    if (!res.ok) throw new Error(res.statusText)
-    const data = await res.json()
+    const data = await apiGet('/api/topics')
     return Array.isArray(data) ? data : (data.topics ?? [])
   } catch (error) {
     console.error('Failed to load topics from API:', error)
@@ -45,38 +44,18 @@ export async function getTopics() {
 
 // You can add more topic-related API functions here as needed, for example:
 export async function createTopic(data) {
-  const res = await fetch('/api/topics', {
-    method: 'POST',
-    body: JSON.stringify(data),
-    headers: {
-      'Content-Type': 'application/json',
-    },
-  })
-  if (!res.ok) throw new Error(res.statusText)
-  return res.json()
+  return apiPost('/api/topics', data)
 }
 
 export async function updateTopic(topicId, data) {
-  const res = await fetch(`/api/topics/${topicId}`, {
-    method: 'PUT',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify(data)
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return apiPut(`/api/topics/${topicId}`, data)
 }
 
 export async function deleteTopic(topicId) {
-  const res = await fetch(`/api/topics/${topicId}`, {
-    method: 'DELETE'
-  });
-  if (!res.ok) throw new Error(await res.text());
-  return res.json();
+  return apiDelete(`/api/topics/${topicId}`)
 }
 
 export async function searchTopics(query) {
   const qs = query ? `?q=${encodeURIComponent(query)}` : ''
-  const res = await fetch(`/api/topics/search${qs}`)
-  if (!res.ok) throw new Error(await res.text())
-  return res.json() // Array of { id, title, status, collection_ids }
+  return apiGet(`/api/topics/search${qs}`) // Array of { id, title, status, collection_ids }
 }
