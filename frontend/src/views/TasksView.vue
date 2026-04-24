@@ -485,6 +485,7 @@ import CompactToolbar from '../components/CompactToolbar.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
 import { toast } from '@/composables/useToast'
+import { apiDelete, apiGet, apiPost, apiPut } from '@/api/base'
 
 export default {
   name: 'TasksView',
@@ -631,11 +632,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/tasks/')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const data = await response.json()
+        const data = await apiGet('/api/tasks/')
         this.tasks = data.tasks || []
         this.applyFilters()
       } catch (error) {
@@ -648,11 +645,7 @@ export default {
     
     async fetchAllTags() {
       try {
-        const response = await fetch('/api/tasks/tags')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        this.allStoredTags = await response.json()
+        this.allStoredTags = await apiGet('/api/tasks/tags')
       } catch (error) {
         console.error('Error fetching tags:', error)
         this.allStoredTags = []
@@ -661,10 +654,7 @@ export default {
     
     async fetchAssociations() {
       try {
-        const response = await fetch('/api/tasks/associations')
-        if (response.ok) {
-          this.availableAssociations = await response.json()
-        }
+        this.availableAssociations = await apiGet('/api/tasks/associations')
       } catch (error) {
         console.error('Failed to fetch associations:', error)
       }
@@ -759,31 +749,9 @@ export default {
           taskData.topic_id = this.taskForm.topic_id
         }
         
-        const url = this.showCreateModal ? '/api/tasks/' : `/api/tasks/${this.taskForm.id}`
-        const method = this.showCreateModal ? 'POST' : 'PUT'
-        
-        // console.log('Saving task:', {
-        //   url,
-        //   method,
-        //   taskData,
-        //   formData: this.taskForm
-        // });
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify(taskData)
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          console.error('API Error Response:', errorData)
-          throw new Error(`HTTP error! status: ${response.status}, message: ${errorData.message || response.statusText}`)
-        }
-        
-  const result = await response.json();
+        const result = this.showCreateModal
+          ? await apiPost('/api/tasks/', taskData)
+          : await apiPut(`/api/tasks/${this.taskForm.id}`, taskData)
         console.log('Task saved successfully:', result);
 
         if (result && result.task) {
@@ -842,13 +810,7 @@ export default {
       }
       
       try {
-        const response = await fetch(`/api/tasks/${task.id}`, {
-          method: 'DELETE'
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
+        await apiDelete(`/api/tasks/${task.id}`)
         
         // Refresh tasks
         await this.fetchTasks()
@@ -876,17 +838,7 @@ export default {
           return
         }
         
-        const response = await fetch(`/api/tasks/${task.id}`, {
-          method: 'PUT',
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({ status: nextStatus })
-        })
-        
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
+        await apiPut(`/api/tasks/${task.id}`, { status: nextStatus })
         
         // Update tasks array
         const taskIndex = this.tasks.findIndex(t => t.id === task.id)

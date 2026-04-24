@@ -85,6 +85,7 @@
 
 <script>
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiDelete, apiGet, apiPost } from '@/api/base'
 
 export default {
   name: 'ImportReviewView',
@@ -136,9 +137,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const res = await fetch(`/api/import/staging/${this.id}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        this.doc = await res.json()
+        this.doc = await apiGet(`/api/import/staging/${this.id}`)
       } catch (err) {
         this.error = `Failed to load import: ${err.message}`
       } finally {
@@ -148,8 +147,7 @@ export default {
 
     async fetchCollections() {
       try {
-        const res = await fetch('/api/collections')
-        if (res.ok) this.collections = await res.json()
+        this.collections = await apiGet('/api/collections')
       } catch { /* non-fatal */ }
     },
 
@@ -163,16 +161,9 @@ export default {
       this.committing = true
       this.error = null
       try {
-        const res = await fetch(`/api/import/staging/${this.id}/commit`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ collection_id: this.selectedCollectionId || null })
+        const result = await apiPost(`/api/import/staging/${this.id}/commit`, {
+          collection_id: this.selectedCollectionId || null
         })
-        if (!res.ok) {
-          const body = await res.json().catch(() => ({}))
-          throw new Error(body.error || `HTTP ${res.status}`)
-        }
-        const result = await res.json()
         const dest = this.selectedCollectionId
           ? ` into the selected collection`
           : ` as unassigned topics`
@@ -187,8 +178,7 @@ export default {
     async rejectImport() {
       if (!confirm('Reject this import? It will be marked as rejected but not deleted.')) return
       try {
-        const res = await fetch(`/api/import/staging/${this.id}/reject`, { method: 'POST' })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        await apiPost(`/api/import/staging/${this.id}/reject`, {})
         this.$router.push({ name: 'ImportHistory' })
       } catch (err) {
         this.error = `Reject failed: ${err.message}`
@@ -198,8 +188,7 @@ export default {
     async deleteImport() {
       if (!confirm('Permanently delete this import document? This cannot be undone.')) return
       try {
-        const res = await fetch(`/api/import/staging/${this.id}`, { method: 'DELETE' })
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
+        await apiDelete(`/api/import/staging/${this.id}`)
         this.$router.push({ name: 'ImportHistory' })
       } catch (err) {
         this.error = `Delete failed: ${err.message}`

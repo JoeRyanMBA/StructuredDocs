@@ -293,6 +293,7 @@
 import { toast } from '@/composables/useToast'
 import TagEditor from '@/components/TagEditor.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiDelete, apiGet, apiPost, apiPut } from '@/api/base'
 
 export default {
   name: 'AllStakeholdersView',
@@ -347,11 +348,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/stakeholders/')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        this.stakeholders = await response.json()
+        this.stakeholders = await apiGet('/api/stakeholders/')
         this.applyFilters() // Initialize filtered data
       } catch (error) {
         console.error('Failed to fetch stakeholders:', error)
@@ -460,31 +457,23 @@ export default {
     
     async saveStakeholder() {
       try {
-        const url = this.isEditing ? `/api/stakeholders/${this.stakeholderForm.id}` : '/api/stakeholders/'
-        const method = this.isEditing ? 'PUT' : 'POST'
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: this.stakeholderForm.name.trim(),
-            email: this.stakeholderForm.email.trim(),
-            title: this.stakeholderForm.title.trim() || null,
-            organization: this.stakeholderForm.organization.trim() || null,
-            division: this.stakeholderForm.division.trim() || null,
-            department: this.stakeholderForm.department.trim() || null,
-            phone: this.stakeholderForm.phone.trim() || null,
-            expertise_areas: this.stakeholderForm.expertise_areas.trim() || null,
-            bio: this.stakeholderForm.bio.trim() || null,
-            active: this.stakeholderForm.active
-          })
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        const payload = {
+          name: this.stakeholderForm.name.trim(),
+          email: this.stakeholderForm.email.trim(),
+          title: this.stakeholderForm.title.trim() || null,
+          organization: this.stakeholderForm.organization.trim() || null,
+          division: this.stakeholderForm.division.trim() || null,
+          department: this.stakeholderForm.department.trim() || null,
+          phone: this.stakeholderForm.phone.trim() || null,
+          expertise_areas: this.stakeholderForm.expertise_areas.trim() || null,
+          bio: this.stakeholderForm.bio.trim() || null,
+          active: this.stakeholderForm.active
+        }
+
+        if (this.isEditing) {
+          await apiPut(`/api/stakeholders/${this.stakeholderForm.id}`, payload)
+        } else {
+          await apiPost('/api/stakeholders/', payload)
         }
         
         await this.fetchStakeholders()
@@ -510,14 +499,7 @@ export default {
     
     async confirmDelete() {
       try {
-        const response = await fetch(`/api/stakeholders/${this.stakeholderToDelete.id}`, {
-          method: 'DELETE'
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-        }
+        await apiDelete(`/api/stakeholders/${this.stakeholderToDelete.id}`)
         
         await this.fetchStakeholders()
         this.closeDeleteModal()

@@ -244,6 +244,8 @@ import { marked } from 'marked'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import TagEditor from '@/components/TagEditor.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
+import axiosInstance from '@/api/axiosInstance'
+import { apiGet } from '@/api/base'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -507,11 +509,8 @@ export default {
     },
     async fetchImages() {
       try {
-        const res = await fetch('/api/images')
-        if (res.ok) {
-          this.availableImages = await res.json()
-          this.filteredImages = [...this.availableImages]
-        }
+        this.availableImages = await apiGet('/api/images')
+        this.filteredImages = [...this.availableImages]
       } catch (e) { console.error('Failed to fetch images', e) }
     },
     filterImages() {
@@ -542,9 +541,7 @@ export default {
       try {
         const formData = new FormData()
         formData.append('image', this.imageUploadFile)
-        const res = await fetch('/api/images/upload', { method: 'POST', body: formData })
-        if (!res.ok) throw new Error(`Upload failed: ${res.status}`)
-        const uploaded = await res.json()
+        const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
         this.imageUrl = uploaded.public_url || uploaded.file_path || ''
         this.imageAlt = uploaded.alt_text || uploaded.filename || ''
         this.imageUploadMessage = '✅ Upload successful'

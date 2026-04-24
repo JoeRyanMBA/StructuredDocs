@@ -263,6 +263,7 @@ import { toast } from '@/composables/useToast'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import UsageBadge from '@/components/UsageBadge.vue'
 import TagEditor from '@/components/TagEditor.vue'
+import { apiGet } from '@/api/base'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -339,18 +340,15 @@ export default {
       
       try {
         // Load from static images API
-        const staticResponse = await fetch('/api/images')
+        const staticData = await apiGet('/api/images')
         let staticImages = []
-        if (staticResponse.ok) {
-          const staticData = await staticResponse.json()
-          staticImages = staticData || []
-        }
+        staticImages = staticData || []
 
         // Load from import documents
-        const importResponse = await fetch('/api/import/history')
+        const importsData = await apiGet('/api/import/history').catch(() => [])
         let importImages = []
-        if (importResponse.ok) {
-          let imports = await importResponse.json()
+        if (Array.isArray(importsData)) {
+          let imports = importsData
           if (Array.isArray(imports)) {
             // Sort newest first by created_at if present
             imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
@@ -362,9 +360,7 @@ export default {
           let importDocsFailed = 0
           for (const importDoc of imports.slice(0, sliceSize)) {
             try {
-              const imagesResponse = await fetch(`/api/import/staging/${importDoc.id}/images`)
-              if (imagesResponse.ok) {
-                const imagesData = await imagesResponse.json()
+              const imagesData = await apiGet(`/api/import/staging/${importDoc.id}/images`)
                 const docImagesRaw = imagesData.images || []
                 const docImages = docImagesRaw.map(img => {
                   // Normalize size property for UI expectations
@@ -380,10 +376,6 @@ export default {
                 })
                 importImages = importImages.concat(docImages)
                 importDocsProcessed++
-              } else {
-                importDocsFailed++
-                console.warn(`[AllImagesView] Images request failed for import ${importDoc.id}: status ${imagesResponse.status}`)
-              }
             } catch (e) {
               importDocsFailed++
               console.warn(`[AllImagesView] Exception loading images for import ${importDoc.id}:`, e)
@@ -405,8 +397,7 @@ export default {
             ...importImages
         ]
 
-        const usageRes = await fetch('/api/images/usage-summary')
-        if (usageRes.ok) this.imageUsage = await usageRes.json()
+        this.imageUsage = await apiGet('/api/images/usage-summary').catch(() => ({}))
 
         this.applyFilters()
 

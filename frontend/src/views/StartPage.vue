@@ -279,11 +279,7 @@ export default {
     async loadStats() {
       try {
         // Fetch real stats from backend API
-        const response = await fetch('/api/dashboard/stats', {
-          headers: this.getAuthHeaders()
-        });
-        if (response.ok) {
-          const data = await response.json();
+        const data = await apiRequest('/api/dashboard/stats');
           console.log('📊 Received stats data:', data);
           
           // Map backend format to frontend expectations using known sections
@@ -309,10 +305,6 @@ export default {
           this.stats = serverStats
           // Fill in active projects if projects already loaded
           this.updateProjectActiveMetric()
-        } else {
-          console.warn('📊 Stats API returned error:', response.status, response.statusText);
-          this.stats = this.computeLocalStats();
-        }
       } catch (error) {
         console.error('Failed to load stats:', error)
         this.stats = this.computeLocalStats();
@@ -381,14 +373,7 @@ export default {
     async loadPendingActions() {
       try {
         // Fetch real pending actions from backend API
-        const response = await fetch('/api/dashboard/pending-actions', {
-          headers: this.getAuthHeaders()
-        });
-        if (response.ok) {
-          this.pendingActions = await response.json();
-        } else {
-          this.pendingActions = [];
-        }
+        this.pendingActions = await apiRequest('/api/dashboard/pending-actions');
       } catch (error) {
         console.error('Failed to load pending actions:', error)
         this.pendingActions = [];

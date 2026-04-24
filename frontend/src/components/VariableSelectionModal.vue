@@ -351,9 +351,7 @@ export default {
       this.batchApplying = true
       try {
         const variableSelections = Object.entries(this.selections).map(([variableId, valueId]) => ({ variable_id: parseInt(variableId), variable_value_id: parseInt(valueId) }))
-        const resp = await fetch('/api/variables/collections/batch-configure', { method:'POST', headers:{'Content-Type':'application/json'}, body: JSON.stringify({ collection_ids: ids, variable_selections: variableSelections }) })
-        const data = await resp.json()
-        if (!resp.ok) throw new Error(data.error || 'Batch apply failed')
+        const data = await apiPost('/api/variables/collections/batch-configure', { collection_ids: ids, variable_selections: variableSelections })
         toast.success(`Applied to ${data.collections.length} collections`)
       } catch(e) {
         toast.error(e.message)

@@ -202,6 +202,7 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiGet } from '@/api/base'
 export default {
   name: 'AllTagsView',
   components: { HelpIcon },
@@ -258,11 +259,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-  const response = await fetch('/api/tags/usage');
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-  const data = await response.json()
+  const data = await apiGet('/api/tags/usage')
   this.tags = this.normalizeTags(data)
         this.applyFilters() // Initialize filtered data
       } catch (error) {

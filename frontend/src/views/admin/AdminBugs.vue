@@ -87,6 +87,7 @@
 
 <script>
 import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
+import { apiPost, apiRequest } from '@/api/base'
 export default {
   name: 'AdminBugs',
   components: { ArchiveToggleButton },
@@ -104,9 +105,8 @@ export default {
         params.append('type', 'bug');
         if (this.filters.q) params.append('q', this.filters.q);
         if (this.filters.status) params.append('status', this.filters.status);
-        const res = await fetch('/api/feedback?' + params.toString());
-        if (!res.ok) throw new Error('Failed to load bug reports');
-        this.reports = await res.json();
+        const data = await apiRequest('/api/feedback?' + params.toString());
+        this.reports = Array.isArray(data) ? data : [];
       } catch (e) {
         this.error = e.message || 'Error loading bugs';
       } finally {
@@ -118,38 +118,33 @@ export default {
     closeEdit() { this.editing = false; this.editItem = null; },
     async saveEdit() {
       try {
-        let res = await fetch('/api/feedback/' + this.editItem.id, {
-          method: 'PATCH', headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(this.editItem)
-        });
-        if (res.status === 405) {
-          res = await fetch('/api/feedback/' + this.editItem.id + '/update', {
-            method: 'POST', headers: { 'Content-Type': 'application/json' },
+        let updated;
+        try {
+          updated = await apiRequest('/api/feedback/' + this.editItem.id, {
+            method: 'PATCH',
             body: JSON.stringify(this.editItem)
           });
+        } catch (err) {
+          if (!String(err?.message || '').includes('405')) throw err
+          updated = await apiPost('/api/feedback/' + this.editItem.id + '/update', this.editItem)
         }
-        if (!res.ok) throw new Error('Failed to save');
-        const updated = await res.json();
         const idx = this.reports.findIndex(r => r.id === updated.id);
         if (idx !== -1) this.reports.splice(idx, 1, updated);
         this.closeEdit();
       } catch (e) { this.error = e.message || 'Error saving bug'; }
     },
     async toggleArchive(item, newState) {
+      const originalStatus = item.status;
       try {
-        const originalStatus = item.status;
         item.status = newState ? 'archived' : 'new';
-        let res = await fetch(`/api/feedback/${item.id}/archive`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ archived: newState })
-        });
-        if (res.status === 405) {
-          res = await fetch('/api/feedback/' + item.id + (newState ? '' : '/restore'), {
+        try {
+          await apiPost(`/api/feedback/${item.id}/archive`, { archived: newState })
+        } catch (err) {
+          if (!String(err?.message || '').includes('405')) throw err
+          await apiRequest('/api/feedback/' + item.id + (newState ? '' : '/restore'), {
             method: newState ? 'DELETE' : 'POST'
-          });
+          })
         }
-        if (!res.ok) throw new Error('Failed to toggle archive');
         if (newState && this.filters.status !== 'archived') {
           this.reports = this.reports.filter(r => r.id !== item.id);
         }

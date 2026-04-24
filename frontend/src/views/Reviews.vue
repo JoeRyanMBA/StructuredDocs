@@ -173,6 +173,7 @@
 <script>
 import { toast } from '@/composables/useToast'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiGet, apiPost } from '@/api/base'
 
 export default {
   name: 'Reviews',
@@ -196,17 +197,17 @@ export default {
       this.loading = true
       try {
         // Load all review data
-        const [statsRes, topicsRes, collectionsRes, importsRes] = await Promise.all([
-          fetch('/api/reviews/stats'),
-          fetch('/api/reviews/topics/pending'),
-          fetch('/api/reviews/collections/pending'),
-          fetch('/api/reviews/imports/pending')
+        const [stats, topics, collections, imports] = await Promise.all([
+          apiGet('/api/reviews/stats'),
+          apiGet('/api/reviews/topics/pending'),
+          apiGet('/api/reviews/collections/pending'),
+          apiGet('/api/reviews/imports/pending')
         ])
 
-        this.stats = await statsRes.json()
-        this.pendingTopics = await topicsRes.json()
-        this.pendingCollections = await collectionsRes.json()
-        this.pendingImports = await importsRes.json()
+        this.stats = stats
+        this.pendingTopics = topics
+        this.pendingCollections = collections
+        this.pendingImports = imports
 
       } catch (err) {
         console.error('Failed to load review data:', err)
@@ -236,13 +237,7 @@ export default {
           comments = prompt('Reason for rejection:') || ''
         }
 
-        const res = await fetch(`/api/reviews/topic/${topic.id}/${endpoint}`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ reviewer, comments })
-        })
-
-        if (!res.ok) throw new Error(`Failed to ${action} topic`)
+        await apiPost(`/api/reviews/topic/${topic.id}/${endpoint}`, { reviewer, comments })
 
   // Reload data
   await this.loadReviewData()
@@ -261,13 +256,7 @@ export default {
         
         const comments = prompt('Comments (optional):') || ''
 
-        const res = await fetch(`/api/reviews/import/${importItem.id}/review`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ action, reviewer, comments })
-        })
-
-        if (!res.ok) throw new Error(`Failed to ${action} import`)
+        await apiPost(`/api/reviews/import/${importItem.id}/review`, { action, reviewer, comments })
 
   // Reload data
   await this.loadReviewData()
