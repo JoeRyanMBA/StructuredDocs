@@ -1,10 +1,14 @@
 // src/api/projects.js
 import axiosInstance from './axiosInstance'
+import { apiRequest } from './base'
 
 export async function getProjects() {
-  const res = await fetch('/api/projects/');
-  if (!res.ok) throw new Error(res.statusText);
-  return res.json();
+  const data = await apiRequest('/api/projects/')
+
+  // Defensive normalization for endpoint variants.
+  if (Array.isArray(data)) return data
+  if (Array.isArray(data?.projects)) return data.projects
+  return []
 }
 
 export async function getProjectTimeline(projectId) {
