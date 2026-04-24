@@ -244,24 +244,29 @@ export default {
     await this.loadDashboardData()
   },
   methods: {
+    hasAccessToken() {
+      const token = localStorage.getItem('access_token')
+      return typeof token === 'string' && token.split('.').length === 3
+    },
     getAuthHeaders() {
-      const token = localStorage.getItem('access_token');
-      return {
-        'Authorization': `Bearer ${token}`,
-        'Content-Type': 'application/json'
-      };
+      const token = localStorage.getItem('access_token')
+      return token
+        ? { 'Authorization': `Bearer ${token}`, 'Content-Type': 'application/json' }
+        : { 'Content-Type': 'application/json' }
     },
     async loadDashboardData() {
       this.loading = true
       try {
         // Load projects first so we can compute "active" accurately
         await this.loadProjects()
-        await Promise.all([
-          this.loadStats(),
-          this.loadPendingActions(),
-          this.loadRecentActivity(),
-          this.loadCalendarEvents()
-        ])
+        const tasks = [this.loadStats(), this.loadCalendarEvents()]
+        if (this.hasAccessToken()) {
+          tasks.push(this.loadPendingActions(), this.loadRecentActivity())
+        } else {
+          this.pendingActions = []
+          this.recentActivity = []
+        }
+        await Promise.all(tasks)
         // After everything loads, recompute project actives
         this.updateProjectActiveMetric()
       } catch (error) {
