@@ -237,8 +237,9 @@ p { color: #666; }
     )
 
     # Configure JWT cookie settings for cross-domain requests
-    # Accept tokens from both Authorization header (existing clients) and HttpOnly cookies
-    app.config['JWT_TOKEN_LOCATION'] = ['headers', 'cookies']
+    # Use Authorization headers only to avoid stale cookie tokens causing intermittent 401/422 errors.
+    # The frontend stores/accesses JWTs in localStorage and sends Bearer headers.
+    app.config['JWT_TOKEN_LOCATION'] = ['headers']
     app.config['JWT_COOKIE_HTTPONLY'] = True
     app.config['JWT_COOKIE_CSRF_PROTECT'] = False  # CSRF protection can be enabled later when fully cookie-based
     # In Codespaces, frontend and backend are on different subdomains, requiring SameSite=None
