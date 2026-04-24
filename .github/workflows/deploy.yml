@@ -56,5 +56,18 @@ jobs:
             git pull --ff-only origin main
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml ps
-            curl -fsS http://localhost:8080/api/health > /dev/null
+            ok=0
+            for i in $(seq 1 24); do
+              if curl -fsS http://localhost:8080/api/health > /dev/null; then
+                ok=1
+                break
+              fi
+              echo "Healthcheck attempt $i/24 failed; retrying in 5s..."
+              sleep 5
+            done
+            if [[ "$ok" -ne 1 ]]; then
+              echo "Healthcheck failed after retries. Recent app logs:"
+              docker compose -f docker-compose.prod.yml logs --tail 120
+              exit 1
+            fi
           EOF
