@@ -51,14 +51,16 @@ def get_admin_stats():
             
         except Exception as e:
             current_app.logger.warning(f" Error getting system metrics: {e}")
-            # Fallback system performance data
+            # Fallback to explicit unavailable metrics (no fabricated values)
             system_performance = {
-                'memoryUsage': 65.0,
-                'cpuUsage': 35.0,
-                'diskUsage': 45.0,
-                'systemHealth': 'healthy',
+                'memoryUsage': None,
+                'cpuUsage': None,
+                'diskUsage': None,
+                'systemHealth': 'unavailable',
                 'serverStatus': 'online',
-                'databaseStatus': 'connected'
+                'databaseStatus': 'connected',
+                'metricSource': 'unavailable',
+                'metricError': str(e)
             }
             db_metrics = {'size': 'Unknown', 'tables': 0, 'totalRecords': 0}
             app_metrics = {'users': {'active': active_users, 'total': total_users}}
@@ -97,7 +99,9 @@ def get_admin_stats():
             'systemHealth': system_performance.get('systemHealth', 'unknown'),
             'serverStatus': system_performance.get('serverStatus', 'unknown'),
             'databaseStatus': system_performance.get('databaseStatus', 'unknown'),
-            'uptime': system_performance.get('uptime', 'Unknown')
+            'uptime': system_performance.get('uptime', 'Unknown'),
+            'metricSource': system_performance.get('metricSource', 'unknown'),
+            'metricError': system_performance.get('metricError')
         }
         
         # Add database metrics

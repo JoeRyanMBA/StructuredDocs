@@ -149,27 +149,33 @@
         <div class="system-overview">
           <div class="system-section">
             <h3>System Performance</h3>
+            <div class="system-meta">
+              <span class="meta-badge" :class="{ warn: performanceState.source !== 'live' }">
+                Source: {{ performanceState.sourceLabel }}
+              </span>
+              <span v-if="performanceState.error" class="meta-error" :title="performanceState.error">{{ performanceState.error }}</span>
+            </div>
             <div class="performance-metrics">
               <div class="metric-row" title="Approximate CPU load based on 1-minute system load average">
                 <span class="metric-name">CPU Usage</span>
                 <div class="metric-bar">
-                  <div class="metric-fill" :style="{width: systemMetrics.cpu + '%'}"></div>
+                  <div class="metric-fill" :style="{width: metricPercent(systemMetrics.cpu) + '%'}"></div>
                 </div>
-                <span class="metric-value">{{ systemMetrics.cpu }}%</span>
+                <span class="metric-value">{{ metricLabel(systemMetrics.cpu) }}</span>
               </div>
               <div class="metric-row" title="Percentage of system RAM in use">
                 <span class="metric-name">Memory</span>
                 <div class="metric-bar">
-                  <div class="metric-fill" :style="{width: systemMetrics.memory + '%'}"></div>
+                  <div class="metric-fill" :style="{width: metricPercent(systemMetrics.memory) + '%'}"></div>
                 </div>
-                <span class="metric-value">{{ systemMetrics.memory }}%</span>
+                <span class="metric-value">{{ metricLabel(systemMetrics.memory) }}</span>
               </div>
               <div class="metric-row" title="Percentage of disk space used on the server filesystem">
                 <span class="metric-name">Storage</span>
                 <div class="metric-bar">
-                  <div class="metric-fill" :style="{width: systemMetrics.storage + '%'}"></div>
+                  <div class="metric-fill" :style="{width: metricPercent(systemMetrics.storage) + '%'}"></div>
                 </div>
-                <span class="metric-value">{{ systemMetrics.storage }}%</span>
+                <span class="metric-value">{{ metricLabel(systemMetrics.storage) }}</span>
               </div>
             </div>
           </div>
@@ -242,9 +248,14 @@ export default {
       },
       userStats: {},
       systemMetrics: {
-        cpu: 15,
-        memory: 32,
-        storage: 45
+        cpu: null,
+        memory: null,
+        storage: null
+      },
+      performanceState: {
+        source: 'unknown',
+        sourceLabel: 'Unknown',
+        error: null,
       },
       recentActivity: [],
       systemLogs: [],
@@ -318,6 +329,12 @@ export default {
       return token && token.split('.').length === 3
         ? { Authorization: `Bearer ${token}`, 'Content-Type': 'application/json' }
         : { 'Content-Type': 'application/json' }
+    },
+    metricPercent(value) {
+      return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.min(100, value)) : 0
+    },
+    metricLabel(value) {
+      return typeof value === 'number' && Number.isFinite(value) ? `${Math.round(value)}%` : 'N/A'
     },
 
     async loadDashboardData() {
@@ -440,11 +457,17 @@ export default {
 
         // Real CPU / memory / disk from backend
         const perf = data.performanceMetrics || {}
+        const source = perf.metricSource || 'unknown'
+        this.performanceState = {
+          source,
+          sourceLabel: source === 'live' ? 'Live' : (source === 'unavailable' ? 'Unavailable' : 'Unknown'),
+          error: perf.metricError || null,
+        }
         if (perf.cpuUsage !== undefined || perf.memoryUsage !== undefined || perf.diskUsage !== undefined) {
           this.systemMetrics = {
-            cpu: Math.round(perf.cpuUsage ?? this.systemMetrics.cpu),
-            memory: Math.round(perf.memoryUsage ?? this.systemMetrics.memory),
-            storage: Math.round(perf.diskUsage ?? this.systemMetrics.storage)
+            cpu: typeof perf.cpuUsage === 'number' ? perf.cpuUsage : null,
+            memory: typeof perf.memoryUsage === 'number' ? perf.memoryUsage : null,
+            storage: typeof perf.diskUsage === 'number' ? perf.diskUsage : null,
           }
         }
 
@@ -492,6 +515,36 @@ export default {
   display: grid;
   grid-template-columns: 1fr;
   gap: 1.5rem;
+}
+
+.system-meta {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+}
+
+.meta-badge {
+  font-size: 0.75rem;
+  font-weight: 600;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: #e9f7ef;
+  color: #1f7a1f;
+}
+
+.meta-badge.warn {
+  background: #fff3cd;
+  color: #8a6d3b;
+}
+
+.meta-error {
+  font-size: 0.78rem;
+  color: #6c757d;
+  max-width: 460px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .system-section {
