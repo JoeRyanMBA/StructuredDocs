@@ -325,6 +325,7 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiGet } from '@/api/base'
 export default {
   name: 'AllTasksView',
   components: { HelpIcon },
@@ -666,12 +667,9 @@ export default {
 
     async fetchStakeholders() {
       try {
-        const response = await fetch('/api/stakeholders/')
-        if (response.ok) {
-          const data = await response.json()
-          // Backend returns direct array, not wrapped in object
-          this.stakeholders = Array.isArray(data) ? data : (data.stakeholders || [])
-        }
+        const data = await apiGet('/api/stakeholders/')
+        // Backend returns direct array, not wrapped in object
+        this.stakeholders = Array.isArray(data) ? data : (data.stakeholders || [])
       } catch (error) {
         console.error('Failed to fetch stakeholders:', error)
       }

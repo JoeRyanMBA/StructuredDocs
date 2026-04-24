@@ -213,6 +213,7 @@ import CompactToolbar from '@/components/CompactToolbar.vue'
 import LimitsModal from '@/components/LimitsModal.vue'
 import { toast } from '@/composables/useToast'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiGet, apiPost, apiRequest } from '@/api/base'
 
 export default {
   name: 'AdminDashboard',
@@ -301,25 +302,16 @@ export default {
       const storageNote = this.purgeStorageOnClear ? `\n\nStorage purge enabled for prefix: ${this.clearStoragePrefix || 'images/'}` : ''
       if (!window.confirm(`Are you sure you want to clear ALL data except the admin user? This cannot be undone!${storageNote}`)) return;
       try {
-        const response = await fetch('/api/admin/clear-database', {
-          method: 'POST',
-          headers: this.getAuthHeaders(),
-          body: JSON.stringify({
-            purge_storage: this.purgeStorageOnClear,
-            storage_prefix: (this.clearStoragePrefix || 'images/').trim() || 'images/'
-          })
+        const result = await apiPost('/api/admin/clear-database', {
+          purge_storage: this.purgeStorageOnClear,
+          storage_prefix: (this.clearStoragePrefix || 'images/').trim() || 'images/'
         });
-        const result = await response.json();
-        if (response.ok) {
-          const purgeResult = result?.storage_purge
-          const purgeMessage = this.purgeStorageOnClear
-            ? ` ${purgeResult?.message || 'Storage purge requested.'}`
-            : ''
-          toast.success(`Database cleared successfully!${purgeMessage}`.trim());
-          await this.loadDashboardData();
-        } else {
-          toast.error('Error clearing database: ' + (result.message || 'Unknown error'));
-        }
+        const purgeResult = result?.storage_purge
+        const purgeMessage = this.purgeStorageOnClear
+          ? ` ${purgeResult?.message || 'Storage purge requested.'}`
+          : ''
+        toast.success(`Database cleared successfully!${purgeMessage}`.trim());
+        await this.loadDashboardData();
       } catch (e) {
   toast.error('Error clearing database: ' + (e.message || e));
       }
@@ -342,9 +334,8 @@ export default {
       this.error = null
       try {
         // Load stats from dashboard API (include auth header if present)
-        const statsResponse = await fetch('/api/dashboard/stats', { headers: this.getAuthHeaders() })
-        if (statsResponse.ok) {
-          const statsData = await statsResponse.json()
+        try {
+          const statsData = await apiRequest('/api/dashboard/stats')
           console.log('Admin dashboard raw stats:', statsData)
 
           // Support multiple backend shapes
@@ -399,21 +390,15 @@ export default {
             this.userStats = { totalUsers: 0, newUsersThisWeek: 0, activeUsers: 0 }
             this.dbMetrics = { tables: 0, rows: 0, size: 'N/A', lastBackup: 'Unknown' }
           }
-        } else {
-          console.warn('Dashboard stats API returned non-OK:', statsResponse.status)
+        } catch (e) {
+          console.warn('Dashboard stats API unavailable:', e.message)
         }
 
         // Load system logs
-        const logsResponse = await fetch('/api/admin/system-logs')
-        if (logsResponse.ok) {
-          this.systemLogs = await logsResponse.json()
-        }
+        this.systemLogs = await apiGet('/api/admin/system-logs').catch(() => this.systemLogs)
 
         // Load admin notifications
-        const notificationsResponse = await fetch('/api/admin/notifications')
-        if (notificationsResponse.ok) {
-          this.adminNotifications = await notificationsResponse.json()
-        }
+        this.adminNotifications = await apiGet('/api/admin/notifications').catch(() => this.adminNotifications)
 
         // Load database metrics
         await this.loadDbMetrics()
@@ -431,12 +416,7 @@ export default {
 
     async loadDbMetrics() {
       try {
-        const response = await fetch('/api/metrics/')
-        if (!response.ok) {
-          console.warn('Database metrics endpoint unavailable; keeping dashboard fallback metrics')
-          return
-        }
-        const data = await response.json()
+        const data = await apiGet('/api/metrics/')
         const db = data.database || {}
         this.dbMetrics = {
           tables: db.tables || 0,
@@ -445,15 +425,14 @@ export default {
           lastBackup: db.lastBackup ? new Date(db.lastBackup).toLocaleString() : 'Unknown'
         }
       } catch (error) {
+        console.warn('Database metrics endpoint unavailable; keeping dashboard fallback metrics')
         console.error('Failed to load database metrics:', error)
       }
     },
 
     async loadSystemMetrics() {
       try {
-        const response = await fetch('/api/admin/stats', { headers: this.getAuthHeaders() })
-        if (!response.ok) return
-        const data = await response.json()
+        const data = await apiRequest('/api/admin/stats')
 
         // Real CPU / memory / disk from backend
         const perf = data.performanceMetrics || {}

@@ -68,6 +68,7 @@ import CollectionTree from '@/components/CollectionTree.vue'
 import { getCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { toast } from '@/composables/useToast'
+import { apiPost } from '@/api/base'
 
 export default {
   name: 'CollectionsTree',
@@ -100,26 +101,22 @@ export default {
   },
   methods: {
     async createCollection() {
-      const res = await fetch('/api/collections', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ 
+      try {
+        await apiPost('/api/collections', { 
           name: this.newCollection.name,
           form_number: this.newCollection.form_number,
           projectId: this.newCollection.projectId ? Number(this.newCollection.projectId) : null,
           description: this.newCollection.subtitle || null
         })
-      });
-      if (res.ok) {
+
         this.collections = await getCollections();
         this.newCollection.name = '';
         this.newCollection.form_number = '';
         this.newCollection.projectId = '';
         this.newCollection.subtitle = '';
   toast.success('Collection created successfully.')
-      } else {
-        const error = await res.json();
-  toast.error(`Failed to create collection: ${error.error || 'Unknown error'}`)
+      } catch (error) {
+  toast.error(`Failed to create collection: ${error.message || 'Unknown error'}`)
       }
     }
   }

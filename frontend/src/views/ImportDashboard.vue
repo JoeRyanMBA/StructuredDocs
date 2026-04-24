@@ -173,6 +173,7 @@
 
 <script>
 import CompactToolbar from '@/components/CompactToolbar.vue'
+import { apiDelete, apiGet, apiPost } from '@/api/base'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -243,21 +244,18 @@ export default {
 
     async loadImports() {
       try {
-        const res = await fetch('/api/import/history')
-        if (res.ok) {
-          const imports = await res.json()
-          
-          // Get pending imports
-          this.pendingImports = imports.filter(imp => imp.status === 'staging').slice(0, 5)
-          
-          // Get recent imports (last 10, sorted by created_at)
-          this.recentImports = imports
-            .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
-            .slice(0, 10)
-            
-          // Calculate stats
-          this.calculateStats(imports)
-        }
+        const imports = await apiGet('/api/import/history')
+
+        // Get pending imports
+        this.pendingImports = imports.filter(imp => imp.status === 'staging').slice(0, 5)
+
+        // Get recent imports (last 10, sorted by created_at)
+        this.recentImports = imports
+          .sort((a, b) => new Date(b.created_at) - new Date(a.created_at))
+          .slice(0, 10)
+
+        // Calculate stats
+        this.calculateStats(imports)
       } catch (error) {
         console.error('Failed to load imports:', error)
       }
@@ -302,12 +300,7 @@ export default {
     async reviewImport(importDoc) {
       // Persist review action to backend before navigating
       try {
-        const res = await fetch(`/api/import/${importDoc.id}/review`, {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify({ status: 'reviewed' })
-        })
-        if (!res.ok) throw new Error('Failed to persist review')
+        await apiPost(`/api/import/${importDoc.id}/review`, { status: 'reviewed' })
         // Optionally reload imports to update UI
         await this.loadImports()
       } catch (err) {
@@ -325,10 +318,7 @@ export default {
       // Persist delete action to backend
       if (!confirm('Are you sure you want to delete this import?')) return
       try {
-        const res = await fetch(`/api/import/${importDoc.id}`, {
-          method: 'DELETE'
-        })
-        if (!res.ok) throw new Error('Failed to delete import')
+        await apiDelete(`/api/import/${importDoc.id}`)
         await this.loadImports()
       } catch (err) {
         console.error('Error deleting import:', err)

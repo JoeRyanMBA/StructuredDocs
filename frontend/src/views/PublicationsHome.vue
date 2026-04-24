@@ -1,6 +1,4 @@
-<   <div class="publications-home">
-    <h2>Publications</h2>iv class="publications-home">
-    <h2>Publications</h2>plate>
+<template>
   <div class="publications-home">
     <h2>All Publications</h2>
     
@@ -29,6 +27,7 @@
 </template>
 
 <script>
+import { getPublications } from '@/api/publications'
 
 export default {
   name: 'PublicationsHome',
@@ -41,9 +40,7 @@ export default {
   },
   async created() {
     try {
-      const res = await fetch('/api/publications')
-      if (!res.ok) throw new Error(`Failed to fetch publications: ${res.statusText}`)
-      const data = await res.json()
+      const data = await getPublications()
       this.publications = Array.isArray(data) ? data : (data.publications || [])
     } catch (err) {
       console.error('Failed to fetch publications:', err)

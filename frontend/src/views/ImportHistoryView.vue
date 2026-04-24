@@ -49,6 +49,7 @@
 </template>
 
 <script>
+import { apiGet } from '@/api/base'
 
 export default {
   name: 'ImportHistoryView',
@@ -98,14 +99,7 @@ export default {
       this.error = null
 
       try {
-        const res = await fetch('/api/import/history')
-        
-        if (!res.ok) {
-          const errorText = await res.text()
-          throw new Error(`HTTP ${res.status}: ${errorText}`)
-        }
-        
-        const data = await res.json()
+        const data = await apiGet('/api/import/history')
         this.docs = Array.isArray(data) ? data : []
       } catch (e) {
         console.error('❌ Error fetching import history:', e)

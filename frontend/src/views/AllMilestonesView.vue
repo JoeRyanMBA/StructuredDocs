@@ -216,6 +216,7 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiDelete, apiGet, apiPost, apiPut } from '@/api/base'
 export default {
   name: 'AllMilestonesView',
   components: { HelpIcon },
@@ -263,11 +264,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch('/api/milestones/')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        this.milestones = await response.json()
+        this.milestones = await apiGet('/api/milestones/')
         this.applyFilters() // Initialize filtered data
       } catch (error) {
         console.error('Failed to fetch milestones:', error)
@@ -315,11 +312,7 @@ export default {
 
     async fetchProjects() {
       try {
-        const response = await fetch('/api/milestones/projects')
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        this.projects = await response.json()
+        this.projects = await apiGet('/api/milestones/projects')
       } catch (error) {
         console.error('Failed to fetch projects:', error)
       }
@@ -368,26 +361,18 @@ export default {
     
   async saveMilestone() {
       try {
-        const url = this.isEditing ? `/api/milestones/${this.milestoneForm.id}` : '/api/milestones/'
-        const method = this.isEditing ? 'PUT' : 'POST'
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: this.milestoneForm.name.trim(),
-            project_id: parseInt(this.milestoneForm.project_id),
-            date: this.milestoneForm.date || null,
-            status: this.milestoneForm.status,
-            description: this.milestoneForm.description.trim() || null
-          })
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        const payload = {
+          name: this.milestoneForm.name.trim(),
+          project_id: parseInt(this.milestoneForm.project_id),
+          date: this.milestoneForm.date || null,
+          status: this.milestoneForm.status,
+          description: this.milestoneForm.description.trim() || null
+        }
+
+        if (this.isEditing) {
+          await apiPut(`/api/milestones/${this.milestoneForm.id}`, payload)
+        } else {
+          await apiPost('/api/milestones/', payload)
         }
         
   await this.fetchMilestones()
@@ -414,14 +399,7 @@ export default {
     
     async confirmDelete() {
       try {
-        const response = await fetch(`/api/milestones/${this.milestoneToDelete.id}`, {
-          method: 'DELETE'
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
-        }
+        await apiDelete(`/api/milestones/${this.milestoneToDelete.id}`)
         
   await this.fetchMilestones()
   this.closeDeleteModal()
