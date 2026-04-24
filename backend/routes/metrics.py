@@ -240,8 +240,7 @@ def get_basic_system_metrics():
     """Get basic system metrics with real data where possible"""
     try:
         import time
-        import subprocess
-        
+
         # Get disk usage for the workspace using os.statvfs
         workspace_paths = [
             '/home/JoeRyanMBA/StructuredDocs',
@@ -249,8 +248,8 @@ def get_basic_system_metrics():
             os.path.dirname(os.path.dirname(os.path.abspath(__file__))),
             '.'
         ]
-        
-        disk_percent = 50  # Default
+
+        disk_percent = None
         disk_total_gb = 0
         disk_used_gb = 0
         
@@ -261,17 +260,18 @@ def get_basic_system_metrics():
                     total = stat.f_blocks * stat.f_frsize
                     free = stat.f_bavail * stat.f_frsize
                     used = total - free
-                    disk_percent = (used / total) * 100 if total > 0 else 0
+                    disk_percent = (used / total) * 100 if total > 0 else None
                     disk_total_gb = total / (1024**3)  # Convert to GB
                     disk_used_gb = used / (1024**3)
-                    print(f"📊 Disk usage: {disk_used_gb:.2f}GB / {disk_total_gb:.2f}GB ({disk_percent:.1f}%)")
+                    if disk_percent is not None:
+                        print(f"📊 Disk usage: {disk_used_gb:.2f}GB / {disk_total_gb:.2f}GB ({disk_percent:.1f}%)")
                     break
                 except Exception as e:
                     print(f"⚠️ Error getting disk stats for {workspace_path}: {e}")
                     continue
-        
+
     # Try to get real memory usage (some hosting environments may restrict access)
-        memory_percent = 65.0  # Default
+        memory_percent = None
         try:
             # Try to read /proc/meminfo for memory stats
             with open('/proc/meminfo', 'r') as f:
@@ -289,12 +289,12 @@ def get_basic_system_metrics():
                     memory_used = memtotal - memavailable
                     memory_percent = (memory_used / memtotal) * 100
                     print(f"📊 Memory usage: {memory_used/1024:.0f}MB / {memtotal/1024:.0f}MB ({memory_percent:.1f}%)")
-                
+
         except Exception as e:
             print(f"⚠️ Could not read memory info: {e}")
-        
+
         # Try to get CPU load average
-        cpu_percent = 35.0  # Default
+        cpu_percent = None
         try:
             # Get load average (1 minute)
             load_avg = os.getloadavg()[0]  # 1-minute load average
@@ -314,7 +314,7 @@ def get_basic_system_metrics():
                 print(f"📊 System uptime: {uptime_hours:.1f} hours")
         except Exception as e:
             print(f"⚠️ Could not get uptime: {e}")
-        
+
         # Determine health status based on usage
         def get_health_status(usage_percent):
             if usage_percent < 70:
@@ -323,19 +323,28 @@ def get_basic_system_metrics():
                 return 'warning'
             else:
                 return 'critical'
-        
-        # Overall system health based on highest usage
-        max_usage = max(memory_percent, cpu_percent, disk_percent)
-        system_health = get_health_status(max_usage)
+
+        available = [v for v in [memory_percent, cpu_percent, disk_percent] if isinstance(v, (int, float))]
+        if available:
+            max_usage = max(available)
+            system_health = get_health_status(max_usage)
+            metric_source = 'live'
+            metric_error = None
+        else:
+            system_health = 'unavailable'
+            metric_source = 'unavailable'
+            metric_error = 'No system metrics available from host'
         
         return {
             'serverStatus': 'online',
             'databaseStatus': 'connected',
-            'memoryUsage': round(memory_percent, 1),
-            'cpuUsage': round(cpu_percent, 1),
-            'diskUsage': round(disk_percent, 1),
+            'memoryUsage': round(memory_percent, 1) if isinstance(memory_percent, (int, float)) else None,
+            'cpuUsage': round(cpu_percent, 1) if isinstance(cpu_percent, (int, float)) else None,
+            'diskUsage': round(disk_percent, 1) if isinstance(disk_percent, (int, float)) else None,
             'systemHealth': system_health,
             'uptime': f"{uptime_hours:.1f} hours" if uptime_hours > 0 else "Unknown",
+            'metricSource': metric_source,
+            'metricError': metric_error,
             'diskSpace': {
                 'total': f"{disk_total_gb:.1f} GB",
                 'used': f"{disk_used_gb:.1f} GB",
@@ -346,11 +355,16 @@ def get_basic_system_metrics():
     except Exception as e:
         print(f"❌ Error getting system metrics: {str(e)}")
         return {
-            'serverStatus': 'healthy',
-            'databaseStatus': 'healthy',
-            'memoryUsage': 65,
-            'cpuUsage': 35,
-            'diskUsage': 45
+            'serverStatus': 'online',
+            'databaseStatus': 'connected',
+            'memoryUsage': None,
+            'cpuUsage': None,
+            'diskUsage': None,
+            'systemHealth': 'unavailable',
+            'uptime': 'Unknown',
+            'metricSource': 'unavailable',
+            'metricError': str(e),
+            'diskSpace': None
         }
 
 def get_application_metrics(db_path):
