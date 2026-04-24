@@ -1,0 +1,114 @@
+StructuredDocs Offsite Backup Runbook (Rsync over SSH)
+
+Purpose
+- Replicate local backups from app VPS to a second backup VPS.
+- Run daily after local backup job.
+
+Prerequisites
+- App VPS (already configured with local backups in /home/deploy/backups/structureddocs/)
+- Backup VPS (new server for offsite copies)
+- SSH access between app VPS and backup VPS
+
+------------------------------------------------------------
+1) Prepare backup VPS (destination)
+------------------------------------------------------------
+Run on BACKUP VPS:
+
+sudo adduser --disabled-password --gecos "" backupbot
+sudo mkdir -p /srv/structureddocs-backups
+sudo chown -R backupbot:backupbot /srv/structureddocs-backups
+
+------------------------------------------------------------
+2) Create dedicated SSH key on app VPS
+------------------------------------------------------------
+Run on APP VPS:
+
+ssh-keygen -t ed25519 -f /home/deploy/.ssh/backup_sync -N ""
+cat /home/deploy/.ssh/backup_sync.pub
+
+Copy the public key output into:
+- BACKUP VPS file: /home/backupbot/.ssh/authorized_keys
+
+Then run on BACKUP VPS:
+
+sudo -u backupbot mkdir -p /home/backupbot/.ssh
+sudo -u backupbot chmod 700 /home/backupbot/.ssh
+sudo -u backupbot chmod 600 /home/backupbot/.ssh/authorized_keys
+
+------------------------------------------------------------
+3) Test SSH from app VPS to backup VPS
+------------------------------------------------------------
+Run on APP VPS:
+
+ssh -i /home/deploy/.ssh/backup_sync backupbot@BACKUP_SERVER_IP "echo ok"
+
+Expected output: ok
+
+------------------------------------------------------------
+4) Create offsite sync script on app VPS
+------------------------------------------------------------
+Run on APP VPS:
+
+cat > /home/deploy/bin/structureddocs_offsite_sync.sh <<'EOF'
+#!/usr/bin/env bash
+set -euo pipefail
+
+SRC="/home/deploy/backups/structureddocs/"
+DEST_USER="backupbot"
+DEST_HOST="BACKUP_SERVER_IP"
+DEST_PATH="/srv/structureddocs-backups/"
+KEY="/home/deploy/.ssh/backup_sync"
+LOG="/home/deploy/backups/structureddocs/logs/offsite.log"
+
+mkdir -p "$(dirname "$LOG")"
+
+echo "[$(date -u +%F\ %T)] Starting offsite sync" >> "$LOG"
+rsync -az --delete \
+  -e "ssh -i $KEY -o BatchMode=yes -o StrictHostKeyChecking=accept-new" \
+  "$SRC" "${DEST_USER}@${DEST_HOST}:${DEST_PATH}" >> "$LOG" 2>&1
+echo "[$(date -u +%F\ %T)] Offsite sync complete" >> "$LOG"
+EOF
+
+chmod +x /home/deploy/bin/structureddocs_offsite_sync.sh
+
+IMPORTANT:
+- Replace BACKUP_SERVER_IP in the script before running.
+
+------------------------------------------------------------
+5) Run one manual sync test
+------------------------------------------------------------
+Run on APP VPS:
+
+/home/deploy/bin/structureddocs_offsite_sync.sh
+tail -n 50 /home/deploy/backups/structureddocs/logs/offsite.log
+
+------------------------------------------------------------
+6) Schedule daily offsite sync (after local backup)
+------------------------------------------------------------
+Current local backup schedule is 02:17 UTC.
+Schedule offsite sync at 02:40 UTC.
+
+Run on APP VPS:
+
+(crontab -l 2>/dev/null; echo "40 2 * * * /home/deploy/bin/structureddocs_offsite_sync.sh") | awk '!seen[$0]++' | crontab -
+crontab -l
+
+------------------------------------------------------------
+7) Monthly restore drill from offsite copy
+------------------------------------------------------------
+Run on APP VPS:
+
+rsync -az -e "ssh -i /home/deploy/.ssh/backup_sync" \
+  backupbot@BACKUP_SERVER_IP:/srv/structureddocs-backups/db/ /tmp/offsite-db/
+
+ls -1t /tmp/offsite-db/*.sql.gz | head -n 1
+
+Use your existing restore-drill process against the newest file.
+
+------------------------------------------------------------
+Operational Notes
+------------------------------------------------------------
+- Keep local retention policy (7 days) or adjust as needed.
+- Verify both local and offsite logs weekly.
+- Run an actual restore drill monthly (not just file copy checks).
+- Consider encrypting backup files before transfer for stronger security.

@@ -517,7 +517,7 @@ export default {
         // Fetch real projects from backend
         const data = await apiRequest('/api/projects/');
         console.log('📁 Projects data received:', data);
-        this.projects = data;
+        this.projects = Array.isArray(data) ? data : (Array.isArray(data?.projects) ? data.projects : []);
       } catch (error) {
         console.error('Failed to load projects:', error);
         this.projects = [];
