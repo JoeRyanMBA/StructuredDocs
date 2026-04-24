@@ -55,7 +55,6 @@ jobs:
             cd ~/StructuredDocs
             git fetch origin main
             git reset --hard origin/main
-            git clean -fd
             docker compose -f docker-compose.prod.yml up -d --build
             docker compose -f docker-compose.prod.yml ps
             ok=0
