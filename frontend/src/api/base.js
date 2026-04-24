@@ -29,6 +29,26 @@ function computeApiBase() {
 
 export const API_BASE = computeApiBase();
 
+async function parseResponseBody(response) {
+  if (response.status === 204 || response.status === 205) {
+    return null;
+  }
+
+  const contentType = (response.headers.get('content-type') || '').toLowerCase();
+  if (contentType.includes('application/json')) {
+    return response.json();
+  }
+
+  const text = await response.text();
+  if (!text) return null;
+
+  try {
+    return JSON.parse(text);
+  } catch (_) {
+    return text;
+  }
+}
+
 function isLikelyJwt(token) {
   if (!token || typeof token !== 'string') return false;
   const parts = token.split('.');
@@ -102,16 +122,26 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
   if (!response.ok) {
     let message = `API Error: ${response.status} ${response.statusText}`;
     try {
-      const body = await response.json();
+      const body = await parseResponseBody(response);
       if (body?.error) message = body.error;
       else if (body?.msg) message = body.msg;
       else if (body?.message) message = body.message;
+      else if (typeof body === 'string' && body.trim()) message = body.trim().slice(0, 200);
     } catch (_) { /* body not JSON, keep default message */ }
 
     throw new Error(message);
   }
-  
-  return response.json();
+
+  const body = await parseResponseBody(response);
+  if (typeof body === 'string') {
+    const preview = body.trim().slice(0, 80).toLowerCase();
+    if (preview.startsWith('<!doctype') || preview.startsWith('<html')) {
+      throw new Error('API returned HTML instead of JSON');
+    }
+    throw new Error('API returned non-JSON response');
+  }
+
+  return body;
 }
 
 export async function apiGet(endpoint) {

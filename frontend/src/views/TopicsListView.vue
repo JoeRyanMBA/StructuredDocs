@@ -599,7 +599,8 @@ export default {
 
     async fetchReviewers() {
       try {
-        this.availableReviewers = await apiGet('/api/reviews/reviewers')
+        const reviewers = await apiGet('/api/reviews/reviewers')
+        this.availableReviewers = Array.isArray(reviewers) ? reviewers : []
       } catch (err) {
         console.error('Failed to fetch reviewers:', err)
         // Set fallback reviewers if API fails
