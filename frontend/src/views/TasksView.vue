@@ -654,9 +654,56 @@ export default {
     
     async fetchAssociations() {
       try {
-        this.availableAssociations = await apiGet('/api/tasks/associations')
+        const normalizeItems = (items, nameKeys = ['name']) => {
+          if (!Array.isArray(items)) return []
+          return items
+            .map(item => {
+              if (!item || typeof item !== 'object') return null
+              const name = nameKeys.map(k => item[k]).find(v => typeof v === 'string' && v.trim()) || ''
+              if (!item.id || !name) return null
+              return { id: item.id, name }
+            })
+            .filter(Boolean)
+        }
+
+        let associations = null
+        try {
+          associations = await apiGet('/api/tasks/associations')
+        } catch (_) {
+          associations = null
+        }
+
+        const normalized = {
+          projects: normalizeItems(associations?.projects, ['name', 'title']),
+          collections: normalizeItems(associations?.collections, ['name', 'title']),
+          topics: normalizeItems(associations?.topics, ['name', 'title'])
+        }
+
+        const hasAny = normalized.projects.length || normalized.collections.length || normalized.topics.length
+        if (hasAny) {
+          this.availableAssociations = normalized
+          return
+        }
+
+        // Fallback for environments where the aggregate endpoint is empty/misconfigured.
+        const [projects, collections, topics] = await Promise.all([
+          apiGet('/api/projects/').catch(() => []),
+          apiGet('/api/collections/').catch(() => []),
+          apiGet('/api/topics/').catch(() => [])
+        ])
+
+        this.availableAssociations = {
+          projects: normalizeItems(projects, ['name', 'title']),
+          collections: normalizeItems(collections, ['name', 'title']),
+          topics: normalizeItems(topics, ['title', 'name'])
+        }
       } catch (error) {
         console.error('Failed to fetch associations:', error)
+        this.availableAssociations = {
+          projects: [],
+          collections: [],
+          topics: []
+        }
       }
     },
     

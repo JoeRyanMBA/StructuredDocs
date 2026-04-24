@@ -106,15 +106,25 @@ export default {
     },
   },
 
-  async mounted() {
-    try {
-      this.reviewers = await getReviewers()
-    } catch (err) {
-      toast.error('Failed to load reviewers')
+  watch: {
+    async isVisible(next) {
+      if (next && this.reviewers.length === 0) {
+        await this.loadReviewers()
+      }
     }
   },
 
   methods: {
+    async loadReviewers() {
+      try {
+        const data = await getReviewers()
+        this.reviewers = Array.isArray(data) ? data : []
+      } catch (err) {
+        // In empty/non-configured environments, keep this silent and show no options.
+        this.reviewers = []
+      }
+    },
+
     async submitRequest() {
       if (!this.selectedReviewer) return
       this.loading = true
