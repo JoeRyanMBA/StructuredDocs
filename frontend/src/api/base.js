@@ -86,9 +86,9 @@ async function _doRefresh() {
   return null;
 }
 
-export async function apiRequest(endpoint, options = {}, _isRetry = false) {
+async function _requestWithAuth(endpoint, options = {}, _isRetry = false) {
   const url = `${API_BASE}${endpoint}`;
-  
+
   const token = getStoredAccessToken();
   const defaultOptions = {
     credentials: 'include',
@@ -101,12 +101,12 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
   };
 
   const response = await fetch(url, defaultOptions);
-  
+
   // Attempt silent token refresh on 401 (once)
   if (response.status === 401 && !_isRetry && !endpoint.includes('/api/users/refresh')) {
     const newToken = await _doRefresh();
     if (newToken) {
-      return apiRequest(endpoint, options, true);
+      return _requestWithAuth(endpoint, options, true);
     }
     // Refresh failed — clear auth and show session modal via event (no raw page reload)
     if (typeof localStorage !== 'undefined') {
@@ -118,6 +118,12 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
       window.dispatchEvent(new CustomEvent('auth:logout'));
     }
   }
+
+  return response;
+}
+
+export async function apiRequest(endpoint, options = {}, _isRetry = false) {
+  const response = await _requestWithAuth(endpoint, options, _isRetry);
 
   if (!response.ok) {
     let message = `API Error: ${response.status} ${response.statusText}`;
@@ -142,6 +148,11 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
   }
 
   return body;
+}
+
+// Returns raw Response while still applying auth headers and silent refresh behavior.
+export async function apiRequestRaw(endpoint, options = {}, _isRetry = false) {
+  return _requestWithAuth(endpoint, options, _isRetry);
 }
 
 export async function apiGet(endpoint) {
