@@ -6,6 +6,7 @@ services:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
+      - STORAGE_BACKEND=local
       - IMAGE_STORAGE_ROOT=/app/data/images
       # Email configuration (set these in your deployment environment)
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
