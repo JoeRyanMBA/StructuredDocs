@@ -596,7 +596,7 @@ p { color: #666; }
                         _model_cls.__table__.create(bind=db.engine, checkfirst=True)
                     except Exception as _br_e:
                         print(f"⚠️ Could not create {_table_name} fallback table: {_br_e}")
-            # Safety net: ensure reviews.batch_id and batch_position columns exist
+            # Safety net: ensure reviews table columns exist
             if 'reviews' in existing_tables:
                 try:
                     _review_cols = {c['name'] for c in inspector.get_columns('reviews')}
@@ -608,8 +608,16 @@ p { color: #666; }
                         db.session.execute(db.text('ALTER TABLE reviews ADD COLUMN batch_position INTEGER'))
                         db.session.commit()
                         print("✅ Added reviews.batch_position")
+                    if 'email_delivery_unavailable' not in _review_cols:
+                        db.session.execute(db.text('ALTER TABLE reviews ADD COLUMN email_delivery_unavailable BOOLEAN NOT NULL DEFAULT FALSE'))
+                        db.session.commit()
+                        print("✅ Added reviews.email_delivery_unavailable")
+                    if 'follow_up_sent_at' not in _review_cols:
+                        db.session.execute(db.text('ALTER TABLE reviews ADD COLUMN follow_up_sent_at TIMESTAMP'))
+                        db.session.commit()
+                        print("✅ Added reviews.follow_up_sent_at")
                 except Exception as _bc_e:
-                    print(f"⚠️ Could not add bulk review columns to reviews: {_bc_e}")
+                    print(f"⚠️ Could not add review columns to reviews: {_bc_e}")
                     db.session.rollback()
 
             # Safety net: ensure publications.form_number column exists
