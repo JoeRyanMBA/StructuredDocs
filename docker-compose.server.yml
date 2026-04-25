@@ -10,8 +10,13 @@ services:
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       - STORAGE_BACKEND=local
       - IMAGE_STORAGE_ROOT=/app/data/images
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-}
       - SENDGRID_API_KEY=${SENDGRID_API_KEY:-}
+      - SMTP_SERVER=${SMTP_SERVER:-}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
       - FROM_EMAIL=${FROM_EMAIL:-}
       - FROM_NAME=${FROM_NAME:-StructuredDocs}

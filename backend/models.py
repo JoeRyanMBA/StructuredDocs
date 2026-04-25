@@ -545,6 +545,8 @@ class ImportImage(db.Model):
             dict with image metadata
         """
         from pathlib import Path
+        import os
+        from flask import current_app
         
         result = {
             'id': self.id,
@@ -567,10 +569,30 @@ class ImportImage(db.Model):
                 # Spaces/CDN storage - trust the upload was successful
                 result['file_exists'] = True
             else:
-                # Local storage - check if file actually exists on disk
-                backend_path = Path(self.backend_path)
-                frontend_path = Path(self.frontend_path)
-                result['file_exists'] = backend_path.exists() or frontend_path.exists()
+                # Local storage - check absolute and configured-root-relative locations.
+                backend_path = Path(self.backend_path) if self.backend_path else None
+                frontend_path = Path(self.frontend_path) if self.frontend_path else None
+
+                configured_root = Path((os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()) if os.environ.get('IMAGE_STORAGE_ROOT') else None
+                fallback_backend_paths = []
+                if configured_root:
+                    fallback_backend_paths.append(configured_root / 'imports' / str(self.document_id) / self.filename)
+                fallback_backend_paths.append(Path('/app/data/images') / 'imports' / str(self.document_id) / self.filename)
+                fallback_backend_paths.append(Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(self.document_id) / self.filename)
+
+                backend_exists = False
+                if backend_path is not None:
+                    if backend_path.is_absolute():
+                        backend_exists = backend_path.exists()
+                    else:
+                        # Legacy rows may store relative paths like imports/<doc>/<file>
+                        backend_exists = any((root / backend_path).exists() for root in [configured_root, Path('/app/data/images'), Path(current_app.root_path) / 'static' / 'images'] if root is not None)
+
+                if not backend_exists:
+                    backend_exists = any(path.exists() for path in fallback_backend_paths)
+
+                frontend_exists = frontend_path.exists() if frontend_path is not None else False
+                result['file_exists'] = backend_exists or frontend_exists
         
         return result
 
