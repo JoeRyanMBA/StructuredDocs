@@ -1,20 +1,30 @@
 <template>
-  <span class="usage-badge-wrap" ref="wrap">
+  <span
+    class="usage-badge-wrap"
+    ref="wrap"
+    @mouseenter="onMouseEnter"
+    @mouseleave="onMouseLeave"
+    @focusin="onFocusIn"
+    @focusout="onFocusOut"
+  >
     <button
       class="usage-badge"
       :class="{ 'is-zero': count === 0, 'is-used': count > 0 }"
       @click.stop="toggle"
-      :title="count === 0 ? `Unused — no ${label}s` : `Used in ${count} ${label}${count === 1 ? '' : 's'} (click to see)`"
+      @keydown.esc.stop="closePopover"
+      :aria-label="buttonLabel"
+      :aria-expanded="isOpen ? 'true' : 'false'"
+      aria-haspopup="true"
       type="button"
     >{{ count }}</button>
 
-    <div v-if="open && items.length > 0" class="usage-popover">
+    <div v-if="isOpen && items.length > 0" class="usage-popover">
       <div class="usage-popover-header">{{ label }}s</div>
       <ul>
         <li v-for="item in items" :key="item.id">{{ item.name }}</li>
       </ul>
     </div>
-    <div v-else-if="open && count === 0" class="usage-popover usage-popover--empty">
+    <div v-else-if="isOpen && count === 0" class="usage-popover usage-popover--empty">
       Not used in any {{ label }}.
     </div>
   </span>
@@ -29,7 +39,30 @@ export default {
     items: { type: Array, default: () => [] }   // [{id, name}]
   },
   data() {
-    return { open: false }
+    return {
+      isHovered: false,
+      isFocused: false,
+      isPinned: false
+    }
+  },
+  computed: {
+    isOpen() {
+      return this.isHovered || this.isFocused || this.isPinned
+    },
+    buttonLabel() {
+      if (this.count === 0) {
+        return `Unused — no ${this.label}s`
+      }
+
+      const names = this.items
+        .map(item => item?.name)
+        .filter(Boolean)
+        .join(', ')
+
+      return names
+        ? `Used in ${this.count} ${this.label}${this.count === 1 ? '' : 's'}: ${names}`
+        : `Used in ${this.count} ${this.label}${this.count === 1 ? '' : 's'}`
+    }
   },
   mounted() {
     document.addEventListener('click', this.onOutsideClick)
@@ -39,11 +72,31 @@ export default {
   },
   methods: {
     toggle() {
-      this.open = !this.open
+      this.isPinned = !this.isPinned
+    },
+    closePopover() {
+      this.isHovered = false
+      this.isFocused = false
+      this.isPinned = false
+    },
+    onMouseEnter() {
+      this.isHovered = true
+    },
+    onMouseLeave() {
+      this.isHovered = false
+    },
+    onFocusIn() {
+      this.isFocused = true
+    },
+    onFocusOut(e) {
+      if (this.$refs.wrap && e.relatedTarget && this.$refs.wrap.contains(e.relatedTarget)) {
+        return
+      }
+      this.isFocused = false
     },
     onOutsideClick(e) {
       if (this.$refs.wrap && !this.$refs.wrap.contains(e.target)) {
-        this.open = false
+        this.closePopover()
       }
     }
   }
