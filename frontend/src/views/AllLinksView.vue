@@ -120,22 +120,14 @@
             </div>
           </div>
           <div class="col-reference">
-            <div class="reference-info">
-              <span v-if="link.reference_code" class="reference-code">{{ link.reference_code }}</span>
-              <span v-else class="no-reference">No reference</span>
-            </div>
+            <span v-if="link.reference_code" class="reference-code">{{ link.reference_code }}</span>
+            <span v-else class="no-reference">No reference</span>
           </div>
           <div class="col-type">
-            <span class="link-type" :class="'type-' + link.link_type">
-              {{ formatLinkType(link.link_type) }}
-            </span>
+            <span class="link-type">{{ formatLinkType(link.link_type) }}</span>
           </div>
-          <div class="col-topics" @click.stop>
-            <UsageBadge
-              :count="link.usage_count || 0"
-              label="topic"
-              :items="link.used_in_topics_detail || []"
-            />
+          <div class="col-topics">
+            <span class="topics-text">{{ formatTopicUsage(link.usage_count) }}</span>
           </div>
           <div class="col-status">
             <span :class="['status-badge', link.is_active ? 'status-active' : 'status-inactive']">
@@ -333,14 +325,13 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { apiRequest } from '../api/base.js'
-import UsageBadge from '@/components/UsageBadge.vue'
 import TagEditor from '@/components/TagEditor.vue'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
   name: 'AllLinksView',
-  components: { UsageBadge, TagEditor, HelpIcon },
+  components: { TagEditor, HelpIcon },
   mixins: [unsavedChangesGuard],
   data() {
     return {
@@ -560,6 +551,12 @@ export default {
       return typeMap[type] || type
     },
 
+    formatTopicUsage(count) {
+      const total = Number(count) || 0
+      if (total === 0) return 'No topics'
+      return total === 1 ? '1 topic' : `${total} topics`
+    },
+
     formatDate(dateString) {
       if (!dateString) return 'N/A'
       return new Date(dateString).toLocaleDateString('en-US', {
@@ -734,6 +731,8 @@ export default {
   border: 1px solid #ddd;
   border-radius: 8px;
   overflow: hidden;
+  max-height: none;
+  height: auto;
 }
 
 .list-header {
@@ -813,51 +812,26 @@ export default {
 }
 
 .reference-code {
-  background: var(--primary-light-blue);
-  color: var(--primary-dark-blue);
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
-  font-family: monospace;
+  color: #495057;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 400;
 }
 
 .no-reference {
   color: #999;
-  font-style: italic;
   font-size: 0.875rem;
 }
-
-.reference-info {
-  display: flex;
-  flex-direction: column;
-  gap: 0.25rem;
-}
-
 
 .link-type {
-  padding: 0.25rem 0.5rem;
-  border-radius: 4px;
   font-size: 0.875rem;
-  font-weight: 500;
+  font-weight: 400;
+  color: #495057;
 }
 
-.type-form { background: #e8f5e8; color: #2e7d32; }
-.type-document { background: #fff3e0; color: #f57c00; }
-.type-website { background: #e3f2fd; color: #1976d2; }
-.type-policy { background: #fce4ec; color: #c2185b; }
-.type-procedure { background: #f3e5f5; color: #7b1fa2; }
-.type-regulation { background: #ffebee; color: #d32f2f; }
-.type-other { background: #f5f5f5; color: #616161; }
-
-.usage-count {
-  color: #666;
+.topics-text {
   font-size: 0.875rem;
-}
-
-.usage-unknown {
-  color: #999;
-  font-style: italic;
+  font-weight: 400;
+  color: #495057;
 }
 
 .status-badge {
