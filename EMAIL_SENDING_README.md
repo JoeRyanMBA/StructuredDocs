@@ -37,6 +37,6 @@ SMTP configuration (alternative)
 
 Troubleshooting
 
-- Call `GET /api/admin/email-status` with `Authorization: Bearer $ADMIN_API_KEY` to view sanitized config.
+- Call `GET /api/admin/email-status` with either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to view sanitized config.
 
-- Call `POST /api/admin/send-test-email` with `{"to": "you@example.com"}` and `Authorization: Bearer $ADMIN_API_KEY` to test delivery. The response will include provider details and status.
+- Call `POST /api/admin/send-test-email` with `{"to": "you@example.com"}` and either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to test delivery. The response will include provider details and status.
