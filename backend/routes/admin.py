@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog, SystemSetting
 from ..utils.email_service import get_email_service
 from ..utils.storage import get_storage_backend, SpacesStorage
@@ -10,6 +10,31 @@ import os
 from typing import Any
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
+
+
+def _extract_bearer_or_raw_token() -> str:
+    auth = request.headers.get('Authorization', '') or ''
+    if auth.startswith('Bearer '):
+        return auth[7:].strip()
+    return auth.strip()
+
+
+def _require_admin_or_api_key():
+    """Allow either the admin API key or an authenticated admin JWT."""
+    expected = (os.getenv('ADMIN_API_KEY') or '').strip()
+    supplied = _extract_bearer_or_raw_token() or (request.headers.get('X-Admin-Token', '') or '').strip()
+
+    if expected and supplied == expected:
+        return None
+
+    try:
+        verify_jwt_in_request()
+    except Exception:
+        return jsonify({"error": "Unauthorized"}), 401
+
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    return err
 
 @admin_bp.route('/stats', methods=['GET'])
 @jwt_required()
@@ -229,108 +254,54 @@ def get_system_logs():
         return jsonify([]), 200
 
 @admin_bp.route('/send-test-email', methods=['POST'])
-@jwt_required()
 def send_test_email_endpoint():
     """Send a test email to verify SMTP configuration.
 
-    Protect with ADMIN_API_KEY in Authorization header as a simple bearer token.
+    Protect with ADMIN_API_KEY in Authorization/X-Admin-Token or an admin JWT.
     Body: { "to": "you@example.com" }
     """
     try:
-        # Auth: Authorization: Bearer <token> OR Authorization: <token> OR X-Admin-Token
-        auth = request.headers.get('Authorization', '') or ''
-        token = ''
-        if auth.startswith('Bearer '):
-            token = auth[7:].strip()
-        elif auth:
-            token = auth.strip()
-        if not token:
-            token = (request.headers.get('X-Admin-Token', '') or '').strip()
-        expected = (os.getenv('ADMIN_API_KEY') or '').strip()
-        if not expected or token != expected:
-            return jsonify({"error": "Unauthorized"}), 401
+        err = _require_admin_or_api_key()
+        if err:
+            return err
 
         payload = request.get_json(silent=True) or {}
         to_email = (payload.get('to') or '').strip()
         if not to_email:
             return jsonify({"error": "Missing 'to' email"}), 400
 
-        use_sendgrid = bool(os.getenv('SENDGRID_API_KEY'))
-        status_code = None
-        body_text = None
-        ok = False
-        # Ensure these are always defined to avoid unbound variable errors if SendGrid initialization fails
-        from_email = (os.getenv('DEFAULT_FROM_EMAIL', '') or '').strip()
-        verified_sender = ''
-
-        if use_sendgrid:
-            try:
-                from sendgrid import SendGridAPIClient  # type: ignore
-                from sendgrid.helpers.mail import Mail  # type: ignore
-                api_key = os.getenv('SENDGRID_API_KEY')
-                # Prefer verified sender to satisfy DMARC if provided
-                verified_sender = (os.getenv('SENDGRID_VERIFIED_SENDER') or '').strip()
-                from_email = (verified_sender or os.getenv('DEFAULT_FROM_EMAIL', '')).strip()
-                branding_from = (os.getenv('DEFAULT_FROM_EMAIL', '')).strip()
-                branding_name = (os.getenv('FROM_NAME', 'StructuredDocs')).strip()
-
-                message = Mail(
-                    from_email={"email": from_email, "name": branding_name},
-                    to_emails=to_email,
-                    subject="StructuredDocs Test Email",
-                    plain_text_content="This is a test email from StructuredDocs via SendGrid.",
-                    html_content="<strong>This is a test email from StructuredDocs via SendGrid.</strong>",
-                )
-                # If using a verified sender that differs from branding, set Reply-To
-                if verified_sender and branding_from and verified_sender != branding_from:
-                    try:
-                        message.reply_to = {"email": branding_from, "name": branding_name}
-                    except Exception:
-                        pass
-                sg = SendGridAPIClient(api_key)
-                resp = sg.send(message)
-                status_code = getattr(resp, 'status_code', None)
-                body = getattr(resp, 'body', b'')
-                body_text = body.decode('utf-8', errors='ignore') if isinstance(body, (bytes, bytearray)) else str(body)
-                ok = (status_code == 202)
-            except Exception as e:
-                body_text = str(e)
-                ok = False
-        else:
-            from ..utils.email_service import email_service
-            ok = email_service.send_test_email(to_email)
-        # Non-secret diagnostics
-        detail: dict[str, Any] = {"provider": "sendgrid" if use_sendgrid else "smtp"}
-        if use_sendgrid:
-            detail["from"] = from_email
-            detail["verifiedSenderUsed"] = bool(verified_sender)
-            detail["has_key"] = str(True)
-            detail["status_code"] = str(status_code) if status_code is not None else ""
-            detail["response"] = body_text or ""
-        else:
-            detail["server"] = os.getenv('SMTP_SERVER', '')
-            detail["from"] = from_email or os.getenv('FROM_EMAIL', '') or os.getenv('DEFAULT_FROM_EMAIL', '')
+        svc = get_email_service()
+        svc.reload_config()
+        ok = svc.send_test_email(to_email)
+        provider = svc.provider or 'smtp'
+        detail: dict[str, Any] = {
+            "provider": provider,
+            "from": svc.from_email,
+            "fromName": svc.from_name,
+            "debugMode": svc.debug_mode,
+            "lastError": svc.last_error,
+            "verifiedSenderUsed": bool(getattr(svc, 'sendgrid_verified_sender', '')),
+            "hasProviderApiKey": bool(
+                getattr(svc, 'postmark_token', '') or
+                getattr(svc, 'resend_api_key', '') or
+                getattr(svc, 'sendgrid_api_key', '')
+            ),
+        }
+        if provider == 'smtp':
+            detail["server"] = svc.smtp_server
+            detail["port"] = svc.smtp_port
 
         return jsonify({"ok": bool(ok), "detail": detail}), (200 if ok else 500)
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
 @admin_bp.route('/email-status', methods=['GET'])
-@jwt_required()
 def email_status():
     """Return sanitized email configuration status (no secrets)."""
     try:
-        auth = request.headers.get('Authorization', '') or ''
-        token = ''
-        if auth.startswith('Bearer '):
-            token = auth[7:].strip()
-        elif auth:
-            token = auth.strip()
-        if not token:
-            token = (request.headers.get('X-Admin-Token', '') or '').strip()
-        expected = (os.getenv('ADMIN_API_KEY') or '').strip()
-        if not expected or token != expected:
-            return jsonify({"error": "Unauthorized"}), 401
+        err = _require_admin_or_api_key()
+        if err:
+            return err
 
         svc = get_email_service()
         svc.reload_config()
@@ -345,6 +316,8 @@ def email_status():
             'lastError': svc.last_error,
             'hasPostmarkToken': bool(getattr(svc, 'postmark_token', '')),
             'hasResendKey': bool(getattr(svc, 'resend_api_key', '')),
+            'hasSendgridKey': bool(getattr(svc, 'sendgrid_api_key', '')),
+            'sendgridVerifiedSender': getattr(svc, 'sendgrid_verified_sender', '') or None,
         }
         return jsonify(data), 200
     except Exception as e:

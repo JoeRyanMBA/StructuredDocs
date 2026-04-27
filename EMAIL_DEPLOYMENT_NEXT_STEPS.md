@@ -138,13 +138,13 @@ Choose **ONE** of these approaches:
 
 # Check email configuration
 
-curl -H "Authorization: Bearer test-token" \
+curl -H "X-Admin-Token: $ADMIN_API_KEY" \
   https://structureddocs-srhab.ondigitalocean.app/api/admin/email-status
 
 # Send test email
 
 curl -X POST \
-  -H "Authorization: Bearer test-token" \
+  -H "X-Admin-Token: $ADMIN_API_KEY" \
   -H "Content-Type: application/json" \
   -d '{"to": "your-test@email.com"}' \
   https://structureddocs-srhab.ondigitalocean.app/api/admin/send-test-email
@@ -196,8 +196,8 @@ Authentication-Results:
 
    # Check what the app sees
 
-   curl -H "Authorization: Bearer test-token" \
-     https://structureddocs-srhab.ondigitalocean.app/api/admin/email-status
+    curl -H "X-Admin-Token: $ADMIN_API_KEY" \
+      https://structureddocs-srhab.ondigitalocean.app/api/admin/email-status
    ```
 
 ### Common Issues
