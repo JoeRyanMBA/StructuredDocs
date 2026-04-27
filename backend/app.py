@@ -697,6 +697,15 @@ p { color: #666; }
                     print(f"✅ Help links seeded: {_hl_created} created, {_hl_updated} updated, {_hl_skipped} skipped")
             except Exception as _hl_err:
                 print(f"⚠️ Could not seed help links: {_hl_err}")
+
+            try:
+                from .models import Link
+                from .utils.link_reference_codes import backfill_link_reference_codes
+                _link_ref_backfilled = backfill_link_reference_codes(db, Link)
+                if _link_ref_backfilled:
+                    print(f"✅ Link reference codes backfilled: {_link_ref_backfilled}")
+            except Exception as _link_ref_err:
+                print(f"⚠️ Could not backfill link reference codes: {_link_ref_err}")
                 
         except Exception as e:
             print(f"⚠️ Could not create admin user: {e}")

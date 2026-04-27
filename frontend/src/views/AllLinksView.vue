@@ -593,7 +593,7 @@ export default {
   }
 }
 </script>
-<style>
+<style scoped>
 .all-links {
   padding: 2rem;
   max-width: 1400px;

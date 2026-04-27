@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from ..models import db, Link, Topic, TopicLink
+from ..utils.link_reference_codes import assign_missing_link_reference_code, resolve_link_reference_code
 from sqlalchemy import or_, and_, func
 import re
 
@@ -71,24 +72,10 @@ def create_link():
         if not data.get('url'):
             return jsonify({'error': 'URL is required'}), 400
         
-        # Check if reference_code is unique if provided; otherwise auto-generate
-        reference_code = data.get('reference_code')
-        if reference_code:
-            existing = Link.query.filter_by(reference_code=reference_code).first()
-            if existing:
-                return jsonify({'error': f'Reference code "{reference_code}" already exists'}), 400
-        else:
-            # Generate a simple unique code like LINK-XXXX
-            import random, string
-            base_prefix = 'LINK'
-            # Try a handful of times to avoid collision
-            for _ in range(10):
-                suffix = ''.join(random.choices(string.ascii_uppercase + string.digits, k=6))
-                candidate = f"{base_prefix}-{suffix}"
-                if not Link.query.filter_by(reference_code=candidate).first():
-                    reference_code = candidate
-                    break
-            # If still none, leave as None (optional field)
+        try:
+            reference_code = resolve_link_reference_code(Link, data.get('reference_code'))
+        except ValueError as exc:
+            return jsonify({'error': str(exc)}), 400
         
         # Create new link
         link = Link(
@@ -132,13 +119,6 @@ def update_link(link_id):
         link = Link.query.get_or_404(link_id)
         data = request.get_json()
         
-        # Check if reference_code is unique if being changed
-        new_reference_code = data.get('reference_code')
-        if new_reference_code and new_reference_code != link.reference_code:
-            existing = Link.query.filter_by(reference_code=new_reference_code).first()
-            if existing:
-                return jsonify({'error': f'Reference code "{new_reference_code}" already exists'}), 400
-        
         # Update fields
         if 'title' in data:
             link.title = data['title']
@@ -147,13 +127,23 @@ def update_link(link_id):
         if 'description' in data:
             link.description = data['description']
         if 'reference_code' in data:
-            link.reference_code = data['reference_code']
+            try:
+                link.reference_code = resolve_link_reference_code(
+                    Link,
+                    data['reference_code'],
+                    exclude_link_id=link.id,
+                )
+            except ValueError as exc:
+                return jsonify({'error': str(exc)}), 400
         if 'link_type' in data:
             link.link_type = data['link_type']
         if 'is_internal' in data:
             link.is_internal = data['is_internal']
         if 'is_active' in data:
             link.is_active = data['is_active']
+
+        if 'reference_code' not in data:
+            assign_missing_link_reference_code(link, Link)
         
         db.session.commit()
         

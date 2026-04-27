@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree, Link, TopicLink
 from ..utils.image_handler import ImageHandler
+from ..utils.link_reference_codes import generate_unique_link_reference_code
 from ..extensions import limiter
 from ..utils.settings import get_setting
 
@@ -1795,6 +1796,7 @@ def _import_as_collection(file, source):
                             title=imp_link.title or imp_link.url,
                             url=imp_link.url,
                             description=imp_link.description,
+                            reference_code=generate_unique_link_reference_code(Link),
                             link_type=imp_link.link_type,
                             is_internal=imp_link.is_internal,
                         )
@@ -2020,6 +2022,7 @@ def commit_import(doc_id):
                                 title=imp_link.title or imp_link.url,
                                 url=imp_link.url,
                                 description=imp_link.description,
+                                reference_code=generate_unique_link_reference_code(Link),
                                 link_type=imp_link.link_type,
                                 is_internal=imp_link.is_internal,
                             )
