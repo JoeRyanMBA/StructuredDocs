@@ -92,62 +92,63 @@
 
       <!-- Links List -->
       <div class="links-list">
-        <div class="list-header">
-          <div class="col-id">ID</div>
-          <div class="col-title">Title & URL</div>
-          <div class="col-reference">Reference</div>
-          <div class="col-type">Type</div>
-          <div class="col-topics">Topics</div>
-          <div class="col-status">Status</div>
-          <div class="col-actions">Actions</div>
-        </div>
-        
-        <div 
-          v-for="link in filteredLinks" 
-          :key="link.id"
-          class="link-row"
-          @click="selectLink(link)"
-          :class="{ 'selected': selectedLink?.id === link.id }"
-        >
-          <div class="col-id">#{{ link.id }}</div>
-          <div class="col-title">
-            <div class="link-main">
-              <div class="link-title" :title="link.title">{{ link.title }}</div>
-              <div class="link-url" :title="link.url">{{ link.url }}</div>
-              <div v-if="link.description" class="link-description" :title="link.description">
-                {{ link.description }}
+        <div class="links-list-grid">
+          <div class="list-header">
+            <div class="col-id">ID</div>
+            <div class="col-title">Title & URL</div>
+            <div class="col-reference">Reference</div>
+            <div class="col-type">Type</div>
+            <div class="col-topics">Topics</div>
+            <div class="col-status">Status</div>
+            <div class="col-actions">Actions</div>
+          </div>
+          
+          <div 
+            v-for="link in filteredLinks" 
+            :key="link.id"
+            class="link-row"
+            @click="selectLink(link)"
+            :class="{ 'selected': selectedLink?.id === link.id }"
+          >
+            <div class="col-id">#{{ link.id }}</div>
+            <div class="col-title">
+              <div class="link-main">
+                <div class="link-title" :title="link.title">{{ link.title }}</div>
+                <div class="link-url" :title="link.url">{{ link.url }}</div>
+                <div v-if="link.description" class="link-description" :title="link.description">
+                  {{ link.description }}
+                </div>
               </div>
             </div>
-          </div>
-          <div class="col-reference">
-            <div class="reference-info">
-              <span v-if="link.reference_code" class="reference-code">{{ link.reference_code }}</span>
-              <span v-else class="no-reference">No reference</span>
-
+            <div class="col-reference">
+              <div class="reference-info">
+                <span v-if="link.reference_code" class="reference-code">{{ link.reference_code }}</span>
+                <span v-else class="no-reference">No reference</span>
+              </div>
             </div>
-          </div>
-          <div class="col-type">
-            <span class="link-type" :class="'type-' + link.link_type">
-              {{ formatLinkType(link.link_type) }}
-            </span>
-          </div>
-          <div class="col-topics" @click.stop>
-            <UsageBadge
-              :count="link.usage_count || 0"
-              label="topic"
-              :items="link.used_in_topics_detail || []"
-            />
-          </div>
-          <div class="col-status">
-            <span :class="['status-badge', link.is_active ? 'status-active' : 'status-inactive']">
-              {{ link.is_active ? 'Active' : 'Inactive' }}
-            </span>
-          </div>
-          <div class="col-actions">
-            <button class="btn-icon" @click.stop="copyLinkReference(link)" title="Copy Reference"><i class="bi bi-clipboard"></i></button>
-            <button class="btn-icon" @click.stop="viewLinkDetails(link)" title="View Details"><i class="bi bi-zoom-in"></i></button>
-            <button class="btn-icon" @click.stop="editLink(link)" title="Edit Link"><i class="bi bi-pencil-square"></i></button>
-            <button class="btn-icon" @click.stop="openUrl(link)" title="Open URL" v-if="link.url"><i class="bi bi-box-arrow-up-right"></i></button>
+            <div class="col-type">
+              <span class="link-type" :class="'type-' + link.link_type">
+                {{ formatLinkType(link.link_type) }}
+              </span>
+            </div>
+            <div class="col-topics" @click.stop>
+              <UsageBadge
+                :count="link.usage_count || 0"
+                label="topic"
+                :items="link.used_in_topics_detail || []"
+              />
+            </div>
+            <div class="col-status">
+              <span :class="['status-badge', link.is_active ? 'status-active' : 'status-inactive']">
+                {{ link.is_active ? 'Active' : 'Inactive' }}
+              </span>
+            </div>
+            <div class="col-actions">
+              <button class="btn-icon" @click.stop="copyLinkReference(link)" title="Copy Reference"><i class="bi bi-clipboard"></i></button>
+              <button class="btn-icon" @click.stop="viewLinkDetails(link)" title="View Details"><i class="bi bi-zoom-in"></i></button>
+              <button class="btn-icon" @click.stop="editLink(link)" title="Edit Link"><i class="bi bi-pencil-square"></i></button>
+              <button class="btn-icon" @click.stop="openUrl(link)" title="Open URL" v-if="link.url"><i class="bi bi-box-arrow-up-right"></i></button>
+            </div>
           </div>
         </div>
       </div>
@@ -596,6 +597,8 @@ export default {
 </script>
 <style>
 .all-links {
+  --links-grid-columns: 55px minmax(260px, 2fr) 150px 120px 120px 100px 150px;
+  --links-grid-min-width: 1110px;
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -734,28 +737,35 @@ export default {
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  overflow: visible;
+  overflow-x: auto;
+  overflow-y: hidden;
+}
+
+.links-list-grid {
+  min-width: var(--links-grid-min-width);
 }
 
 .list-header {
   display: grid;
-  grid-template-columns: 55px 2fr 150px 120px 120px 100px 150px;
+  grid-template-columns: var(--links-grid-columns);
   gap: 1rem;
   padding: 1rem;
   background: #f8f9fa;
   font-weight: 500;
   border-bottom: 1px solid #ddd;
+  box-sizing: border-box;
 }
 
 .link-row {
   display: grid;
-  grid-template-columns: 55px 2fr 150px 120px 120px 100px 150px;
+  grid-template-columns: var(--links-grid-columns);
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #eee;
   cursor: pointer;
   transition: all 0.2s ease;
   align-items: start;
+  box-sizing: border-box;
 }
 
 .col-id {
@@ -1078,9 +1088,14 @@ export default {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
+  .all-links {
+    --links-grid-columns: 55px minmax(240px, 2fr) 130px 110px 80px 130px;
+    --links-grid-min-width: 845px;
+  }
+
   .list-header,
   .link-row {
-    grid-template-columns: 55px 2fr 130px 110px 80px 130px;
+    grid-template-columns: var(--links-grid-columns);
   }
 
   .col-reference {
@@ -1090,6 +1105,8 @@ export default {
 
 @media (max-width: 768px) {
   .all-links {
+    --links-grid-columns: minmax(220px, 1fr) 80px 120px;
+    --links-grid-min-width: 452px;
     padding: 1rem;
   }
 
@@ -1108,7 +1125,7 @@ export default {
 
   .list-header,
   .link-row {
-    grid-template-columns: 1fr 80px 120px;
+    grid-template-columns: var(--links-grid-columns);
     font-size: 0.875rem;
   }
 
