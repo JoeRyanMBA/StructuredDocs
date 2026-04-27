@@ -2743,9 +2743,6 @@ export default {
   font-size: 0.75rem;
   color: #6c757d;
   text-transform: uppercase;
-  background: #f8f9fa;
-  padding: 0.2rem 0.4rem;
-  border-radius: 2px;
   display: inline-block;
 }
 
