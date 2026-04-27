@@ -595,8 +595,6 @@ export default {
 </script>
 <style>
 .all-links {
-  --links-grid-columns: 55px minmax(260px, 2fr) 150px 120px 120px 100px 150px;
-  --links-grid-min-width: 1110px;
   padding: 2rem;
   max-width: 1400px;
   margin: 0 auto;
@@ -735,13 +733,12 @@ export default {
   background: white;
   border: 1px solid #ddd;
   border-radius: 8px;
-  overflow: auto;
+  overflow: hidden;
 }
 
 .list-header {
   display: grid;
-  grid-template-columns: var(--links-grid-columns);
-  min-width: var(--links-grid-min-width);
+  grid-template-columns: 55px 2fr 150px 120px 120px 100px 150px;
   gap: 1rem;
   padding: 1rem;
   background: #f8f9fa;
@@ -752,8 +749,7 @@ export default {
 
 .link-row {
   display: grid;
-  grid-template-columns: var(--links-grid-columns);
-  min-width: var(--links-grid-min-width);
+  grid-template-columns: 55px 2fr 150px 120px 120px 100px 150px;
   gap: 1rem;
   padding: 1rem;
   border-bottom: 1px solid #eee;
@@ -1083,14 +1079,9 @@ export default {
 
 /* Responsive Design */
 @media (max-width: 1200px) {
-  .all-links {
-    --links-grid-columns: 55px minmax(240px, 2fr) 130px 110px 80px 130px;
-    --links-grid-min-width: 845px;
-  }
-
   .list-header,
   .link-row {
-    grid-template-columns: var(--links-grid-columns);
+    grid-template-columns: 55px 2fr 130px 110px 80px 130px;
   }
 
   .col-reference {
@@ -1100,8 +1091,6 @@ export default {
 
 @media (max-width: 768px) {
   .all-links {
-    --links-grid-columns: minmax(220px, 1fr) 80px 120px;
-    --links-grid-min-width: 452px;
     padding: 1rem;
   }
 
@@ -1120,7 +1109,7 @@ export default {
 
   .list-header,
   .link-row {
-    grid-template-columns: var(--links-grid-columns);
+    grid-template-columns: 1fr 80px 120px;
     font-size: 0.875rem;
   }
 
