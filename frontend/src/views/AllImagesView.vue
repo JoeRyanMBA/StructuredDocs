@@ -339,63 +339,12 @@ export default {
       this.error = null
       
       try {
-        // Load from static images API
-        const staticData = await apiGet('/api/images')
-        let staticImages = []
-        staticImages = staticData || []
-
-        // Load from import documents
-        const importsData = await apiGet('/api/import/history').catch(() => [])
-        let importImages = []
-        if (Array.isArray(importsData)) {
-          let imports = importsData
-          if (Array.isArray(imports)) {
-            // Sort newest first by created_at if present
-            imports.sort((a, b) => new Date(b.created_at || 0) - new Date(a.created_at || 0))
-          } else {
-            imports = []
-          }
-          const sliceSize = 25 // raised from 10 to reduce chance of excluding recent import
-          let importDocsProcessed = 0
-          let importDocsFailed = 0
-          for (const importDoc of imports.slice(0, sliceSize)) {
-            try {
-              const imagesData = await apiGet(`/api/import/staging/${importDoc.id}/images`)
-                const docImagesRaw = imagesData.images || []
-                const docImages = docImagesRaw.map(img => {
-                  // Normalize size property for UI expectations
-                  const size = img.size || img.file_size || null
-                  return {
-                    ...img,
-                    size, // ensure size field exists
-                    file_size: size,
-                    source: 'import',
-                    document_id: importDoc.id,
-                    public_url: img.public_url || `/images/imports/${importDoc.id}/${img.filename}`
-                  }
-                })
-                importImages = importImages.concat(docImages)
-                importDocsProcessed++
-            } catch (e) {
-              importDocsFailed++
-              console.warn(`[AllImagesView] Exception loading images for import ${importDoc.id}:`, e)
-            }
-          }
-          console.info(`[AllImagesView] Processed ${importDocsProcessed} import docs, ${importDocsFailed} failed, collected ${importImages.length} images (slice limit ${sliceSize}).`)
-        } else {
-          console.warn('[AllImagesView] /api/import/history request failed, skipping import images.')
-        }
-
-        // Combine all images
-        this.allImages = [
-          ...staticImages.map(img => ({
-            ...img,
-            source: 'static',
-            size: img.size || img.file_size || null,
-            file_size: img.size || img.file_size || null
-          })),
-            ...importImages
-        ]
+        const imagesData = await apiGet('/api/images')
+        this.allImages = (imagesData || []).map(img => ({
+          ...img,
+          size: img.size || img.file_size || null,
+          file_size: img.size || img.file_size || null
+        }))
 
         this.imageUsage = await apiGet('/api/images/usage-summary').catch(() => ({}))
 

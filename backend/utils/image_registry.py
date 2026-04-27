@@ -1,0 +1,149 @@
+from __future__ import annotations
+
+import os
+from datetime import datetime
+
+
+IMAGE_REGISTRY_FILENAME = '__system_image_registry__.md'
+IMAGE_REGISTRY_REVIEWER = 'system:image-registry'
+
+
+def _normalize_public_url(public_url: str | None) -> str:
+    return (public_url or '').strip()
+
+
+def is_image_registry_document(document) -> bool:
+    return bool(
+        document
+        and document.filename == IMAGE_REGISTRY_FILENAME
+        and document.reviewer == IMAGE_REGISTRY_REVIEWER
+    )
+
+
+def get_or_create_image_registry_document(db, import_document_model):
+    registry_doc = import_document_model.query.filter_by(
+        filename=IMAGE_REGISTRY_FILENAME,
+        reviewer=IMAGE_REGISTRY_REVIEWER,
+    ).first()
+    if registry_doc:
+        return registry_doc
+
+    registry_doc = import_document_model(
+        filename=IMAGE_REGISTRY_FILENAME,
+        source_type='markdown',
+        status='approved',
+        review_step='final_approved',
+        reviewer=IMAGE_REGISTRY_REVIEWER,
+    )
+    db.session.add(registry_doc)
+    db.session.flush()
+    return registry_doc
+
+
+def infer_image_source(public_url: str | None, document=None) -> str:
+    normalized = _normalize_public_url(public_url)
+    if '/images/imports/' in normalized:
+        return 'import'
+    if not is_image_registry_document(document):
+        return 'import'
+    if normalized.startswith('http://') or normalized.startswith('https://'):
+        return 'spaces'
+    return 'static'
+
+
+def register_canonical_image(
+    db,
+    import_image_model,
+    import_document_model,
+    *,
+    filename: str,
+    original_name: str | None,
+    public_url: str,
+    backend_path: str | None = None,
+    frontend_path: str | None = None,
+    width: int | None = None,
+    height: int | None = None,
+    format: str | None = None,
+    file_size: int | None = None,
+    mime_type: str | None = None,
+    created_at: datetime | None = None,
+):
+    normalized_public_url = _normalize_public_url(public_url)
+    if not normalized_public_url:
+        raise ValueError('public_url is required for canonical image registration')
+
+    existing = import_image_model.query.filter_by(public_url=normalized_public_url).first()
+    if existing:
+        updated = False
+        if not existing.original_name and original_name:
+            existing.original_name = original_name
+            updated = True
+        if not existing.backend_path and backend_path:
+            existing.backend_path = backend_path
+            updated = True
+        if not existing.frontend_path and frontend_path:
+            existing.frontend_path = frontend_path
+            updated = True
+        if existing.width is None and width is not None:
+            existing.width = width
+            updated = True
+        if existing.height is None and height is not None:
+            existing.height = height
+            updated = True
+        if existing.format is None and format is not None:
+            existing.format = format
+            updated = True
+        if existing.file_size is None and file_size is not None:
+            existing.file_size = file_size
+            updated = True
+        if existing.mime_type is None and mime_type is not None:
+            existing.mime_type = mime_type
+            updated = True
+        if updated:
+            db.session.flush()
+        return existing, False
+
+    registry_doc = get_or_create_image_registry_document(db, import_document_model)
+    image = import_image_model(
+        document_id=registry_doc.id,
+        filename=filename,
+        original_name=original_name or filename,
+        public_url=normalized_public_url,
+        backend_path=backend_path or '',
+        frontend_path=frontend_path or '',
+        width=width,
+        height=height,
+        format=format,
+        file_size=file_size,
+        mime_type=mime_type,
+        created_at=created_at or datetime.utcnow(),
+    )
+    db.session.add(image)
+    db.session.flush()
+    return image, True
+
+
+def build_canonical_image_payload(image, *, include_file_exists=False):
+    payload = image.to_dict(include_file_exists=include_file_exists)
+    payload['file_path'] = payload.get('public_url')
+    payload['size'] = payload.get('file_size')
+    payload['source'] = infer_image_source(payload.get('public_url'), getattr(image, 'document', None))
+    return payload
+
+
+def derive_local_image_paths(current_app, public_url: str, file_path: str):
+    normalized_public_url = _normalize_public_url(public_url)
+    backend_path = ''
+    frontend_path = ''
+
+    if normalized_public_url.startswith('/images/'):
+        rel_path = normalized_public_url[len('/images/'):]
+        backend_root = os.path.join(current_app.root_path, 'static', 'images')
+        frontend_root = os.path.join(current_app.root_path, '..', 'frontend', 'public', 'images')
+        backend_path = os.path.join(backend_root, rel_path)
+        frontend_path = os.path.join(frontend_root, rel_path)
+
+    if file_path and not backend_path:
+        backend_path = file_path
+
+    return backend_path, frontend_path

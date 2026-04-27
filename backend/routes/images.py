@@ -6,8 +6,13 @@ from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from datetime import datetime
-from ..models import db, ImportImage
+from ..models import db, ImportDocument, ImportImage
 from ..utils.storage import get_storage_backend, LocalStorage, SpacesStorage
+from ..utils.image_registry import (
+    build_canonical_image_payload,
+    derive_local_image_paths,
+    register_canonical_image,
+)
 
 images_bp = Blueprint('images', __name__, url_prefix='/api/images')
 
@@ -22,14 +27,8 @@ def allowed_file(filename):
 @images_bp.route('', methods=['GET'])
 @jwt_required()
 def get_images():
-    """Get all available images, scanning dist/public/backend images recursively.
-
-    - Primary: frontend/dist/images (production build output)
-    - Fallback: frontend/public/images (useful for post-build writes)
-    - Fallback: backend/static/images (ingestion backend path)
-    """
+    """Get all available images using ImportImage rows as the canonical source."""
     try:
-        images_data = []
         include_missing = request.args.get('include_missing', 'false').lower() == 'true'
 
         configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
@@ -53,7 +52,8 @@ def get_images():
             roots.append((configured_root, '/images'))
         roots.append((shared_images_dir, '/images'))
 
-        seen = set()
+        discovered_public_urls = set()
+        registered_new_images = 0
 
         def _add_image(root_dir: str, rel_path: str, url_prefix: str):
             file_path = os.path.join(root_dir, rel_path)
@@ -66,23 +66,29 @@ def get_images():
             rel_url = rel_path.replace('\\', '/')
             public_url = f"{url_prefix}/{rel_url}"
             # Deduplicate by normalized URL
-            if public_url in seen:
+            if public_url in discovered_public_urls:
                 return
-            seen.add(public_url)
+            discovered_public_urls.add(public_url)
             try:
                 stat = os.stat(file_path)
-                images_data.append({
-                    'id': hash(public_url) % 100000000,  # stable-ish
-                    'filename': filename,
-                    'file_path': public_url,
-                    'public_url': public_url,
-                    'alt_text': filename,
-                    'size': stat.st_size,
-                    'created_at': datetime.fromtimestamp(getattr(stat, 'st_mtime', stat.st_ctime)).isoformat()
-                })
+                backend_path, frontend_path = derive_local_image_paths(current_app, public_url, file_path)
+                _img, created = register_canonical_image(
+                    db,
+                    ImportImage,
+                    ImportDocument,
+                    filename=filename,
+                    original_name=filename,
+                    public_url=public_url,
+                    backend_path=backend_path,
+                    frontend_path=frontend_path,
+                    file_size=stat.st_size,
+                    created_at=datetime.fromtimestamp(getattr(stat, 'st_mtime', stat.st_ctime)),
+                )
+                nonlocal registered_new_images
+                if created:
+                    registered_new_images += 1
             except Exception:
-                # best-effort; skip unreadable files
-                pass
+                current_app.logger.warning(f"Could not register local image {public_url}")
 
         for root_dir, url_prefix in roots:
             if not root_dir or not os.path.exists(root_dir):
@@ -121,21 +127,23 @@ def get_images():
                             continue
 
                         public_url = storage.get_url(key)
-                        if public_url in seen:
+                        if public_url in discovered_public_urls:
                             continue
-                        seen.add(public_url)
+                        discovered_public_urls.add(public_url)
 
                         last_modified = obj.get('LastModified')
-                        images_data.append({
-                            'id': hash(public_url) % 100000000,
-                            'filename': filename,
-                            'file_path': public_url,
-                            'public_url': public_url,
-                            'alt_text': filename,
-                            'size': obj.get('Size'),
-                            'created_at': last_modified.isoformat() if last_modified else None,
-                            'source': 'spaces'
-                        })
+                        _img, created = register_canonical_image(
+                            db,
+                            ImportImage,
+                            ImportDocument,
+                            filename=filename,
+                            original_name=filename,
+                            public_url=public_url,
+                            file_size=obj.get('Size'),
+                            created_at=last_modified,
+                        )
+                        if created:
+                            registered_new_images += 1
 
                     if not response.get('IsTruncated'):
                         break
@@ -143,88 +151,16 @@ def get_images():
         except Exception as e:
             current_app.logger.warning(f"Could not list Spaces images: {e}")
 
-        # Also include imported images from the database (ALL records, not just ones with files)
-        # This matches how links work - return database truth, frontend handles missing files gracefully
-        try:
-            from ..models import ImportImage
-            from pathlib import Path
-            import_images = ImportImage.query.all()
-            for img in import_images:
-                public_url = (img.public_url or '').strip()
-                if not public_url.startswith('/images/imports/') and img.document_id and img.filename:
-                    public_url = f"/images/imports/{img.document_id}/{img.filename}"
-                if public_url in seen:
-                    continue
-                try:
-                    # Use created_at from database if available
-                    stat = None
-                    configured_root_path = Path(configured_root) if configured_root else None
-                    backend_path = Path(img.backend_path)
-                    frontend_path = Path(img.frontend_path)
-                    fallback_backend_paths = [
-                        Path('/app/data/images') / 'imports' / str(img.document_id) / img.filename,
-                        Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(img.document_id) / img.filename,
-                    ]
-                    if configured_root_path is not None:
-                        fallback_backend_paths.insert(0, configured_root_path / 'imports' / str(img.document_id) / img.filename)
+        if registered_new_images:
+            db.session.commit()
 
-                    existing_backend_path = None
-                    if backend_path.exists():
-                        existing_backend_path = backend_path
-                    elif frontend_path.exists():
-                        stat = frontend_path.stat()
-                    else:
-                        for fallback_path in fallback_backend_paths:
-                            if fallback_path.exists():
-                                existing_backend_path = fallback_path
-                                break
+        images = ImportImage.query.order_by(ImportImage.filename.asc()).all()
+        images_data = []
+        for image in images:
+            payload = build_canonical_image_payload(image, include_file_exists=True)
+            if payload.get('file_exists') or include_missing:
+                images_data.append(payload)
 
-                    if existing_backend_path is not None:
-                        stat = existing_backend_path.stat()
-
-                    # Remote import URLs (Spaces/CDN) are considered existing only if discovered in current listing.
-                    is_remote_url = public_url.startswith('http://') or public_url.startswith('https://')
-                    file_exists = ((existing_backend_path is not None) or frontend_path.exists())
-                    if not file_exists and is_remote_url:
-                        file_exists = public_url in seen
-
-                    if file_exists or include_missing:
-                        seen.add(public_url)
-                        images_data.append({
-                            'id': hash(public_url) % 100000000,
-                            'filename': img.filename,
-                            'file_path': public_url,
-                            'public_url': public_url,
-                            'alt_text': img.original_name,
-                            'size': stat.st_size if stat else img.file_size,
-                            'created_at': img.created_at.isoformat() if img.created_at else None,
-                            'document_id': img.document_id,
-                            'source': 'import',
-                            'file_exists': file_exists
-                        })
-                except Exception:
-                    if include_missing:
-                        try:
-                            seen.add(public_url)
-                            images_data.append({
-                                'id': hash(public_url) % 100000000,
-                                'filename': img.filename,
-                                'file_path': public_url,
-                                'public_url': public_url,
-                                'alt_text': img.original_name,
-                                'size': img.file_size,
-                                'created_at': img.created_at.isoformat() if img.created_at else None,
-                                'document_id': img.document_id,
-                                'source': 'import',
-                                'file_exists': False
-                            })
-                        except Exception:
-                            pass
-        except Exception as e:
-            current_app.logger.warning(f"Could not fetch imported images from database: {e}")
-
-        # Sort by filename for stability
-        images_data.sort(key=lambda x: x.get('filename', ''))
         return jsonify(images_data), 200
 
     except Exception as e:
@@ -280,17 +216,28 @@ def upload_image():
                         image_file.write(file_bytes)
             else:
                 public_url = stored_url
-            
-            # Return the image data
-            return jsonify({
-                'id': hash(unique_filename) % 1000000,
-                'filename': unique_filename,
-                'file_path': public_url,
-                'public_url': public_url,
-                'alt_text': original_filename,
-                'size': file_size,
-                'created_at': datetime.utcnow().isoformat()
-            }), 201
+
+            backend_path, frontend_path = derive_local_image_paths(
+                current_app,
+                public_url,
+                static_file_path if isinstance(storage, LocalStorage) else '',
+            )
+            image_record, _created = register_canonical_image(
+                db,
+                ImportImage,
+                ImportDocument,
+                filename=unique_filename,
+                original_name=original_filename,
+                public_url=public_url,
+                backend_path=backend_path,
+                frontend_path=frontend_path,
+                file_size=file_size,
+                mime_type=content_type,
+                created_at=datetime.utcnow(),
+            )
+            db.session.commit()
+
+            return jsonify(build_canonical_image_payload(image_record, include_file_exists=True)), 201
             
         else:
             return jsonify({'error': 'Invalid file type. Allowed types: ' + ', '.join(ALLOWED_EXTENSIONS)}), 400
@@ -302,22 +249,24 @@ def upload_image():
 @images_bp.route('/<int:image_id>', methods=['DELETE'])
 @jwt_required()
 def delete_image(image_id):
-    """Delete an image (simplified - by filename hash)"""
+    """Delete an image by its canonical ImportImage record ID."""
     try:
-        # This is a simplified approach - in production you'd want a proper database
-        static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-        
-        # Find file by ID (hash)
-        for filename in os.listdir(static_images_dir):
-            if hash(filename) % 1000000 == image_id:
-                file_path = os.path.join(static_images_dir, filename)
-                if os.path.exists(file_path):
-                    os.remove(file_path)
-                    return jsonify({'message': 'Image deleted successfully'}), 200
-        
-        return jsonify({'error': 'Image not found'}), 404
+        image = ImportImage.query.get_or_404(image_id)
+
+        # Best-effort local cleanup only; remote object cleanup is intentionally left unchanged.
+        for candidate in [image.backend_path, image.frontend_path]:
+            if candidate and os.path.exists(candidate):
+                try:
+                    os.remove(candidate)
+                except OSError:
+                    current_app.logger.warning(f"Could not remove image file at {candidate}")
+
+        db.session.delete(image)
+        db.session.commit()
+        return jsonify({'message': 'Image deleted successfully'}), 200
         
     except Exception as e:
+        db.session.rollback()
         current_app.logger.error(f"Error deleting image: {str(e)}")
         return jsonify({'error': 'Failed to delete image'}), 500
 

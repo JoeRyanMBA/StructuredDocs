@@ -3,6 +3,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from ..models import db, ImportDocument, ImportItem, ImportImage, ImportLink, Topic, Collection, collection_topic_tree, Link, TopicLink
 from ..utils.image_handler import ImageHandler
+from ..utils.image_registry import is_image_registry_document
 from ..utils.link_reference_codes import generate_unique_link_reference_code
 from ..extensions import limiter
 from ..utils.settings import get_setting
@@ -1847,7 +1848,10 @@ def get_import_history():
     """Get list of all import documents with their status"""
     try:
         current_app.logger.info("Fetching import history...")
-        docs = ImportDocument.query.order_by(ImportDocument.created_at.desc()).all()
+        docs = [
+            doc for doc in ImportDocument.query.order_by(ImportDocument.created_at.desc()).all()
+            if not is_image_registry_document(doc)
+        ]
         current_app.logger.info(f"Found {len(docs)} import documents")
         
         result = []
