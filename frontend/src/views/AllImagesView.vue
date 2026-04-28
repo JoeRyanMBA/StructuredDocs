@@ -263,7 +263,7 @@ import { toast } from '@/composables/useToast'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import UsageBadge from '@/components/UsageBadge.vue'
 import TagEditor from '@/components/TagEditor.vue'
-import { apiGet } from '@/api/base'
+import { API_BASE, apiGet } from '@/api/base'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -300,13 +300,7 @@ export default {
       }).length
     },
     apiBase() {
-      try {
-        const { API_BASE } = require('../api/base.js')
-        return API_BASE || ''
-      } catch (e) {
-        let raw = (import.meta.env.VITE_API_BASE_URL || '').trim()
-        return raw ? raw.replace(/\/+$/, '') : ''
-      }
+      return API_BASE || ''
     },
     apiBaseHost() {
       try {

@@ -1,9 +1,7 @@
 // src/api/base.js
 // Base API configuration for HTTP Basic Auth
 
-// Normalize and secure the API base URL to avoid mixed content in HTTPS
-function computeApiBase() {
-  let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
+function normalizeApiBase(raw) {
   if (!raw) return '';
 
   // Remove trailing slashes
@@ -25,6 +23,22 @@ function computeApiBase() {
     return '';
   }
   return raw;
+}
+
+// In production on structureddocs.online, prefer same-origin API calls so a stale
+// hosted frontend env var cannot bypass the live /api proxy on the site.
+export function computeApiBase() {
+  const normalized = normalizeApiBase((import.meta.env.VITE_API_BASE_URL || '').trim());
+  if (!normalized) return '';
+
+  if (typeof window !== 'undefined') {
+    const currentHost = window.location.hostname;
+    if (currentHost === 'structureddocs.online' || currentHost === 'www.structureddocs.online') {
+      return '';
+    }
+  }
+
+  return normalized;
 }
 
 export const API_BASE = computeApiBase();
@@ -178,4 +192,3 @@ export async function apiDelete(endpoint) {
     method: 'DELETE',
   });
 }
-

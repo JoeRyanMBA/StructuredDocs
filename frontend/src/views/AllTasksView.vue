@@ -392,11 +392,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/tasks/`)
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const data = await response.json()
+        const data = await apiGet('/api/tasks/')
         this.tasks = data.tasks || []
         this.applyFilters()
       } catch (error) {
@@ -410,11 +406,7 @@ export default {
 
     async fetchAllTags() {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/tags/`)
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        const tags = await response.json()
+        const tags = await apiGet('/api/tags/')
         this.allTags = tags.map(tag => tag.name).sort()
       } catch (error) {
         console.error('Failed to fetch tags:', error)
@@ -423,11 +415,7 @@ export default {
 
     async fetchAssociations() {
       try {
-        const response = await fetch(`${import.meta.env.VITE_API_BASE_URL || ''}/api/tasks/associations`)
-        if (!response.ok) {
-          throw new Error(`HTTP error! status: ${response.status}`)
-        }
-        this.availableAssociations = await response.json()
+        this.availableAssociations = await apiGet('/api/tasks/associations')
       } catch (error) {
         console.error('Failed to fetch associations:', error)
       }

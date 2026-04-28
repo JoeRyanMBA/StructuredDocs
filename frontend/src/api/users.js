@@ -1,24 +1,5 @@
 import axios from 'axios'
-
-// Use Vercel-provided env var in production; fallback to relative for local dev
-function computeApiBase() {
-  let raw = (import.meta.env.VITE_API_BASE_URL || '').trim();
-  if (!raw) return '';
-  raw = raw.replace(/\/+$/, '');
-  // Prepend scheme if missing, inherit current page protocol
-  if (!/^https?:\/\//i.test(raw)) {
-    const proto = typeof window !== 'undefined' ? window.location.protocol : 'https:';
-    const hostPref = proto === 'https:' ? 'https://' : 'http://';
-    raw = hostPref + raw.replace(/^\/*/, '');
-  }
-  // Force https if site is https to avoid mixed content
-  if (typeof window !== 'undefined' && window.location.protocol === 'https:' && raw.startsWith('http://')) {
-    raw = raw.replace(/^http:\/\//i, 'https://');
-  }
-  return raw;
-}
-
-const API_BASE = computeApiBase()
+import { API_BASE } from './base'
 
 // Create axios instance with default config
 const apiClient = axios.create({
