@@ -50,6 +50,38 @@ def load_env_file():
                             v = v[1:-1]
                         os.environ[k] = v
 
+
+def _load_or_create_persistent_secret(secret_name: str) -> str | None:
+    """Return a stable fallback secret from disk, creating it if needed.
+
+    This is a safety net for deployments where SECRET_KEY/JWT_SECRET_KEY were
+    not set. It prevents per-process random secrets that cause intermittent
+    JWT signature failures behind multiple workers.
+    """
+    try:
+        repo_root = os.path.dirname(os.path.dirname(__file__))
+        secret_dir = os.path.join(repo_root, '.runtime-secrets')
+        os.makedirs(secret_dir, mode=0o700, exist_ok=True)
+        secret_path = os.path.join(secret_dir, f'{secret_name}.txt')
+
+        if os.path.exists(secret_path):
+            with open(secret_path, 'r', encoding='utf-8') as f:
+                value = f.read().strip()
+            if value:
+                return value
+
+        value = secrets.token_hex(32)
+        # Write atomically where possible
+        temp_path = f"{secret_path}.{os.getpid()}.tmp"
+        with open(temp_path, 'w', encoding='utf-8') as f:
+            f.write(value)
+        os.chmod(temp_path, 0o600)
+        os.replace(temp_path, secret_path)
+        return value
+    except Exception as e:
+        print(f"⚠️  WARNING: Failed to persist fallback secret for {secret_name}: {e}")
+        return None
+
 def _load_version_metadata():
     """Load version/build metadata from environment or version.json (non-fatal)."""
     meta = {
@@ -217,12 +249,21 @@ p { color: #666; }
     # with a loud warning so the operator knows sessions won't survive restarts.
     _secret_key = os.environ.get('SECRET_KEY')
     _jwt_secret = os.environ.get('JWT_SECRET_KEY')
+
     if not _secret_key:
-        _secret_key = secrets.token_hex(32)
-        print("⚠️  WARNING: SECRET_KEY not set — using ephemeral key. Set SECRET_KEY in .env for persistent sessions.")
+        _secret_key = _load_or_create_persistent_secret('flask_secret_key')
+        if _secret_key:
+            print("⚠️  WARNING: SECRET_KEY not set — using persistent fallback from disk. Set SECRET_KEY in .env.")
+        else:
+            _secret_key = secrets.token_hex(32)
+            print("⚠️  WARNING: SECRET_KEY not set — using ephemeral key. Set SECRET_KEY in .env for persistent sessions.")
+
     if not _jwt_secret:
-        _jwt_secret = secrets.token_hex(32)
-        print("⚠️  WARNING: JWT_SECRET_KEY not set — using ephemeral key. All JWT tokens will be invalidated on restart.")
+        # Important: default JWT signing to SECRET_KEY to avoid per-process
+        # random JWT secrets causing intermittent 'Signature verification failed'
+        # across multi-worker deployments.
+        _jwt_secret = _secret_key
+        print("⚠️  WARNING: JWT_SECRET_KEY not set — defaulting to SECRET_KEY. Set JWT_SECRET_KEY explicitly in .env for stable JWT signing.")
 
     app.config.from_mapping(
         SECRET_KEY=_secret_key,
