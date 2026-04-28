@@ -3,6 +3,7 @@
 
     <!-- Loading / Error -->
     <div v-if="loading" class="loading-state">Loading timeline…</div>
+    <div v-else-if="emptyMessage" class="empty-state">{{ emptyMessage }}</div>
     <div v-else-if="error" class="error-state">{{ error }}</div>
 
     <template v-else>
@@ -224,6 +225,7 @@ export default {
     return {
       loading: true,
       error: '',
+      emptyMessage: '',
       project: {},
       milestones: [],
       tasks: [],
@@ -237,11 +239,26 @@ export default {
   async created() {
     try {
       const data = await getProjectTimeline(this.$route.params.id)
-      this.project = data.project
-      this.milestones = data.milestones
-      this.tasks = data.tasks
+      this.project = data?.project || {}
+      this.milestones = Array.isArray(data?.milestones) ? data.milestones : []
+      this.tasks = Array.isArray(data?.tasks) ? data.tasks : []
+
+      if (!this.project?.id && this.milestones.length === 0 && this.tasks.length === 0) {
+        this.emptyMessage = 'No timeline data is available for this project yet.'
+      }
     } catch (e) {
-      this.error = e?.response?.data?.error || 'Failed to load timeline'
+      const message = String(e?.response?.data?.error || e?.message || '').toLowerCase()
+      const isNoDataCase =
+        message.includes('404') ||
+        message.includes('405') ||
+        message.includes('not found') ||
+        message.includes('method not allowed')
+
+      if (isNoDataCase) {
+        this.emptyMessage = 'No timeline data is available for this project yet.'
+      } else {
+        this.error = e?.response?.data?.error || 'Unable to load timeline right now.'
+      }
     } finally {
       this.loading = false
     }
@@ -580,7 +597,8 @@ circle { transition: stroke-dashoffset 0.6s ease; }
 .empty-gantt, .empty-table { text-align: center; color: #6c757d; padding: 2rem; }
 
 /* Loading/Error */
-.loading-state, .error-state { text-align: center; padding: 3rem; color: #6c757d; }
+.loading-state, .empty-state, .error-state { text-align: center; padding: 3rem; color: #6c757d; }
+.empty-state { color: #4c6f7d; }
 .error-state { color: #dc3545; }
 
 /* Print */

@@ -121,6 +121,7 @@
 
 <script>
 import { getAdminHelpLinks, createHelpLink, updateHelpLink } from '@/api/helpLinks'
+import { toFriendlyAuthError } from '@/api/base.js'
 import { toast } from '@/composables/useToast'
 import { HELP_FEATURE_KEYS, HELP_KEY_MAP } from '@/config/helpFeatureKeys'
 
@@ -164,7 +165,7 @@ export default {
         const links = await getAdminHelpLinks()
         this.linksByKey = Object.fromEntries(links.map(l => [l.feature_key, l]))
       } catch (e) {
-        this.error = e?.response?.data?.error || e.message
+        this.error = toFriendlyAuthError(e, 'Failed to load help links')
       } finally {
         this.loading = false
       }
@@ -182,7 +183,7 @@ export default {
         this.linksByKey = { ...this.linksByKey, [row.key]: updated }
         toast.success(`Help icon ${updated.enabled ? 'enabled' : 'disabled'}`)
       } catch (e) {
-        toast.error(e?.response?.data?.error || e.message)
+        toast.error(toFriendlyAuthError(e, 'Failed to update help link'))
       } finally {
         const next = { ...this.rowSaving }
         delete next[row.key]
@@ -227,7 +228,7 @@ export default {
         toast.success('Saved — use the toggle to show the icon to users')
         this.editing = null
       } catch (e) {
-        this.saveError = e?.response?.data?.error || e.message
+        this.saveError = toFriendlyAuthError(e, 'Failed to save help link')
       } finally {
         this.saving = false
       }

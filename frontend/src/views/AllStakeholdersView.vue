@@ -471,7 +471,16 @@ export default {
         }
 
         if (this.isEditing) {
-          await apiPut(`/api/stakeholders/${this.stakeholderForm.id}`, payload)
+          try {
+            await apiPut(`/api/stakeholders/${this.stakeholderForm.id}`, payload)
+          } catch (error) {
+            // Some deployments/proxies block PUT; fall back to a POST update alias.
+            const message = String(error?.message || '').toLowerCase()
+            if (!message.includes('405') && !message.includes('method not allowed')) {
+              throw error
+            }
+            await apiPost(`/api/stakeholders/${this.stakeholderForm.id}/update`, payload)
+          }
         } else {
           await apiPost('/api/stakeholders/', payload)
         }
@@ -482,7 +491,7 @@ export default {
         
       } catch (error) {
         console.error('Failed to save stakeholder:', error)
-        this.error = error.message || 'Failed to save stakeholder. Please try again.'
+        this.error = error.message || 'No stakeholder data could be saved right now. Please try again.'
   toast.error(this.error)
       }
     },

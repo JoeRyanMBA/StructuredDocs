@@ -130,7 +130,8 @@ def get_stakeholder(stakeholder_id):
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
-@stakeholders_bp.route('/<int:stakeholder_id>', methods=['PUT'])
+@stakeholders_bp.route('/<int:stakeholder_id>', methods=['PUT', 'PATCH'])
+@stakeholders_bp.route('/<int:stakeholder_id>/update', methods=['POST'])
 @jwt_required()
 def update_stakeholder(stakeholder_id):
     """Update a stakeholder"""

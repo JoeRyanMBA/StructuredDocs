@@ -34,6 +34,25 @@
 <script>
 import { toast } from '@/composables/useToast'
 import { apiGet, apiPut } from '@/api/base.js'
+
+function isSessionExpiredError(error) {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes('signature verification failed') ||
+    message.includes('token has expired') ||
+    message.includes('jwt') ||
+    message.includes('unauthorized') ||
+    message.includes('401')
+  )
+}
+
+function toFriendlyNotificationError(error, fallback) {
+  if (isSessionExpiredError(error)) {
+    return 'Your session has expired. Please sign in again.'
+  }
+  return error?.message || fallback
+}
+
 export default {
   name: 'EditNotification',
   data() {
@@ -57,7 +76,8 @@ export default {
         type: data.type || 'global',
       }
     } catch (err) {
-      this.error = 'Failed to load notification.'
+      this.error = toFriendlyNotificationError(err, 'Failed to load notification.')
+      toast.error(this.error)
     } finally {
       this.loading = false
     }
@@ -70,7 +90,7 @@ export default {
         toast.success('Notification updated!')
         this.$router.push('/admin')
       } catch (err) {
-        toast.error('Failed to update notification.')
+        toast.error(toFriendlyNotificationError(err, 'Failed to update notification.'))
       }
     },
     cancelEdit() {

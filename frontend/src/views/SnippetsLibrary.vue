@@ -377,7 +377,11 @@ export default {
         this.saveMsg = '✓ Saved'
         setTimeout(() => { this.saveMsg = '' }, 2000)
       } catch (e) {
-        this.saveMsg = 'Error saving'
+        const msg = String(e?.message || '').trim()
+        const lower = msg.toLowerCase()
+        this.saveMsg = lower.includes('signature verification failed')
+          ? 'Session expired. Please sign in again.'
+          : `Error saving${msg ? `: ${msg}` : ''}`
         console.error(e)
       } finally {
         this.saving = false

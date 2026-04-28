@@ -112,7 +112,7 @@
 </template>
 <script>
 import { toast } from '@/composables/useToast'
-import { apiRequest } from '@/api/base.js'
+import { apiRequest, toFriendlyAuthError } from '@/api/base.js'
 import HelpIcon from '@/components/HelpIcon.vue'
 export default {
   name:'AdminVariablesView',
@@ -276,7 +276,7 @@ export default {
         this.showVarModal=false
       } catch(e){
         await this.validateSlugRemote();
-        toast.error('Failed to save variable');
+        toast.error(toFriendlyAuthError(e, 'Failed to save variable'));
         console.error(e);
       }
       finally { this.isSaving = false }
@@ -287,7 +287,7 @@ export default {
         await apiRequest(`/api/variables/${this.selectedVar.id}/values`, { method:'POST', body: JSON.stringify({ value:this.newValue.trim(), is_default:this.newValueDefault }) })
         this.newValue=''; this.newValueDefault=false; await this.refresh();
         toast.success('Value added');
-      } catch(e){ console.error(e); toast.error('Failed to add value'); }
+      } catch(e){ console.error(e); toast.error(toFriendlyAuthError(e, 'Failed to add value')); }
     },
     async deleteValue(val){
       if(!confirm('Delete this value?')) return
@@ -295,7 +295,7 @@ export default {
         await apiRequest(`/api/variables/values/${val.id}`, { method:'DELETE' })
         await this.refresh();
         toast.success('Value deleted');
-      } catch(e){ console.error(e); toast.error('Failed to delete value'); }
+      } catch(e){ console.error(e); toast.error(toFriendlyAuthError(e, 'Failed to delete value')); }
     },
     async makeDefault(val){
       if(!this.selectedVar) return
@@ -303,7 +303,7 @@ export default {
         await apiRequest(`/api/variables/values/${val.id}`, { method:'PUT', body: JSON.stringify({ is_default:true }) })
         await this.refresh();
         toast.success('Default updated');
-      } catch(e){ console.error(e); toast.error('Failed to update default'); }
+      } catch(e){ console.error(e); toast.error(toFriendlyAuthError(e, 'Failed to update default')); }
     }
   }
 }

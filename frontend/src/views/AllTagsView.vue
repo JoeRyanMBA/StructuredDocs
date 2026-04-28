@@ -202,7 +202,7 @@
 import { toast } from '@/composables/useToast'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import HelpIcon from '@/components/HelpIcon.vue'
-import { apiGet } from '@/api/base'
+import { apiGet, apiPost, apiPut, apiRequest } from '@/api/base'
 export default {
   name: 'AllTagsView',
   components: { HelpIcon },
@@ -339,23 +339,15 @@ export default {
     
   async saveTag() {
       try {
-        const url = this.isEditing ? `/api/tags/${this.tagForm.id}` : '/api/tags/'
-        const method = this.isEditing ? 'PUT' : 'POST'
-        
-        const response = await fetch(url, {
-          method: method,
-          headers: {
-            'Content-Type': 'application/json'
-          },
-          body: JSON.stringify({
-            name: this.tagForm.name.trim(),
-            description: this.tagForm.description.trim() || null
-          })
-        })
-        
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          throw new Error(errorData.error || `HTTP error! status: ${response.status}`)
+        const payload = {
+          name: this.tagForm.name.trim(),
+          description: this.tagForm.description.trim() || null
+        }
+
+        if (this.isEditing) {
+          await apiPut(`/api/tags/${this.tagForm.id}`, payload)
+        } else {
+          await apiPost('/api/tags/', payload)
         }
         
   await this.fetchTags()
@@ -382,34 +374,31 @@ export default {
     
     async confirmDelete() {
       try {
-        const response = await fetch(`/api/tags/${this.tagToDelete.id}`, { method: 'DELETE' })
-        if (!response.ok) {
-          const errorData = await response.json().catch(() => ({}))
-          const msg = errorData.error || `HTTP error! status: ${response.status}`
-          // If backend indicates active usage, offer force delete
-          if (/Cannot delete tag; referenced by/.test(msg)) {
-            const proceed = window.confirm(msg + '\n\nForce delete? This will remove the tag from all referencing tasks.')
-            if (proceed) {
-              const forceResp = await fetch(`/api/tags/${this.tagToDelete.id}?force=1`, { method: 'DELETE' })
-              if (!forceResp.ok) {
-                const fd = await forceResp.json().catch(()=>({}))
-                throw new Error(fd.error || 'Force delete failed')
-              }
-              const body = await forceResp.json()
-              toast.success(`Tag force deleted (removed from ${body.removed_task_refs || 0} task(s))`)
-              await this.fetchTags()
-              this.closeDeleteModal()
-              return
-            }
-          }
-          throw new Error(msg)
-        }
-        const body = await response.json().catch(()=>({}))
+        const body = await apiRequest(`/api/tags/${this.tagToDelete.id}`, { method: 'DELETE' })
         toast.success(body.message || 'Tag deleted')
         await this.fetchTags()
         this.closeDeleteModal()
         
       } catch (error) {
+        // If backend indicates active usage, offer force delete
+        const msg = String(error?.message || '')
+        if (/Cannot delete tag; referenced by/.test(msg)) {
+          const proceed = window.confirm(msg + '\n\nForce delete? This will remove the tag from all referencing tasks.')
+          if (proceed) {
+            try {
+              const body = await apiRequest(`/api/tags/${this.tagToDelete.id}?force=1`, { method: 'DELETE' })
+              toast.success(`Tag force deleted (removed from ${body.removed_task_refs || 0} task(s))`)
+              await this.fetchTags()
+              this.closeDeleteModal()
+              return
+            } catch (forceError) {
+              console.error('Failed to force delete tag:', forceError)
+              this.error = forceError.message || 'Force delete failed'
+              toast.error(this.error)
+              return
+            }
+          }
+        }
         console.error('Failed to delete tag:', error)
   this.error = error.message || 'Failed to delete tag. Please try again.'
   toast.error(this.error)
