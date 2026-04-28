@@ -14,6 +14,8 @@ jobs:
     runs-on: ubuntu-latest
     timeout-minutes: 20
     steps:
+      - uses: actions/checkout@v4
+
       - name: Configure SSH key
         env:
           VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
@@ -50,13 +52,34 @@ jobs:
           : "${VPS_HOST:?VPS_HOST secret is required}"
           : "${VPS_USER:?VPS_USER secret is required}"
           PORT="${VPS_PORT:-22}"
+
+          rsync -az --delete \
+            -e "ssh -i ~/.ssh/id_ed25519 -p $PORT" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.venv' \
+            --exclude '__pycache__' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/node_modules' \
+            --exclude 'frontend/dist' \
+            ./ "${VPS_USER}@${VPS_HOST}:/opt/structureddocs/app/"
+
           ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
             set -euo pipefail
-            cd ~/StructuredDocs
-            git fetch origin main
-            git reset --hard origin/main
-            docker compose -f docker-compose.prod.yml up -d --build
-            docker compose -f docker-compose.prod.yml ps
+            cd /opt/structureddocs/app
+
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            elif sudo -n docker compose version >/dev/null 2>&1; then
+              DC="sudo -n docker compose"
+            else
+              echo "Docker Compose requires either direct docker access or passwordless sudo for the deploy user."
+              echo "Fix the server by adding the deploy user to the docker group or allowing passwordless sudo for docker compose."
+              exit 1
+            fi
+
+            $DC --env-file /opt/structureddocs/.env -f docker-compose.prod.yml up -d --build
+            $DC --env-file /opt/structureddocs/.env -f docker-compose.prod.yml ps
             ok=0
             for i in $(seq 1 24); do
               if curl -fsS http://localhost:8080/api/health > /dev/null; then
@@ -68,7 +91,7 @@ jobs:
             done
             if [[ "$ok" -ne 1 ]]; then
               echo "Healthcheck failed after retries. Recent app logs:"
-              docker compose -f docker-compose.prod.yml logs --tail 120
+              $DC --env-file /opt/structureddocs/.env -f docker-compose.prod.yml logs --tail 120
               exit 1
             fi
           EOF
