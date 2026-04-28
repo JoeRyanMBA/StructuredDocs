@@ -485,7 +485,7 @@ import CompactToolbar from '../components/CompactToolbar.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
 import IconPlus from '@/components/icons/IconPlus.vue'
 import { toast } from '@/composables/useToast'
-import { apiDelete, apiGet, apiPost, apiPut } from '@/api/base'
+import { apiDelete, apiGet, apiPost, apiPut, normalizeListResponse } from '@/api/base'
 
 export default {
   name: 'TasksView',
@@ -693,9 +693,9 @@ export default {
         ])
 
         this.availableAssociations = {
-          projects: normalizeItems(projects, ['name', 'title']),
-          collections: normalizeItems(collections, ['name', 'title']),
-          topics: normalizeItems(topics, ['title', 'name'])
+          projects: normalizeItems(normalizeListResponse(projects, ['projects', 'items', 'results', 'data']), ['name', 'title']),
+          collections: normalizeItems(normalizeListResponse(collections, ['collections', 'items', 'results', 'data']), ['name', 'title']),
+          topics: normalizeItems(normalizeListResponse(topics, ['topics', 'items', 'results', 'data']), ['title', 'name'])
         }
       } catch (error) {
         console.error('Failed to fetch associations:', error)

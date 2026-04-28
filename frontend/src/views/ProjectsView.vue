@@ -595,7 +595,7 @@ import { createStakeholder, addStakeholderToProject } from '../api/stakeholders'
 import { getCollections, updateCollection } from '../api/collections';
 import { createPublication, deletePublication, updatePublication } from '../api/publications';
 import { createMilestone, deleteMilestone, updateMilestone } from '../api/milestones';
-import { apiGet, apiPost, apiRequest } from '../api/base';
+import { apiGet, apiPost, apiRequest, normalizeListResponse } from '../api/base';
 import TagEditor from '@/components/TagEditor.vue'
 import unsavedChangesGuard from '@/mixins/unsavedChangesGuard.js'
 import { toast } from '@/composables/useToast'
@@ -879,7 +879,8 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const projects = await apiGet('/api/projects/')
+        const projectsPayload = await apiGet('/api/projects/')
+        const projects = normalizeListResponse(projectsPayload, ['projects', 'items', 'results', 'data'])
         
         // Transform API data to match frontend expectations
         this.projects = projects.map(project => ({

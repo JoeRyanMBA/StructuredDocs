@@ -43,6 +43,18 @@ export function computeApiBase() {
 
 export const API_BASE = computeApiBase();
 
+// Accept common list payload shapes so views can tolerate endpoint variants.
+export function normalizeListResponse(payload, candidateKeys = ['items', 'results', 'data', 'projects']) {
+  if (Array.isArray(payload)) return payload;
+  if (!payload || typeof payload !== 'object') return [];
+
+  for (const key of candidateKeys) {
+    if (Array.isArray(payload[key])) return payload[key];
+  }
+
+  return [];
+}
+
 async function parseResponseBody(response) {
   if (response.status === 204 || response.status === 205) {
     return null;
