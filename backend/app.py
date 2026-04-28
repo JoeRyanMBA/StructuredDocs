@@ -1102,6 +1102,9 @@ p { color: #666; }
             print(f"🎯 Frontend request for path: {path}")
             
             try:
+                if path.startswith('api/'):
+                    return jsonify({'error': 'API endpoint not found'}), 404
+
                 # Determine the correct MIME type for static files
                 if path.endswith('.js'):
                     mimetype = 'application/javascript'

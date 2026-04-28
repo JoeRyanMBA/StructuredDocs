@@ -76,6 +76,7 @@ def get_collection(collection_id):
         return jsonify({"error": str(e)}), 500
 
 
+@collections_bp.route('/stats', methods=['GET'])
 @jwt_required()
 def get_collections_stats():
     """Get statistics for collections dashboard"""
