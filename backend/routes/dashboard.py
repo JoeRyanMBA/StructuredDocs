@@ -8,6 +8,7 @@ from ..models import db, Topic, Collection, Project, Task, Review, User, Tag, Pr
 bp = Blueprint('dashboard', __name__, url_prefix='/api/dashboard')
 
 @bp.route('/stats', methods=['GET'])
+@jwt_required()
 def get_stats():
     """
     Gathers and returns a comprehensive set of statistics for the admin dashboard.

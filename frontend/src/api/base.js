@@ -132,6 +132,14 @@ async function _doRefresh() {
   return null;
 }
 
+function clearStoredAuthState() {
+  if (typeof localStorage === 'undefined') return;
+  localStorage.removeItem('access_token');
+  localStorage.removeItem('refresh_token');
+  localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('user');
+}
+
 async function _requestWithAuth(endpoint, options = {}, _isRetry = false) {
   const url = `${API_BASE}${endpoint}`;
 
@@ -154,13 +162,10 @@ async function _requestWithAuth(endpoint, options = {}, _isRetry = false) {
     if (newToken) {
       return _requestWithAuth(endpoint, options, true);
     }
-    // Refresh failed — clear auth and show session modal via event (no raw page reload)
-    if (typeof localStorage !== 'undefined') {
-      localStorage.removeItem('access_token');
-      localStorage.removeItem('refresh_token');
-      localStorage.removeItem('isAuthenticated');
-    }
+    // Refresh failed — clear auth and notify app state listeners.
+    clearStoredAuthState();
     if (typeof window !== 'undefined') {
+      window.dispatchEvent(new CustomEvent('userUpdated'));
       window.dispatchEvent(new CustomEvent('auth:logout'));
     }
   }
