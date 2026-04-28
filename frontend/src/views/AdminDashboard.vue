@@ -213,7 +213,6 @@ import CompactToolbar from '@/components/CompactToolbar.vue'
 import LimitsModal from '@/components/LimitsModal.vue'
 import { toast } from '@/composables/useToast'
 import HelpIcon from '@/components/HelpIcon.vue'
-import { apiGet, apiPost, apiRequest } from '@/api/base'
 import { apiGet, apiPost, apiRequest, toFriendlyAuthError } from '@/api/base'
 
 export default {
