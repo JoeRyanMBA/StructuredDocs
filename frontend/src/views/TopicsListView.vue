@@ -383,37 +383,17 @@ export default {
           apiGet('/api/topics/'),
           apiGet('/api/topics/usage-summary').catch(() => null)
         ])
-        this.topics = Array.isArray(data) ? data : (data.topics || [])
+        this.topics = normalizeListResponse(data, ['topics', 'items', 'results', 'data'])
         if (usageData) this.topicUsage = usageData
         this.applyFilters()
       } catch (err) {
-        console.error('API fetch failed, using sample data:', err)
-        // Provide mock data when backend is unavailable
-        this.topics = [
-          {
-            id: 1,
-            title: 'Sample Topic 1',
-            status: 'draft',
-            summary: 'This is a sample topic for testing',
-            collection_name: 'Test Collection'
-          },
-          {
-            id: 2,
-            title: 'Sample Topic 2',
-            status: 'pending_review',
-            summary: 'Another sample topic',
-            collection_name: 'Test Collection'
-          },
-          {
-            id: 3,
-            title: 'Sample Topic 3',
-            status: 'approved',
-            summary: 'Final sample topic',
-            collection_name: 'Sample Collection'
-          }
-        ]
+        console.error('API fetch failed for topics:', err)
+        this.topics = []
         this.applyFilters()
-        this.error = 'Using sample data - backend unavailable'
+        const msg = String(err?.message || '').toLowerCase()
+        this.error = msg.includes('signature verification failed')
+          ? 'Your session expired. Please sign in again to view topics.'
+          : 'Unable to load topics right now. Please try again.'
   } finally {
         this.loading = false
       }

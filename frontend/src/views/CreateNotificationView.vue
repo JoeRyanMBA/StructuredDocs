@@ -37,6 +37,25 @@
 <script>
 import { toast } from '@/composables/useToast'
 import { apiPost } from '@/api/base.js'
+
+function isSessionExpiredError(error) {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes('signature verification failed') ||
+    message.includes('token has expired') ||
+    message.includes('jwt') ||
+    message.includes('unauthorized') ||
+    message.includes('401')
+  )
+}
+
+function toFriendlyNotificationError(error, fallback = 'Failed to create notification.') {
+  if (isSessionExpiredError(error)) {
+    return 'Your session has expired. Please sign in again.'
+  }
+  return error?.message || fallback
+}
+
 export default {
   name: 'CreateNotificationView',
   data() {
@@ -62,7 +81,7 @@ export default {
         }
         this.$router.push('/admin')
       } catch (err) {
-        toast.error('Failed to create notification.')
+        toast.error(toFriendlyNotificationError(err))
         console.error(err)
       } finally {
         this.loading = false

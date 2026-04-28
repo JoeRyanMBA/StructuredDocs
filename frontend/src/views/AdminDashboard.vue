@@ -214,6 +214,7 @@ import LimitsModal from '@/components/LimitsModal.vue'
 import { toast } from '@/composables/useToast'
 import HelpIcon from '@/components/HelpIcon.vue'
 import { apiGet, apiPost, apiRequest } from '@/api/base'
+import { apiGet, apiPost, apiRequest, toFriendlyAuthError } from '@/api/base'
 
 export default {
   name: 'AdminDashboard',
@@ -313,7 +314,7 @@ export default {
         toast.success(`Database cleared successfully!${purgeMessage}`.trim());
         await this.loadDashboardData();
       } catch (e) {
-  toast.error('Error clearing database: ' + (e.message || e));
+          toast.error(`Error clearing database: ${toFriendlyAuthError(e, 'Unknown error')}`)
       }
     },
     getAuthHeaders() {
@@ -407,7 +408,7 @@ export default {
         await this.loadSystemMetrics()
 
       } catch (e) {
-        this.error = e.message || 'Failed to load dashboard data'
+          this.error = toFriendlyAuthError(e, 'Failed to load dashboard data')
         console.error(this.error)
       } finally {
         this.loading = false

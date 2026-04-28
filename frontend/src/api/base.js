@@ -55,6 +55,26 @@ export function normalizeListResponse(payload, candidateKeys = ['items', 'result
   return [];
 }
 
+export function isSessionExpiredError(error) {
+  const message = String(error?.message || '').toLowerCase();
+  const responseMessage = String(error?.response?.data?.error || error?.response?.data?.message || '').toLowerCase();
+  const haystack = `${message} ${responseMessage}`;
+  return (
+    haystack.includes('signature verification failed') ||
+    haystack.includes('token has expired') ||
+    haystack.includes('jwt') ||
+    haystack.includes('unauthorized') ||
+    haystack.includes('401')
+  );
+}
+
+export function toFriendlyAuthError(error, fallback = 'Request failed.') {
+  if (isSessionExpiredError(error)) {
+    return 'Your session has expired. Please sign in again.';
+  }
+  return error?.response?.data?.error || error?.response?.data?.message || error?.message || fallback;
+}
+
 async function parseResponseBody(response) {
   if (response.status === 204 || response.status === 205) {
     return null;

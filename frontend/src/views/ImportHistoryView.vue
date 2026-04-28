@@ -58,7 +58,8 @@ export default {
     return {
       docs: [],
       loading: true,
-      error: null
+      error: null,
+      hasLoadedOnce: false
     }
   },
 
@@ -95,30 +96,40 @@ export default {
     },
 
     async fetchHistory() {
-      this.loading = true
-      this.error = null
+      const isInitialLoad = !this.hasLoadedOnce
+      if (isInitialLoad) {
+        this.loading = true
+        this.error = null
+      }
 
       try {
         const data = await apiGet('/api/import/history')
         this.docs = Array.isArray(data) ? data : []
+        this.hasLoadedOnce = true
+        this.error = null
       } catch (e) {
         console.error('❌ Error fetching import history:', e)
-        this.error = `Failed to load import history: ${e.message}`
+        const raw = String(e?.message || '')
+        const lower = raw.toLowerCase()
+        if (lower.includes('signature verification failed')) {
+          this.error = this.hasLoadedOnce
+            ? null
+            : 'Your session expired. Please sign in again to view import history.'
+          return
+        }
+
+        // If data is already visible, avoid replacing it with an error screen.
+        this.error = this.hasLoadedOnce ? null : `Failed to load import history: ${raw}`
       } finally {
-        this.loading = false
+        if (isInitialLoad) {
+          this.loading = false
+        }
       }
     }
   },
 
   created() {
     this.fetchHistory()
-  },
-
-  // Refresh data when entering this route
-  beforeRouteEnter(to, from, next) {
-    next(vm => {
-      vm.fetchHistory()
-    })
   },
 
   // Refresh data when route updates (same component)

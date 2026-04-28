@@ -98,7 +98,7 @@
 
 <script>
 import ArchiveToggleButton from '@/components/ArchiveToggleButton.vue'
-import { apiPost, apiRequest } from '@/api/base'
+import { apiPost, apiRequest, toFriendlyAuthError } from '@/api/base'
 export default {
   name: 'AdminFeedback',
   components: { ArchiveToggleButton },
@@ -123,7 +123,7 @@ export default {
   // Exclude bug reports; those live in the dedicated Bugs page
   this.reports = Array.isArray(all) ? all.filter(r => r?.report_type !== 'bug') : [];
       } catch (e) {
-        this.error = e.message || 'Error loading feedback';
+        this.error = toFriendlyAuthError(e, 'Error loading feedback');
       } finally {
         this.loading = false;
       }
@@ -156,7 +156,7 @@ export default {
         if (idx !== -1) this.reports.splice(idx, 1, updated);
         this.closeEdit();
       } catch (e) {
-        this.error = e.message || 'Error saving feedback';
+        this.error = toFriendlyAuthError(e, 'Error saving feedback');
       }
     },
     async toggleArchive(item, newState) {
@@ -181,7 +181,7 @@ export default {
       } catch (e) {
         // revert on failure
         item.status = originalStatus;
-        this.error = e.message || 'Error updating archive state';
+        this.error = toFriendlyAuthError(e, 'Error updating archive state');
       }
     },
     formatDate(iso) {

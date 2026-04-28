@@ -13,6 +13,7 @@ import { ref } from 'vue';
 import axios from 'axios';
 import { store } from '@/store';
 import router from '@/router';
+import { API_BASE } from '@/api/base.js';
 
 const INACTIVITY_TIMEOUT_MS  = 30 * 60 * 1000; // 30 min idle → show warning
 const WARNING_BEFORE_MS      =  5 * 60 * 1000; // 5 min grace after warning
@@ -167,16 +168,51 @@ async function extendSession() {
   const refreshToken = localStorage.getItem('refresh_token');
   if (!refreshToken) { performLogout(); return; }
   try {
-    const resp = await axios.post('/api/users/refresh', {}, {
-      headers: { Authorization: `Bearer ${refreshToken}` }
+    const resp = await fetch(`${API_BASE}/api/users/refresh`, {
+      method: 'POST',
+      credentials: 'include',
+      headers: {
+        Authorization: `Bearer ${refreshToken}`,
+        'Content-Type': 'application/json',
+      },
     });
-    const newToken = resp.data.access_token;
+
+    if (!resp.ok) {
+      let message = '';
+      try {
+        const body = await resp.json();
+        message = body?.error || body?.msg || body?.message || '';
+      } catch (_) {
+        // Ignore JSON parse issues and use status below.
+      }
+
+      const looksLikeAuthFailure =
+        resp.status === 401 ||
+        resp.status === 422 ||
+        /signature verification failed|token|jwt|expired/i.test(message);
+
+      if (looksLikeAuthFailure) {
+        performLogout();
+        return;
+      }
+
+      throw new Error(message || `Session refresh failed (${resp.status})`);
+    }
+
+    const data = await resp.json();
+    const newToken = data?.access_token;
+    if (!newToken) {
+      throw new Error('Session refresh response did not include a new token');
+    }
+
     localStorage.setItem('access_token', newToken);
     axios.defaults.headers.common['Authorization'] = `Bearer ${newToken}`;
     showWarning.value = false;
     startWatcher(); // restart with fresh token expiry + fresh inactivity clock
-  } catch {
-    performLogout();
+  } catch (error) {
+    // For transient refresh issues, keep the modal visible so users can retry
+    // instead of treating both actions as immediate logout.
+    console.error('Failed to extend session:', error);
   }
 }
 

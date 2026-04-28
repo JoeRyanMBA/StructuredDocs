@@ -75,6 +75,7 @@ export default {
       loading: false,
       error: '',
       reviews: [],
+      hasLoadedOnce: false,
       searchQuery: '',
       statusFilter: ''
     }
@@ -108,9 +109,16 @@ export default {
       this.error = ''
       try {
         this.reviews = await getReviews()
+        this.hasLoadedOnce = true
       } catch (error) {
-        this.error = error.message || 'Failed to load review history'
-        this.reviews = []
+        const msg = String(error?.message || '').trim()
+        const lower = msg.toLowerCase()
+        this.error = lower.includes('signature verification failed')
+          ? 'Your session expired. Please sign in again to view review history.'
+          : (msg || 'Failed to load review history')
+        if (!this.hasLoadedOnce) {
+          this.reviews = []
+        }
       } finally {
         this.loading = false
       }

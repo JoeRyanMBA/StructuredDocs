@@ -112,7 +112,26 @@
 
 <script>
 import { toast } from '@/composables/useToast'
-import { apiGet, apiPost, apiDelete } from '@/api/base.js'
+import { apiGet, apiPost, apiDelete, normalizeListResponse } from '@/api/base.js'
+
+function isSessionExpiredError(error) {
+  const message = String(error?.message || '').toLowerCase()
+  return (
+    message.includes('signature verification failed') ||
+    message.includes('token has expired') ||
+    message.includes('jwt') ||
+    message.includes('unauthorized') ||
+    message.includes('401')
+  )
+}
+
+function toFriendlyNotificationError(error) {
+  if (isSessionExpiredError(error)) {
+    return 'Your session has expired. Please sign in again.'
+  }
+  return error?.message || 'Failed to load notifications.'
+}
+
 export default {
   name: 'NotificationManagement',
   data() {
@@ -130,10 +149,16 @@ export default {
       this.loading = true
       this.error = null
       try {
-        this.notifications = await apiGet('/api/notifications?include_inactive=true')
+        const payload = await apiGet('/api/notifications?include_inactive=true')
+        this.notifications = normalizeListResponse(payload, ['notifications', 'items', 'results', 'data'])
       } catch (error) {
         console.error('Error fetching notifications:', error)
-        this.error = error.message
+        const friendlyError = toFriendlyNotificationError(error)
+        if (this.notifications.length > 0) {
+          toast.error(friendlyError)
+        } else {
+          this.error = friendlyError
+        }
       } finally {
         this.loading = false
       }
@@ -147,7 +172,7 @@ export default {
         await this.fetchNotifications()
       } catch (error) {
         console.error('Error toggling notification:', error)
-        toast.error('Failed to toggle notification')
+        toast.error(toFriendlyNotificationError(error))
       }
     },
     async deleteNotification(notification) {
@@ -157,7 +182,7 @@ export default {
         await this.fetchNotifications()
       } catch (error) {
         console.error('Error deleting notification:', error)
-        toast.error('Failed to delete notification')
+        toast.error(toFriendlyNotificationError(error))
       }
     },
     formatType(type) {
@@ -176,9 +201,11 @@ export default {
 
 <style scoped>
 .notification-management {
-  max-width: 1200px;
+  max-width: none;
+  width: 100%;
   margin: 0 auto;
   padding: 2rem;
+  box-sizing: border-box;
 }
 .page-header {
   display: flex;
@@ -199,12 +226,12 @@ export default {
 .loading-state, .error-state, .empty-state { text-align: center; padding: 4rem 2rem; }
 .loading-content, .error-content, .empty-content { display: flex; flex-direction: column; align-items: center; gap: 1rem; }
 .loading-spinner, .error-icon, .empty-icon { font-size: 3rem; }
-.notifications-table-container { overflow-x: auto; }
-.notifications-table { min-width: 800px; }
+.notifications-table-container { width: 100%; overflow-x: auto; }
+.notifications-table { width: 100%; min-width: 0; table-layout: auto; }
 .notifications-table th, .notifications-table td { padding: 1rem; border-bottom: 1px solid var(--border-light-gray); }
 .notifications-table th { background-color: var(--bg-light-mist-gray); font-weight: 600; color: var(--text-dark-gray); }
 .notification-row:hover { background-color: var(--bg-light-mist-gray); }
-.notification-message { max-width: 300px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.notification-message { max-width: none; overflow-wrap: anywhere; white-space: normal; }
 .type-badge, .status-badge { padding: 0.25rem 0.75rem; border-radius: var(--border-radius-pill); font-size: 0.8rem; font-weight: 500; text-transform: capitalize; }
 .type-badge.info { background-color: var(--info-light-blue); color: var(--info-dark-blue); }
 .type-badge.warning { background-color: var(--warning-light-yellow); color: var(--warning-dark-yellow); }
@@ -212,8 +239,49 @@ export default {
 .type-badge.error { background-color: var(--error-light-red); color: var(--error-dark-red); }
 .status-badge.active { background-color: var(--success-light-green); color: var(--success-dark-green); }
 .status-badge.inactive { background-color: var(--extended-lavender-gray); color: var(--text-medium-gray); }
-.notification-actions { display: flex; gap: 0.5rem; flex-wrap: nowrap; }
+.notification-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
 .id-cell, .date-cell { white-space: nowrap; }
-.target-cell { max-width: 150px; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
-.actions-cell { width: 200px; }
+.target-cell { max-width: none; overflow-wrap: anywhere; white-space: normal; }
+.actions-cell { width: auto; }
+
+@media (max-width: 1024px) {
+  .notification-management {
+    padding: 1.25rem;
+  }
+
+  .notifications-section {
+    padding: 1rem;
+  }
+
+  .notifications-table th,
+  .notifications-table td {
+    padding: 0.75rem;
+    font-size: 0.92rem;
+  }
+}
+
+@media (max-width: 768px) {
+  .page-header {
+    flex-direction: column;
+    gap: 0.75rem;
+  }
+
+  .header-actions {
+    width: 100%;
+  }
+
+  .header-actions .btn {
+    width: 100%;
+  }
+
+  .notification-actions {
+    flex-direction: column;
+    align-items: stretch;
+  }
+
+  .notification-actions .btn {
+    width: 100%;
+    justify-content: center;
+  }
+}
 </style>
