@@ -21,6 +21,9 @@ on:
       - 'package-lock.json'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
   modal-smoke:
     runs-on: ubuntu-latest
