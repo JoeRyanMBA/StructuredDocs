@@ -20,7 +20,7 @@ class ImageHandler:
         """Initialize with import document ID for organizing images"""
         self.import_doc_id = import_doc_id
         
-        # Get storage backend (Spaces or local)
+        # Get storage backend (object storage or local)
         try:
             self.storage = get_storage_backend()
             storage_type = type(self.storage).__name__
@@ -238,7 +238,7 @@ class ImageHandler:
     
     def _store_single_image(self, temp_image_path):
         """
-        Store a single image file permanently to Spaces or local storage and return metadata.
+        Store a single image file permanently to object storage or local storage and return metadata.
         
         Args:
             temp_image_path (Path): Path to temporary image file
@@ -255,8 +255,8 @@ class ImageHandler:
             
             current_app.logger.info(f"💾 Storing image: {temp_image_path.name} -> {new_filename}")
             
-            # Storage path for Spaces or local
-            # For Spaces: full path "images/imports/{doc_id}/{filename}"
+            # Storage path for remote object storage or local disk.
+            # For remote storage: full path "images/imports/{doc_id}/{filename}"
             # For Local: relative to IMAGE_STORAGE_ROOT which is already .../images, so use "imports/{doc_id}/{filename}"
             is_local_storage = type(self.storage).__name__ == 'LocalStorage'
             storage_path = f"imports/{self.import_doc_id}/{new_filename}" if is_local_storage else f"images/imports/{self.import_doc_id}/{new_filename}"

@@ -1295,7 +1295,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     # Convert relative image paths to absolute paths
                     if src:
                         if src.startswith('http://') or src.startswith('https://'):
-                            # Download external image (e.g. DigitalOcean Spaces) to temp dir
+                            # Download an external image from remote object storage to a temp dir
                             if temp_dir:
                                 src = _download_image_for_pdf(src, temp_dir)
                                 if not src:

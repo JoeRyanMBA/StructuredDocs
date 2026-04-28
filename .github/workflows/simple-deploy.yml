@@ -8,4 +8,4 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Legacy workflow disabled
-        run: echo "Deployment now happens through DigitalOcean and Vercel workflows."
+        run: echo "Deployment now happens through the active VPS and frontend workflows."

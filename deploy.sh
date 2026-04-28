@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Production deploy script for DigitalOcean droplet
+# Production deploy script for a VPS host
 # Usage: ./deploy.sh
 set -euo pipefail
 

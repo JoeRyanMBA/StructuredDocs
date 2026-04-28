@@ -25,7 +25,7 @@ StructuredDocs is a document management and knowledge-base platform. Users organ
 | Auth | Flask-JWT-Extended (JWT bearer tokens) |
 | Background jobs | Redis + RQ |
 | Rate limiting | Flask-Limiter |
-| Storage | AWS S3 / DigitalOcean Spaces (images) |
+| Storage | S3-compatible object storage or local filesystem (images) |
 | Email | SendGrid or SMTP |
 
 ## Quick Start
@@ -36,33 +36,27 @@ StructuredDocs is a document management and knowledge-base platform. Users organ
 
 - On push to `main`, Vercel builds the frontend with Vite (`npm run build`).
 
-- Set `VITE_API_BASE_URL` (and optionally `VITE_APP_ENV=production`) in Vercel Project Settings → Environment Variables to your DigitalOcean backend URL, e.g. `https://api.yourdomain.com`.
+- Set `VITE_API_BASE_URL` (and optionally `VITE_APP_ENV=production`) in Vercel Project Settings → Environment Variables to your backend API URL, e.g. `https://api.yourdomain.com`.
 
 - If using a monorepo, keep `vercel.json` at root to point build to `frontend/`.
 
-### Backend (DigitalOcean)
+### Backend (VPS)
 
 Three supported deployment styles (choose one):
 
-1. Droplet + Docker (recommended for current setup)
+1. VPS + Docker (recommended for current setup)
 
    - Build & run locally first: `docker compose -f docker-compose.app.yml up --build`.
 
-   - Use `scripts/deploy_digitalocean.sh` (updates image via SSH & restarts container).
+   - Use the SSH-based deployment scripts or the GitHub Actions VPS workflow to update the container and restart services.
    - Provide a `backend.env` file on the server (never commit) with real secrets.
 
-2. Droplet + systemd (no containers)
+2. VPS + systemd (no containers)
 
    - Install Python 3.11, create venv, install `backend/requirements.txt`.
 
    - Use Gunicorn unit: `/etc/systemd/system/structureddocs.service` pointing to `backend.app:create_app()`.
    - Run Alembic migrations with `scripts/run_migrations.sh` (ensure env loaded).
-
-3. DigitalOcean App Platform
-
-   - Point to repo, set build command (multi-stage Dockerfile already present) or supply this Gunicorn start: `gunicorn backend.app:create_app() -b 0.0.0.0:$PORT`.
-
-   - Add environment variables in App Platform UI.
 
 ### Environment Variables
 
@@ -72,9 +66,9 @@ Frontend (Vercel):
 
 - `VITE_APP_ENV=production` (optional feature gating)
 
-Backend (DigitalOcean):
+Backend (VPS):
 
-- `DATABASE_URL=postgresql://user:pass@host:5432/dbname` (Managed DB connection string)
+- `DATABASE_URL=postgresql://user:pass@host:5432/dbname`
 
 - `SECRET_KEY`, `JWT_SECRET_KEY`
 
@@ -83,6 +77,7 @@ Backend (DigitalOcean):
 - `SMTP_HOST`, `SMTP_PORT`, `SMTP_USER`, `SMTP_PASSWORD`, `MAIL_DEFAULT_SENDER`
 
 - (Optional) `SENTRY_DSN`, `REDIS_URL`, `ENABLE_BLUEPRINTS`
+- (Optional, remote image storage) `STORAGE_BUCKET`, `STORAGE_ENDPOINT`, `STORAGE_ACCESS_KEY`, `STORAGE_SECRET_KEY`, `STORAGE_REGION`, `STORAGE_PUBLIC_BASE_URL`
 
 See `backend/.env.example` for a full template.
 
@@ -93,8 +88,8 @@ See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuratio
 | Layer    | Dev Command                            | Production Path                                                |
 |----------|----------------------------------------|----------------------------------------------------------------|
 | Frontend | `cd frontend && npm run dev`           | Vercel build + CDN                                             |
-| Backend  | `python -m gunicorn "backend.app:create_app()" -b 0.0.0.0:8080` | Droplet container (Gunicorn) |
-| DB       | SQLite (auto-created)                  | DO Managed Postgres (set `DATABASE_URL`)                       |
+| Backend  | `python -m gunicorn "backend.app:create_app()" -b 0.0.0.0:8080` | VPS container or service (Gunicorn) |
+| DB       | SQLite (auto-created)                  | Managed or self-hosted Postgres (set `DATABASE_URL`)           |
 | Migrations | `cd backend && flask db upgrade`    | Manual or container start (`RUN_DB_MIGRATIONS=1`)              |
 
 ### Local Development (without Docker)

@@ -1,12 +1,12 @@
 #!/bin/bash
-# Bootstrap a new DigitalOcean droplet for a given environment.
-# Run this on the droplet itself (or pipe via SSH) immediately after provisioning.
+# Bootstrap a new Linux VPS for a given environment.
+# Run this on the server itself (or pipe via SSH) immediately after provisioning.
 #
-# Usage (run on the droplet):
-#   bash setup_droplet.sh <test|training|production>
+# Usage (run on the server):
+#   bash "$0" <test|training|production>
 #
 # Usage (run from local machine):
-#   ssh root@DROPLET_IP 'bash -s' < scripts/setup_droplet.sh test
+#   ssh root@SERVER_IP 'bash -s' < /path/to/this-script.sh test
 
 set -euo pipefail
 
@@ -18,7 +18,7 @@ fi
 
 REMOTE_DIR="/opt/structureddocs"
 
-echo "🚀 Setting up StructuredDocs droplet — environment: $ENV"
+echo "🚀 Setting up StructuredDocs VPS — environment: $ENV"
 echo "   App dir: $REMOTE_DIR"
 echo ""
 
@@ -95,10 +95,10 @@ ENVPLACEHOLDER
 fi
 
 echo ""
-echo "🎉 Droplet setup complete for: $ENV"
+echo "🎉 VPS setup complete for: $ENV"
 echo ""
 echo "⚠️  REQUIRED: Edit the env file with real secrets before deploying:"
 echo "   nano $DEST_ENV"
 echo ""
 echo "📋 Then deploy from your local machine:"
-echo "   ./scripts/deploy.sh $ENV <this-droplet-ip>"
+echo "   ./scripts/deploy.sh $ENV <this-server-ip>"

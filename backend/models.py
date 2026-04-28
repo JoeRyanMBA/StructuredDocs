@@ -563,10 +563,8 @@ class ImportImage(db.Model):
         }
         
         if include_file_exists:
-            # For Spaces storage: if public_url is a CDN URL, assume file exists
-            # (we don't have local access to verify Spaces files)
-            if self.public_url and ('digitaloceanspaces.com' in self.public_url or 'cdn.' in self.public_url):
-                # Spaces/CDN storage - trust the upload was successful
+            # For remote URLs, trust the upload path because we do not have local disk access to verify it.
+            if self.public_url and self.public_url.startswith(('http://', 'https://')):
                 result['file_exists'] = True
             else:
                 # Local storage - check absolute and configured-root-relative locations.

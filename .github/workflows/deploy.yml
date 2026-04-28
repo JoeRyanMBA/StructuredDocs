@@ -82,6 +82,16 @@ jobs:
             set -euo pipefail
             cd /opt/structureddocs/app
 
+            if [[ ! -f /opt/structureddocs/.env ]]; then
+              echo "Missing /opt/structureddocs/.env on the server."
+              exit 1
+            fi
+
+            if ! grep -Eq '^DATABASE_URL=.+$' /opt/structureddocs/.env; then
+              echo "DATABASE_URL is missing or blank in /opt/structureddocs/.env."
+              exit 1
+            fi
+
             if docker compose version >/dev/null 2>&1; then
               DC="docker compose"
             elif sudo -n docker compose version >/dev/null 2>&1; then

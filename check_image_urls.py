@@ -28,9 +28,9 @@ with app.app_context():
         
         # Check what type of URL it is
         if img.public_url.startswith('http'):
-            print(f"  ✅ Spaces/CDN URL")
+            print(f"  ✅ Remote object storage URL")
         elif img.public_url.startswith('/'):
-            print(f"  ❌ LOCAL PATH (should be Spaces URL!)")
+            print(f"  ❌ LOCAL PATH (should be a remote object storage URL!)")
         else:
             print(f"  ⚠️  UNKNOWN FORMAT")
     
@@ -42,6 +42,6 @@ with app.app_context():
     local_count = sum(1 for img in all_images if img.public_url.startswith('/'))
     
     print(f"TOTAL: {len(all_images)} images")
-    print(f"  - Spaces URLs: {spaces_count}")
+    print(f"  - Remote storage URLs: {spaces_count}")
     print(f"  - Local paths: {local_count}")
     print("=" * 80)

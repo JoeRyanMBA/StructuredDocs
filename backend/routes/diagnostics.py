@@ -14,11 +14,12 @@ def check_storage():
     
     # Check environment variables
     env_vars = {
-        'SPACES_BUCKET': os.environ.get('SPACES_BUCKET', 'NOT SET'),
-        'SPACES_REGION': os.environ.get('SPACES_REGION', 'NOT SET'),
-        'SPACES_ACCESS_KEY': '***' if os.environ.get('SPACES_ACCESS_KEY') else 'NOT SET',
-        'SPACES_SECRET_KEY': '***' if os.environ.get('SPACES_SECRET_KEY') else 'NOT SET',
-        'SPACES_CDN_ENDPOINT': os.environ.get('SPACES_CDN_ENDPOINT', 'NOT SET'),
+        'STORAGE_BUCKET': os.environ.get('STORAGE_BUCKET', 'NOT SET'),
+        'STORAGE_REGION': os.environ.get('STORAGE_REGION', 'NOT SET'),
+        'STORAGE_ACCESS_KEY': '***' if os.environ.get('STORAGE_ACCESS_KEY') else 'NOT SET',
+        'STORAGE_SECRET_KEY': '***' if os.environ.get('STORAGE_SECRET_KEY') else 'NOT SET',
+        'STORAGE_ENDPOINT': os.environ.get('STORAGE_ENDPOINT', 'NOT SET'),
+        'STORAGE_PUBLIC_BASE_URL': os.environ.get('STORAGE_PUBLIC_BASE_URL', 'NOT SET'),
         'IMAGE_STORAGE_ROOT': os.environ.get('IMAGE_STORAGE_ROOT', 'NOT SET'),
     }
     
@@ -28,13 +29,14 @@ def check_storage():
         storage_type = type(storage).__name__
         storage_details = {}
         
-        if storage_type == 'SpacesStorage':
+        if storage_type == 'S3CompatibleStorage':
             storage_details = {
-                'type': 'Digital Ocean Spaces',
+                'type': 'S3-compatible object storage',
                 'bucket': storage.bucket,
                 'region': storage.region,
+                'endpoint_url': storage.endpoint_url,
                 'base_url': storage.base_url,
-                'cdn_endpoint': storage.cdn_endpoint if storage.cdn_endpoint else 'Not configured (using default endpoint)'
+                'public_base_url': storage.public_base_url if storage.public_base_url else 'Not configured (using endpoint-derived URL)'
             }
         elif storage_type == 'LocalStorage':
             storage_details = {
@@ -95,38 +97,42 @@ def _get_recommendations(env_vars, storage_type, boto3_available):
     """Generate recommendations based on current configuration"""
     recommendations = []
     
-    # Check if using local storage when Spaces should be used
+    # Check if using local storage when remote object storage should be used.
     if storage_type == 'LocalStorage':
-        if env_vars['SPACES_BUCKET'] == 'NOT SET':
+        if env_vars['STORAGE_BUCKET'] == 'NOT SET':
             recommendations.append({
                 'severity': 'HIGH',
                 'issue': 'Using ephemeral local storage - images will be lost on redeployment',
-                'solution': 'Configure Digital Ocean Spaces environment variables in App Platform'
+                'solution': 'Either mount persistent VPS storage or configure remote object storage with STORAGE_* environment variables'
             })
         if not boto3_available:
             recommendations.append({
                 'severity': 'HIGH',
-                'issue': 'boto3 not installed - cannot use Spaces storage',
+                'issue': 'boto3 not installed - cannot use remote object storage',
                 'solution': 'Ensure boto3>=1.34.0 is in requirements.txt and redeploy'
             })
     
-    # Check if Spaces vars are partially configured
-    spaces_vars = [env_vars['SPACES_BUCKET'], env_vars['SPACES_REGION'], 
-                   env_vars['SPACES_ACCESS_KEY'], env_vars['SPACES_SECRET_KEY']]
-    spaces_set_count = sum(1 for v in spaces_vars if v != 'NOT SET')
-    if 0 < spaces_set_count < 4:
+    # Check if required object storage vars are only partially configured.
+    storage_vars = [
+        env_vars['STORAGE_BUCKET'],
+        env_vars['STORAGE_ACCESS_KEY'],
+        env_vars['STORAGE_SECRET_KEY'],
+        env_vars['STORAGE_ENDPOINT'],
+    ]
+    storage_set_count = sum(1 for v in storage_vars if v != 'NOT SET')
+    if 0 < storage_set_count < 4:
         recommendations.append({
             'severity': 'HIGH',
-            'issue': f'Only {spaces_set_count}/4 Spaces variables configured - storage will fall back to local',
-            'solution': 'Set ALL four Spaces environment variables: SPACES_BUCKET, SPACES_REGION, SPACES_ACCESS_KEY, SPACES_SECRET_KEY'
+            'issue': f'Only {storage_set_count}/4 required object storage variables configured - storage will fall back to local',
+            'solution': 'Set STORAGE_BUCKET, STORAGE_ACCESS_KEY, STORAGE_SECRET_KEY, and STORAGE_ENDPOINT'
         })
     
-    # Check if IMAGE_STORAGE_ROOT is set when using Spaces
-    if storage_type == 'SpacesStorage' and env_vars['IMAGE_STORAGE_ROOT'] != 'NOT SET':
+    # Check if IMAGE_STORAGE_ROOT is set when using object storage.
+    if storage_type == 'S3CompatibleStorage' and env_vars['IMAGE_STORAGE_ROOT'] != 'NOT SET':
         recommendations.append({
             'severity': 'MEDIUM',
-            'issue': 'IMAGE_STORAGE_ROOT is set but not used with Spaces storage',
-            'solution': 'Remove IMAGE_STORAGE_ROOT environment variable (only needed for local storage)'
+            'issue': 'IMAGE_STORAGE_ROOT is set but not used with remote object storage',
+            'solution': 'Remove IMAGE_STORAGE_ROOT if you do not need local filesystem storage'
         })
     
     if not recommendations:

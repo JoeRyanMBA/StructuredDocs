@@ -1,6 +1,6 @@
 #!/usr/bin/env python
 """
-Startup script for DigitalOcean App Platform
+Startup script for containerized or hosted deployments
 Handles PORT environment variable properly for gunicorn
 """
 import os

@@ -23,7 +23,7 @@ echo ""
 
 echo "5. To see real-time application logs:"
 echo "   - For Docker: docker logs -f <container_name>"
-echo "   - For App Platform: View Runtime Logs in the dashboard"
+echo "   - For hosted environments: view runtime logs in the provider dashboard"
 echo ""
 
 echo "6. Test Pandoc manually with a sample .docx:"

@@ -254,18 +254,13 @@ p { color: #666; }
     # Environment-specific database configuration
     db_url = os.environ.get('DATABASE_URL')
     if db_url:
-        # Detect unresolved DigitalOcean encrypted variable (EV[...]) — the platform
-        # is supposed to decrypt these before the process starts. If we see the raw
-        # ciphertext it means decryption was skipped, and passing it to SQLAlchemy
-        # would cause a confusing "Could not parse SQLAlchemy URL" crash.
+        # Detect unresolved encrypted placeholders before passing them to SQLAlchemy.
         if db_url.startswith('EV['):
             raise RuntimeError(
-                'DATABASE_URL contains an unresolved DigitalOcean encrypted variable '
-                '(value starts with "EV["). The App Platform did not decrypt it before '
-                'startup. Check your DigitalOcean App spec: make sure the DATABASE_URL '
-                'env var is bound to the correct database component or that the '
-                'encryption key is available. Do NOT copy the EV[...] ciphertext '
-                'manually — let the platform inject the value.'
+                'DATABASE_URL contains an unresolved encrypted placeholder '
+                '(value starts with "EV["). Your hosting environment did not inject '
+                'the actual connection string before startup. Set DATABASE_URL to '
+                'the real database connection string in your VPS environment.'
             )
 
         # Normalize postgres scheme and enforce SSL if not provided
@@ -333,7 +328,7 @@ p { color: #666; }
             )
         # Default local development database - use app root instead of instance for container compatibility
         # In production, use a more reliable path
-        if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
+        if os.environ.get('PORT'):  # Managed runtimes commonly set PORT in production
             # Use current working directory for database in production
             db_path = os.path.join(os.getcwd(), 'structured_docs.db')
         else:
@@ -502,7 +497,7 @@ p { color: #666; }
     frontend_url = os.environ.get('FRONTEND_URL')
     if not frontend_url:
         # In production, allow the same origin (for full-stack apps)
-        if os.environ.get('PORT'):  # DigitalOcean sets PORT in production
+        if os.environ.get('PORT'):  # Managed runtimes commonly set PORT in production
             # Allow all origins for now to avoid CORS issues
             frontend_url = '*'
         else:
@@ -1140,9 +1135,10 @@ p { color: #666; }
                 resp.headers.setdefault('X-Frame-Options', 'DENY')
                 resp.headers.setdefault('Referrer-Policy', 'no-referrer-when-downgrade')
                 resp.headers.setdefault('Permissions-Policy', os.environ.get('PERMISSIONS_POLICY', 'geolocation=(), microphone=(), camera=()'))
-                # Build CSP with Spaces CDN support
-                spaces_cdn = os.environ.get('SPACES_CDN_ENDPOINT', 'https://*.nyc3.digitaloceanspaces.com https://*.nyc3.cdn.digitaloceanspaces.com')
-                default_csp = f"default-src 'self'; img-src 'self' data: blob: {spaces_cdn}; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud; font-src 'self' data:; connect-src *; frame-ancestors 'none'; object-src 'none'"
+                # Build CSP with optional remote image host support.
+                remote_img_src = os.environ.get('STORAGE_PUBLIC_BASE_URL')
+                img_src = "'self' data: blob:" + (f" {remote_img_src}" if remote_img_src else '')
+                default_csp = f"default-src 'self'; img-src {img_src}; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud; font-src 'self' data:; connect-src *; frame-ancestors 'none'; object-src 'none'"
                 resp.headers.setdefault('Content-Security-Policy', os.environ.get('CSP_HEADER', default_csp))
             except Exception as e:
                 print(f"⚠️  Security headers error: {e}")

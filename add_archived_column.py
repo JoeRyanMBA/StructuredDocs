@@ -2,7 +2,7 @@
 """
 Simple script to add archived column to collections table.
 This script reads the DATABASE_URL from environment variables automatically.
-Safe to run on Digital Ocean App Platform.
+Safe to run in a hosted or VPS environment.
 
 Usage on Digital Ocean:
 1. Go to your App in Digital Ocean Dashboard
