@@ -256,7 +256,7 @@ import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 import BulkRequestReviewModal from '@/components/BulkRequestReviewModal.vue'
 import UsageBadge from '@/components/UsageBadge.vue'
 import { toast } from '@/composables/useToast'
-import { apiGet, apiPost, apiRequestRaw } from '@/api/base'
+import { apiGet, apiPost, apiRequestRaw, normalizeListResponse } from '@/api/base'
 import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
@@ -603,7 +603,8 @@ export default {
 
     async fetchProjects() {
       try {
-        this.availableProjects = await apiGet('/api/projects/')
+        const payload = await apiGet('/api/projects/')
+        this.availableProjects = normalizeListResponse(payload, ['projects', 'items', 'results', 'data'])
       } catch (err) {
         console.error('Failed to fetch projects:', err)
         this.availableProjects = []

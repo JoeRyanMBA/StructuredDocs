@@ -177,7 +177,7 @@
 <script>
 import CalendarWidget from '../components/CalendarWidget.vue'
 import { store } from '../store';
-import { apiRequest } from '../api/base.js';
+import { apiRequest, normalizeListResponse } from '../api/base.js';
 
 export default {
   name: 'StartPage',
@@ -361,7 +361,7 @@ export default {
     async loadProjects() {
       try {
         const data = await apiRequest('/api/projects/')
-        this.projects = data
+        this.projects = normalizeListResponse(data, ['projects', 'items', 'results', 'data'])
         console.log('📁 Loaded projects:', this.projects.length);
         this.updateProjectActiveMetric()
       } catch (error) {
