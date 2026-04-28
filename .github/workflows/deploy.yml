@@ -56,7 +56,14 @@ jobs:
           : "${VPS_USER:?VPS_USER secret is required}"
           PORT="${VPS_PORT:-22}"
 
-          rsync -az --delete \
+          ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
+            set -euo pipefail
+            mkdir -p /opt/structureddocs/app
+            mkdir -p /opt/structureddocs/app/data/images
+            mkdir -p /opt/structureddocs/app/instance
+          EOF
+
+          rsync -az --delete --omit-dir-times --no-perms \
             -e "ssh -i ~/.ssh/id_ed25519 -p $PORT" \
             --exclude '.git' \
             --exclude '.github' \
@@ -65,6 +72,10 @@ jobs:
             --exclude 'node_modules' \
             --exclude 'frontend/node_modules' \
             --exclude 'frontend/dist' \
+            --exclude '.env' \
+            --exclude 'instance/' \
+            --exclude 'structured_docs.db' \
+            --exclude 'data/images/' \
             ./ "${VPS_USER}@${VPS_HOST}:/opt/structureddocs/app/"
 
           ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
