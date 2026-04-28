@@ -91,8 +91,10 @@ function clearAuthAndRedirect() {
   localStorage.removeItem('access_token');
   localStorage.removeItem('refresh_token');
   localStorage.removeItem('isAuthenticated');
+  localStorage.removeItem('user');
   delete axios.defaults.headers.common['Authorization'];
-  // Dispatch event so useSessionTimeout shows the modal instead of a raw page reload
+  // Notify app state listeners and show session-timeout UX consistently.
+  window.dispatchEvent(new CustomEvent('userUpdated'));
   window.dispatchEvent(new CustomEvent('auth:logout'));
 }
 

@@ -514,13 +514,21 @@ const router = createRouter({
   }
 })
 
-// Authentication guard
+// Authentication guard: require both persisted user profile and a JWT-shaped access token.
 function isAuthenticated() {
   try {
-    const user = JSON.parse(localStorage.getItem('user'));
-    return !!user;
+    const rawUser = localStorage.getItem('user')
+    const token = localStorage.getItem('access_token')
+
+    if (!rawUser || !token) return false
+
+    const user = JSON.parse(rawUser)
+    const jwtParts = token.split('.')
+    const tokenLooksValid = jwtParts.length === 3 && jwtParts.every(Boolean)
+
+    return !!user && tokenLooksValid
   } catch (e) {
-    return false;
+    return false
   }
 }
 
