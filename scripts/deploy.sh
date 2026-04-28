@@ -1,6 +1,6 @@
 #!/bin/bash
-# Deploy StructuredDocs to a specific environment droplet.
-# Usage: ./scripts/deploy.sh <environment> [droplet-ip]
+# Deploy StructuredDocs to a specific environment VPS.
+# Usage: ./scripts/deploy.sh <environment> [server-ip]
 #
 # Examples:
 #   ./scripts/deploy.sh test
@@ -13,12 +13,12 @@ ENV="${1:-}"
 OVERRIDE_HOST="${2:-}"
 
 if [[ -z "$ENV" ]]; then
-  echo "Usage: $0 <test|training|production> [droplet-ip]"
+  echo "Usage: $0 <test|training|production> [server-ip]"
   exit 1
 fi
 
 # ---------------------------------------------------------------------------
-# Droplet IP addresses — update these after provisioning
+# Server IP addresses — update these after provisioning
 # ---------------------------------------------------------------------------
 TEST_HOST="${STRUCTUREDDOCS_TEST_HOST:-}"
 TRAINING_HOST="${STRUCTUREDDOCS_TRAINING_HOST:-}"

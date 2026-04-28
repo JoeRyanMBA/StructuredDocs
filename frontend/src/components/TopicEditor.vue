@@ -1126,7 +1126,7 @@ export default {
     },
     formatImageSource(source) {
       const value = (source || 'local').toLowerCase()
-      if (value === 'spaces') return 'Spaces'
+      if (value === 'spaces') return 'Object storage'
       if (value === 'import') return 'Imported'
       return 'Local'
     },

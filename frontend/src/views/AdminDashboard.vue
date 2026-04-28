@@ -128,7 +128,7 @@
           <div class="clear-db-options">
             <label class="clear-db-checkbox">
               <input type="checkbox" v-model="purgeStorageOnClear" />
-              <span>Also purge Spaces objects (dev-safe)</span>
+              <span>Also purge remote storage objects (dev-safe)</span>
             </label>
             <input
               v-model="clearStoragePrefix"

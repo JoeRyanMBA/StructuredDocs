@@ -1,5 +1,5 @@
 #!/bin/bash
-# Legacy placeholder: StructuredDocs now deploys via Vercel (frontend) and DigitalOcean (backend).
+# Legacy placeholder: StructuredDocs now deploys via Vercel (frontend) and a VPS-based backend.
 
 set -euo pipefail
 

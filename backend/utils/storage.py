@@ -1,10 +1,9 @@
 """
-Storage abstraction layer supporting both local filesystem and Digital Ocean Spaces
+Storage abstraction layer supporting local filesystem and S3-compatible object storage.
 """
 import os
 from pathlib import Path
-from typing import Optional, BinaryIO
-import io
+from typing import Optional
 
 class StorageBackend:
     """Abstract base for storage backends"""
@@ -35,6 +34,7 @@ class LocalStorage(StorageBackend):
     
     def __init__(self, base_path: str):
         self.base_path = Path(base_path)
+        self.storage_root = str(self.base_path)
         self.base_path.mkdir(parents=True, exist_ok=True)
     
     def save_file(self, file_data: bytes, path: str, content_type: Optional[str] = None) -> str:
@@ -62,48 +62,57 @@ class LocalStorage(StorageBackend):
         return f"/{path}"
 
 
-class SpacesStorage(StorageBackend):
-    """Digital Ocean Spaces storage (S3-compatible)"""
+class S3CompatibleStorage(StorageBackend):
+    """S3-compatible object storage."""
     
-    def __init__(self, region: str, bucket: str, access_key: str, secret_key: str,
-                 cdn_endpoint: Optional[str] = None, key_prefix: Optional[str] = None):
+    def __init__(
+        self,
+        bucket: str,
+        access_key: str,
+        secret_key: str,
+        endpoint_url: str,
+        region: Optional[str] = None,
+        public_base_url: Optional[str] = None,
+        key_prefix: Optional[str] = None,
+    ):
         try:
             import boto3
             from botocore.exceptions import ClientError
             self.ClientError = ClientError
         except ImportError:
-            raise ImportError("boto3 is required for Spaces storage. Install with: pip install boto3")
+            raise ImportError("boto3 is required for object storage. Install with: pip install boto3")
         
-        self.region = region
         self.bucket = bucket
-        self.cdn_endpoint = cdn_endpoint
+        self.region = region
+        self.endpoint_url = endpoint_url.rstrip('/')
+        self.public_base_url = public_base_url.rstrip('/') if public_base_url else None
         # Normalise prefix: strip leading slash, ensure trailing slash if non-empty
         if key_prefix:
             self.key_prefix = key_prefix.strip('/') + '/'
         else:
             self.key_prefix = ''
         
-        # Initialize S3 client for DO Spaces
+        # Initialize an S3-compatible client.
         self.s3_client = boto3.client(
             's3',
             region_name=region,
-            endpoint_url=f'https://{region}.digitaloceanspaces.com',
+            endpoint_url=self.endpoint_url,
             aws_access_key_id=access_key,
             aws_secret_access_key=secret_key
         )
         
         # Base URL for files
-        if cdn_endpoint:
-            self.base_url = cdn_endpoint.rstrip('/')
+        if self.public_base_url:
+            self.base_url = self.public_base_url
         else:
-            self.base_url = f'https://{bucket}.{region}.digitaloceanspaces.com'
+            self.base_url = f'{self.endpoint_url}/{bucket}'
     
     def _key(self, path: str) -> str:
         """Prepend environment prefix to a storage key."""
         return f"{self.key_prefix}{path.lstrip('/')}"
 
     def save_file(self, file_data: bytes, path: str, content_type: Optional[str] = None) -> str:
-        """Upload file to Spaces"""
+        """Upload file to object storage."""
         extra_args = {}
         if content_type:
             extra_args['ContentType'] = content_type
@@ -120,12 +129,12 @@ class SpacesStorage(StorageBackend):
         return f"{self.base_url}/{key}"
 
     def read_file(self, path: str) -> bytes:
-        """Download file from Spaces"""
+        """Download file from object storage."""
         response = self.s3_client.get_object(Bucket=self.bucket, Key=self._key(path))
         return response['Body'].read()
 
     def delete_file(self, path: str) -> bool:
-        """Delete file from Spaces"""
+        """Delete file from object storage."""
         try:
             self.s3_client.delete_object(Bucket=self.bucket, Key=self._key(path))
             return True
@@ -133,7 +142,7 @@ class SpacesStorage(StorageBackend):
             return False
 
     def file_exists(self, path: str) -> bool:
-        """Check if file exists in Spaces"""
+        """Check if file exists in object storage."""
         try:
             self.s3_client.head_object(Bucket=self.bucket, Key=self._key(path))
             return True
@@ -161,35 +170,38 @@ def get_storage_backend() -> StorageBackend:
         logger.info(f"✅ STORAGE_BACKEND={backend_mode}; using LocalStorage at {storage_root}")
         return LocalStorage(storage_root)
 
-    # Check if Spaces is configured
-    spaces_bucket = os.environ.get('SPACES_BUCKET')
-    spaces_region = os.environ.get('SPACES_REGION')
-    spaces_access_key = os.environ.get('SPACES_ACCESS_KEY')
-    spaces_secret_key = os.environ.get('SPACES_SECRET_KEY')
+    storage_bucket = os.environ.get('STORAGE_BUCKET')
+    storage_region = os.environ.get('STORAGE_REGION')
+    storage_access_key = os.environ.get('STORAGE_ACCESS_KEY')
+    storage_secret_key = os.environ.get('STORAGE_SECRET_KEY')
+    storage_endpoint = os.environ.get('STORAGE_ENDPOINT')
+    storage_public_base_url = os.environ.get('STORAGE_PUBLIC_BASE_URL')
+    storage_key_prefix = os.environ.get('STORAGE_KEY_PREFIX', '')
     
-    if all([spaces_bucket, spaces_region, spaces_access_key, spaces_secret_key]):
-        # Try to use Spaces
-        logger.info(f"🔧 Attempting to initialize Spaces storage: bucket={spaces_bucket}, region={spaces_region}")
+    if all([storage_bucket, storage_access_key, storage_secret_key, storage_endpoint]):
+        logger.info(
+            "🔧 Attempting to initialize object storage: "
+            f"bucket={storage_bucket}, endpoint={storage_endpoint}, region={storage_region or 'default'}"
+        )
         
         try:
-            cdn_endpoint = os.environ.get('SPACES_CDN_ENDPOINT')
-            key_prefix = os.environ.get('SPACES_KEY_PREFIX', '')
-            storage = SpacesStorage(
-                region=spaces_region,
-                bucket=spaces_bucket,
-                access_key=spaces_access_key,
-                secret_key=spaces_secret_key,
-                cdn_endpoint=cdn_endpoint,
-                key_prefix=key_prefix
+            storage = S3CompatibleStorage(
+                bucket=storage_bucket,
+                access_key=storage_access_key,
+                secret_key=storage_secret_key,
+                endpoint_url=storage_endpoint,
+                region=storage_region,
+                public_base_url=storage_public_base_url,
+                key_prefix=storage_key_prefix
             )
-            logger.info(f"✅ SpacesStorage initialized successfully! Base URL: {storage.base_url}")
+            logger.info(f"✅ S3CompatibleStorage initialized successfully! Base URL: {storage.base_url}")
             return storage
         except ImportError as ie:
             # boto3 not installed, fall back to local
-            logger.warning(f"⚠️ boto3 not available for Spaces storage: {ie}. Falling back to local storage.")
+            logger.warning(f"⚠️ boto3 not available for object storage: {ie}. Falling back to local storage.")
         except Exception as e:
-            logger.error(f"❌ Failed to initialize Spaces storage: {e}. Falling back to local storage.", exc_info=True)
+            logger.error(f"❌ Failed to initialize object storage: {e}. Falling back to local storage.", exc_info=True)
     
     # Fall back to local storage
-    logger.warning(f"⚠️ Using LocalStorage fallback: {storage_root} (Spaces not configured or failed to initialize)")
+    logger.warning(f"⚠️ Using LocalStorage fallback: {storage_root} (object storage not configured or failed to initialize)")
     return LocalStorage(storage_root)

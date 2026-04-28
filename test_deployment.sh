@@ -133,7 +133,7 @@ fi
 echo ""
 echo "🔗 Useful commands:"
 echo "==================="
-echo "Deploy to DigitalOcean: ./build-deploy.sh"
+echo "Deploy to your VPS workflow: ./build-deploy.sh"
 echo "Deploy to Vercel: cd frontend && npx vercel --prod"
 echo "Check health: curl https://your-app-url/api/health"
 echo "View logs: docker logs <container_id>"

@@ -11,7 +11,7 @@ public_images_bp = Blueprint('public_images', __name__, url_prefix='/images')
 
 @public_images_bp.route('/imports/<int:doc_id>/<path:filename>', methods=['GET'])
 def serve_import_image(doc_id: int, filename: str):
-    """Serve an imported image from backend static or frontend public fallback, or redirect to Spaces CDN."""
+    """Serve an imported image from local storage or redirect to its remote public URL."""
     try:
         # Prevent directory traversal attacks
         if '..' in filename or filename.startswith('/'):
@@ -20,7 +20,7 @@ def serve_import_image(doc_id: int, filename: str):
         
         current_app.logger.debug(f"🖼️ Image request: {doc_id}/{filename}")
 
-        # Check if this image is in the database with a Spaces/CDN URL
+        # Check if this image is in the database with a remote public URL
         from backend.models import ImportImage
         from flask import redirect
         
@@ -30,9 +30,9 @@ def serve_import_image(doc_id: int, filename: str):
         ).first()
         
         if db_image and db_image.public_url:
-            # If public_url is a full CDN URL, redirect to it
+            # If public_url is a full remote URL, redirect to it
             if db_image.public_url.startswith('http'):
-                current_app.logger.info(f"   🔄 Redirecting to Spaces CDN: {db_image.public_url}")
+                current_app.logger.info(f"   🔄 Redirecting to remote image URL: {db_image.public_url}")
                 return redirect(db_image.public_url, code=302)
         
         # Otherwise, try to serve from local storage
@@ -94,4 +94,3 @@ def serve_import_image(doc_id: int, filename: str):
     except (ValueError, OSError) as e:
         current_app.logger.error(f"Error serving image: {e}")
         abort(404)
-

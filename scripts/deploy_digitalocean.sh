@@ -1,5 +1,5 @@
 #!/bin/bash
-# Deploy to DigitalOcean Droplet via SSH using Docker Compose
+# Deploy to a VPS via SSH using Docker Compose
 # Prerequisites: SSH key added, remote has docker + docker-compose plugin
 # Usage: ./scripts/deploy_digitalocean.sh [REMOTE_HOST]
 

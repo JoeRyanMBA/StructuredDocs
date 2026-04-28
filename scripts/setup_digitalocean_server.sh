@@ -1,11 +1,11 @@
 #!/bin/bash
-# Setup script for Digital Ocean server - run this on your droplet
+# Setup script for a Linux VPS - run this on your server
 # Usage: bash setup_digitalocean_server.sh
 
 set -euo pipefail
 
-echo "🚀 Setting up StructuredDocs on Digital Ocean"
-echo "=============================================="
+echo "🚀 Setting up StructuredDocs on your VPS"
+echo "========================================"
 
 # Install Docker
 echo "📦 Installing Docker..."

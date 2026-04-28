@@ -62,4 +62,4 @@ jobs:
       - name: Deployment reminder
         run: |
           echo "Automated deployment is disabled."
-          echo "Verify the container image on ghcr.io and deploy via your DigitalOcean runbook if needed."
+          echo "Verify the container image on ghcr.io and deploy via your VPS runbook if needed."

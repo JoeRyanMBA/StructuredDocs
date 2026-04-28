@@ -2,7 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog, SystemSetting
 from ..utils.email_service import get_email_service
-from ..utils.storage import get_storage_backend, SpacesStorage
+from ..utils.storage import S3CompatibleStorage, get_storage_backend
 from ..utils.settings import get_setting, set_setting, DEFAULTS
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
@@ -398,16 +398,16 @@ def clear_database():
     seen_prefixes = set()
     purge_prefixes = [p for p in purge_prefixes if p and not (p in seen_prefixes or seen_prefixes.add(p))]
 
-    def purge_spaces_objects(prefix: str) -> dict[str, Any]:
-        """Delete Spaces objects under the provided prefix in batches."""
+    def purge_remote_objects(prefix: str) -> dict[str, Any]:
+        """Delete remote object storage keys under the provided prefix in batches."""
         storage = get_storage_backend()
-        if not isinstance(storage, SpacesStorage):
+        if not isinstance(storage, S3CompatibleStorage):
             return {
                 'attempted': False,
                 'purged': False,
                 'deleted_count': 0,
                 'prefix': prefix,
-                'message': 'Active storage backend is not Spaces; skipped storage purge.'
+                'message': 'Active storage backend is not remote object storage; skipped storage purge.'
             }
 
         deleted_count = 0
@@ -445,7 +445,7 @@ def clear_database():
             'deleted_count': deleted_count,
             'matched_count': matched_count,
             'prefix': prefix,
-            'message': f'Deleted {deleted_count} of {matched_count} Spaces object(s) under prefix "{prefix}".'
+            'message': f'Deleted {deleted_count} of {matched_count} object storage item(s) under prefix "{prefix}".'
         }
 
     try:
@@ -494,7 +494,7 @@ def clear_database():
 
         if purge_storage_requested:
             try:
-                per_prefix_results = [purge_spaces_objects(prefix) for prefix in purge_prefixes]
+                per_prefix_results = [purge_remote_objects(prefix) for prefix in purge_prefixes]
                 attempted = any(r.get('attempted') for r in per_prefix_results)
                 purged = any(r.get('purged') for r in per_prefix_results)
                 total_deleted = sum(int(r.get('deleted_count') or 0) for r in per_prefix_results)

@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from ..models import db, ImportDocument, ImportImage
-from ..utils.storage import get_storage_backend, LocalStorage, SpacesStorage
+from ..utils.storage import S3CompatibleStorage, LocalStorage, get_storage_backend
 from ..utils.image_registry import (
     build_canonical_image_payload,
     derive_local_image_paths,
@@ -104,10 +104,10 @@ def get_images():
                         rel_path = f
                     _add_image(root_dir, rel_path, url_prefix)
 
-        # Include remote Spaces images when remote storage is configured
+        # Include remote object storage images when remote storage is configured
         try:
             storage = get_storage_backend()
-            if isinstance(storage, SpacesStorage):
+            if isinstance(storage, S3CompatibleStorage):
                 continuation_token = None
                 while True:
                     list_kwargs = {
@@ -149,7 +149,7 @@ def get_images():
                         break
                     continuation_token = response.get('NextContinuationToken')
         except Exception as e:
-            current_app.logger.warning(f"Could not list Spaces images: {e}")
+            current_app.logger.warning(f"Could not list remote storage images: {e}")
 
         if registered_new_images:
             db.session.commit()
@@ -196,7 +196,7 @@ def upload_image():
 
             storage = get_storage_backend()
 
-            # Keep legacy local path shape while using Spaces/CDN URL when remote storage is configured
+            # Keep legacy local path shape while using a remote public URL when object storage is configured
             if isinstance(storage, LocalStorage):
                 storage_path = unique_filename
             else:

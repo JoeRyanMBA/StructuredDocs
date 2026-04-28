@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """
 Production Debug Script
-Run this in the DigitalOcean container to diagnose issues
+Run this in the production container to diagnose issues
 """
 
 import os
