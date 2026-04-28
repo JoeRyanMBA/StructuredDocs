@@ -1,5 +1,5 @@
 // Reviews API service
-import { apiGet, apiPost, apiRequest } from './base.js'
+import { apiGet, apiPost } from './base.js'
 
 async function throwApiError(res, fallbackMessage = 'Request failed') {
   const payload = await res.json().catch(() => null)
@@ -30,10 +30,7 @@ export async function getPendingReviews(reviewerId = null) {
   const url = reviewerId
     ? `/api/reviews/pending?reviewer_id=${reviewerId}`
     : '/api/reviews/pending'
-  // /pending has no @jwt_required — use plain fetch
-  const res = await fetch(url)
-  if (!res.ok) await throwApiError(res, 'Failed to load pending reviews')
-  return res.json()
+  return apiGet(url)
 }
 
 export async function getMyReviews(requesterId) {

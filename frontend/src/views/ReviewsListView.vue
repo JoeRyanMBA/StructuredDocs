@@ -87,24 +87,34 @@ export default {
     async loadReviews() {
       this.loading = true
       try {
-        // For now, get current user as stakeholder ID 1 (hardcoded for demo)
-        const currentUserId = this.currentUser.id || 1
-        
-        // Get all reviews and filter by current user
+        const currentUserId = this.currentUser.id
         const allReviews = await getReviews()
-        
-        // Assigned reviews (pending/in_progress for current user)
-        this.assignedReviews = allReviews.filter(review => 
-          review.reviewer_id === currentUserId && 
-          ['pending', 'in_progress'].includes(review.status)
-        )
-        
-        // Completed reviews by current user
-        this.completedReviews = allReviews.filter(review => 
-          review.reviewer_id === currentUserId && 
-          review.status === 'completed'
-        )
-        
+
+        const assignedForCurrentUser = currentUserId
+          ? allReviews.filter(review =>
+              review.reviewer_id === currentUserId &&
+              ['pending', 'in_progress'].includes(review.status)
+            )
+          : []
+
+        const completedForCurrentUser = currentUserId
+          ? allReviews.filter(review =>
+              review.reviewer_id === currentUserId &&
+              review.status === 'completed'
+            )
+          : []
+
+        // Review assignments are keyed to stakeholder IDs, which may not match
+        // the logged-in app user ID. If there is no match, prefer showing the
+        // global review queues instead of an empty state.
+        this.assignedReviews = assignedForCurrentUser.length > 0
+          ? assignedForCurrentUser
+          : allReviews.filter(review => ['pending', 'in_progress'].includes(review.status))
+
+        this.completedReviews = completedForCurrentUser.length > 0
+          ? completedForCurrentUser
+          : allReviews.filter(review => review.status === 'completed')
+
       } catch (error) {
         console.error('Failed to load reviews:', error)
         toast.error('Failed to load reviews')
