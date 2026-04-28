@@ -1,8 +1,8 @@
 """Email service for sending various application emails (review, setup, reset).
 
 Supports two delivery modes:
-1. Provider HTTP API (Postmark, Resend) when EMAIL_PROVIDER is set.
-2. SMTP fallback (STARTTLS or SSL) when no provider chosen or provider fails.
+1. Provider HTTP API when EMAIL_PROVIDER is set to a supported provider.
+2. SMTP delivery (STARTTLS or SSL) when no provider is chosen or EMAIL_PROVIDER=smtp.
 
 Includes a debug mode (EMAIL_DEBUG=true) that writes emails to files instead.
 """
@@ -32,6 +32,14 @@ def _clean_env(key: str, default: Optional[str] = None) -> str:
     return v or ""
 
 
+def _normalize_email_provider(value: Optional[str]) -> str:
+    """Normalize EMAIL_PROVIDER so SMTP aliases use the native SMTP path."""
+    provider = (value or '').strip().strip("'\"").lower()
+    if provider in ('', 'smtp'):
+        return ''
+    return provider
+
+
 class EmailService:
     # Class-level annotation (acceptable to static analyzers)
     last_error: Optional[str] = None
@@ -57,7 +65,7 @@ class EmailService:
             self.from_name = self.from_name or default_from_name
 
         # Provider (HTTP) configuration
-        self.provider = os.getenv('EMAIL_PROVIDER', '').strip().lower()  # 'postmark' | 'resend' | 'sendgrid'
+        self.provider = _normalize_email_provider(os.getenv('EMAIL_PROVIDER'))  # 'postmark' | 'resend' | 'sendgrid'
         self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean_env('RESEND_API_KEY', '')
@@ -90,7 +98,7 @@ class EmailService:
         default_from_name = _clean_env('DEFAULT_FROM_NAME', '')
         if default_from_name:
             self.from_name = self.from_name or default_from_name
-        self.provider = os.getenv('EMAIL_PROVIDER', '').strip().lower()
+        self.provider = _normalize_email_provider(os.getenv('EMAIL_PROVIDER'))
         self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean_env('RESEND_API_KEY', '')
