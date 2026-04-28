@@ -43,6 +43,8 @@ export function computeApiBase() {
 
 export const API_BASE = computeApiBase();
 
+let refreshInFlight = null;
+
 // Accept common list payload shapes so views can tolerate endpoint variants.
 export function normalizeListResponse(payload, candidateKeys = ['items', 'results', 'data', 'projects']) {
   if (Array.isArray(payload)) return payload;
@@ -132,6 +134,20 @@ async function _doRefresh() {
   return null;
 }
 
+async function _doRefreshShared() {
+  if (refreshInFlight) return refreshInFlight;
+
+  refreshInFlight = (async () => {
+    try {
+      return await _doRefresh();
+    } finally {
+      refreshInFlight = null;
+    }
+  })();
+
+  return refreshInFlight;
+}
+
 function clearStoredAuthState() {
   if (typeof localStorage === 'undefined') return;
   localStorage.removeItem('access_token');
@@ -156,9 +172,15 @@ async function _requestWithAuth(endpoint, options = {}, _isRetry = false) {
 
   const response = await fetch(url, defaultOptions);
 
-  // Attempt silent token refresh on 401 (once)
-  if (response.status === 401 && !_isRetry && !endpoint.includes('/api/users/refresh')) {
-    const newToken = await _doRefresh();
+  // Attempt silent token refresh once for auth-related failures.
+  // Some backends return 422 for invalid JWT signatures instead of 401.
+  const shouldTryRefresh =
+    (response.status === 401 || response.status === 422) &&
+    !_isRetry &&
+    !endpoint.includes('/api/users/refresh');
+
+  if (shouldTryRefresh) {
+    const newToken = await _doRefreshShared();
     if (newToken) {
       return _requestWithAuth(endpoint, options, true);
     }
