@@ -1,21 +1,25 @@
 """add description to tags
 
-Revision ID: a1b2c3d4e5f6
-Revises: f4b8d9a1c2e3
+Revision ID: d6e7f8a3b4c5
+Revises: d5e6f7a2b3c4
 Create Date: 2026-03-12 00:00:00.000000
 
 """
 from alembic import op
 import sqlalchemy as sa
 
-revision = 'a1b2c3d4e5f6'
-down_revision = 'f4b8d9a1c2e3'
+revision = 'd6e7f8a3b4c5'
+down_revision = 'd5e6f7a2b3c4'
 branch_labels = None
 depends_on = None
 
 
 def upgrade():
-    op.add_column('tags', sa.Column('description', sa.Text(), nullable=True))
+    bind = op.get_bind()
+    inspector = sa.inspect(bind)
+    cols = [c['name'] for c in inspector.get_columns('tags')]
+    if 'description' not in cols:
+        op.add_column('tags', sa.Column('description', sa.Text(), nullable=True))
 
 
 def downgrade():
