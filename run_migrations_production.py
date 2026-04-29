@@ -155,7 +155,7 @@ def run_migrations():
                     print(f"📁 Found migrations in: {migrations_dir}")
                     # Try to run migrations
                     try:
-                        upgrade(directory=migrations_dir)
+                        upgrade(directory=migrations_dir, revision='heads')
                         print("✅ Database migrations completed")
                     except Exception as mig_e:
                         print(f"⚠️ Migration issue (may be already up to date): {mig_e}")
