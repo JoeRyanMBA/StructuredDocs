@@ -252,7 +252,7 @@ export default {
 
   async created() {
     await this.loadDashboardData()
-    this.refreshInterval = setInterval(() => this.loadDashboardData(), 60000)
+    this.refreshInterval = setInterval(() => this.loadDashboardData(false), 60000)
   },
 
   beforeUnmount() {
@@ -287,8 +287,8 @@ export default {
   },
 
   methods: {
-    async loadDashboardData() {
-      this.loading = true
+    async loadDashboardData(showSpinner = true) {
+      if (showSpinner) this.loading = true
       try {
         await Promise.all([
           this.loadReviews(),
