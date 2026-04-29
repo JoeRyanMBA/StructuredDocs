@@ -79,6 +79,7 @@
 <script>
 import TopicEditor from '@/components/TopicEditor.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiGet } from '@/api/base'
 
 export default {
   name: 'EditTopicView',
@@ -114,11 +115,7 @@ export default {
       return
     }
 
-    const topicFetch = fetch(`/api/topics/${this.topicId}`)
-      .then(res => {
-        if (!res.ok) throw new Error(`Topic not found (status ${res.status})`)
-        return res.json()
-      })
+    const topicFetch = apiGet(`/api/topics/${this.topicId}`)
       .then(data => {
         this.topic.title = data.title || ''
         this.topic.content = data.content || ''
@@ -130,8 +127,7 @@ export default {
       })
 
     const reviewFetch = this.reviewId
-      ? fetch(`/api/reviews/${this.reviewId}`)
-          .then(res => res.ok ? res.json() : null)
+      ? apiGet(`/api/reviews/${this.reviewId}`)
           .then(data => {
             if (data) {
               this.reviewFeedback = data.feedback_items || []
