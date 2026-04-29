@@ -242,6 +242,14 @@ p { color: #666; }
     load_env_file()
 
     app = Flask(__name__, instance_relative_config=True)
+
+    # Ensure application-level loggers (e.g. email_service) emit INFO and above.
+    # Gunicorn's --log-level controls its own logger; Flask app loggers need
+    # their level set explicitly so email success/failure messages are visible.
+    import logging as _logging
+    _logging.basicConfig(level=_logging.INFO)
+    app.logger.setLevel(_logging.INFO)
+
     print("📱 Flask instance created")
     print(f"Instance path: {app.instance_path}")
     print(f"Root path: {app.root_path}")    # Load configuration
