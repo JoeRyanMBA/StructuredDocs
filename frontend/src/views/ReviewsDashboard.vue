@@ -393,15 +393,8 @@ export default {
           import('@/composables/useToast').then(({ toast }) => toast.success(`Follow-up reminder sent to ${review.reviewer_name}!`))
         }
         
-        // Refresh the reviews list to show updated data
+        // Refresh the reviews list to show updated data from the backend.
         await this.loadReviews()
-
-        if (response?.email_sent === false) {
-          const failedReview = this.recentReviews.find(r => r.id === review.id)
-          if (failedReview) {
-            failedReview.email_delivery_unavailable = true
-          }
-        }
         
       } catch (error) {
   console.error('Error sending follow-up reminder:', error)
