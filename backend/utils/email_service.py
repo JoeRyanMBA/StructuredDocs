@@ -402,16 +402,14 @@ class EmailService:
             msg = MIMEMultipart('alternative')
             msg['Subject'] = subject
 
-            # Some SMTP providers (e.g., Gmail) require the From address to match the authenticated user
+            # Many SMTP providers require the From address to match the authenticated user.
+            # When SMTP_USERNAME is set and differs from FROM_EMAIL, use the username as
+            # the envelope From and preserve branding via Reply-To.
             from_addr = self.from_email
-            if self.smtp_username and (
-                'gmail' in (self.smtp_server or '').lower() or 'google' in (self.smtp_server or '').lower()
-            ):
-                if self.smtp_username != self.from_email:
-                    # Use SMTP username as the From to pass provider checks
-                    from_addr = self.smtp_username
-                    # Preserve branding via Reply-To so replies go to branded address
-                    msg['Reply-To'] = self.from_email
+            if self.smtp_username and self.smtp_username != self.from_email:
+                from_addr = self.smtp_username
+                # Keep branded address as Reply-To so replies still reach the intended inbox
+                msg['Reply-To'] = self.from_email
 
             msg['From'] = f"{self.from_name} <{from_addr}>"
             msg['To'] = to_email
