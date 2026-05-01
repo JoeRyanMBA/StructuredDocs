@@ -2,7 +2,7 @@
 
 ## Overview
 
-StructuredDocs now deploys to a DigitalOcean droplet (backend) and Vercel (frontend). When you need direct SSH access to the droplet—for example to upload `.env` files or inspect logs—use an SSH key instead of passwords. This guide walks through creating and reusing that key.
+StructuredDocs now deploys to a VPS backend and Vercel frontend. When you need direct SSH access to the server, for example to upload `.env` files or inspect logs, use an SSH key instead of passwords. This guide walks through creating and reusing that key.
 
 ## Quick Setup
 
@@ -94,8 +94,8 @@ ssh root@203.0.113.10 "echo 'SSH connection successful'"
 
 - **Permission denied**: ensure the public key is present on the server and the SSH config references the correct `IdentityFile`.
 
-- **Connection timeout**: verify the droplet’s firewall allows SSH (port 22) and the host/IP is correct.
+- **Connection timeout**: verify the server firewall allows SSH (port 22) and the host/IP is correct.
 
 - **Key generation errors**: make sure `~/.ssh` exists and has permissions `700`.
 
-Once SSH works, use Ansible, rsync, or manual commands to manage the droplet. Frontend deployments should continue through Vercel; backend updates can be shipped via Docker/Compose or the DigitalOcean console as described in `README.md`.
+Once SSH works, use Ansible, rsync, or manual commands to manage the server. Frontend deployments should continue through Vercel; backend updates can be shipped via Docker/Compose as described in `README.md`.

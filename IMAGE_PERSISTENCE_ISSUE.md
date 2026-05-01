@@ -26,7 +26,7 @@ When images are uploaded or imported:
 
 ## Solution: Volume Mounts in Docker Compose
 
-### For Production (DigitalOcean, etc.)
+### For Production (VPS or managed hosting)
 
 Edit your `docker-compose.prod.yml`:
 
@@ -115,11 +115,11 @@ ls -la ./data/images/
 For true scalability without host volumes:
 
 1. **AWS S3**: Upload images to S3 bucket, return pre-signed URLs
-2. **DigitalOcean Spaces**: Similar to S3, simpler to set up
+2. **S3-compatible object storage**: Similar behavior with persistent external storage
 3. **Cloudinary**: Image hosting service with automatic optimization
 
 This would require:
-- Modifying `/api/images/upload` to write to S3/Spaces instead of filesystem
+- Modifying `/api/images/upload` to write to S3-compatible storage instead of filesystem
 - Updating `/api/import/*` endpoints to do the same
 - Updating serving endpoints to redirect to cloud URLs
 
