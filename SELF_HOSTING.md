@@ -8,7 +8,7 @@ This guide walks you through deploying StructuredDocs on your own server using D
 
 | Requirement | Notes |
 |---|---|
-| A Linux VPS | Any provider works: Hetzner, DigitalOcean, Vultr, AWS Lightsail, etc. Minimum 1 GB RAM, 1 vCPU. Ubuntu 22.04 recommended. |
+| A Linux VPS | Any provider works: Hetzner, Vultr, AWS Lightsail, Linode, etc. Minimum 1 GB RAM, 1 vCPU. Ubuntu 22.04 recommended. |
 | A domain name | Optional but strongly recommended for SSL. |
 | A PostgreSQL database | A managed service is easiest (see options below). Can also run PostgreSQL in Docker on the same server. |
 | An email provider | For password resets and notifications. Use any SMTP server (for example ProtonMail SMTP relay). |
@@ -71,7 +71,7 @@ A managed PostgreSQL service handles backups, updates, and high availability for
 
 - **[Supabase](https://supabase.com)** — free tier, generous limits
 - **[Neon](https://neon.tech)** — free tier, serverless Postgres
-- **[DigitalOcean Managed Databases](https://www.digitalocean.com/products/managed-databases)** — $15/month, easiest if your VPS is also on DigitalOcean
+- **[Aiven PostgreSQL](https://aiven.io/postgresql)** — managed PostgreSQL with backups
 - **[Railway](https://railway.app)** — free tier with Postgres included
 
 After creating a database, you will receive a connection string that looks like:
@@ -186,13 +186,13 @@ RUN_DB_MIGRATIONS=1
 # Without it, background jobs run synchronously and rate limiting is in-memory.
 # REDIS_URL=redis://localhost:6379/0
 
-# ─── Optional: Image Storage (S3 / DigitalOcean Spaces) ──────────────────────
+# ─── Optional: Image Storage (S3-compatible object storage) ───────────────────
 # Without this, images are stored on disk inside the container volume (./data/images).
 # SPACES_KEY=your-access-key
 # SPACES_SECRET=your-secret-key
 # SPACES_BUCKET=your-bucket-name
-# SPACES_ENDPOINT=https://nyc3.digitaloceanspaces.com
-# SPACES_CDN_ENDPOINT=https://your-bucket.nyc3.cdn.digitaloceanspaces.com
+# SPACES_ENDPOINT=https://s3.your-provider.example
+# SPACES_CDN_ENDPOINT=https://cdn.your-provider.example/your-bucket
 
 # ─── Optional: Error Tracking ─────────────────────────────────────────────────
 # SENTRY_DSN=https://...@sentry.io/...

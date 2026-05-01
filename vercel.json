@@ -12,11 +12,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://structureddocs-srhab.ondigitalocean.app/api/$1"
+      "dest": "https://your-backend-domain.example/api/$1"
     },
     {
       "src": "/images/(.*)",
-      "dest": "https://structureddocs-srhab.ondigitalocean.app/images/$1"
+      "dest": "https://your-backend-domain.example/images/$1"
     },
     {
       "src": "/(.*)",

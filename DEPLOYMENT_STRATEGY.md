@@ -6,7 +6,7 @@ After experiencing issues with earlier infrastructure setups, this guide outline
 
 ## Recommended hybrid strategy
 
-### Option 1 · DigitalOcean App Platform (current baseline)
+### Option 1 · VPS + Docker Compose (current baseline)
 
 **Pros:** Full control, database included, auto-scaling
 
@@ -148,7 +148,7 @@ This app now serves images predictably in production and during local dev. Keep 
     - `/api/(.*)` → `https://<your-backend-domain>/api/$1`
     - `/images/(.*)` → `https://<your-backend-domain>/images/$1`
 
-- DigitalOcean persistence (backend): persist imported images across restarts
+- VPS persistence (backend): persist imported images across restarts
   - In `docker-compose.prod.yml` add a host volume:
     - `./data/images:/app/backend/static/images`
   - Create the host folder once: `mkdir -p ./data/images`
@@ -166,7 +166,7 @@ This app now serves images predictably in production and during local dev. Keep 
 
 | Platform     | Reliability | Ease of use | Cost | Best for         |
 |--------------|-------------|-------------|------|------------------|
-| DigitalOcean | ⭐⭐⭐⭐        | ⭐⭐⭐         | $$   | Full control     |
+| VPS + Docker | ⭐⭐⭐⭐        | ⭐⭐⭐         | $$   | Full control     |
 | Vercel       | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐      | $    | Frontend / SPA   |
 | Railway      | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐       | $$   | Backend / API    |
 | Render       | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐      | $$   | Simple full apps |
@@ -203,7 +203,7 @@ This app now serves images predictably in production and during local dev. Keep 
 
 2. **Use Railway for the backend** — excellent for Python APIs
 
-3. **Keep DigitalOcean for PostgreSQL** — managed database with backups
+3. **Use a managed PostgreSQL provider** — managed database with backups
 
 4. **Implement CI/CD** — automate testing and deployment gates
 
@@ -213,7 +213,7 @@ This app now serves images predictably in production and during local dev. Keep 
 
 - **Health check:** `/api/health`
 
-- **Logs:** DigitalOcean dashboard
+- **Logs:** your hosting provider dashboard
 
 - **Metrics:** Monitor response times and error rates
 

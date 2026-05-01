@@ -35,7 +35,7 @@ This will:
 **Connect to your PostgreSQL database** and run:
 
 ```bash
-psql -h structureddocs-postgres-do-user-25179902-0.l.db.ondigitalocean.com \
+psql -h your-managed-postgres-host.example \
      -U your_username \
      -d your_database \
      -f add_email_delivery_unavailable.sql
