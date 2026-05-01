@@ -171,7 +171,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import axios from '@/api/axiosInstance'
 
 export default {
   name: 'UserManagement',
@@ -212,7 +212,8 @@ export default {
         console.log('✅ UserManagement - Users loaded:', this.users.length, 'users')
       } catch (error) {
         console.error('❌ UserManagement - Error loading users:', error)
-        this.error = 'Failed to load users: ' + (error.response?.data?.error || error.message)
+        const detail = error.response?.data?.detail || error.response?.data?.error || error.message
+        this.error = 'Failed to load users: ' + detail
       } finally {
         this.loading = false
       }
@@ -383,8 +384,12 @@ export default {
         
       } catch (error) {
         console.error('❌ Error resending setup email:', error)
-        if (error.response?.data?.error) {
-          this.error = error.response.data.error
+        const backendError = error.response?.data?.error
+        const backendDetail = error.response?.data?.detail
+        if (backendError && backendDetail) {
+          this.error = `${backendError}: ${backendDetail}`
+        } else if (backendError) {
+          this.error = backendError
         } else {
           this.error = 'Failed to resend setup email'
         }
