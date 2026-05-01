@@ -607,7 +607,7 @@ Relationships:
 | Batch table schema | Low | 2h | Alembic migration |
 | Bulk endpoint | Medium | 4h | Error handling, transaction management |
 | UI modal | Medium | 6h | Vue component design, validation |
-| Email batching | High | 8h | Email template restructuring, SendGrid templates |
+| Email batching | High | 8h | Email template restructuring, SMTP templates |
 | Progress tracking | High | 10h | WebSockets/polling, async jobs (Celery) |
 | Reviewer dashboard | High | 12h | Frontend routing, authentication |
 | **Total** | **High** | **~42h** | **Full backend + frontend overhaul** |

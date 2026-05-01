@@ -11,7 +11,7 @@ This guide walks you through deploying StructuredDocs on your own server using D
 | A Linux VPS | Any provider works: Hetzner, DigitalOcean, Vultr, AWS Lightsail, etc. Minimum 1 GB RAM, 1 vCPU. Ubuntu 22.04 recommended. |
 | A domain name | Optional but strongly recommended for SSL. |
 | A PostgreSQL database | A managed service is easiest (see options below). Can also run PostgreSQL in Docker on the same server. |
-| An email provider | For password resets and notifications. SendGrid free tier or any SMTP server works. |
+| An email provider | For password resets and notifications. Use any SMTP server (for example ProtonMail SMTP relay). |
 | Git | To clone the repository on your server. |
 
 ---
@@ -165,22 +165,16 @@ DISABLE_SQLITE_FALLBACK=1
 FRONTEND_URL=https://yourdomain.com
 
 # ─── Email ────────────────────────────────────────────────────────────────────
-# Choose either SendGrid OR SMTP. Leave both blank to disable email.
-
-# Option A: SendGrid
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=SG.xxxxxxxxxxxxxxxxxxxx
-SENDGRID_VERIFIED_SENDER=no-reply@yourdomain.com
+# SMTP configuration (ProtonMail SMTP relay example)
+EMAIL_PROVIDER=smtp
+SMTP_SERVER=smtp.protonmail.ch
+SMTP_PORT=587
+SMTP_USERNAME=your-proton-username
+SMTP_PASSWORD=your-proton-password
+SMTP_USE_SSL=false
 DEFAULT_FROM_EMAIL=no-reply@yourdomain.com
+FROM_EMAIL=no-reply@yourdomain.com
 FROM_NAME=StructuredDocs
-
-# Option B: SMTP (comment out the SendGrid lines above and use these)
-# EMAIL_PROVIDER=smtp
-# SMTP_HOST=smtp.example.com
-# SMTP_PORT=587
-# SMTP_USER=your-smtp-username
-# SMTP_PASSWORD=your-smtp-password
-# MAIL_DEFAULT_SENDER=StructuredDocs <no-reply@yourdomain.com>
 
 # ─── App ──────────────────────────────────────────────────────────────────────
 PORT=8080

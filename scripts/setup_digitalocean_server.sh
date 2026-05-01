@@ -74,12 +74,15 @@ ENABLE_BLUEPRINTS_FILE=.enable_blueprints
 SECRET_KEY=CHANGE_THIS_TO_A_RANDOM_SECRET_KEY
 
 # Email configuration (optional)
-EMAIL_PROVIDER=sendgrid
-SENDGRID_API_KEY=your_sendgrid_api_key_here
+EMAIL_PROVIDER=smtp
+SMTP_SERVER=smtp.protonmail.ch
+SMTP_PORT=587
+SMTP_USERNAME=your_proton_smtp_username
+SMTP_PASSWORD=your_proton_smtp_password
+SMTP_USE_SSL=false
 DEFAULT_FROM_EMAIL=no-reply@structureddocs.online
 FROM_EMAIL=
 FROM_NAME=StructuredDocs
-SENDGRID_VERIFIED_SENDER=
 FRONTEND_URL=https://structureddocs.online
 ADMIN_API_KEY=your_admin_api_key_here
 ENVTEMPLATE
@@ -103,12 +106,15 @@ services:
       - PORT=8080
       - DATABASE_URL=sqlite:///instance/structured_docs.db
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
-      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.protonmail.ch}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
       - FROM_EMAIL=${FROM_EMAIL:-}
       - FROM_NAME=${FROM_NAME:-StructuredDocs}
-      - SENDGRID_VERIFIED_SENDER=${SENDGRID_VERIFIED_SENDER:-}
       - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
       - ADMIN_API_KEY=${ADMIN_API_KEY:-}
       - SECRET_KEY=${SECRET_KEY}

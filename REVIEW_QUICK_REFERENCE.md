@@ -170,7 +170,7 @@ Validation rules (ReviewToken.is_valid()):
    ├─ Call email_service.send_review_notification()
    │  ├─ Format HTML email
    │  ├─ Format text email
-   │  └─ Send via SendGrid/email provider
+   │  └─ Send via SMTP/email provider
    ├─ Set Review.email_delivery_unavailable = true/false
    └─ Return {success, review}
    ↓

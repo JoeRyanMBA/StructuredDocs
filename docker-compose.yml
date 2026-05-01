@@ -10,12 +10,15 @@ services:
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       - DATABASE_URL=sqlite:///structured_docs.db
       # Email settings (override via .env or environment in production)
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-sendgrid}
-      - SENDGRID_API_KEY=${SENDGRID_API_KEY}
+      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
+      - SMTP_SERVER=${SMTP_SERVER:-smtp.protonmail.ch}
+      - SMTP_PORT=${SMTP_PORT:-587}
+      - SMTP_USERNAME=${SMTP_USERNAME:-}
+      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
+      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
       - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
       - FROM_EMAIL=${FROM_EMAIL:-}
       - FROM_NAME=${FROM_NAME:-StructuredDocs}
-      - SENDGRID_VERIFIED_SENDER=${SENDGRID_VERIFIED_SENDER:-}
       - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
       - ADMIN_API_KEY=${ADMIN_API_KEY:-}
     volumes:
