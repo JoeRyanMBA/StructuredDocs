@@ -319,6 +319,27 @@ def email_status():
     except Exception as e:
         return jsonify({"error": str(e)}), 500
 
+
+@admin_bp.route('/smtp-health', methods=['POST'])
+def smtp_health_check():
+    """Validate SMTP connectivity/auth without sending an email to a recipient."""
+    try:
+        err = _require_admin_or_api_key()
+        if err:
+            return err
+
+        svc = get_email_service()
+        svc.reload_config()
+        ok, detail = svc.check_smtp_health()
+        detail['debugMode'] = svc.debug_mode
+        detail['fromEmail'] = svc.from_email
+        detail['fromName'] = svc.from_name
+        detail['lastError'] = svc.last_error
+
+        return jsonify({'ok': bool(ok), 'detail': detail}), (200 if ok else 502)
+    except Exception as e:
+        return jsonify({"error": str(e)}), 500
+
 @admin_bp.route('/users', methods=['GET'])
 @jwt_required()
 def get_admin_users():
