@@ -21,7 +21,6 @@
         <thead>
           <tr>
             <th>ID</th>
-            <th>Type</th>
             <th>Message</th>
             <th>Page</th>
             <th>Component</th>
@@ -33,7 +32,6 @@
         <tbody>
           <tr v-for="r in reports" :key="r.id">
             <td>{{ r.id }}</td>
-            <td>{{ r.report_type }}</td>
             <td class="message">{{ r.message }}</td>
             <td>{{ r.page }}</td>
             <td>{{ r.component }}</td>

@@ -14,14 +14,6 @@
           </div>
           <div class="modal-body">
             <div class="mb-2">
-              <label class="form-label">Page / Component</label>
-              <input class="form-control" v-model="page" placeholder="e.g., Topic Editor, Home Page" />
-            </div>
-            <div class="mb-2">
-              <label class="form-label">Your contact (optional)</label>
-              <input class="form-control" v-model="contact" placeholder="email or handle" />
-            </div>
-            <div class="mb-2">
               <label class="form-label">Description</label>
               <textarea class="form-control" v-model="message" rows="6"></textarea>
             </div>
@@ -42,6 +34,7 @@
 <script>
 import axios from 'axios'
 import { toast } from '@/composables/useToast'
+import { store } from '@/store'
 export default {
   name: 'FloatingFeedbackWidget',
   data() {
@@ -59,10 +52,13 @@ export default {
     open(t) {
       this.type = t || 'other'
       this.title = t === 'bug' ? 'Report a Bug' : 'Suggest an Improvement'
-      // Try to auto-capture a page path if running in browser
+      // Auto-capture page path and user contact
       if (typeof window !== 'undefined' && window.location) {
         this.page = window.location.pathname
+        this.component = window.location.pathname
       }
+      const u = store.user
+      this.contact = u ? `${u.name} (${u.email})` : ''
       // Show bootstrap modal
       const modalEl = this.$refs.modal
       const modal = new window.bootstrap.Modal(modalEl)

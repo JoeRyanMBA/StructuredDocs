@@ -49,10 +49,6 @@
           </div>
           <form @submit.prevent="submitBugReport" class="sd-modal-body">
             <div class="form-group">
-              <label for="bugArea">Area of Application</label>
-              <input type="text" id="bugArea" v-model="bugReport.area" placeholder="e.g., Projects Dashboard, Topic Editor" required />
-            </div>
-            <div class="form-group">
               <label for="bugDescription">Description of Bug</label>
               <textarea id="bugDescription" v-model="bugReport.description" required rows="5" placeholder="Please be as detailed as possible."></textarea>
             </div>
@@ -74,6 +70,7 @@
 <script>
 import { toast } from '@/composables/useToast'
 import { apiPost } from '@/api/base'
+import { store } from '@/store'
 export default {
   name: 'FeedbackWidget',
   data() {
@@ -81,15 +78,20 @@ export default {
       showFeedbackModal: false,
       showBugModal: false,
       feedback: { type: 'general', message: '' },
-      bugReport: { area: '', description: '', reproduction_steps: '' }
+      bugReport: { description: '', reproduction_steps: '' }
     }
   },
   methods: {
     async submitFeedback() {
       try {
+        const currentPage = typeof window !== 'undefined' ? window.location.pathname : undefined
+        const u = store.user
+        const contact = u ? `${u.name} (${u.email})` : undefined
         const payload = {
           type: this.feedback.type || 'general',
-          page: typeof window !== 'undefined' ? window.location.pathname : undefined,
+          page: currentPage,
+          component: currentPage,
+          contact,
           message: this.feedback.message,
           metadata: { source: 'FeedbackWidget' }
         }
@@ -104,15 +106,20 @@ export default {
     },
     async submitBugReport() {
       try {
+        const currentPage = typeof window !== 'undefined' ? window.location.pathname : undefined
+        const u = store.user
+        const contact = u ? `${u.name} (${u.email})` : undefined
         const payload = {
           type: 'bug',
-          page: this.bugReport.area || (typeof window !== 'undefined' ? window.location.pathname : undefined),
+          page: this.bugReport.area || currentPage,
+          component: this.bugReport.area || currentPage,
+          contact,
           message: `${this.bugReport.description || ''}\n\nRepro:\n${this.bugReport.reproduction_steps || ''}`.trim(),
           metadata: { source: 'FeedbackWidget' }
         }
         await apiPost('/api/feedback', payload)
         this.showBugModal = false
-        this.bugReport = { area: '', description: '', reproduction_steps: '' }
+        this.bugReport = { description: '', reproduction_steps: '' }
         toast.success('Thank you for reporting this bug!')
       } catch (err) {
         console.error('Failed to submit bug', err)
