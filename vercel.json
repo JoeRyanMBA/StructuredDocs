@@ -12,11 +12,11 @@
   "routes": [
     {
       "src": "/api/(.*)",
-      "dest": "https://your-backend-domain.example/api/$1"
+      "dest": "https://api.structureddocs.online/api/$1"
     },
     {
       "src": "/images/(.*)",
-      "dest": "https://your-backend-domain.example/images/$1"
+      "dest": "https://api.structureddocs.online/images/$1"
     },
     {
       "src": "/(.*)",
