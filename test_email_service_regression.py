@@ -58,3 +58,20 @@ def test_smtp_provider_alias_uses_smtp_delivery(monkeypatch):
     assert len(smtp_client.messages) == 1
     assert smtp_client.messages[0]['To'] == 'reviewer@example.com'
     assert smtp_client.quit_called is True
+
+
+def test_legacy_smtp_env_aliases_and_sender_fallback(monkeypatch):
+    monkeypatch.delenv('SMTP_SERVER', raising=False)
+    monkeypatch.setenv('SMTP_HOST', 'smtp.legacy.example.com')
+    monkeypatch.delenv('SMTP_USERNAME', raising=False)
+    monkeypatch.setenv('SMTP_USER', 'legacy-user')
+    monkeypatch.setenv('SMTP_PASSWORD', 'legacy-pass')
+    monkeypatch.delenv('FROM_EMAIL', raising=False)
+    monkeypatch.delenv('DEFAULT_FROM_EMAIL', raising=False)
+    monkeypatch.setenv('MAIL_DEFAULT_SENDER', 'StructuredDocs <noreply@legacy.example.com>')
+
+    service = EmailService()
+
+    assert service.smtp_server == 'smtp.legacy.example.com'
+    assert service.smtp_username == 'legacy-user'
+    assert service.from_email == 'noreply@legacy.example.com'
