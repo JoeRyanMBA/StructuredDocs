@@ -83,12 +83,15 @@ ssh <user>@<host> '
     -e ENABLE_BLUEPRINTS_FILE=.enable_blueprints \
     -e FRONTEND_URL="${FRONTEND_URL:-https://structureddocs.online}" \
     -e ADMIN_API_KEY="${ADMIN_API_KEY:-}" \
-    -e EMAIL_PROVIDER="${EMAIL_PROVIDER:-sendgrid}" \
-    -e SENDGRID_API_KEY="${SENDGRID_API_KEY:-}" \
+    -e EMAIL_PROVIDER="${EMAIL_PROVIDER:-smtp}" \
+    -e SMTP_SERVER="${SMTP_SERVER:-smtp.protonmail.ch}" \
+    -e SMTP_PORT="${SMTP_PORT:-587}" \
+    -e SMTP_USERNAME="${SMTP_USERNAME:-}" \
+    -e SMTP_PASSWORD="${SMTP_PASSWORD:-}" \
+    -e SMTP_USE_SSL="${SMTP_USE_SSL:-false}" \
     -e DEFAULT_FROM_EMAIL="${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}" \
     -e FROM_EMAIL="${FROM_EMAIL:-}" \
     -e FROM_NAME="${FROM_NAME:-StructuredDocs}" \
-    -e SENDGRID_VERIFIED_SENDER="${SENDGRID_VERIFIED_SENDER:-}" \
     -v /srv/structured-docs/data/images:/app/backend/static/images \
     -v /srv/structured-docs/instance:/app/instance \
     ghcr.io/joeryanmba/structured-docs-backend:latest

@@ -8,15 +8,13 @@ from backend.routes.admin import admin_bp
 class _FakeEmailService:
     def __init__(self, ok=True):
         self.ok = ok
-        self.provider = 'sendgrid'
+        self.provider = 'smtp'
         self.from_email = 'no-reply@example.com'
         self.from_name = 'StructuredDocs'
         self.debug_mode = False
         self.last_error = None
         self.postmark_token = ''
         self.resend_api_key = ''
-        self.sendgrid_api_key = 'sg-test'
-        self.sendgrid_verified_sender = 'verified@example.com'
         self.smtp_server = 'smtp.example.com'
         self.smtp_port = 587
         self.sent_to = None
@@ -49,10 +47,10 @@ def test_email_status_allows_admin_api_key(monkeypatch):
 
     assert response.status_code == 200
     payload = response.get_json()
-    assert payload['provider'] == 'sendgrid'
+    assert payload['provider'] == 'smtp'
     assert payload['fromEmail'] == 'no-reply@example.com'
-    assert payload['hasSendgridKey'] is True
-    assert payload['sendgridVerifiedSender'] == 'verified@example.com'
+    assert payload['hasPostmarkToken'] is False
+    assert payload['hasResendKey'] is False
 
 
 def test_send_test_email_uses_shared_email_service(monkeypatch):
@@ -69,8 +67,8 @@ def test_send_test_email_uses_shared_email_service(monkeypatch):
     assert response.status_code == 200
     payload = response.get_json()
     assert payload['ok'] is True
-    assert payload['detail']['provider'] == 'sendgrid'
-    assert payload['detail']['verifiedSenderUsed'] is True
+    assert payload['detail']['provider'] == 'smtp'
+    assert payload['detail']['hasProviderApiKey'] is False
     assert service.sent_to == 'reviewer@example.com'
 
 

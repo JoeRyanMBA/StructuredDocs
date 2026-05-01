@@ -26,7 +26,7 @@ StructuredDocs is a document management and knowledge-base platform. Users organ
 | Background jobs | Redis + RQ |
 | Rate limiting | Flask-Limiter |
 | Storage | S3-compatible object storage or local filesystem (images) |
-| Email | SendGrid or SMTP |
+| Email | SMTP |
 
 ## Quick Start
 
@@ -81,7 +81,7 @@ Backend (VPS):
 
 See `backend/.env.example` for a full template.
 
-See `.env.example` and `EMAIL_SENDING_README.md` for email provider configuration and DMARC alignment guidance.
+See `.env.example` and `EMAIL_SENDING_README.md` for SMTP configuration and DMARC alignment guidance.
 
 ### Deployment Workflow Summary
 

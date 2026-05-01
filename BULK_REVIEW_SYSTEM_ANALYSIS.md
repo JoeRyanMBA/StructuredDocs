@@ -547,12 +547,14 @@ SMTP_PASSWORD (optional)
 FROM_EMAIL (default: 'noreply@structureddocs.local')
 FROM_NAME (default: 'StructuredDocs Review System')
 
-EMAIL_PROVIDER ('postmark'|'resend'|'sendgrid') - Optional HTTP API provider
+EMAIL_PROVIDER ('postmark'|'resend'|'smtp') - Optional email transport selector
 POSTMARK_API_TOKEN
 POSTMARK_MESSAGE_STREAM (default: 'outbound')
 RESEND_API_KEY
-SENDGRID_API_KEY
-SENDGRID_VERIFIED_SENDER
+SMTP_SERVER
+SMTP_PORT
+SMTP_USERNAME
+SMTP_PASSWORD
 
 EMAIL_DEBUG (boolean, default: false) - Writes emails to files instead of sending
 ```
@@ -636,7 +638,7 @@ def send_review_request(self,
 - `_create_password_reset_email_html()` / `_text()` - Password reset
 
 **Delivery Methods**:
-1. **Provider HTTP API**: If EMAIL_PROVIDER set (Postmark, Resend, SendGrid)
+1. **Provider HTTP API**: If EMAIL_PROVIDER set (Postmark, Resend)
 2. **SMTP Fallback**: STARTTLS on port 587 or SSL
 3. **Debug Mode**: Writes to `backend/debug_emails/` directory (if EMAIL_DEBUG=true)
 

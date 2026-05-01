@@ -25,5 +25,5 @@ You can expect an acknowledgement within **72 hours** and a fix or mitigation pl
 - Never commit `.env` files to version control
 - Use HTTPS in production (set `SESSION_COOKIE_SECURE=1`)
 - Rotate `ADMIN_API_KEY` immediately after first setup
-- Keep `SENDGRID_API_KEY` / SMTP credentials scoped to the minimum required permissions
+- Keep SMTP credentials scoped to the minimum required permissions
 - Review `SPACES_KEY` / `SPACES_SECRET` bucket permissions; restrict to the required bucket only

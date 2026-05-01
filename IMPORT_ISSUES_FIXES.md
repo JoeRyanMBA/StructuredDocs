@@ -131,7 +131,7 @@ PORT=8080
 DATABASE_URL=sqlite:////opt/structureddocs/instance/structured_docs.db
 ENABLE_BLUEPRINTS_FILE=.enable_blueprints
 SECRET_KEY=change-to-random-value
-EMAIL_PROVIDER=sendgrid
+EMAIL_PROVIDER=smtp
 DEFAULT_FROM_EMAIL=no-reply@structureddocs.online
 FRONTEND_URL=https://structureddocs.online
 ```

@@ -65,16 +65,10 @@ class EmailService:
             self.from_name = self.from_name or default_from_name
 
         # Provider (HTTP) configuration
-        self.provider = _normalize_email_provider(os.getenv('EMAIL_PROVIDER'))  # 'postmark' | 'resend' | 'sendgrid'
+        self.provider = _normalize_email_provider(os.getenv('EMAIL_PROVIDER'))  # 'postmark' | 'resend'
         self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean_env('RESEND_API_KEY', '')
-        self.sendgrid_api_key = _clean_env('SENDGRID_API_KEY', '')
-        # Optional SendGrid verified single sender (or authenticated domain address)
-        self.sendgrid_verified_sender = _clean_env('SENDGRID_VERIFIED_SENDER', '')
-        if not self.provider and self.sendgrid_api_key:
-            # Auto-detect sendgrid when API key provided and no explicit provider set
-            self.provider = 'sendgrid'
 
         # Debug mode
         self.debug_mode = os.getenv('EMAIL_DEBUG', 'false').strip().lower() == 'true'
@@ -102,10 +96,6 @@ class EmailService:
         self.postmark_token = _clean_env('POSTMARK_API_TOKEN', '')
         self.postmark_message_stream = _clean_env('POSTMARK_MESSAGE_STREAM', 'outbound') or 'outbound'
         self.resend_api_key = _clean_env('RESEND_API_KEY', '')
-        self.sendgrid_api_key = _clean_env('SENDGRID_API_KEY', '')
-        self.sendgrid_verified_sender = _clean_env('SENDGRID_VERIFIED_SENDER', '')
-        if not self.provider and self.sendgrid_api_key:
-            self.provider = 'sendgrid'
         self.debug_mode = os.getenv('EMAIL_DEBUG', 'false').strip().lower() == 'true'
         self.debug_email_dir = os.path.join(os.getcwd(), 'backend', 'debug_emails')
         self.last_error = None
@@ -497,73 +487,6 @@ class EmailService:
                 return False
 
             if provider == 'resend':
-                if not self.resend_api_key:
-                    msg = "RESEND_API_KEY not set"
-                    logger.error(msg)
-                    self.last_error = msg
-                    return False
-                url = 'https://api.resend.com/emails'
-                headers = {
-                    'Authorization': f"Bearer {self.resend_api_key}",
-                    'Content-Type': 'application/json',
-                }
-                payload = {
-                    'from': f"{self.from_name} <{self.from_email}>",
-                    'to': [to_email],
-                    'subject': subject,
-                    'html': html_content,
-                    'text': text_content,
-                }
-                resp = requests.post(url, json=payload, headers=headers, timeout=10)
-                if resp.status_code in (200, 201):
-                    logger.info(f"Resend: email sent to {to_email}")
-                    return True
-                msg = f"Resend failure {resp.status_code}: {resp.text}".strip()
-                logger.error(msg)
-                self.last_error = msg
-                return False
-
-            if provider == 'sendgrid':
-                if not self.sendgrid_api_key:
-                    msg = "SENDGRID_API_KEY not set"
-                    logger.error(msg)
-                    self.last_error = msg
-                    return False
-                if requests is None:
-                    msg = "requests library missing for sendgrid"
-                    logger.error(msg)
-                    self.last_error = msg
-                    return False
-                url = 'https://api.sendgrid.com/v3/mail/send'
-                headers = {
-                    'Authorization': f"Bearer {self.sendgrid_api_key}",
-                    'Content-Type': 'application/json'
-                }
-                # Use a verified sender if provided to satisfy SendGrid/DMARC
-                from_email = self.sendgrid_verified_sender or self.from_email
-                reply_to = None
-                if self.sendgrid_verified_sender and self.sendgrid_verified_sender != self.from_email:
-                    # Preserve branding via Reply-To when using a verified sender
-                    reply_to = {'email': self.from_email, 'name': self.from_name}
-                payload = {
-                    'personalizations': [ {'to': [{'email': to_email}]} ],
-                    'from': {'email': from_email, 'name': self.from_name},
-                    'subject': subject,
-                    'content': [
-                        {'type': 'text/plain', 'value': text_content},
-                        {'type': 'text/html', 'value': html_content}
-                    ]
-                }
-                if reply_to:
-                    payload['reply_to'] = reply_to
-                resp = requests.post(url, json=payload, headers=headers, timeout=10)
-                if resp.status_code in (200, 201, 202):
-                    logger.info(f"SendGrid: email sent to {to_email}")
-                    return True
-                msg = f"SendGrid failure {resp.status_code}: {resp.text}".strip()
-                logger.error(msg)
-                self.last_error = msg
-                return False
                 if not self.resend_api_key:
                     msg = "RESEND_API_KEY not set"
                     logger.error(msg)

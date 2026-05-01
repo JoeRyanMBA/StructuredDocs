@@ -280,11 +280,9 @@ def send_test_email_endpoint():
             "fromName": svc.from_name,
             "debugMode": svc.debug_mode,
             "lastError": svc.last_error,
-            "verifiedSenderUsed": bool(getattr(svc, 'sendgrid_verified_sender', '')),
             "hasProviderApiKey": bool(
                 getattr(svc, 'postmark_token', '') or
-                getattr(svc, 'resend_api_key', '') or
-                getattr(svc, 'sendgrid_api_key', '')
+                getattr(svc, 'resend_api_key', '')
             ),
         }
         if provider == 'smtp':
@@ -316,8 +314,6 @@ def email_status():
             'lastError': svc.last_error,
             'hasPostmarkToken': bool(getattr(svc, 'postmark_token', '')),
             'hasResendKey': bool(getattr(svc, 'resend_api_key', '')),
-            'hasSendgridKey': bool(getattr(svc, 'sendgrid_api_key', '')),
-            'sendgridVerifiedSender': getattr(svc, 'sendgrid_verified_sender', '') or None,
         }
         return jsonify(data), 200
     except Exception as e:

@@ -52,5 +52,5 @@ StructuredDocs is a document management and knowledge-base platform built as a V
 - `docs/REVIEW_WORKFLOW_GUIDE.md` for the review lifecycle and reviewer UX.
 - `ARCHIVE_SYSTEM.md` for archival behavior.
 - `SPACES_SETUP.md` for S3 or DigitalOcean Spaces configuration.
-- `EMAIL_SENDING_README.md` for SMTP or SendGrid configuration.
+- `EMAIL_SENDING_README.md` for SMTP configuration.
 - `SELF_HOSTING.md` for deployment and hosting details.

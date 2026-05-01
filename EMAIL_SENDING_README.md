@@ -1,42 +1,45 @@
 # Email Sending and Domain Authentication
 
-If recipients see "This email has failed its domain's authentication requirements", configure a verified sender and SPF/DKIM for your domain to satisfy DMARC.
+StructuredDocs now sends email via SMTP. For Proton recipients, reliable delivery depends on correct SPF, DKIM, and DMARC alignment for your sender domain.
 
 Checklist
 
 - Set environment variables for the app:
 
-  - `DEFAULT_FROM_EMAIL`: a real mailbox on your verified domain (e.g. `no-reply@structureddocs.online`)
-  - `FROM_EMAIL` (optional): if unset, the app will fall back to `DEFAULT_FROM_EMAIL`
+  - `EMAIL_PROVIDER=smtp`
+  - `SMTP_SERVER`: SMTP host (for Proton relay, `smtp.protonmail.ch`)
+  - `SMTP_PORT`: usually `587` for STARTTLS, or `465` for SSL
+  - `SMTP_USERNAME`: SMTP account username
+  - `SMTP_PASSWORD`: SMTP account password
+  - `SMTP_USE_SSL=true` only for port `465`
 
+  - `DEFAULT_FROM_EMAIL`: a real mailbox on your verified domain (example: `no-reply@structureddocs.online`)
+  - `FROM_EMAIL` (optional): if unset, app falls back to `DEFAULT_FROM_EMAIL`
   - `FROM_NAME` (optional): sender display name
-  - `EMAIL_PROVIDER=sendgrid` (or `smtp`/`postmark`/`resend`)
 
-  - `SENDGRID_API_KEY`: your SendGrid API key
-  - `SENDGRID_VERIFIED_SENDER`: a SendGrid-verified sender address (or a domain-authenticated from)
+SMTP configuration notes
 
-SendGrid configuration
+1. Ensure the `FROM_EMAIL` domain is authorized by your SMTP provider.
+2. For Proton relay, use the SMTP credentials issued by Proton for relay/SMTP access.
+3. Publish SPF, DKIM, and DMARC records for your sender domain.
 
-1. In SendGrid, complete either:
+Proton-focused deliverability tips
 
-- Single Sender Verification for the address in `SENDGRID_VERIFIED_SENDER`, or
-
-- Domain Authentication for `structureddocs.online` (adds SPF + DKIM DNS records).
-
-2. If using Single Sender, set `SENDGRID_VERIFIED_SENDER` to that address. The app will use it as the From and set Reply-To to your branding address if different.
-
-3. If you completed Domain Authentication and want your branded From, set `FROM_EMAIL=no-reply@structureddocs.online` and leave `SENDGRID_VERIFIED_SENDER` unset.
-
-SMTP configuration (alternative)
-
-- Set `SMTP_SERVER`, `SMTP_PORT`, `SMTP_USERNAME`, `SMTP_PASSWORD`.
-
-- Ensure the From address matches the authenticated mailbox or add a Reply-To header as configured in the app.
-
-- Publish SPF/DKIM/DMARC for your domain if possible.
+- Proton is strict about authentication alignment.
+- Keep envelope sender and visible From aligned to the same domain when possible.
+- Avoid using unverified or `.local` sender addresses.
 
 Troubleshooting
 
-- Call `GET /api/admin/email-status` with either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to view sanitized config.
+- Call `GET /api/admin/email-status` with either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to view sanitized configuration.
+- Call `POST /api/admin/send-test-email` with `{"to": "you@example.com"}` and either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to test delivery.
+- Check message headers in Proton for:
 
-- Call `POST /api/admin/send-test-email` with `{"to": "you@example.com"}` and either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to test delivery. The response will include provider details and status.
+```text
+Authentication-Results:
+  spf=pass;
+  dkim=pass;
+  dmarc=pass
+```
+
+- If delivery still fails, check provider SMTP logs for auth/rate-limit or rejection details.
