@@ -18,6 +18,16 @@ class _FakeEmailService:
         self.smtp_server = 'smtp.example.com'
         self.smtp_port = 587
         self.sent_to = None
+        self.smtp_health_ok = True
+        self.smtp_health_detail = {
+            'provider': 'smtp',
+            'checked': True,
+            'server': 'smtp.example.com',
+            'port': 587,
+            'useSSL': False,
+            'tlsStarted': True,
+            'authAttempted': True,
+        }
 
     def reload_config(self):
         return None
@@ -25,6 +35,9 @@ class _FakeEmailService:
     def send_test_email(self, to_email):
         self.sent_to = to_email
         return self.ok
+
+    def check_smtp_health(self):
+        return self.smtp_health_ok, self.smtp_health_detail
 
 
 def _build_client(monkeypatch, service):
@@ -84,3 +97,21 @@ def test_email_endpoints_reject_invalid_token(monkeypatch):
 
     assert response.status_code == 401
     assert response.get_json()['error'] == 'Unauthorized'
+
+
+def test_smtp_health_check_returns_diagnostics(monkeypatch):
+    service = _FakeEmailService()
+    client = _build_client(monkeypatch, service)
+    monkeypatch.setenv('ADMIN_API_KEY', 'secret-token')
+
+    response = client.post(
+        '/api/admin/smtp-health',
+        headers={'X-Admin-Token': 'secret-token'}
+    )
+
+    assert response.status_code == 200
+    payload = response.get_json()
+    assert payload['ok'] is True
+    assert payload['detail']['provider'] == 'smtp'
+    assert payload['detail']['server'] == 'smtp.example.com'
+    assert payload['detail']['fromEmail'] == 'no-reply@example.com'

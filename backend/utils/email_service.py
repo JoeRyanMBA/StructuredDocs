@@ -645,6 +645,72 @@ class EmailService:
         except Exception as e:
             logger.error(f"Failed to send test email: {str(e)}")
             return False
+
+    def check_smtp_health(self) -> tuple[bool, dict]:
+        """Validate SMTP connectivity/auth without sending a user-facing message."""
+        provider = self.provider or 'smtp'
+        if provider != 'smtp':
+            detail = {
+                'provider': provider,
+                'checked': False,
+                'reason': f"SMTP health check skipped because EMAIL_PROVIDER={provider}",
+            }
+            self.last_error = detail['reason']
+            return False, detail
+
+        use_ssl = (self.smtp_port == 465) or (os.getenv('SMTP_USE_SSL', 'false').lower() == 'true')
+        auth_attempted = bool(self.smtp_username and self.smtp_password)
+        tls_started = False
+        server = None
+
+        try:
+            if use_ssl:
+                context = ssl.create_default_context()
+                server = smtplib.SMTP_SSL(self.smtp_server, self.smtp_port, context=context, timeout=10)
+                tls_started = True
+            else:
+                server = smtplib.SMTP(self.smtp_server, self.smtp_port, timeout=10)
+                server.ehlo()
+                try:
+                    context = ssl.create_default_context()
+                    server.starttls(context=context)
+                    server.ehlo()
+                    tls_started = True
+                except Exception:
+                    # Some providers/ports don't support STARTTLS; continue and let login/connect determine health.
+                    tls_started = False
+
+            if auth_attempted:
+                server.login(self.smtp_username, self.smtp_password)
+
+            self.last_error = None
+            return True, {
+                'provider': 'smtp',
+                'checked': True,
+                'server': self.smtp_server,
+                'port': self.smtp_port,
+                'useSSL': use_ssl,
+                'tlsStarted': tls_started,
+                'authAttempted': auth_attempted,
+            }
+        except Exception as e:
+            self.last_error = f"SMTP health check error: {e}"
+            return False, {
+                'provider': 'smtp',
+                'checked': True,
+                'server': self.smtp_server,
+                'port': self.smtp_port,
+                'useSSL': use_ssl,
+                'tlsStarted': tls_started,
+                'authAttempted': auth_attempted,
+                'error': str(e),
+            }
+        finally:
+            if server is not None:
+                try:
+                    server.quit()
+                except Exception:
+                    pass
     
     def _write_debug_email(self, to_email, subject, content):
         """Write email to debug file for development"""
