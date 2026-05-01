@@ -561,7 +561,8 @@ def resend_setup_email(user_id):
             # Surface non-secret last_error for diagnostics
             last_err = getattr(email_service, 'last_error', None)
             current_app.logger.warning(f" Failed to resend setup email to {user.email}; last_error={last_err}")
-            return jsonify({"error": "Failed to send setup email", "detail": last_err}), 500
+            detail = last_err or "Email delivery failed. Check SMTP credentials and provider settings."
+            return jsonify({"error": "Failed to send setup email", "detail": detail}), 502
         
     except Exception as e:
         db.session.rollback()

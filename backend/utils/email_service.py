@@ -35,7 +35,7 @@ def _clean_env(key: str, default: Optional[str] = None) -> str:
 def _normalize_email_provider(value: Optional[str]) -> str:
     """Normalize EMAIL_PROVIDER so SMTP aliases use the native SMTP path."""
     provider = (value or '').strip().strip("'\"").lower()
-    if provider in ('', 'smtp'):
+    if provider in ('', 'smtp', 'sendgrid'):
         return ''
     return provider
 
