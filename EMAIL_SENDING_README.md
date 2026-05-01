@@ -32,6 +32,7 @@ Proton-focused deliverability tips
 Troubleshooting
 
 - Call `GET /api/admin/email-status` with either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to view sanitized configuration.
+- Call `POST /api/admin/smtp-health` with either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to validate SMTP connectivity/auth without sending a user email.
 - Call `POST /api/admin/send-test-email` with `{"to": "you@example.com"}` and either `X-Admin-Token: $ADMIN_API_KEY` or an admin JWT to test delivery.
 - Check message headers in Proton for:
 

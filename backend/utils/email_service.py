@@ -10,6 +10,7 @@ Includes a debug mode (EMAIL_DEBUG=true) that writes emails to files instead.
 import smtplib
 import ssl
 import os
+from email.utils import parseaddr
 from email.mime.text import MIMEText
 from email.mime.multipart import MIMEMultipart
 from datetime import datetime
@@ -40,21 +41,38 @@ def _normalize_email_provider(value: Optional[str]) -> str:
     return provider
 
 
+def _first_nonempty_env(*keys: str, default: str = '') -> str:
+    """Return the first non-empty env value among candidate keys."""
+    for key in keys:
+        v = _clean_env(key, '')
+        if v:
+            return v
+    return default
+
+
+def _extract_sender_email(value: str) -> str:
+    """Extract bare email from values like 'Name <user@example.com>'."""
+    _, addr = parseaddr(value or '')
+    return (addr or '').strip()
+
+
 class EmailService:
     # Class-level annotation (acceptable to static analyzers)
     last_error: Optional[str] = None
 
     def __init__(self) -> None:
         # SMTP configuration
-        self.smtp_server = _clean_env('SMTP_SERVER', 'localhost') or 'localhost'
+        self.smtp_server = _first_nonempty_env('SMTP_SERVER', 'SMTP_HOST', default='localhost') or 'localhost'
         self.smtp_port = int(_clean_env('SMTP_PORT', '587') or '587')
-        self.smtp_username = _clean_env('SMTP_USERNAME', '')
+        self.smtp_username = _first_nonempty_env('SMTP_USERNAME', 'SMTP_USER', default='')
         self.smtp_password = _clean_env('SMTP_PASSWORD', '')
 
         # From / branding
         self.from_email = _clean_env('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local'
         # Fallback to DEFAULT_FROM_EMAIL if FROM_EMAIL isn't set correctly
         default_from_email = _clean_env('DEFAULT_FROM_EMAIL', '')
+        if not default_from_email:
+            default_from_email = _extract_sender_email(_clean_env('MAIL_DEFAULT_SENDER', ''))
         if (not self.from_email or self.from_email.endswith('.local')) and default_from_email:
             self.from_email = default_from_email
 
@@ -79,12 +97,14 @@ class EmailService:
 
     def reload_config(self) -> None:
         """Reload environment-driven configuration at runtime."""
-        self.smtp_server = _clean_env('SMTP_SERVER', 'localhost') or 'localhost'
+        self.smtp_server = _first_nonempty_env('SMTP_SERVER', 'SMTP_HOST', default='localhost') or 'localhost'
         self.smtp_port = int(_clean_env('SMTP_PORT', '587') or '587')
-        self.smtp_username = _clean_env('SMTP_USERNAME', '')
+        self.smtp_username = _first_nonempty_env('SMTP_USERNAME', 'SMTP_USER', default='')
         self.smtp_password = _clean_env('SMTP_PASSWORD', '')
         self.from_email = _clean_env('FROM_EMAIL', 'noreply@structureddocs.local') or 'noreply@structureddocs.local'
         default_from_email = _clean_env('DEFAULT_FROM_EMAIL', '')
+        if not default_from_email:
+            default_from_email = _extract_sender_email(_clean_env('MAIL_DEFAULT_SENDER', ''))
         if (not self.from_email or self.from_email.endswith('.local')) and default_from_email:
             self.from_email = default_from_email
 
