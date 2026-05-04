@@ -161,7 +161,7 @@ def get_topic_sequences(topic_id):
     """Get all review sequences for a topic"""
     try:
         sequences = ReviewSequence.query.filter_by(topic_id=topic_id).order_by(ReviewSequence.created_at.desc()).all()
-        return jsonify([seq.to_dict() for seq in sequences])
+        return jsonify([seq.to_dict(include_steps=True) for seq in sequences])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
