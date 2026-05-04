@@ -58,8 +58,8 @@
               <button @click="applyFilters" class="btn btn-primary btn-sm">
                 <i class="bi bi-search"></i> Search
               </button>
-              <button @click="showPausedSequences" class="btn btn-warning btn-sm">
-                <i class="bi bi-pause-circle"></i> Show Paused Sequences
+              <button @click="showPausedSequences" class="btn btn-sm btn-paused-filter">
+                <i class="bi bi-pause-circle"></i> Show Paused
               </button>
               <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Filters</button>
             </div>
@@ -1037,6 +1037,19 @@ export default {
   display: flex;
   gap: 0.5rem;
   align-items: center !important; /* Force center alignment, override parent flex-end */
+}
+
+.btn-paused-filter {
+  background-color: var(--warning-light-yellow);
+  color: var(--warning-dark-yellow);
+  border: 1px solid var(--warning-light-yellow) !important;
+  min-width: 110px !important;
+}
+
+.btn-paused-filter:hover:not(:disabled) {
+  background-color: #f8e8b0;
+  border-color: #f8e8b0 !important;
+  color: #6b5500;
 }
 
 .table-instruction {
