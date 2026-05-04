@@ -53,17 +53,18 @@ def advance_sequence_for_review(review, recommendation):
     if not should_advance:
         return False, sequence
 
-    next_position = current_position + 1
-    next_step = ReviewSequenceStep.query.filter_by(
-        sequence_id=sequence.id,
-        step_order=next_position,
-    ).first()
+    next_step = ReviewSequenceStep.query.filter(
+        ReviewSequenceStep.sequence_id == sequence.id,
+        ReviewSequenceStep.step_order > current_position,
+    ).order_by(ReviewSequenceStep.step_order.asc()).first()
 
     if not next_step:
         sequence.status = 'completed'
         sequence.completed_at = now
         sequence.current_position = current_position
         return True, sequence
+
+    next_position = next_step.step_order
 
     total_reviewers = len(sequence.steps)
     next_review = Review(
