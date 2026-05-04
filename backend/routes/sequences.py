@@ -34,11 +34,14 @@ def _schema_drift_response(error):
 
 
 def _ensure_review_sequences_schema():
-    """Runtime guard for older deployments missing review_sequences columns."""
+    """Runtime guard for older deployments missing sequential review columns."""
     try:
         inspector = inspect(db.engine)
-        if 'review_sequences' not in inspector.get_table_names():
+        table_names = set(inspector.get_table_names())
+        if 'review_sequences' not in table_names:
             return jsonify({'error': 'review_sequences table is missing. Run backend migrations.'}), 500
+        if 'review_sequence_steps' not in table_names:
+            return jsonify({'error': 'review_sequence_steps table is missing. Run backend migrations.'}), 500
 
         columns = {column.get('name') for column in inspector.get_columns('review_sequences')}
         statements = []
@@ -62,6 +65,26 @@ def _ensure_review_sequences_schema():
             statements.append('ALTER TABLE review_sequences ADD COLUMN completed_at TIMESTAMP')
         if 'paused_at' not in columns:
             statements.append('ALTER TABLE review_sequences ADD COLUMN paused_at TIMESTAMP')
+
+        step_columns = {column.get('name') for column in inspector.get_columns('review_sequence_steps')}
+
+        # Step ordering and metadata required by ReviewSequenceStep model.
+        if 'step_order' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN step_order INTEGER NOT NULL DEFAULT 0')
+        if 'reviewer_role' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN reviewer_role VARCHAR(100)')
+        if 'step_name' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN step_name VARCHAR(200)')
+        if 'instructions' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN instructions TEXT')
+        if 'assigned_at' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN assigned_at TIMESTAMP')
+        if 'completed_at' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN completed_at TIMESTAMP')
+
+        # Status was introduced with step lifecycle tracking.
+        if 'status' not in step_columns:
+            statements.append("ALTER TABLE review_sequence_steps ADD COLUMN status VARCHAR(50) NOT NULL DEFAULT 'pending'")
 
         for statement in statements:
             db.session.execute(text(statement))
