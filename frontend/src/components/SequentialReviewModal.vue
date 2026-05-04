@@ -4,7 +4,7 @@
       <div class="modal-header-row">
         <h3 class="modal-heading">
           <i class="bi bi-arrow-right-circle me-2" aria-hidden="true"></i>
-          Sequential Review Setup
+          {{ modalTitle }}
         </h3>
         <button type="button" class="plain-close" @click="closeModal" aria-label="Close sequential review setup" title="Close">
           <i class="bi bi-x-lg" aria-hidden="true"></i>
@@ -159,7 +159,7 @@
                   <label class="form-label">Reviewer</label>
                   <select v-model="reviewer.reviewer_id" class="form-select" required>
                     <option value="">Select Reviewer...</option>
-                    <option v-for="r in availableReviewers" :key="r.id" :value="r.id">{{ r.name }} ({{ r.role }})</option>
+                    <option v-for="r in reviewerChoices" :key="r.id" :value="r.id">{{ r.name }} ({{ r.role }})</option>
                   </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -215,14 +215,17 @@ import { apiGet, apiPost } from '@/api/base'
 
 export default {
   name: 'SequentialReviewModal',
-  props: { topic: { type: Object, default: null } },
+  props: {
+    topic: { type: Object, default: null },
+    availableReviewers: { type: Array, default: () => [] }
+  },
   data() {
     return {
       loading: false,
       sequenceBusy: false,
       error: null,
       success: null,
-      availableReviewers: [],
+      reviewerChoices: [],
       hasActiveSequence: false,
       existingSequence: null,
       form: {
@@ -237,6 +240,9 @@ export default {
     }
   },
   computed: {
+    modalTitle() {
+      return this.existingSequence ? 'Manage Sequential Review' : 'Sequential Review Setup'
+    },
     isFormValid() {
       return (
         this.form.reviewers.length > 0 &&
@@ -252,6 +258,48 @@ export default {
   },
   methods: {
     closeModal() { this.$emit('close') },
+    mergeReviewerChoices(reviewers) {
+      const map = new Map()
+      ;(reviewers || []).forEach((reviewer) => {
+        if (!reviewer || reviewer.id == null) return
+        map.set(Number(reviewer.id), {
+          id: Number(reviewer.id),
+          name: reviewer.name || `Reviewer ${reviewer.id}`,
+          role: reviewer.role || reviewer.reviewer_role || 'reviewer'
+        })
+      })
+      return Array.from(map.values())
+    },
+    syncFormFromExistingSequence(sequence) {
+      if (!sequence) return
+
+      const mappedSteps = (sequence.steps || [])
+        .slice()
+        .sort((a, b) => (a.step_order ?? 0) - (b.step_order ?? 0))
+        .map((step, index) => ({
+          reviewer_id: step.reviewer_id || '',
+          step_name: step.step_name || `Review Step ${index + 1}`,
+          instructions: step.instructions || ''
+        }))
+
+      if (mappedSteps.length) {
+        this.form.reviewers = mappedSteps
+      }
+
+      if (sequence.name) this.form.name = sequence.name
+      if (sequence.description) this.form.description = sequence.description
+
+      const sequenceReviewers = (sequence.steps || []).map((step) => ({
+        id: step.reviewer_id,
+        name: step.reviewer_name,
+        role: step.reviewer_role
+      }))
+
+      this.reviewerChoices = this.mergeReviewerChoices([
+        ...this.reviewerChoices,
+        ...sequenceReviewers
+      ])
+    },
     statusBadgeClass(status) {
       const value = (status || '').toLowerCase()
       if (value === 'active') return 'bg-primary'
@@ -291,6 +339,7 @@ export default {
       try {
         const details = await apiGet(`/api/sequences/${sequenceId}`)
         this.existingSequence = details
+        this.syncFormFromExistingSequence(details)
       } catch (e) {
         console.error('Failed to load sequence details:', e)
       }
@@ -342,16 +391,20 @@ export default {
       }
     },
     async loadAvailableReviewers() {
+      if (Array.isArray(this.availableReviewers) && this.availableReviewers.length > 0) {
+        this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
+      }
+
       try {
         const response = await apiGet('/api/reviews/reviewers')
-        this.availableReviewers = response
+        this.reviewerChoices = this.mergeReviewerChoices(response)
       } catch (e) {
         console.error('Failed to load reviewers:', e)
-        this.availableReviewers = [
+        this.reviewerChoices = this.mergeReviewerChoices(this.reviewerChoices.length ? this.reviewerChoices : [
           { id: 1, name: 'Expert Reviewer', email: 'expert@census.gov', role: 'senior_analyst' },
           { id: 2, name: 'Technical Reviewer', email: 'tech@census.gov', role: 'analyst' },
           { id: 3, name: 'Editorial Reviewer', email: 'editor@census.gov', role: 'editor' }
-        ]
+        ])
       }
     },
     addReviewer() { this.form.reviewers.push({ reviewer_id: '', step_name: '', instructions: '' }) },
@@ -416,10 +469,17 @@ export default {
       if (newTopic) {
         this.resetForm()
         this.form.initial_message = `Please review "${newTopic.title}" for technical accuracy and clarity.`
+        this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
         await this.checkExistingSequences()
       } else {
         this.existingSequence = null
       }
+    },
+    availableReviewers(newReviewers) {
+      this.reviewerChoices = this.mergeReviewerChoices([
+        ...this.reviewerChoices,
+        ...(newReviewers || [])
+      ])
     }
   }
 }
