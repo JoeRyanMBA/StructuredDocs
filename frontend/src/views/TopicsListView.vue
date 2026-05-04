@@ -482,6 +482,11 @@ export default {
       }
       
       this.filteredTopics = filtered
+
+      // Always hydrate sequence badges for rows currently visible in the table.
+      if (!this.sequenceFilter && filtered.length) {
+        this.loadSequenceStatusesByIds(filtered.map(topic => String(topic.id)))
+      }
     },
 
     async loadSequenceStatusesByIds(topicIds, options = {}) {
