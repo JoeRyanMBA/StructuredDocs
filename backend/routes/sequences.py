@@ -33,22 +33,47 @@ def _schema_drift_response(error):
     return None
 
 
-def _ensure_review_sequences_created_by_column():
-    """Runtime guard for older deployments missing review_sequences.created_by."""
+def _ensure_review_sequences_schema():
+    """Runtime guard for older deployments missing review_sequences columns."""
     try:
         inspector = inspect(db.engine)
+        if 'review_sequences' not in inspector.get_table_names():
+            return jsonify({'error': 'review_sequences table is missing. Run backend migrations.'}), 500
+
         columns = {column.get('name') for column in inspector.get_columns('review_sequences')}
-        if 'created_by' in columns:
-            return None
+        statements = []
 
         # Add as nullable to stay compatible with existing rows on legacy databases.
-        db.session.execute(text('ALTER TABLE review_sequences ADD COLUMN created_by INTEGER'))
-        db.session.commit()
-        current_app.logger.warning('Auto-added missing review_sequences.created_by column at runtime.')
+        if 'created_by' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN created_by INTEGER')
+
+        # Keep defaults aligned with model behavior.
+        if 'current_position' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN current_position INTEGER NOT NULL DEFAULT 0')
+        if 'auto_advance_on_approve' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN auto_advance_on_approve BOOLEAN NOT NULL DEFAULT TRUE')
+        if 'pause_on_changes' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN pause_on_changes BOOLEAN NOT NULL DEFAULT TRUE')
+
+        # Lifecycle timestamps for sequence flow.
+        if 'started_at' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN started_at TIMESTAMP')
+        if 'completed_at' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN completed_at TIMESTAMP')
+        if 'paused_at' not in columns:
+            statements.append('ALTER TABLE review_sequences ADD COLUMN paused_at TIMESTAMP')
+
+        for statement in statements:
+            db.session.execute(text(statement))
+
+        if statements:
+            db.session.commit()
+            current_app.logger.warning('Auto-repaired review_sequences schema at runtime (added missing columns).')
+
         return None
     except Exception as exc:
         db.session.rollback()
-        current_app.logger.exception('Failed to auto-repair review_sequences.created_by column')
+        current_app.logger.exception('Failed to auto-repair review_sequences schema')
         return jsonify({
             'error': f'Database schema is out of date for sequential reviews and auto-repair failed: {exc}'
         }), 500
@@ -59,7 +84,7 @@ def _ensure_review_sequences_created_by_column():
 def create_review_sequence():
     """Create a new review sequence for a topic"""
     try:
-        schema_fix = _ensure_review_sequences_created_by_column()
+        schema_fix = _ensure_review_sequences_schema()
         if schema_fix:
             return schema_fix
 
@@ -203,7 +228,7 @@ def create_review_sequence():
 def get_review_sequence(sequence_id):
     """Get details of a specific review sequence"""
     try:
-        schema_fix = _ensure_review_sequences_created_by_column()
+        schema_fix = _ensure_review_sequences_schema()
         if schema_fix:
             return schema_fix
 
@@ -220,7 +245,7 @@ def get_review_sequence(sequence_id):
 def get_topic_sequences(topic_id):
     """Get all review sequences for a topic"""
     try:
-        schema_fix = _ensure_review_sequences_created_by_column()
+        schema_fix = _ensure_review_sequences_schema()
         if schema_fix:
             return schema_fix
 
@@ -237,7 +262,7 @@ def get_topic_sequences(topic_id):
 def advance_sequence(sequence_id):
     """Manually advance a sequence to the next reviewer"""
     try:
-        schema_fix = _ensure_review_sequences_created_by_column()
+        schema_fix = _ensure_review_sequences_schema()
         if schema_fix:
             return schema_fix
 
