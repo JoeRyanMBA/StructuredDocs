@@ -157,7 +157,7 @@
               <div class="row">
                 <div class="col-md-6 mb-3">
                   <label class="form-label">Reviewer</label>
-                  <select v-model="reviewer.reviewer_id" class="form-select" required>
+                  <select v-model="reviewer.reviewer_id" class="form-select" required @focus="ensureReviewerChoices">
                     <option value="">Select Reviewer...</option>
                     <option v-for="r in reviewerChoices" :key="r.id" :value="r.id">{{ r.name }} ({{ r.role }})</option>
                   </select>
@@ -564,6 +564,10 @@ export default {
           { id: 3, name: 'Editorial Reviewer', email: 'editor@census.gov', role: 'editor' }
         ])
       }
+    },
+    async ensureReviewerChoices() {
+      if (this.reviewerChoices.length > 0) return
+      await this.loadAvailableReviewers()
     },
     addReviewer() { this.form.reviewers.push({ reviewer_id: '', step_name: '', instructions: '' }) },
     removeReviewer(index) { this.form.reviewers.splice(index, 1) },
