@@ -310,7 +310,7 @@ class EmailService:
     
     def send_review_request(self, reviewer_email, reviewer_name, topic_title, 
                            author_name, due_date, review_url, author_message="", 
-                           is_sequential=False, sequence_position=None, total_reviewers=None):
+                           is_sequential=False, sequence_position=None, total_reviewers=None, topic_id=None):
         """Send review request email to reviewer (for sequential reviews and direct requests)"""
         try:
             # Construct full URL if only a path is provided
@@ -327,14 +327,14 @@ class EmailService:
             # Create HTML content
             html_content = self._create_review_request_email_html(
                 reviewer_name, topic_title, author_name, due_date, review_url,
-                author_message, is_sequential, sequence_position, total_reviewers,
+                author_message, is_sequential, sequence_position, total_reviewers, topic_id,
                 base_url=self._get_base_url()
             )
             
             # Create text content
             text_content = self._create_review_request_email_text(
                 reviewer_name, topic_title, author_name, due_date, review_url,
-                author_message, is_sequential, sequence_position, total_reviewers
+                author_message, is_sequential, sequence_position, total_reviewers, topic_id
             )
             
             return self._send_email(reviewer_email, subject, html_content, text_content)
@@ -755,7 +755,7 @@ class EmailService:
     def _create_review_request_email_html(self, reviewer_name, topic_title, author_name,
                                          due_date, review_url, author_message="",
                                          is_sequential=False, sequence_position=None,
-                                         total_reviewers=None, base_url=None):
+                                         total_reviewers=None, topic_id=None, base_url=None):
         """Create HTML email content for review request"""
         due_date_str = 'Not specified'
         if due_date:
@@ -784,6 +784,10 @@ class EmailService:
                 f'<strong>Message from {author_name}:</strong><br>{author_message}</div>'
             )
 
+        topic_id_line = ""
+        if topic_id:
+            topic_id_line = f'<p style="margin:4px 0;"><strong>Topic ID:</strong> {topic_id}</p>'
+        
         body = f"""
     <p>Hello {reviewer_name},</p>
     <p>You have been requested to review the following topic:</p>
@@ -791,6 +795,7 @@ class EmailService:
       <p style="margin:0 0 6px;font-weight:bold;font-size:1.05em;">{topic_title}</p>
       <p style="margin:4px 0;"><strong>Requested by:</strong> {author_name}</p>
       <p style="margin:4px 0;"><strong>Due Date:</strong> {due_date_str}</p>
+      {topic_id_line}
     </div>
     {sequential_block}
     {message_block}
@@ -805,7 +810,7 @@ class EmailService:
     
     def _create_review_request_email_text(self, reviewer_name, topic_title, author_name, 
                                          due_date, review_url, author_message="",
-                                         is_sequential=False, sequence_position=None, total_reviewers=None):
+                                         is_sequential=False, sequence_position=None, total_reviewers=None, topic_id=None):
         """Create plain text email content for review request"""
         due_date_str = 'Not specified'
         if due_date:
@@ -833,6 +838,10 @@ class EmailService:
         if author_message:
             message_section = f"\n--- Message from {author_name} ---\n{author_message}\n--- End Message ---\n"
         
+        topic_id_line = ""
+        if topic_id:
+            topic_id_line = f"Topic ID: {topic_id}\n"
+        
         return f"""
 Review Request
 
@@ -843,7 +852,7 @@ You have been requested to review the following topic:
 Title: {topic_title}
 Requested by: {author_name}
 Due Date: {due_date_str}
-{sequential_text}{message_section}
+{topic_id_line}{sequential_text}{message_section}
 To access the review, please visit:
 {review_url}
 
