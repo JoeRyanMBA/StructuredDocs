@@ -29,6 +29,67 @@
           </p>
         </div>
 
+        <!-- Existing Sequence Management -->
+        <div v-if="existingSequence" class="existing-sequence-box mb-4">
+          <div class="d-flex justify-content-between align-items-start gap-3">
+            <div>
+              <h6 class="mb-1">
+                <i class="bi bi-diagram-3 me-1"></i>
+                Existing Sequence: {{ existingSequence.name || 'Unnamed sequence' }}
+              </h6>
+              <p class="small mb-1 text-muted">
+                Status:
+                <span class="badge" :class="statusBadgeClass(existingSequence.status)">
+                  {{ formatStatus(existingSequence.status) }}
+                </span>
+              </p>
+              <p class="small mb-2 text-muted">
+                Current step: {{ (existingSequence.current_position ?? 0) + 1 }} of {{ (existingSequence.steps || []).length || 1 }}
+              </p>
+            </div>
+            <div class="sequence-controls">
+              <button type="button" class="btn btn-outline-secondary btn-sm" @click="reloadExistingSequence" :disabled="sequenceBusy">
+                <i class="bi bi-arrow-clockwise me-1"></i>Refresh
+              </button>
+              <button
+                type="button"
+                class="btn btn-outline-primary btn-sm"
+                @click="resumeExistingSequence"
+                :disabled="sequenceBusy || existingSequence.status !== 'paused'"
+              >
+                <i class="bi bi-play-circle me-1"></i>Resume
+              </button>
+              <button
+                type="button"
+                class="btn btn-primary btn-sm"
+                @click="advanceExistingSequence"
+                :disabled="sequenceBusy || existingSequence.status !== 'active'"
+              >
+                <i class="bi bi-skip-forward me-1"></i>Advance to Next
+              </button>
+            </div>
+          </div>
+
+          <div v-if="(existingSequence.steps || []).length" class="sequence-steps-list mt-3">
+            <div
+              v-for="step in existingSequence.steps"
+              :key="step.id"
+              class="sequence-step-item"
+              :class="{ 'is-current': step.step_order === existingSequence.current_position }"
+            >
+              <div class="step-main">
+                <strong>Step {{ step.step_order + 1 }}:</strong>
+                {{ step.step_name || ('Review Step ' + (step.step_order + 1)) }}
+                <span class="text-muted"> - {{ step.reviewer_name || 'Unassigned reviewer' }}</span>
+              </div>
+              <span class="badge" :class="statusBadgeClass(step.status)">{{ formatStatus(step.status) }}</span>
+            </div>
+          </div>
+          <small class="text-muted d-block mt-2">
+            Use Resume if the sequence is paused. Use Advance to force assignment to the next reviewer when the current step is complete.
+          </small>
+        </div>
+
         <!-- Sequence Settings -->
         <div class="mb-4">
           <h6 class="mb-3">Review Sequence Settings</h6>
@@ -150,7 +211,7 @@
 </template>
 
 <script>
-import axios from 'axios'
+import { apiGet, apiPost } from '@/api/base'
 
 export default {
   name: 'SequentialReviewModal',
@@ -158,10 +219,12 @@ export default {
   data() {
     return {
       loading: false,
+      sequenceBusy: false,
       error: null,
       success: null,
       availableReviewers: [],
       hasActiveSequence: false,
+      existingSequence: null,
       form: {
         name: '',
         description: '',
@@ -189,14 +252,32 @@ export default {
   },
   methods: {
     closeModal() { this.$emit('close') },
+    statusBadgeClass(status) {
+      const value = (status || '').toLowerCase()
+      if (value === 'active') return 'bg-primary'
+      if (value === 'paused') return 'bg-warning text-dark'
+      if (value === 'completed') return 'bg-success'
+      if (value === 'pending') return 'bg-secondary'
+      if (value === 'skipped') return 'bg-light text-dark border'
+      return 'bg-secondary'
+    },
     async checkExistingSequences() {
       try {
         if (this.topic?.id) {
-          const response = await axios.get(`/api/sequences/topic/${this.topic.id}`)
-          const activeSequences = response.data.filter(seq => seq.status === 'active')
+          const sequences = await apiGet(`/api/sequences/topic/${this.topic.id}`)
+          const activeSequences = (sequences || []).filter(seq => seq.status === 'active')
+          const pausedSequences = (sequences || []).filter(seq => seq.status === 'paused')
+          const managedSequence = activeSequences[0] || pausedSequences[0] || null
+
+          if (managedSequence) {
+            await this.loadSequenceDetails(managedSequence.id)
+          } else {
+            this.existingSequence = null
+          }
+
           if (activeSequences.length > 0) {
             this.hasActiveSequence = true
-            this.error = `This topic already has an active review sequence: "${activeSequences[0].name || 'Unnamed sequence'}". Please complete or pause the existing sequence before creating a new one.`
+            this.error = `This topic already has an active review sequence: "${activeSequences[0].name || 'Unnamed sequence'}". You can monitor progress and manually advance/resume it below.`
             return
           }
           this.hasActiveSequence = false
@@ -206,10 +287,64 @@ export default {
         console.error('Failed to check existing sequences:', e)
       }
     },
+    async loadSequenceDetails(sequenceId) {
+      try {
+        const details = await apiGet(`/api/sequences/${sequenceId}`)
+        this.existingSequence = details
+      } catch (e) {
+        console.error('Failed to load sequence details:', e)
+      }
+    },
+    async reloadExistingSequence() {
+      if (!this.existingSequence?.id) return
+      this.sequenceBusy = true
+      this.success = null
+      try {
+        await this.loadSequenceDetails(this.existingSequence.id)
+      } finally {
+        this.sequenceBusy = false
+      }
+    },
+    async resumeExistingSequence() {
+      if (!this.existingSequence?.id || this.existingSequence.status !== 'paused') return
+      this.sequenceBusy = true
+      this.error = null
+      this.success = null
+      try {
+        const response = await apiPost(`/api/sequences/${this.existingSequence.id}/resume`, {})
+        this.success = response?.message || 'Review sequence resumed.'
+        await this.reloadExistingSequence()
+      } catch (e) {
+        this.error = e?.message || 'Failed to resume sequence.'
+      } finally {
+        this.sequenceBusy = false
+      }
+    },
+    async advanceExistingSequence() {
+      if (!this.existingSequence?.id || this.existingSequence.status !== 'active') return
+      const confirmed = confirm('Force this sequence to the next reviewer? This should only be used when the current step is complete.')
+      if (!confirmed) return
+
+      this.sequenceBusy = true
+      this.error = null
+      this.success = null
+      try {
+        const response = await apiPost(`/api/sequences/${this.existingSequence.id}/advance`, {
+          message: 'Manually advanced by an authorized user.'
+        })
+        this.success = response?.message || 'Sequence advanced to next reviewer.'
+        await this.reloadExistingSequence()
+        this.$emit('sequence-created', this.existingSequence)
+      } catch (e) {
+        this.error = e?.message || 'Failed to advance sequence.'
+      } finally {
+        this.sequenceBusy = false
+      }
+    },
     async loadAvailableReviewers() {
       try {
-        const response = await axios.get('/api/reviews/reviewers')
-        this.availableReviewers = response.data
+        const response = await apiGet('/api/reviews/reviewers')
+        this.availableReviewers = response
       } catch (e) {
         console.error('Failed to load reviewers:', e)
         this.availableReviewers = [
@@ -239,28 +374,20 @@ export default {
           pause_on_changes: this.form.pause_on_changes,
           auto_start: true
         }
-        const response = await axios.post('/api/sequences/', payload)
+        const response = await apiPost('/api/sequences/', payload)
         this.success = 'Sequential review created successfully! First reviewer has been notified.'
-        this.$emit('sequence-created', response.data.sequence)
+        this.$emit('sequence-created', response.sequence)
         setTimeout(() => this.$emit('close'), 1600)
       } catch (error) {
         console.error('Failed to create sequence:', error)
-        if (error.response?.status === 400) {
-          const msg = error.response.data?.error || 'Bad request'
-          if (msg.includes('already has an active review sequence')) {
-            this.error = 'This topic already has an active review sequence. Please complete or pause the existing sequence before creating a new one.'
-            await this.checkExistingSequences()
-          } else if (msg.includes('reviewers list is required') || msg.includes('At least one reviewer is required')) {
-            this.error = 'Please add at least one reviewer to the sequence.'
-          } else {
-            this.error = `Validation error: ${msg}`
-          }
-        } else if (error.response?.status === 500) {
-          this.error = 'Server error occurred while creating the review sequence. Please try again or contact support.'
-        } else if (error.response?.status === 404) {
-          this.error = 'Topic or reviewer not found. Please refresh the page and try again.'
+        const msg = error?.message || 'Failed to create review sequence. Please try again.'
+        if (msg.includes('already has an active review sequence')) {
+          this.error = 'This topic already has an active review sequence. Please complete or pause the existing sequence before creating a new one.'
+          await this.checkExistingSequences()
+        } else if (msg.includes('reviewers list is required') || msg.includes('At least one reviewer is required')) {
+          this.error = 'Please add at least one reviewer to the sequence.'
         } else {
-          this.error = error.response?.data?.error || 'Failed to create review sequence. Please try again.'
+          this.error = msg
         }
       } finally {
         this.loading = false
@@ -290,6 +417,8 @@ export default {
         this.resetForm()
         this.form.initial_message = `Please review "${newTopic.title}" for technical accuracy and clarity.`
         await this.checkExistingSequences()
+      } else {
+        this.existingSequence = null
       }
     }
   }
@@ -322,6 +451,46 @@ export default {
   letter-spacing: .2px;
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
+}
+
+.existing-sequence-box {
+  background: #f8fafc;
+  border: 1px solid #dbe3ef;
+  border-radius: 6px;
+  padding: .85rem .95rem;
+}
+
+.sequence-controls {
+  display: flex;
+  gap: .5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.sequence-steps-list {
+  display: flex;
+  flex-direction: column;
+  gap: .45rem;
+}
+
+.sequence-step-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: .75rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 6px;
+  padding: .45rem .6rem;
+  background: #fff;
+}
+
+.sequence-step-item.is-current {
+  border-color: #205493;
+  box-shadow: 0 0 0 1px rgba(32, 84, 147, .15);
+}
+
+.step-main {
+  font-size: .9rem;
 }
 
 .reviewer-card { border: 1px solid #dee2e6; border-radius: 6px; }

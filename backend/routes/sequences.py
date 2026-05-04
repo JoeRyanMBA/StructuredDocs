@@ -151,7 +151,7 @@ def get_review_sequence(sequence_id):
     """Get details of a specific review sequence"""
     try:
         sequence = ReviewSequence.query.get_or_404(sequence_id)
-        return jsonify(sequence.to_dict())
+        return jsonify(sequence.to_dict(include_steps=True))
     except Exception as e:
         return jsonify({'error': str(e)}), 500
 
