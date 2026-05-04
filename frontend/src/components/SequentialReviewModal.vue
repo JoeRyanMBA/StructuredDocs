@@ -261,13 +261,23 @@ export default {
   },
   methods: {
     closeModal() { this.$emit('close') },
+    toReviewerList(value) {
+      if (Array.isArray(value)) return value
+      if (value && typeof value === 'object') {
+        if (Array.isArray(value.reviewers)) return value.reviewers
+        if (Array.isArray(value.items)) return value.items
+        if (Array.isArray(value.results)) return value.results
+        if (Array.isArray(value.data)) return value.data
+      }
+      return []
+    },
     normalizeReviewerId(value) {
       const numeric = Number(value)
       return Number.isFinite(numeric) && numeric > 0 ? numeric : ''
     },
     mergeReviewerChoices(reviewers) {
       const map = new Map()
-      ;(reviewers || []).forEach((reviewer) => {
+      this.toReviewerList(reviewers).forEach((reviewer) => {
         if (!reviewer || reviewer.id == null) return
         map.set(Number(reviewer.id), {
           id: Number(reviewer.id),
@@ -495,58 +505,56 @@ export default {
       }
     },
     async loadAvailableReviewers() {
-      this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
+      try {
+        this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
 
-      const projectIds = (this.topicProjectIds || [])
-        .map((id) => Number(id))
-        .filter((id) => Number.isInteger(id) && id > 0)
+        const projectIds = (this.topicProjectIds || [])
+          .map((id) => Number(id))
+          .filter((id) => Number.isInteger(id) && id > 0)
 
-      if (projectIds.length > 0) {
-        try {
+        if (projectIds.length > 0) {
           const stakeholderResponses = await Promise.allSettled(
             projectIds.map((projectId) => apiGet(`/api/projects/${projectId}/stakeholders`))
           )
           const projectReviewers = stakeholderResponses
-            .filter((result) => result.status === 'fulfilled' && Array.isArray(result.value))
-            .flatMap((result) => result.value)
+            .filter((result) => result.status === 'fulfilled')
+            .flatMap((result) => this.toReviewerList(result.value))
             .filter((stakeholder) => stakeholder && stakeholder.id != null && stakeholder.can_review !== false)
 
           this.reviewerChoices = this.mergeReviewerChoices([
             ...this.reviewerChoices,
             ...projectReviewers
           ])
-        } catch (e) {
-          console.error('Failed to load project stakeholders for sequential review:', e)
         }
-      }
 
-      if (Array.isArray(this.availableReviewers) && this.availableReviewers.length > 0) {
         this.reviewerChoices = this.mergeReviewerChoices([
           ...this.reviewerChoices,
-          ...this.availableReviewers
+          ...this.toReviewerList(this.availableReviewers)
         ])
-      }
 
-      try {
-        const response = await apiGet('/api/reviews/reviewers')
-        this.reviewerChoices = this.mergeReviewerChoices([
-          ...this.reviewerChoices,
-          ...(Array.isArray(response) ? response : [])
-        ])
-      } catch (e) {
-        console.error('Failed to load reviewers:', e)
-      }
-
-      if (this.reviewerChoices.length === 0) {
         try {
-          const stakeholders = await apiGet('/api/stakeholders/')
-          const eligibleStakeholders = (Array.isArray(stakeholders) ? stakeholders : [])
-            .filter((stakeholder) => stakeholder && stakeholder.id != null && stakeholder.active !== false && stakeholder.can_review !== false)
-
-          this.reviewerChoices = this.mergeReviewerChoices(eligibleStakeholders)
+          const response = await apiGet('/api/reviews/reviewers')
+          this.reviewerChoices = this.mergeReviewerChoices([
+            ...this.reviewerChoices,
+            ...this.toReviewerList(response)
+          ])
         } catch (e) {
-          console.error('Failed to load fallback stakeholders:', e)
+          console.error('Failed to load reviewers:', e)
         }
+
+        if (this.reviewerChoices.length === 0) {
+          try {
+            const stakeholders = await apiGet('/api/stakeholders/')
+            const eligibleStakeholders = this.toReviewerList(stakeholders)
+              .filter((stakeholder) => stakeholder && stakeholder.id != null && stakeholder.active !== false && stakeholder.can_review !== false)
+
+            this.reviewerChoices = this.mergeReviewerChoices(eligibleStakeholders)
+          } catch (e) {
+            console.error('Failed to load fallback stakeholders:', e)
+          }
+        }
+      } catch (e) {
+        console.error('Unexpected error while loading sequential reviewers:', e)
       }
 
       if (this.reviewerChoices.length === 0) {
@@ -635,7 +643,7 @@ export default {
     availableReviewers(newReviewers) {
       this.reviewerChoices = this.mergeReviewerChoices([
         ...this.reviewerChoices,
-        ...(newReviewers || [])
+        ...this.toReviewerList(newReviewers)
       ])
     }
   }
