@@ -18,12 +18,34 @@ export PYTHONPATH="/app:$PYTHONPATH"
 # Change to app directory
 cd /app
 
-# Always run DB migrations/schema drift checks on startup
+# Always run DB migrations/schema drift checks on startup.
+# Default behavior is fail-fast to avoid serving a partially migrated schema.
 echo "🗄️ Running DB migrations before start..."
-if [[ -f /app/run_migrations_production.py ]]; then
-    python3 /app/run_migrations_production.py || echo "⚠️ Migrations script failed (continuing to start)"
-else
-    echo "⚠️ Migration script not found at /app/run_migrations_production.py"
+ALLOW_START_WITHOUT_MIGRATIONS=${ALLOW_START_WITHOUT_MIGRATIONS:-0}
+
+run_migrations() {
+    if [[ -f /app/run_migrations_production.py ]]; then
+        python3 /app/run_migrations_production.py
+        return $?
+    fi
+
+    # Fallback when the helper script is unavailable.
+    if command -v flask >/dev/null 2>&1; then
+        flask db upgrade
+        return $?
+    fi
+
+    echo "❌ No migration runner available (missing run_migrations_production.py and flask CLI)."
+    return 1
+}
+
+if ! run_migrations; then
+    if [[ "$ALLOW_START_WITHOUT_MIGRATIONS" == "1" ]]; then
+        echo "⚠️ Migration failed but ALLOW_START_WITHOUT_MIGRATIONS=1, continuing startup."
+    else
+        echo "❌ Migration failed. Refusing to start with outdated schema."
+        exit 1
+    fi
 fi
 
 # Start Gunicorn
