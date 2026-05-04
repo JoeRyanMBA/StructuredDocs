@@ -267,6 +267,7 @@
       :topic="selectedTopicForSequence"
       :mode="sequentialModalMode"
       :availableReviewers="availableReviewers"
+      :topicProjectIds="selectedTopicForSequence ? getTopicProjectIds(selectedTopicForSequence.id) : []"
       :availableProjects="availableProjects"
       @sequence-created="onSequenceCreated"
       @close="closeSequentialModal"
@@ -401,6 +402,13 @@ export default {
   },
 
   methods: {
+    getTopicProjectIds(topicId) {
+      const usage = this.topicUsage?.[String(topicId)]
+      const projects = Array.isArray(usage?.projects) ? usage.projects : []
+      return projects
+        .map((project) => Number(project?.id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+    },
     async fetchTopics() {
       this.loading = true
       this.error = null
