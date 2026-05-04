@@ -233,6 +233,16 @@ def run_migrations():
                     return True
                 return False
 
+            def ensure_integer_column(table: str, column: str):
+                cols = [c['name'] for c in inspector.get_columns(table)]
+                if column not in cols:
+                    print(f"➕ Adding missing column {table}.{column} ...")
+                    db.session.execute(db.text(f"ALTER TABLE {table} ADD COLUMN {column} INTEGER"))
+                    db.session.commit()
+                    print(f"✅ Added column {table}.{column}")
+                    return True
+                return False
+
             # Expected boolean columns we defensively backfill if missing
             added_collections_archived = ensure_boolean_column('collections', 'archived', 'FALSE')
             added_projects_archived = ensure_boolean_column('projects', 'archived', 'FALSE')
@@ -242,9 +252,41 @@ def run_migrations():
             # review token activity tracking
             added_rt_last_accessed = ensure_nullable_column('review_tokens', 'last_accessed_at', 'TIMESTAMP')
             added_rbt_last_accessed = ensure_nullable_column('review_batch_tokens', 'last_accessed_at', 'TIMESTAMP')
+            # sequential review schema drift repair
+            added_review_sequences_created_by = ensure_integer_column('review_sequences', 'created_by')
+
+            if added_review_sequences_created_by:
+                print("🩹 Backfilling review_sequences.created_by ...")
+                # Populate from related reviews first.
+                db.session.execute(db.text("""
+                    UPDATE review_sequences rs
+                    SET created_by = sub.requested_by
+                    FROM (
+                        SELECT sequence_id, MIN(requested_by) AS requested_by
+                        FROM reviews
+                        WHERE sequence_id IS NOT NULL AND requested_by IS NOT NULL
+                        GROUP BY sequence_id
+                    ) sub
+                    WHERE rs.id = sub.sequence_id
+                      AND rs.created_by IS NULL
+                """))
+
+                # Final fallback: use first stakeholder id if any remain null.
+                db.session.execute(db.text("""
+                    UPDATE review_sequences
+                    SET created_by = (
+                        SELECT id
+                        FROM stakeholders
+                        ORDER BY id ASC
+                        LIMIT 1
+                    )
+                    WHERE created_by IS NULL
+                """))
+                db.session.commit()
+                print("✅ Backfill complete for review_sequences.created_by")
 
             # Summarize drift outcome
-            if not (added_collections_archived or added_projects_archived or added_publications_form_number or added_users_last_seen or added_rt_last_accessed or added_rbt_last_accessed):
+            if not (added_collections_archived or added_projects_archived or added_publications_form_number or added_users_last_seen or added_rt_last_accessed or added_rbt_last_accessed or added_review_sequences_created_by):
                 print("✅ No hot-fix column additions required")
             else:
                 print("ℹ️ One or more columns were added directly (consider verifying Alembic revisions are stamped correctly)")
@@ -256,6 +298,7 @@ def run_migrations():
                 'users': {'last_seen'},
                 'review_tokens': {'last_accessed_at'},
                 'review_batch_tokens': {'last_accessed_at'},
+                'review_sequences': {'created_by'},
             }
             for table, exp_cols in expected.items():
                 existing = {c['name'] for c in inspector.get_columns(table)}
