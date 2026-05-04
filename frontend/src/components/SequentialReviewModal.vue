@@ -218,7 +218,8 @@ export default {
   props: {
     topic: { type: Object, default: null },
     mode: { type: String, default: 'setup' },
-    availableReviewers: { type: Array, default: () => [] }
+    availableReviewers: { type: Array, default: () => [] },
+    topicProjectIds: { type: Array, default: () => [] }
   },
   data() {
     return {
@@ -494,16 +495,62 @@ export default {
       }
     },
     async loadAvailableReviewers() {
+      this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
+
+      const projectIds = (this.topicProjectIds || [])
+        .map((id) => Number(id))
+        .filter((id) => Number.isInteger(id) && id > 0)
+
+      if (projectIds.length > 0) {
+        try {
+          const stakeholderResponses = await Promise.allSettled(
+            projectIds.map((projectId) => apiGet(`/api/projects/${projectId}/stakeholders`))
+          )
+          const projectReviewers = stakeholderResponses
+            .filter((result) => result.status === 'fulfilled' && Array.isArray(result.value))
+            .flatMap((result) => result.value)
+            .filter((stakeholder) => stakeholder && stakeholder.id != null && stakeholder.can_review !== false)
+
+          this.reviewerChoices = this.mergeReviewerChoices([
+            ...this.reviewerChoices,
+            ...projectReviewers
+          ])
+        } catch (e) {
+          console.error('Failed to load project stakeholders for sequential review:', e)
+        }
+      }
+
       if (Array.isArray(this.availableReviewers) && this.availableReviewers.length > 0) {
-        this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
+        this.reviewerChoices = this.mergeReviewerChoices([
+          ...this.reviewerChoices,
+          ...this.availableReviewers
+        ])
       }
 
       try {
         const response = await apiGet('/api/reviews/reviewers')
-        this.reviewerChoices = this.mergeReviewerChoices(response)
+        this.reviewerChoices = this.mergeReviewerChoices([
+          ...this.reviewerChoices,
+          ...(Array.isArray(response) ? response : [])
+        ])
       } catch (e) {
         console.error('Failed to load reviewers:', e)
-        this.reviewerChoices = this.mergeReviewerChoices(this.reviewerChoices.length ? this.reviewerChoices : [
+      }
+
+      if (this.reviewerChoices.length === 0) {
+        try {
+          const stakeholders = await apiGet('/api/stakeholders/')
+          const eligibleStakeholders = (Array.isArray(stakeholders) ? stakeholders : [])
+            .filter((stakeholder) => stakeholder && stakeholder.id != null && stakeholder.active !== false && stakeholder.can_review !== false)
+
+          this.reviewerChoices = this.mergeReviewerChoices(eligibleStakeholders)
+        } catch (e) {
+          console.error('Failed to load fallback stakeholders:', e)
+        }
+      }
+
+      if (this.reviewerChoices.length === 0) {
+        this.reviewerChoices = this.mergeReviewerChoices([
           { id: 1, name: 'Expert Reviewer', email: 'expert@census.gov', role: 'senior_analyst' },
           { id: 2, name: 'Technical Reviewer', email: 'tech@census.gov', role: 'analyst' },
           { id: 3, name: 'Editorial Reviewer', email: 'editor@census.gov', role: 'editor' }
