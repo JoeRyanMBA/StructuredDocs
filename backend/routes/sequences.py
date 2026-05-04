@@ -77,6 +77,8 @@ def _ensure_review_sequences_schema():
             statements.append('ALTER TABLE review_sequence_steps ADD COLUMN step_name VARCHAR(200)')
         if 'instructions' not in step_columns:
             statements.append('ALTER TABLE review_sequence_steps ADD COLUMN instructions TEXT')
+        if 'review_id' not in step_columns:
+            statements.append('ALTER TABLE review_sequence_steps ADD COLUMN review_id INTEGER')
         if 'assigned_at' not in step_columns:
             statements.append('ALTER TABLE review_sequence_steps ADD COLUMN assigned_at TIMESTAMP')
         if 'completed_at' not in step_columns:
