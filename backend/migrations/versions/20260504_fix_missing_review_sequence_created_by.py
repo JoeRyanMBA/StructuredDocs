@@ -1,6 +1,6 @@
 """Repair missing review_sequences.created_by column.
 
-Revision ID: 20260504_seq_created_by
+Revision ID: 20260504_fix_missing_review_sequence_created_by
 Revises: a9f5e2c1b0d3
 Create Date: 2026-05-04
 """
@@ -10,7 +10,7 @@ import sqlalchemy as sa
 
 
 # revision identifiers, used by Alembic.
-revision = '20260504_seq_created_by'
+revision = '20260504_fix_missing_review_sequence_created_by'
 down_revision = 'a9f5e2c1b0d3'
 branch_labels = None
 depends_on = None

@@ -14,7 +14,7 @@ sys.path.insert(0, '/workspaces/StructuredDocs')
 sys.path.insert(0, '/workspaces/StructuredDocs/backend')
 
 # Set environment variables to avoid emergency mode
-os.environ['ENABLE_BLUEPRINTS'] = 'users,topics,projects,publications,links,notifications,reviews,import,organize,publish'
+os.environ['ENABLE_BLUEPRINTS'] = 'users,topics,projects,publications,links,notifications,reviews,sequences,stakeholders'
 
 def install_dependencies():
     """Install Python dependencies if they're missing"""
