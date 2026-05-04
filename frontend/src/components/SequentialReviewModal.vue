@@ -159,7 +159,7 @@
                   <label class="form-label">Reviewer</label>
                   <select v-model="reviewer.reviewer_id" class="form-select" required @focus="ensureReviewerChoices">
                     <option value="">Select Reviewer...</option>
-                    <option v-for="r in reviewerChoices" :key="r.id" :value="r.id">{{ r.name }} ({{ r.role }})</option>
+                    <option v-for="r in reviewerOptions" :key="r.id" :value="r.id">{{ r.name }} ({{ r.role }})</option>
                   </select>
                 </div>
                 <div class="col-md-6 mb-3">
@@ -228,6 +228,7 @@ export default {
       error: null,
       success: null,
       reviewerChoices: [],
+      apiReviewerChoices: [],
       hasActiveSequence: false,
       existingSequence: null,
       form: {
@@ -253,6 +254,10 @@ export default {
         this.form.initial_message.trim() &&
         !this.hasActiveSequence
       )
+    },
+    reviewerOptions() {
+      if (this.reviewerChoices.length > 0) return this.reviewerChoices
+      return this.mergeReviewerChoices(this.apiReviewerChoices)
     }
   },
   async mounted() {
@@ -534,6 +539,7 @@ export default {
 
         try {
           const response = await apiGet('/api/reviews/reviewers')
+          this.apiReviewerChoices = this.mergeReviewerChoices(this.toReviewerList(response))
           this.reviewerChoices = this.mergeReviewerChoices([
             ...this.reviewerChoices,
             ...this.toReviewerList(response)
@@ -548,6 +554,7 @@ export default {
             const eligibleStakeholders = this.toReviewerList(stakeholders)
               .filter((stakeholder) => stakeholder && stakeholder.id != null && stakeholder.active !== false && stakeholder.can_review !== false)
 
+            this.apiReviewerChoices = this.mergeReviewerChoices(eligibleStakeholders)
             this.reviewerChoices = this.mergeReviewerChoices(eligibleStakeholders)
           } catch (e) {
             console.error('Failed to load fallback stakeholders:', e)
@@ -558,11 +565,13 @@ export default {
       }
 
       if (this.reviewerChoices.length === 0) {
-        this.reviewerChoices = this.mergeReviewerChoices([
+        const fallbackChoices = this.mergeReviewerChoices([
           { id: 1, name: 'Expert Reviewer', email: 'expert@census.gov', role: 'senior_analyst' },
           { id: 2, name: 'Technical Reviewer', email: 'tech@census.gov', role: 'analyst' },
           { id: 3, name: 'Editorial Reviewer', email: 'editor@census.gov', role: 'editor' }
         ])
+        this.apiReviewerChoices = fallbackChoices
+        this.reviewerChoices = fallbackChoices
       }
     },
     async ensureReviewerChoices() {
