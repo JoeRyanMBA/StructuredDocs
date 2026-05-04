@@ -44,9 +44,22 @@
             </select>
           </div>
           <div class="filter-group">
+            <label>Sequence:</label>
+            <select v-model="sequenceFilter" @change="applyFilters" class="filter-input">
+              <option value="">All</option>
+              <option value="active">Active</option>
+              <option value="paused">Paused</option>
+              <option value="completed">Completed</option>
+              <option value="none">None</option>
+            </select>
+          </div>
+          <div class="filter-group">
             <div class="button-group">
               <button @click="applyFilters" class="btn btn-primary btn-sm">
                 <i class="bi bi-search"></i> Search
+              </button>
+              <button @click="showPausedSequences" class="btn btn-warning btn-sm">
+                <i class="bi bi-pause-circle"></i> Show Paused Sequences
               </button>
               <button @click="clearFilters" class="btn btn-secondary btn-sm"><i class="bi bi-x"></i> Clear Filters</button>
             </div>
@@ -71,6 +84,7 @@
           <th>ID</th>
           <th>Title</th>
           <th>Status</th>
+          <th>Sequence</th>
           <th>Collections</th>
           <th>Projects</th>
           <th>Actions</th>
@@ -93,6 +107,17 @@
             <span :class="`badge badge--${t.status}`">
               {{ formatStatus(t.status) }}
             </span>
+          </td>
+          <td>
+            <span
+              v-if="topicSequenceStatus[String(t.id)]"
+              class="seq-badge"
+              :class="`seq-badge--${topicSequenceStatus[String(t.id)].status}`"
+              :title="sequenceBadgeTitle(topicSequenceStatus[String(t.id)])"
+            >
+              {{ sequenceBadgeLabel(topicSequenceStatus[String(t.id)]) }}
+            </span>
+            <span v-else class="seq-badge seq-badge--loading">Loading…</span>
           </td>
           <td class="usage-cell" @click.stop>
             <UsageBadge
@@ -130,11 +155,11 @@
               </button>
 
               <button
-                v-if="t.status === 'draft'"
+                v-if="['draft', 'pending_review', 'revisions_requested'].includes(t.status)"
                 @click="openSequentialReview(t)"
                 class="btn-icon btn-seq-review"
-                title="Sequential review setup"
-                aria-label="Sequential review setup"
+                :title="t.status === 'draft' ? 'Sequential review setup' : 'Manage sequential review'"
+                :aria-label="t.status === 'draft' ? 'Sequential review setup' : 'Manage sequential review'"
               >
                 <i class="bi bi-arrow-right-circle"></i>
               </button>
@@ -281,6 +306,7 @@ export default {
       searchQuery: '',
       statusFilter: '',
       collectionFilter: '',
+      sequenceFilter: '',
       loading: true,
       error: null,
       showReviewModal: false,
@@ -290,6 +316,8 @@ export default {
       availableReviewers: [],
       availableProjects: [],
       projectStakeholders: [],
+      topicSequenceStatus: {},
+      sequenceStatusLoading: {},
       reviewData: {
         project_id: '',
         assigned_stakeholder_ids: [],  // Changed to array for multiple selection
@@ -386,6 +414,7 @@ export default {
         this.topics = normalizeListResponse(data, ['topics', 'items', 'results', 'data'])
         if (usageData) this.topicUsage = usageData
         this.applyFilters()
+        this.loadSequenceStatusesForFiltered()
       } catch (err) {
         console.error('API fetch failed for topics:', err)
         this.topics = []
@@ -426,18 +455,117 @@ export default {
       if (this.collectionFilter) {
         filtered = filtered.filter(topic => topic.collection_name === this.collectionFilter)
       }
+
+      if (this.sequenceFilter) {
+        const unresolvedIds = []
+        filtered = filtered.filter((topic) => {
+          const id = String(topic.id)
+          const info = this.topicSequenceStatus[id]
+
+          if (!info) {
+            if (!this.sequenceStatusLoading[id]) unresolvedIds.push(id)
+            return false
+          }
+
+          return info.status === this.sequenceFilter
+        })
+
+        if (unresolvedIds.length) {
+          this.loadSequenceStatusesByIds(unresolvedIds, { reapply: true })
+        }
+      }
       
       this.filteredTopics = filtered
+      this.loadSequenceStatusesForFiltered()
+    },
+
+    async loadSequenceStatusesByIds(topicIds, options = {}) {
+      const { reapply = false } = options
+      const uniqueIds = Array.from(new Set((topicIds || []).map(id => String(id))))
+      const missingIds = uniqueIds.filter(id => !this.topicSequenceStatus[id] && !this.sequenceStatusLoading[id])
+
+      if (!missingIds.length) return
+
+      missingIds.forEach(id => {
+        this.sequenceStatusLoading[id] = true
+      })
+
+      await Promise.all(missingIds.map(async (id) => {
+        try {
+          const sequences = await apiGet(`/api/sequences/topic/${id}`)
+          const list = Array.isArray(sequences) ? sequences : []
+          const active = list.find(seq => seq.status === 'active')
+          const paused = list.find(seq => seq.status === 'paused')
+          const current = active || paused || list[0] || null
+
+          if (!current) {
+            this.topicSequenceStatus[id] = { status: 'none' }
+            return
+          }
+
+          this.topicSequenceStatus[id] = {
+            status: current.status || 'unknown',
+            sequenceId: current.id,
+            position: typeof current.current_position === 'number' ? current.current_position : null,
+            name: current.name || null
+          }
+        } catch (_) {
+          this.topicSequenceStatus[id] = { status: 'unknown' }
+        } finally {
+          this.sequenceStatusLoading[id] = false
+        }
+      }))
+
+      if (reapply && this.sequenceFilter) {
+        this.applyFilters()
+      }
+    },
+
+    async loadSequenceStatusesForFiltered() {
+      const ids = (this.filteredTopics || []).map(t => String(t.id))
+      await this.loadSequenceStatusesByIds(ids)
+    },
+
+    sequenceBadgeLabel(sequence) {
+      if (!sequence) return 'Loading…'
+      if (sequence.status === 'none') return 'None'
+      if (sequence.status === 'active') {
+        if (typeof sequence.position === 'number') {
+          return `Active: Step ${sequence.position + 1}`
+        }
+        return 'Active'
+      }
+      if (sequence.status === 'paused') {
+        if (typeof sequence.position === 'number') {
+          return `Paused: Step ${sequence.position + 1}`
+        }
+        return 'Paused'
+      }
+      if (sequence.status === 'completed') return 'Completed'
+      return this.formatStatus(sequence.status)
+    },
+
+    sequenceBadgeTitle(sequence) {
+      if (!sequence || sequence.status === 'none') return 'No review sequence'
+      const name = sequence.name ? `${sequence.name} | ` : ''
+      const step = typeof sequence.position === 'number' ? `Current step: ${sequence.position + 1}` : ''
+      return `${name}${this.formatStatus(sequence.status)}${step ? ` | ${step}` : ''}`
     },
     
     clearFilters() {
       this.searchQuery = ''
       this.statusFilter = ''
       this.collectionFilter = ''
+        this.sequenceFilter = ''
       this.applyFilters()
   // Clear selection when filters are reset
   this.selectedTopicIds = []
   this.lastSelectedIndex = null
+    },
+
+    showPausedSequences() {
+      this.sequenceFilter = 'paused'
+      this.applyFilters()
     },
 
     // Bulk selection helpers
@@ -813,7 +941,8 @@ export default {
       this.fetchTopics()
       
       // Show success message
-  toast.success(`Sequential review created for "${sequence.topic_title}". First reviewer notified.`)
+      const topicTitle = sequence?.topic_title || this.selectedTopicForSequence?.title || this.selectedTopic?.title || 'topic'
+  toast.success(`Sequential review updated for "${topicTitle}".`)
     }
   }
 }
@@ -977,6 +1106,42 @@ td:nth-child(4) {
 .badge--revisions_requested { background: var(--warning-light-yellow); color: var(--warning-dark-yellow); }
 .badge--rejected { background: var(--error-light-red); color: var(--error-dark-red); }
 .badge--archived { background: var(--secondary-light-gray); color: var(--secondary-dark-gray); }
+
+.seq-badge {
+  display: inline-block;
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+  line-height: 1.3;
+  white-space: nowrap;
+}
+
+.seq-badge--none {
+  background: #f3f4f6;
+  color: #6b7280;
+}
+
+.seq-badge--active {
+  background: #dbeafe;
+  color: #1d4ed8;
+}
+
+.seq-badge--paused {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.seq-badge--completed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.seq-badge--unknown,
+.seq-badge--loading {
+  background: #e5e7eb;
+  color: #4b5563;
+}
 
 .actions-cell {
   display: flex;
