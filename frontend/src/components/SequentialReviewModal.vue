@@ -273,7 +273,7 @@ export default {
       return Array.from(map.values())
     },
     syncFormFromExistingSequence(sequence) {
-      if (!sequence) return
+      if (!sequence) return false
 
       const mappedSteps = (sequence.steps || [])
         .slice()
@@ -301,6 +301,44 @@ export default {
         ...this.reviewerChoices,
         ...sequenceReviewers
       ])
+
+      return mappedSteps.length > 0
+    },
+    async hydrateStepsFromReviews(sequence) {
+      if (!sequence?.id || !this.topic?.id) return false
+
+      try {
+        const reviews = await apiGet(`/api/reviews/topic/${this.topic.id}/reviews`)
+        const sequenceReviews = (Array.isArray(reviews) ? reviews : [])
+          .filter((review) => review.sequence_id === sequence.id)
+          .sort((left, right) => (left.sequence_position ?? 0) - (right.sequence_position ?? 0))
+
+        if (!sequenceReviews.length) return false
+
+        const fallbackSteps = sequenceReviews.map((review, index) => ({
+          id: review.id,
+          step_order: review.sequence_position ?? index,
+          reviewer_id: review.reviewer_id,
+          reviewer_name: review.reviewer_name,
+          reviewer_role: null,
+          step_name: `Review Step ${(review.sequence_position ?? index) + 1}`,
+          instructions: null,
+          status: review.status === 'completed' ? 'completed' : 'active',
+          review_id: review.id,
+          assigned_at: review.requested_at,
+          completed_at: review.completed_at
+        }))
+
+        this.existingSequence = {
+          ...sequence,
+          steps: fallbackSteps
+        }
+        this.syncFormFromExistingSequence(this.existingSequence)
+        return true
+      } catch (e) {
+        console.error('Failed to hydrate sequence reviewers from reviews:', e)
+        return false
+      }
     },
     statusBadgeClass(status) {
       const value = (status || '').toLowerCase()
@@ -323,7 +361,11 @@ export default {
             : (activeSequences[0] || pausedSequences[0] || null)
 
           if (managedSequence) {
-            await this.loadSequenceDetails(managedSequence.id)
+            this.existingSequence = managedSequence
+            const hasInlineSteps = this.syncFormFromExistingSequence(managedSequence)
+            if (!hasInlineSteps) {
+              await this.loadSequenceDetails(managedSequence.id)
+            }
           } else {
             this.existingSequence = null
             this.form.reviewers = []
@@ -350,7 +392,10 @@ export default {
       try {
         const details = await apiGet(`/api/sequences/${sequenceId}`)
         this.existingSequence = details
-        this.syncFormFromExistingSequence(details)
+        const hasSteps = this.syncFormFromExistingSequence(details)
+        if (!hasSteps) {
+          await this.hydrateStepsFromReviews(details)
+        }
       } catch (e) {
         console.error('Failed to load sequence details:', e)
       }
