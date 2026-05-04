@@ -1424,7 +1424,14 @@ class ReviewSequence(db.Model):
     description = db.Column(db.Text, nullable=True)
     
     status = db.Column(
-        Enum('active', 'completed', 'paused', 'cancelled', name='sequence_status'),
+        Enum(
+            'active',
+            'completed',
+            'paused',
+            'cancelled',
+            name='sequence_status',
+            native_enum=False,
+        ),
         nullable=False,
         default='active',
         server_default='active'
@@ -1480,7 +1487,14 @@ class ReviewSequenceStep(db.Model):
     step_name = db.Column(db.String(200), nullable=True)
     instructions = db.Column(db.Text, nullable=True)
     status = db.Column(
-        Enum('pending', 'active', 'completed', 'skipped', name='step_status'),
+        Enum(
+            'pending',
+            'active',
+            'completed',
+            'skipped',
+            name='step_status',
+            native_enum=False,
+        ),
         nullable=False,
         default='pending',
         server_default='pending'

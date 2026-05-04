@@ -396,12 +396,11 @@ def advance_sequence(sequence_id):
             if current_review and current_review.status != 'completed':
                 return jsonify({'error': 'Current review must be completed before advancing'}), 400
         
-        # Move to next step
-        next_position = sequence.current_position + 1
-        next_step = ReviewSequenceStep.query.filter_by(
-            sequence_id=sequence.id,
-            step_order=next_position
-        ).first()
+        # Move to the next available step by order, even if legacy data has gaps.
+        next_step = ReviewSequenceStep.query.filter(
+            ReviewSequenceStep.sequence_id == sequence.id,
+            ReviewSequenceStep.step_order > sequence.current_position,
+        ).order_by(ReviewSequenceStep.step_order.asc()).first()
         
         if not next_step:
             # Sequence is complete
@@ -412,6 +411,8 @@ def advance_sequence(sequence_id):
                 'message': 'Review sequence completed',
                 'sequence': sequence.to_dict()
             })
+
+        next_position = next_step.step_order
         
         # Create review for next step
         data = request.get_json() or {}
