@@ -421,7 +421,6 @@ export default {
         this.topics = normalizeListResponse(data, ['topics', 'items', 'results', 'data'])
         if (usageData) this.topicUsage = usageData
         this.applyFilters()
-        this.loadSequenceStatusesForFiltered()
       } catch (err) {
         console.error('API fetch failed for topics:', err)
         this.topics = []
@@ -483,7 +482,6 @@ export default {
       }
       
       this.filteredTopics = filtered
-      this.loadSequenceStatusesForFiltered()
     },
 
     async loadSequenceStatusesByIds(topicIds, options = {}) {
