@@ -23,6 +23,71 @@ def create_review_token(review, reviewer_email):
     return token
 
 
+def _send_sequential_assignment_email(sequence, next_step, next_review, next_token, total_reviewers, next_position):
+    """Send step-assignment email with a fallback template path when primary send fails."""
+    if not email_service:
+        return False
+
+    reviewer = next_step.reviewer
+    email_sent = False
+
+    try:
+        email_sent = bool(email_service.send_review_request(
+            reviewer_email=reviewer.email,
+            reviewer_name=reviewer.name,
+            topic_title=sequence.topic.title,
+            author_name=sequence.creator.name if sequence.creator else 'Unknown',
+            due_date=next_review.due_date,
+            review_url=f"/review/{next_token.token}",
+            author_message=next_review.author_message,
+            is_sequential=True,
+            sequence_position=next_position + 1,
+            total_reviewers=total_reviewers,
+            topic_id=sequence.topic_id
+        ))
+
+        if email_sent:
+            return True
+
+        current_app.logger.warning(
+            "Primary sequential review email send returned False for review_id=%s, reviewer_id=%s",
+            next_review.id,
+            next_step.reviewer_id,
+        )
+    except Exception:
+        current_app.logger.exception(
+            "Primary sequential review email send failed for review_id=%s, reviewer_id=%s",
+            next_review.id,
+            next_step.reviewer_id,
+        )
+
+    try:
+        fallback_sent = bool(email_service.send_review_notification(
+            reviewer_email=reviewer.email,
+            reviewer_name=reviewer.name,
+            topic_title=sequence.topic.title,
+            topic_id=sequence.topic_id,
+            author_message=next_review.author_message,
+            due_date=next_review.due_date,
+            priority=next_review.priority,
+            review_token=next_token.token,
+        ))
+        if not fallback_sent:
+            current_app.logger.warning(
+                "Fallback sequential review email send returned False for review_id=%s, reviewer_id=%s",
+                next_review.id,
+                next_step.reviewer_id,
+            )
+        return fallback_sent
+    except Exception:
+        current_app.logger.exception(
+            "Fallback sequential review email send failed for review_id=%s, reviewer_id=%s",
+            next_review.id,
+            next_step.reviewer_id,
+        )
+        return False
+
+
 def advance_sequence_for_review(review, recommendation):
     sequence = review.sequence
     if not sequence or sequence.status != 'active':
@@ -90,23 +155,22 @@ def advance_sequence_for_review(review, recommendation):
     next_step.review_id = next_review.id
     next_step.assigned_at = now
 
-    if email_service:
-        try:
-            email_service.send_review_request(
-                reviewer_email=next_step.reviewer.email,
-                reviewer_name=next_step.reviewer.name,
-                topic_title=sequence.topic.title,
-                author_name=sequence.creator.name if sequence.creator else 'Unknown',
-                due_date=next_review.due_date,
-                review_url=f"/review/{next_token.token}",
-                author_message=next_review.author_message,
-                is_sequential=True,
-                sequence_position=next_position + 1,
-                total_reviewers=total_reviewers,
-                topic_id=sequence.topic_id
-            )
-        except Exception as exc:
-            current_app.logger.debug(f"Failed to send email notification: {exc}")
+    email_sent = _send_sequential_assignment_email(
+        sequence=sequence,
+        next_step=next_step,
+        next_review=next_review,
+        next_token=next_token,
+        total_reviewers=total_reviewers,
+        next_position=next_position,
+    )
+    next_review.email_delivery_unavailable = not email_sent
+
+    if not email_sent:
+        current_app.logger.warning(
+            "Sequential review advanced to step %s but email delivery failed for review_id=%s",
+            next_position + 1,
+            next_review.id,
+        )
 
     return True, sequence
 
