@@ -9,6 +9,17 @@ from ..services.review_sequences import create_review_token
 from ..utils.email_service import email_service
 
 sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
+
+
+def _schema_drift_response(error):
+    message = str(error)
+    if 'review_sequences.created_by' in message and 'does not exist' in message:
+        return jsonify({
+            'error': 'Database schema is out of date for sequential reviews. Run backend migrations (flask db upgrade) to add review_sequences.created_by.'
+        }), 500
+    return None
+
+
 @sequences_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_review_sequence():
@@ -144,6 +155,9 @@ def create_review_sequence():
         
     except Exception as e:
         db.session.rollback()
+        schema_response = _schema_drift_response(e)
+        if schema_response:
+            return schema_response
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/<int:sequence_id>', methods=['GET'])
@@ -154,6 +168,9 @@ def get_review_sequence(sequence_id):
         sequence = ReviewSequence.query.get_or_404(sequence_id)
         return jsonify(sequence.to_dict(include_steps=True))
     except Exception as e:
+        schema_response = _schema_drift_response(e)
+        if schema_response:
+            return schema_response
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/topic/<int:topic_id>', methods=['GET'])
@@ -164,6 +181,9 @@ def get_topic_sequences(topic_id):
         sequences = ReviewSequence.query.filter_by(topic_id=topic_id).order_by(ReviewSequence.created_at.desc()).all()
         return jsonify([seq.to_dict(include_steps=True) for seq in sequences])
     except Exception as e:
+        schema_response = _schema_drift_response(e)
+        if schema_response:
+            return schema_response
         return jsonify({'error': str(e)}), 500
 
 @sequences_bp.route('/<int:sequence_id>/advance', methods=['POST'])
