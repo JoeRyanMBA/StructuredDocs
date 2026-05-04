@@ -128,7 +128,8 @@ def create_review_sequence():
                             author_message=review.author_message,
                             is_sequential=True,
                             sequence_position=1,
-                            total_reviewers=len(data['reviewers'])
+                            total_reviewers=len(data['reviewers']),
+                            topic_id=topic.id
                         )
                     except Exception as e:
                         # Don't fail the whole operation if email fails

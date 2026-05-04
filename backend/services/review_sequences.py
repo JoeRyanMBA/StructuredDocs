@@ -102,6 +102,7 @@ def advance_sequence_for_review(review, recommendation):
                 is_sequential=True,
                 sequence_position=next_position + 1,
                 total_reviewers=total_reviewers,
+                topic_id=sequence.topic_id
             )
         except Exception as exc:
             current_app.logger.debug(f"Failed to send email notification: {exc}")
