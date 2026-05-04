@@ -91,9 +91,19 @@ def _ensure_review_sequences_schema():
         for statement in statements:
             db.session.execute(text(statement))
 
+        # Legacy compatibility: some databases still have a NOT NULL `position`
+        # column on review_sequence_steps while newer code writes `step_order`.
+        # Ensure inserts succeed by backfilling and setting a default.
+        if 'position' in step_columns:
+            db.session.execute(text('UPDATE review_sequence_steps SET position = COALESCE(position, step_order, 0) WHERE position IS NULL'))
+            db.session.execute(text('ALTER TABLE review_sequence_steps ALTER COLUMN position SET DEFAULT 0'))
+
         if statements:
             db.session.commit()
             current_app.logger.warning('Auto-repaired review_sequences schema at runtime (added missing columns).')
+        elif 'position' in step_columns:
+            db.session.commit()
+            current_app.logger.warning('Normalized legacy review_sequence_steps.position defaults at runtime.')
 
         return None
     except Exception as exc:
