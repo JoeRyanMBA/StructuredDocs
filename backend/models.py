@@ -1419,30 +1419,46 @@ class ReviewSequence(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     topic_id = db.Column(db.Integer, db.ForeignKey('topics.id'), nullable=False)
-    name = db.Column(db.String(200), nullable=False)
+    created_by = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=False)
+    name = db.Column(db.String(200), nullable=True)
     description = db.Column(db.Text, nullable=True)
     
     status = db.Column(
-        Enum('active', 'inactive', 'completed', name='sequence_status'),
+        Enum('active', 'completed', 'paused', 'cancelled', name='sequence_status'),
         nullable=False,
-        default='active'
+        default='active',
+        server_default='active'
     )
+    current_position = db.Column(db.Integer, nullable=False, default=0, server_default='0')
+    auto_advance_on_approve = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
+    pause_on_changes = db.Column(db.Boolean, nullable=False, default=True, server_default='1')
     
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
+    started_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
+    paused_at = db.Column(db.DateTime, nullable=True)
     
     # Relationships
     topic = relationship('Topic', backref='review_sequences')
-    steps = relationship('ReviewSequenceStep', back_populates='sequence', cascade='all, delete-orphan', order_by='ReviewSequenceStep.position')
+    creator = relationship('Stakeholder', foreign_keys=[created_by], backref='created_review_sequences')
+    steps = relationship('ReviewSequenceStep', back_populates='sequence', cascade='all, delete-orphan', order_by='ReviewSequenceStep.step_order')
     reviews = relationship('Review', back_populates='sequence')
 
     def to_dict(self, include_steps=False):
         data = {
             "id": self.id,
             "topic_id": self.topic_id,
+            "created_by": self.created_by,
             "name": self.name,
             "description": self.description,
             "status": self.status,
+            "current_position": self.current_position,
+            "auto_advance_on_approve": self.auto_advance_on_approve,
+            "pause_on_changes": self.pause_on_changes,
             "created_at": self.created_at.isoformat() if self.created_at else None,
+            "started_at": self.started_at.isoformat() if self.started_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
+            "paused_at": self.paused_at.isoformat() if self.paused_at else None,
         }
         if include_steps:
             data['steps'] = [step.to_dict() for step in self.steps]
@@ -1454,30 +1470,62 @@ class ReviewSequenceStep(db.Model):
     
     id = db.Column(db.Integer, primary_key=True)
     sequence_id = db.Column(db.Integer, db.ForeignKey('review_sequences.id', ondelete='CASCADE'), nullable=False)
-    position = db.Column(db.Integer, nullable=False)  # 0-based index
+    step_order = db.Column(db.Integer, nullable=False)  # 0-based index
     
     # Who should perform this step
     reviewer_id = db.Column(db.Integer, db.ForeignKey('stakeholders.id'), nullable=True)
     reviewer_role = db.Column(db.String(100), nullable=True)  # e.g., 'SME', 'Legal'
     
     # Step details
-    name = db.Column(db.String(200), nullable=False)
+    step_name = db.Column(db.String(200), nullable=True)
     instructions = db.Column(db.Text, nullable=True)
+    status = db.Column(
+        Enum('pending', 'active', 'completed', 'skipped', name='step_status'),
+        nullable=False,
+        default='pending',
+        server_default='pending'
+    )
+    review_id = db.Column(db.Integer, db.ForeignKey('reviews.id'), nullable=True)
+    assigned_at = db.Column(db.DateTime, nullable=True)
+    completed_at = db.Column(db.DateTime, nullable=True)
     
     # Relationships
     sequence = relationship('ReviewSequence', back_populates='steps')
     reviewer = relationship('Stakeholder')
+    review = relationship('Review')
+
+    @property
+    def position(self):
+        return self.step_order
+
+    @position.setter
+    def position(self, value):
+        self.step_order = value
+
+    @property
+    def name(self):
+        return self.step_name
+
+    @name.setter
+    def name(self, value):
+        self.step_name = value
 
     def to_dict(self):
         return {
             "id": self.id,
             "sequence_id": self.sequence_id,
-            "position": self.position,
+            "position": self.step_order,
+            "step_order": self.step_order,
             "reviewer_id": self.reviewer_id,
             "reviewer_name": self.reviewer.name if self.reviewer else None,
             "reviewer_role": self.reviewer_role,
-            "name": self.name,
+            "name": self.step_name,
+            "step_name": self.step_name,
             "instructions": self.instructions,
+            "status": self.status,
+            "review_id": self.review_id,
+            "assigned_at": self.assigned_at.isoformat() if self.assigned_at else None,
+            "completed_at": self.completed_at.isoformat() if self.completed_at else None,
         }
 
 

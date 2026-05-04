@@ -7,6 +7,7 @@ if TYPE_CHECKING:
     # For type checking only to help Pylance understand names
     from ..models import ReviewSequence  # noqa: F401
 from sqlalchemy import or_, and_
+from ..services.review_sequences import apply_topic_status_for_review, advance_sequence_for_review
 from ..utils.email_service import email_service
 import secrets
 import logging
@@ -242,121 +243,11 @@ def submit_review(review_id):
         
         # Handle sequence advancement if this is part of a sequence
         sequence_advanced = False
+        sequence = review.sequence
         if review.sequence_id:
-            from ..models import ReviewSequence, ReviewSequenceStep
-            sequence = ReviewSequence.query.get(review.sequence_id)
-            
-            if sequence and sequence.status == 'active':
-                current_step = ReviewSequenceStep.query.filter_by(
-                    sequence_id=sequence.id,
-                    step_order=review.sequence_position
-                ).first()
-                
-                if current_step:
-                    current_step.status = 'completed'
-                    current_step.completed_at = datetime.utcnow()
-                    
-                    # Check if we should auto-advance
-                    should_advance = False
-                    
-                    if data['recommendation'] == 'approve' and sequence.auto_advance_on_approve:
-                        should_advance = True
-                    elif data['recommendation'] in ['approve_with_changes', 'needs_more_info', 'reject']:
-                        if not sequence.pause_on_changes:
-                            should_advance = True
-                        else:
-                            # Pause sequence for author to incorporate changes
-                            sequence.status = 'paused'
-                            sequence.paused_at = datetime.utcnow()
-                    
-                    if should_advance:
-                        # Move to next reviewer
-                        next_position = sequence.current_position + 1
-                        next_step = ReviewSequenceStep.query.filter_by(
-                            sequence_id=sequence.id,
-                            step_order=next_position
-                        ).first()
-                        
-                        if next_step:
-                            # Create review for next reviewer
-                            next_review = Review(
-                                topic_id=sequence.topic_id,
-                                requested_by=sequence.created_by,
-                                reviewer_id=next_step.reviewer_id,
-                                sequence_id=sequence.id,
-                                sequence_position=next_position,
-                                author_message=f'Sequential review (step {next_position + 1} of {len(sequence.reviewers)}). Previous reviewer: {data["recommendation"]}',
-                                priority=review.priority,
-                                due_date=datetime.utcnow() + timedelta(days=5)
-                            )
-                            db.session.add(next_review)
-                            db.session.flush()
-                            
-                            # Update sequence and step
-                            sequence.current_position = next_position
-                            next_step.status = 'active'
-                            next_step.review_id = next_review.id
-                            next_step.assigned_at = datetime.utcnow()
-                            
-                            sequence_advanced = True
-                            
-                            # Create a secure token for the next reviewer so they can access
-                            # the review without needing a user account
-                            next_token = ReviewToken(
-                                token=secrets.token_urlsafe(32),
-                                review_id=next_review.id,
-                                reviewer_email=next_step.reviewer.email,
-                                expires_at=next_review.due_date + timedelta(days=7)
-                            )
-                            db.session.add(next_token)
-                            db.session.flush()
-
-                            # Send notification to next reviewer
-                            if email_service:
-                                try:
-                                    email_service.send_review_request(
-                                        reviewer_email=next_step.reviewer.email,
-                                        reviewer_name=next_step.reviewer.name,
-                                        topic_title=sequence.topic.title,
-                                        author_name=sequence.creator.name if sequence.creator else 'Unknown',
-                                        due_date=next_review.due_date,
-                                        review_url=f"/review/{next_token.token}",
-                                        author_message=next_review.author_message,
-                                        is_sequential=True,
-                                        sequence_position=next_position + 1,
-                                        total_reviewers=len(sequence.reviewers)
-                                    )
-                                except Exception as e:
-                                    current_app.logger.debug(f"Failed to send email notification: {e}")
-                        else:
-                            # Sequence is complete
-                            sequence.status = 'completed'
-                            sequence.completed_at = datetime.utcnow()
-                            sequence_advanced = True
+            sequence_advanced, sequence = advance_sequence_for_review(review, data['recommendation'])
         
-        # Update topic status based on recommendation (only if not part of an active sequence)
-        topic = review.topic
-        if not review.sequence_id or not sequence_advanced:
-            if data['recommendation'] == 'approve':
-                topic.status = 'approved'  # Approved for publication, but not yet published
-            elif data['recommendation'] == 'approve_with_changes':
-                topic.status = 'revisions_requested'  # Major changes requested
-            elif data['recommendation'] == 'needs_more_info':
-                topic.status = 'draft'  # Send back to author for more information
-            elif data['recommendation'] == 'reject':
-                topic.status = 'rejected'
-        else:
-            # For sequences, only update status if sequence is complete or paused
-            from ..models import ReviewSequence
-            sequence = ReviewSequence.query.get(review.sequence_id)
-            if sequence and sequence.status == 'completed':
-                # All reviewers approved - topic is approved
-                topic.status = 'approved'
-            elif sequence and sequence.status == 'paused':
-                # Changes needed - topic needs revisions
-                topic.status = 'revisions_requested'
-                
-        topic.updated_at = datetime.utcnow()
+        apply_topic_status_for_review(review, data['recommendation'], sequence)
         
         db.session.commit()
         
