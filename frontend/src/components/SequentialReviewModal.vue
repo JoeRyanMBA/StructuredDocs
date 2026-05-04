@@ -199,8 +199,8 @@
 
       <div class="modal-footer seq-modal-footer">
         <div class="flex-spacer"></div>
-        <button type="button" class="btn btn-secondary" @click="closeModal" :disabled="loading">Cancel</button>
-        <button @click="createSequence" type="button" class="btn btn-primary start-seq-btn" :disabled="loading || !isFormValid">
+        <button type="button" class="btn btn-secondary" @click="closeModal" :disabled="loading">{{ mode === 'manage' ? 'Close' : 'Cancel' }}</button>
+        <button v-if="mode !== 'manage'" @click="createSequence" type="button" class="btn btn-primary start-seq-btn" :disabled="loading || !isFormValid">
           <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           <i v-else class="bi bi-check-circle me-2" aria-hidden="true"></i>
           {{ loading ? 'Creating...' : 'Start Sequential Review' }}
@@ -217,6 +217,7 @@ export default {
   name: 'SequentialReviewModal',
   props: {
     topic: { type: Object, default: null },
+    mode: { type: String, default: 'setup' },
     availableReviewers: { type: Array, default: () => [] }
   },
   data() {
@@ -241,6 +242,7 @@ export default {
   },
   computed: {
     modalTitle() {
+      if (this.mode === 'manage') return 'Manage Sequential Review'
       return this.existingSequence ? 'Manage Sequential Review' : 'Sequential Review Setup'
     },
     isFormValid() {
@@ -313,14 +315,21 @@ export default {
       try {
         if (this.topic?.id) {
           const sequences = await apiGet(`/api/sequences/topic/${this.topic.id}`)
-          const activeSequences = (sequences || []).filter(seq => seq.status === 'active')
-          const pausedSequences = (sequences || []).filter(seq => seq.status === 'paused')
-          const managedSequence = activeSequences[0] || pausedSequences[0] || null
+          const sequenceList = Array.isArray(sequences) ? sequences : []
+          const activeSequences = sequenceList.filter(seq => seq.status === 'active')
+          const pausedSequences = sequenceList.filter(seq => seq.status === 'paused')
+          const managedSequence = this.mode === 'manage'
+            ? (sequenceList[0] || null)
+            : (activeSequences[0] || pausedSequences[0] || null)
 
           if (managedSequence) {
             await this.loadSequenceDetails(managedSequence.id)
           } else {
             this.existingSequence = null
+            this.form.reviewers = []
+            if (this.mode === 'manage') {
+              this.error = 'No sequential review found for this topic.'
+            }
           }
 
           if (activeSequences.length > 0) {
@@ -329,7 +338,9 @@ export default {
             return
           }
           this.hasActiveSequence = false
-          this.error = null
+          if (this.mode !== 'manage' || managedSequence) {
+            this.error = null
+          }
         }
       } catch (e) {
         console.error('Failed to check existing sequences:', e)
@@ -474,6 +485,9 @@ export default {
       } else {
         this.existingSequence = null
       }
+    },
+    async mode() {
+      await this.checkExistingSequences()
     },
     availableReviewers(newReviewers) {
       this.reviewerChoices = this.mergeReviewerChoices([
