@@ -260,6 +260,10 @@ export default {
   },
   methods: {
     closeModal() { this.$emit('close') },
+    normalizeReviewerId(value) {
+      const numeric = Number(value)
+      return Number.isFinite(numeric) && numeric > 0 ? numeric : ''
+    },
     mergeReviewerChoices(reviewers) {
       const map = new Map()
       ;(reviewers || []).forEach((reviewer) => {
@@ -279,7 +283,7 @@ export default {
         .slice()
         .sort((a, b) => (a.step_order ?? 0) - (b.step_order ?? 0))
         .map((step, index) => ({
-          reviewer_id: step.reviewer_id || '',
+          reviewer_id: this.normalizeReviewerId(step.reviewer_id),
           step_name: step.step_name || `Review Step ${index + 1}`,
           instructions: step.instructions || ''
         }))
@@ -318,7 +322,7 @@ export default {
         const fallbackSteps = sequenceReviews.map((review, index) => ({
           id: review.id,
           step_order: review.sequence_position ?? index,
-          reviewer_id: review.reviewer_id,
+          reviewer_id: this.normalizeReviewerId(review.reviewer_id),
           reviewer_name: review.reviewer_name,
           reviewer_role: null,
           step_name: `Review Step ${(review.sequence_position ?? index) + 1}`,
@@ -349,6 +353,23 @@ export default {
       if (value === 'skipped') return 'bg-light text-dark border'
       return 'bg-secondary'
     },
+    getManagedSequenceCandidates(sequenceList) {
+      const byStatus = (status) => sequenceList.filter((seq) => seq?.status === status)
+      const others = sequenceList.filter((seq) => !['active', 'paused'].includes(seq?.status))
+      const ordered = [
+        ...byStatus('active'),
+        ...byStatus('paused'),
+        ...others
+      ]
+
+      // De-duplicate while preserving the priority order above.
+      const seen = new Set()
+      return ordered.filter((seq) => {
+        if (!seq?.id || seen.has(seq.id)) return false
+        seen.add(seq.id)
+        return true
+      })
+    },
     async checkExistingSequences() {
       try {
         if (this.topic?.id) {
@@ -356,22 +377,46 @@ export default {
           const sequenceList = Array.isArray(sequences) ? sequences : []
           const activeSequences = sequenceList.filter(seq => seq.status === 'active')
           const pausedSequences = sequenceList.filter(seq => seq.status === 'paused')
-          const managedSequence = this.mode === 'manage'
-            ? (sequenceList[0] || null)
-            : (activeSequences[0] || pausedSequences[0] || null)
+          let managedSequence = null
 
-          if (managedSequence) {
-            this.existingSequence = managedSequence
-            const hasInlineSteps = this.syncFormFromExistingSequence(managedSequence)
-            if (!hasInlineSteps) {
-              await this.loadSequenceDetails(managedSequence.id)
+          if (this.mode === 'manage') {
+            const candidates = this.getManagedSequenceCandidates(sequenceList)
+
+            for (const candidate of candidates) {
+              this.existingSequence = candidate
+              const hasInlineSteps = this.syncFormFromExistingSequence(candidate)
+              const hasResolvedSteps = hasInlineSteps || await this.loadSequenceDetails(candidate.id)
+              if (hasResolvedSteps) {
+                managedSequence = this.existingSequence
+                break
+              }
+            }
+
+            if (!managedSequence && candidates.length) {
+              // Fall back to highest-priority sequence even if no step metadata is available.
+              managedSequence = candidates[0]
+              this.existingSequence = managedSequence
+              this.syncFormFromExistingSequence(managedSequence)
             }
           } else {
+            managedSequence = activeSequences[0] || pausedSequences[0] || null
+            if (managedSequence) {
+              this.existingSequence = managedSequence
+              const hasInlineSteps = this.syncFormFromExistingSequence(managedSequence)
+              if (!hasInlineSteps) {
+                await this.loadSequenceDetails(managedSequence.id)
+              }
+            }
+          }
+
+          if (!managedSequence) {
             this.existingSequence = null
             this.form.reviewers = []
             if (this.mode === 'manage') {
               this.error = 'No sequential review found for this topic.'
             }
+          } else {
+            this.error = null
           }
 
           if (activeSequences.length > 0) {
@@ -394,10 +439,12 @@ export default {
         this.existingSequence = details
         const hasSteps = this.syncFormFromExistingSequence(details)
         if (!hasSteps) {
-          await this.hydrateStepsFromReviews(details)
+          return await this.hydrateStepsFromReviews(details)
         }
+        return true
       } catch (e) {
         console.error('Failed to load sequence details:', e)
+        return false
       }
     },
     async reloadExistingSequence() {
