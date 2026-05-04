@@ -1,7 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
-from ..models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ReviewToken
+from ..models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ProjectStakeholder, ReviewToken
 from typing import TYPE_CHECKING
 if TYPE_CHECKING:
     # For type checking only to help Pylance understand names
@@ -45,17 +45,19 @@ def get_review_details(review_id):
 def get_available_reviewers():
     """Get list of available reviewers from stakeholders"""
     try:
-        # Get stakeholders who can review
-        reviewers = Stakeholder.query.filter(
-            and_(
-                Stakeholder.can_review == True,
+        # Include stakeholders with global review permissions OR project-level review permissions.
+        reviewers = (
+            db.session.query(Stakeholder)
+            .outerjoin(ProjectStakeholder, ProjectStakeholder.stakeholder_id == Stakeholder.id)
+            .filter(
                 or_(
-                    Stakeholder.role == 'reviewer',
-                    Stakeholder.role == 'subject_matter_expert',
-                    Stakeholder.role == 'stakeholder'
+                    Stakeholder.can_review == True,
+                    ProjectStakeholder.can_review == True
                 )
             )
-        ).all()
+            .distinct()
+            .all()
+        )
         
         return jsonify([{
             'id': reviewer.id,

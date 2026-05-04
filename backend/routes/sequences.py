@@ -5,6 +5,7 @@ from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
 from ..models import db, ReviewSequence, ReviewSequenceStep, Topic, Stakeholder, Review, ReviewToken
 from sqlalchemy import and_, or_
+from sqlalchemy import inspect, text
 from ..services.review_sequences import create_review_token
 from ..utils.email_service import email_service
 
@@ -20,11 +21,36 @@ def _schema_drift_response(error):
     return None
 
 
+def _ensure_review_sequences_created_by_column():
+    """Runtime guard for older deployments missing review_sequences.created_by."""
+    try:
+        inspector = inspect(db.engine)
+        columns = {column.get('name') for column in inspector.get_columns('review_sequences')}
+        if 'created_by' in columns:
+            return None
+
+        # Add as nullable to stay compatible with existing rows on legacy databases.
+        db.session.execute(text('ALTER TABLE review_sequences ADD COLUMN created_by INTEGER'))
+        db.session.commit()
+        current_app.logger.warning('Auto-added missing review_sequences.created_by column at runtime.')
+        return None
+    except Exception as exc:
+        db.session.rollback()
+        current_app.logger.exception('Failed to auto-repair review_sequences.created_by column')
+        return jsonify({
+            'error': f'Database schema is out of date for sequential reviews and auto-repair failed: {exc}'
+        }), 500
+
+
 @sequences_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_review_sequence():
     """Create a new review sequence for a topic"""
     try:
+        schema_fix = _ensure_review_sequences_created_by_column()
+        if schema_fix:
+            return schema_fix
+
         data = request.get_json() or {}
         
         # Validate required fields
@@ -165,6 +191,10 @@ def create_review_sequence():
 def get_review_sequence(sequence_id):
     """Get details of a specific review sequence"""
     try:
+        schema_fix = _ensure_review_sequences_created_by_column()
+        if schema_fix:
+            return schema_fix
+
         sequence = ReviewSequence.query.get_or_404(sequence_id)
         return jsonify(sequence.to_dict(include_steps=True))
     except Exception as e:
@@ -178,6 +208,10 @@ def get_review_sequence(sequence_id):
 def get_topic_sequences(topic_id):
     """Get all review sequences for a topic"""
     try:
+        schema_fix = _ensure_review_sequences_created_by_column()
+        if schema_fix:
+            return schema_fix
+
         sequences = ReviewSequence.query.filter_by(topic_id=topic_id).order_by(ReviewSequence.created_at.desc()).all()
         return jsonify([seq.to_dict(include_steps=True) for seq in sequences])
     except Exception as e:
@@ -191,6 +225,10 @@ def get_topic_sequences(topic_id):
 def advance_sequence(sequence_id):
     """Manually advance a sequence to the next reviewer"""
     try:
+        schema_fix = _ensure_review_sequences_created_by_column()
+        if schema_fix:
+            return schema_fix
+
         sequence = ReviewSequence.query.get_or_404(sequence_id)
         
         if sequence.status != 'active':
@@ -230,9 +268,15 @@ def advance_sequence(sequence_id):
         
         # Create review for next step
         data = request.get_json() or {}
+        requester = Stakeholder.query.get(sequence.created_by) if sequence.created_by else None
+        if not requester:
+            requester = Stakeholder.query.filter(Stakeholder.can_review == True).order_by(Stakeholder.id.asc()).first()
+        if not requester:
+            return jsonify({'error': 'Unable to resolve requester stakeholder for this sequence'}), 400
+
         review = Review(
             topic_id=sequence.topic_id,
-            requested_by=sequence.created_by,
+            requested_by=requester.id,
             reviewer_id=next_step.reviewer_id,
             sequence_id=sequence.id,
             sequence_position=next_position,
