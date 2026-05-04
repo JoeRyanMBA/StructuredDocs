@@ -6,6 +6,7 @@ from flask import Blueprint, request, jsonify, render_template_string
 from ..models import db, ReviewToken, Review, ReviewFeedback, Topic
 from sqlalchemy.exc import IntegrityError
 from ..extensions import limiter
+from ..services.review_sequences import apply_topic_status_for_review, advance_sequence_for_review
 from ..utils.settings import get_setting
 
 review_tokens_bp = Blueprint('review_tokens_api', __name__)
@@ -167,6 +168,8 @@ def submit_review_feedback(token):
         
         review.status = 'completed'
         review.completed_at = datetime.now()
+        sequence_advanced, sequence = advance_sequence_for_review(review, overall_recommendation)
+        apply_topic_status_for_review(review, overall_recommendation, sequence)
         
         # Mark token as used
         review_token.used_at = datetime.now()
@@ -177,7 +180,8 @@ def submit_review_feedback(token):
             'success': True,
             'message': 'Feedback submitted successfully',
             'feedback_items_count': len(created_items),
-            'content_updated': edited_content is not None and overall_recommendation == 'approve_with_changes'
+            'content_updated': edited_content is not None and overall_recommendation == 'approve_with_changes',
+            'sequence_advanced': sequence_advanced,
         }), 201
         
     except Exception as e:

@@ -5,27 +5,10 @@ from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
 from ..models import db, ReviewSequence, ReviewSequenceStep, Topic, Stakeholder, Review, ReviewToken
 from sqlalchemy import and_, or_
+from ..services.review_sequences import create_review_token
 from ..utils.email_service import email_service
 
 sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
-
-
-def _create_review_token(review, reviewer_email):
-    """Create an external-access token for stakeholder review emails."""
-    token = ReviewToken(
-        token=secrets.token_urlsafe(32),
-        review_id=review.id,
-        reviewer_email=reviewer_email,
-        expires_at=(
-            review.due_date + timedelta(days=7)
-            if review.due_date
-            else datetime.utcnow() + timedelta(days=14)
-        ),
-    )
-    db.session.add(token)
-    db.session.flush()
-    return token
-
 @sequences_bp.route('/', methods=['POST'])
 @jwt_required()
 def create_review_sequence():
@@ -74,8 +57,13 @@ def create_review_sequence():
         # Create the sequence
         sequence = ReviewSequence(
             topic_id=data['topic_id'],
+            created_by=requester.id,
             name=sequence_name,
-            description=data.get('description')
+            description=data.get('description'),
+            current_position=0,
+            auto_advance_on_approve=data.get('auto_advance_on_approve', True),
+            pause_on_changes=data.get('pause_on_changes', True),
+            started_at=datetime.utcnow() if data.get('auto_start', True) else None,
         )
         
         db.session.add(sequence)
@@ -90,11 +78,12 @@ def create_review_sequence():
             
             step = ReviewSequenceStep(
                 sequence_id=sequence.id,
-                position=i,
+                step_order=i,
                 reviewer_id=reviewer_data['reviewer_id'],
                 reviewer_role=reviewer.role,
-                name=(reviewer_data.get('step_name') or '').strip() or f'Review Step {i + 1}',
-                instructions=reviewer_data.get('instructions')
+                step_name=(reviewer_data.get('step_name') or '').strip() or f'Review Step {i + 1}',
+                instructions=reviewer_data.get('instructions'),
+                status='pending',
             )
             db.session.add(step)
         
@@ -102,7 +91,7 @@ def create_review_sequence():
         if data.get('auto_start', True):
             first_step = ReviewSequenceStep.query.filter_by(
                 sequence_id=sequence.id,
-                position=0
+                step_order=0
             ).first()
             
             if first_step:
@@ -119,7 +108,10 @@ def create_review_sequence():
                 )
                 db.session.add(review)
                 db.session.flush()
-                review_token = _create_review_token(review, first_step.reviewer.email)
+                review_token = create_review_token(review, first_step.reviewer.email)
+                first_step.status = 'active'
+                first_step.review_id = review.id
+                first_step.assigned_at = datetime.utcnow()
                 topic.status = 'pending_review'
                 topic.updated_at = datetime.utcnow()
                 
@@ -223,13 +215,13 @@ def advance_sequence(sequence_id):
             reviewer_id=next_step.reviewer_id,
             sequence_id=sequence.id,
             sequence_position=next_position,
-            author_message=data.get('message', f'Sequential review (step {next_position + 1} of {len(sequence.reviewers)})'),
+            author_message=data.get('message', f'Sequential review (step {next_position + 1} of {len(sequence.steps)})'),
             priority=data.get('priority', 'medium'),
             due_date=datetime.utcnow() + timedelta(days=data.get('days_per_review', 5))
         )
         db.session.add(review)
         db.session.flush()
-        review_token = _create_review_token(review, next_step.reviewer.email)
+        review_token = create_review_token(review, next_step.reviewer.email)
         
         # Update sequence and step
         sequence.current_position = next_position
@@ -250,7 +242,7 @@ def advance_sequence(sequence_id):
                     author_message=review.author_message,
                     is_sequential=True,
                     sequence_position=next_position + 1,
-                    total_reviewers=len(sequence.reviewers)
+                    total_reviewers=len(sequence.steps)
                 )
             except Exception as e:
                 current_app.logger.debug(f"Failed to send email notification: {e}")
