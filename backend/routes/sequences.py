@@ -265,6 +265,71 @@ def get_review_sequence(sequence_id):
             return schema_response
         return jsonify({'error': str(e)}), 500
 
+
+@sequences_bp.route('/<int:sequence_id>/update', methods=['POST'])
+@jwt_required()
+def update_review_sequence(sequence_id):
+    """Update sequence metadata and reviewer steps before reviews are assigned."""
+    try:
+        schema_fix = _ensure_review_sequences_schema()
+        if schema_fix:
+            return schema_fix
+
+        sequence = ReviewSequence.query.get_or_404(sequence_id)
+        data = request.get_json() or {}
+
+        reviewers = data.get('reviewers')
+        if not isinstance(reviewers, list) or len(reviewers) == 0:
+            return jsonify({'error': 'At least one reviewer is required'}), 400
+
+        # Do not allow step edits once any review has been assigned.
+        existing_steps = ReviewSequenceStep.query.filter_by(sequence_id=sequence.id).all()
+        if any(step.review_id for step in existing_steps):
+            return jsonify({'error': 'Cannot edit reviewer steps after a sequence has started. Create a new sequence for additional reviewers.'}), 400
+
+        sequence.name = (data.get('name') or '').strip() or sequence.name
+        sequence.description = data.get('description')
+        if 'auto_advance_on_approve' in data:
+            sequence.auto_advance_on_approve = bool(data.get('auto_advance_on_approve'))
+        if 'pause_on_changes' in data:
+            sequence.pause_on_changes = bool(data.get('pause_on_changes'))
+
+        # Replace existing unassigned steps with submitted order.
+        for step in existing_steps:
+            db.session.delete(step)
+        db.session.flush()
+
+        for i, reviewer_data in enumerate(reviewers):
+            reviewer = Stakeholder.query.get(reviewer_data.get('reviewer_id'))
+            if not reviewer:
+                return jsonify({'error': f'Reviewer {reviewer_data.get("reviewer_id")} not found'}), 404
+
+            step = ReviewSequenceStep(
+                sequence_id=sequence.id,
+                step_order=i,
+                reviewer_id=reviewer.id,
+                reviewer_role=reviewer.role,
+                step_name=(reviewer_data.get('step_name') or '').strip() or f'Review Step {i + 1}',
+                instructions=reviewer_data.get('instructions'),
+                status='pending',
+            )
+            db.session.add(step)
+
+        # Reset pointer to first step for edited unstarted sequence.
+        sequence.current_position = 0
+        db.session.commit()
+
+        return jsonify({
+            'message': 'Sequence updated successfully',
+            'sequence': sequence.to_dict(include_steps=True)
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        schema_response = _schema_drift_response(e)
+        if schema_response:
+            return schema_response
+        return jsonify({'error': str(e)}), 500
+
 @sequences_bp.route('/topic/<int:topic_id>', methods=['GET'])
 @jwt_required()
 def get_topic_sequences(topic_id):

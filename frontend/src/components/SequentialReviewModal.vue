@@ -200,6 +200,17 @@
       <div class="modal-footer seq-modal-footer">
         <div class="flex-spacer"></div>
         <button type="button" class="btn btn-secondary" @click="closeModal" :disabled="loading">{{ mode === 'manage' ? 'Close' : 'Cancel' }}</button>
+        <button
+          v-if="mode === 'manage' && existingSequence"
+          @click="saveSequenceChanges"
+          type="button"
+          class="btn btn-primary"
+          :disabled="loading || form.reviewers.length === 0 || !form.reviewers.every(r => r.reviewer_id)"
+        >
+          <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+          <i v-else class="bi bi-save me-2" aria-hidden="true"></i>
+          {{ loading ? 'Saving...' : 'Save Changes' }}
+        </button>
         <button v-if="mode !== 'manage'" @click="createSequence" type="button" class="btn btn-primary start-seq-btn" :disabled="loading || !isFormValid">
           <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           <i v-else class="bi bi-check-circle me-2" aria-hidden="true"></i>
@@ -577,6 +588,34 @@ export default {
     async ensureReviewerChoices() {
       if (this.reviewerChoices.length > 0) return
       await this.loadAvailableReviewers()
+    },
+    async saveSequenceChanges() {
+      if (!this.existingSequence?.id) return
+
+      try {
+        this.loading = true
+        this.error = null
+        this.success = null
+
+        const payload = {
+          name: this.form.name || null,
+          description: this.form.description || null,
+          reviewers: this.form.reviewers,
+          auto_advance_on_approve: this.form.auto_advance_on_approve,
+          pause_on_changes: this.form.pause_on_changes
+        }
+
+        const response = await apiPost(`/api/sequences/${this.existingSequence.id}/update`, payload)
+        this.success = response?.message || 'Sequence updated successfully.'
+        if (response?.sequence) {
+          this.existingSequence = response.sequence
+          this.syncFormFromExistingSequence(response.sequence)
+        }
+      } catch (error) {
+        this.error = error?.message || 'Failed to save sequence changes.'
+      } finally {
+        this.loading = false
+      }
     },
     addReviewer() { this.form.reviewers.push({ reviewer_id: '', step_name: '', instructions: '' }) },
     removeReviewer(index) { this.form.reviewers.splice(index, 1) },
