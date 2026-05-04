@@ -15,9 +15,21 @@ sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
 def _schema_drift_response(error):
     message = str(error)
     if 'review_sequences.created_by' in message and 'does not exist' in message:
-        return jsonify({
-            'error': 'Database schema is out of date for sequential reviews. Run backend migrations (flask db upgrade) to add review_sequences.created_by.'
-        }), 500
+        try:
+            inspector = inspect(db.engine)
+            columns = {column.get('name') for column in inspector.get_columns('review_sequences')}
+            if 'created_by' not in columns:
+                return jsonify({
+                    'error': 'Database schema is out of date for sequential reviews. Run backend migrations (flask db upgrade) to add review_sequences.created_by.'
+                }), 500
+        except Exception:
+            # If we cannot inspect the schema, preserve the original drift guidance.
+            return jsonify({
+                'error': 'Database schema is out of date for sequential reviews. Run backend migrations (flask db upgrade) to add review_sequences.created_by.'
+            }), 500
+
+        # Column exists; surface the real backend error instead of a stale drift message.
+        return jsonify({'error': message}), 500
     return None
 
 
