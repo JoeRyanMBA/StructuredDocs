@@ -619,14 +619,18 @@ export default {
       if (newTopic) {
         this.resetForm()
         this.form.initial_message = `Please review "${newTopic.title}" for technical accuracy and clarity.`
-        this.reviewerChoices = this.mergeReviewerChoices(this.availableReviewers)
+        await this.loadAvailableReviewers()
         await this.checkExistingSequences()
       } else {
         this.existingSequence = null
+        this.reviewerChoices = []
       }
     },
     async mode() {
       await this.checkExistingSequences()
+    },
+    async topicProjectIds() {
+      await this.loadAvailableReviewers()
     },
     availableReviewers(newReviewers) {
       this.reviewerChoices = this.mergeReviewerChoices([
