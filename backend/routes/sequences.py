@@ -1,11 +1,30 @@
-from flask import Blueprint, request, jsonify
+import secrets
+
+from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from datetime import datetime, timedelta
-from ..models import db, ReviewSequence, ReviewSequenceStep, Topic, Stakeholder, Review
+from ..models import db, ReviewSequence, ReviewSequenceStep, Topic, Stakeholder, Review, ReviewToken
 from sqlalchemy import and_, or_
 from ..utils.email_service import email_service
 
 sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
+
+
+def _create_review_token(review, reviewer_email):
+    """Create an external-access token for stakeholder review emails."""
+    token = ReviewToken(
+        token=secrets.token_urlsafe(32),
+        review_id=review.id,
+        reviewer_email=reviewer_email,
+        expires_at=(
+            review.due_date + timedelta(days=7)
+            if review.due_date
+            else datetime.utcnow() + timedelta(days=14)
+        ),
+    )
+    db.session.add(token)
+    db.session.flush()
+    return token
 
 @sequences_bp.route('/', methods=['POST'])
 @jwt_required()
@@ -99,6 +118,8 @@ def create_review_sequence():
                     due_date=datetime.utcnow() + timedelta(days=data.get('days_per_review', 5))
                 )
                 db.session.add(review)
+                db.session.flush()
+                review_token = _create_review_token(review, first_step.reviewer.email)
                 topic.status = 'pending_review'
                 topic.updated_at = datetime.utcnow()
                 
@@ -111,7 +132,7 @@ def create_review_sequence():
                             topic_title=topic.title,
                             author_name=requester.name,
                             due_date=review.due_date,
-                            review_url=f"/reviews",
+                            review_url=f"/review/{review_token.token}",
                             author_message=review.author_message,
                             is_sequential=True,
                             sequence_position=1,
@@ -208,6 +229,7 @@ def advance_sequence(sequence_id):
         )
         db.session.add(review)
         db.session.flush()
+        review_token = _create_review_token(review, next_step.reviewer.email)
         
         # Update sequence and step
         sequence.current_position = next_position
@@ -224,7 +246,7 @@ def advance_sequence(sequence_id):
                     topic_title=sequence.topic.title,
                     author_name=sequence.creator.name if sequence.creator else 'Unknown',
                     due_date=review.due_date,
-                    review_url=f"/reviews/{review.id}",
+                    review_url=f"/review/{review_token.token}",
                     author_message=review.author_message,
                     is_sequential=True,
                     sequence_position=next_position + 1,
