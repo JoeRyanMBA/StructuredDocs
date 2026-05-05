@@ -295,6 +295,66 @@ def test_token_feedback_with_changes_survives_sequence_db_error(client, app, see
         assert topic.status == 'revisions_requested'
 
 
+def test_review_token_allows_unused_legacy_tokens_beyond_old_limit(client, app, seeded_data):
+    with app.app_context():
+        review = Review(
+            topic_id=seeded_data['topic_id'],
+            requested_by=seeded_data['requester_id'],
+            reviewer_id=seeded_data['first_reviewer_id'],
+            status='pending',
+        )
+        db.session.add(review)
+        db.session.flush()
+
+        token = ReviewToken(
+            token='legacy-access-token',
+            review_id=review.id,
+            reviewer_email=seeded_data['first_reviewer_email'],
+            expires_at=datetime.utcnow() + timedelta(days=7),
+            access_count=10,
+            max_access_count=10,
+        )
+        db.session.add(token)
+        db.session.commit()
+
+    response = client.get('/api/review/legacy-access-token')
+
+    assert response.status_code == 200, response.data
+    payload = response.get_json()
+    assert payload['token_info']['max_access_count'] == 100
+
+
+def test_review_token_does_not_count_immediate_reload_as_new_access(client, app, seeded_data):
+    with app.app_context():
+        review = Review(
+            topic_id=seeded_data['topic_id'],
+            requested_by=seeded_data['requester_id'],
+            reviewer_id=seeded_data['first_reviewer_id'],
+            status='pending',
+        )
+        db.session.add(review)
+        db.session.flush()
+
+        token = ReviewToken(
+            token='reload-window-token',
+            review_id=review.id,
+            reviewer_email=seeded_data['first_reviewer_email'],
+            expires_at=datetime.utcnow() + timedelta(days=7),
+        )
+        db.session.add(token)
+        db.session.commit()
+
+    first_response = client.get('/api/review/reload-window-token')
+    second_response = client.get('/api/review/reload-window-token')
+
+    assert first_response.status_code == 200, first_response.data
+    assert second_response.status_code == 200, second_response.data
+
+    with app.app_context():
+        token = ReviewToken.query.filter_by(token='reload-window-token').one()
+        assert token.access_count == 1
+
+
 def test_manual_advance_uses_next_available_step_when_order_has_gap(client, app, auth_header, seeded_data, monkeypatch):
     captured = {}
 
