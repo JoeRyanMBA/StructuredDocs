@@ -38,6 +38,13 @@ def _send_sequential_assignment_email(sequence, next_step, next_review, next_tok
         return False
 
     email_sent = False
+    if not next_token:
+        current_app.logger.warning(
+            "Cannot send sequential assignment email: missing token for sequence_id=%s step=%s",
+            sequence.id,
+            next_position,
+        )
+        return False
 
     try:
         email_sent = bool(email_service.send_review_request(
@@ -156,7 +163,9 @@ def advance_sequence_for_review(review, recommendation):
     db.session.add(next_review)
     db.session.flush()
 
-    next_token = create_review_token(next_review, next_step.reviewer.email)
+    reviewer = next_step.reviewer
+    reviewer_email = (reviewer.email or '').strip() if reviewer else ''
+    next_token = create_review_token(next_review, reviewer_email) if reviewer_email else None
 
     sequence.current_position = next_position
     next_step.status = 'active'
