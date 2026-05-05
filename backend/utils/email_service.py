@@ -137,14 +137,14 @@ class EmailService:
     <tr><td align="center">
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <tr>
-          <td style="background:#005B6E;padding:20px 28px;border-radius:8px 8px 0 0;">
+          <td style="padding:20px 28px 12px;">
             <img src="{logo_url}" alt="StructuredDocs" height="36"
                  style="display:block;margin-bottom:10px;max-width:220px;" />
-            <p style="color:#fff;margin:0;font-size:20px;font-weight:600;">{title}</p>
+            <p style="color:#1f2933;margin:0;font-size:20px;font-weight:600;">{title}</p>
           </td>
         </tr>
         <tr>
-          <td style="background:#fff;padding:28px;border:1px solid #dee2e6;border-top:none;border-radius:0 0 8px 8px;">
+          <td style="background:#fff;padding:28px;border:1px solid #dee2e6;border-radius:8px;">
             {body}
           </td>
         </tr>
