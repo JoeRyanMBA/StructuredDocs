@@ -200,20 +200,32 @@ def submit_review_feedback(token):
                 sequence.status = 'paused'
                 sequence.paused_at = datetime.now()
 
-        apply_topic_status_for_review(review, overall_recommendation, sequence)
+        topic_status_warning = None
+        try:
+            apply_topic_status_for_review(review, overall_recommendation, sequence)
+        except Exception:
+            current_app.logger.exception(
+                'Topic status update failed while submitting token feedback for review_id=%s',
+                review.id,
+            )
+            topic_status_warning = 'Review submitted, but topic status update needs manual verification.'
         
         # Mark token as used
         review_token.used_at = datetime.now()
         
         db.session.commit()
         
-        return jsonify({
+        response_payload = {
             'success': True,
             'message': 'Feedback submitted successfully',
             'feedback_items_count': len(created_items),
             'content_updated': edited_content is not None and overall_recommendation == 'approve_with_changes',
             'sequence_advanced': sequence_advanced,
-        }), 201
+        }
+        if topic_status_warning:
+            response_payload['warning'] = topic_status_warning
+
+        return jsonify(response_payload), 201
         
     except IntegrityError as e:
         db.session.rollback()
