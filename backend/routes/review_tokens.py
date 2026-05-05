@@ -175,6 +175,7 @@ def submit_review_feedback(token):
         
         # Update review with overall feedback
         review = review_token.review
+        review_id = review.id
         review.recommendation = overall_recommendation
         if overall_feedback:
             review.feedback = overall_feedback
@@ -187,43 +188,56 @@ def submit_review_feedback(token):
         review.status = 'completed'
         review.completed_at = datetime.now()
 
-        sequence_advanced = False
-        sequence = review.sequence
-        try:
-            sequence_advanced, sequence = advance_sequence_for_review(review, overall_recommendation)
-        except Exception:
-            current_app.logger.exception(
-                'Sequence advance failed while submitting token feedback for review_id=%s',
-                review.id,
-            )
-            if sequence and sequence.status == 'active':
-                sequence.status = 'paused'
-                sequence.paused_at = datetime.now()
-
-        topic_status_warning = None
-        try:
-            apply_topic_status_for_review(review, overall_recommendation, sequence)
-        except Exception:
-            current_app.logger.exception(
-                'Topic status update failed while submitting token feedback for review_id=%s',
-                review.id,
-            )
-            topic_status_warning = 'Review submitted, but topic status update needs manual verification.'
-        
         # Mark token as used
         review_token.used_at = datetime.now()
         
         db.session.commit()
-        
+
+        warnings = []
         response_payload = {
             'success': True,
             'message': 'Feedback submitted successfully',
             'feedback_items_count': len(created_items),
             'content_updated': edited_content is not None and overall_recommendation == 'approve_with_changes',
-            'sequence_advanced': sequence_advanced,
+            'sequence_advanced': False,
         }
-        if topic_status_warning:
-            response_payload['warning'] = topic_status_warning
+
+        # Run follow-up workflow in separate transactions so a sequence/topic
+        # issue does not invalidate the already-saved review submission.
+        review = db.session.get(Review, review_id)
+        sequence = review.sequence if review else None
+
+        if review and review.sequence_id:
+            try:
+                sequence_advanced, sequence = advance_sequence_for_review(review, overall_recommendation)
+                db.session.commit()
+                response_payload['sequence_advanced'] = sequence_advanced
+                review = db.session.get(Review, review_id)
+                sequence = review.sequence if review else None
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception(
+                    'Sequence advance failed while submitting token feedback for review_id=%s',
+                    review_id,
+                )
+                warnings.append('Review submitted, but sequential review progression needs manual verification.')
+                review = db.session.get(Review, review_id)
+                sequence = None
+
+        if review:
+            try:
+                apply_topic_status_for_review(review, overall_recommendation, sequence)
+                db.session.commit()
+            except Exception:
+                db.session.rollback()
+                current_app.logger.exception(
+                    'Topic status update failed while submitting token feedback for review_id=%s',
+                    review_id,
+                )
+                warnings.append('Review submitted, but topic status update needs manual verification.')
+
+        if warnings:
+            response_payload['warning'] = ' '.join(dict.fromkeys(warnings))
 
         return jsonify(response_payload), 201
         
