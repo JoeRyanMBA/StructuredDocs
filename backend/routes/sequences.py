@@ -363,7 +363,10 @@ def get_topic_sequences(topic_id):
             return schema_fix
 
         sequences = ReviewSequence.query.filter_by(topic_id=topic_id).order_by(ReviewSequence.created_at.desc()).all()
-        return jsonify([seq.to_dict(include_steps=True) for seq in sequences])
+        # The topic listing endpoints only need summary sequence metadata. Avoid
+        # serializing nested steps here so badge/status checks still work even if
+        # a legacy or partially repaired step row cannot be expanded.
+        return jsonify([seq.to_dict() for seq in sequences])
     except Exception as e:
         schema_response = _schema_drift_response(e)
         if schema_response:
