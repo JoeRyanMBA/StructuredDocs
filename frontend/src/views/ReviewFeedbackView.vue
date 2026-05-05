@@ -7,6 +7,10 @@
     <div v-else-if="error" class="alert alert-danger" role="alert">{{ error }}</div>
 
     <div v-else class="review-feedback-content">
+      <div class="dashboard-header">
+        <h1>Incorporate Feedback <HelpIcon feature="reviews.feedback" /></h1>
+        <p class="subtitle">Review requested changes and update the topic content.</p>
+      </div>
 
       <!-- Breadcrumb -->
       <nav aria-label="breadcrumb" class="mb-3">
@@ -18,46 +22,40 @@
         </ol>
       </nav>
 
-      <!-- Topic info bar -->
-      <div class="card mb-4">
-        <div class="card-header bg-primary-subtle text-primary-emphasis">
-          <h3 class="card-title mb-0">
-            <i class="bi bi-file-text me-2"></i>{{ topic?.title }} <HelpIcon feature="reviews.feedback" />
-          </h3>
-        </div>
-        <div class="card-body">
-          <div class="row">
-            <div class="col-md-6">
-              <p class="mb-1"><strong>Status:</strong> {{ formatStatus(topic?.status) }}</p>
-              <p class="mb-1"><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
+      <div class="summary-card mb-4">
+        <div class="summary-grid">
+          <div class="summary-main">
+            <p class="summary-topic"><strong>Topic:</strong> {{ topic?.title || '—' }}</p>
+            <div class="summary-meta">
+              <span><strong>Status:</strong> {{ formatStatus(topic?.status) }}</span>
+              <span><strong>Reviewer:</strong> {{ review?.reviewer_name || '—' }}</span>
+              <span><strong>Priority:</strong> {{ review?.priority || '—' }}</span>
             </div>
-            <div class="col-md-6">
-              <p class="mb-1"><strong>Last Updated:</strong> {{ formatDate(topic?.updated_at) }}</p>
-              <p class="mb-1"><strong>Priority:</strong> {{ review?.priority || '—' }}</p>
-            </div>
+          </div>
+          <div class="summary-side">
+            <p class="mb-1"><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
+            <p class="mb-1"><strong>Requester Email:</strong> {{ review?.requester_email || '—' }}</p>
+            <p class="mb-0"><strong>Last Updated:</strong> {{ formatDate(topic?.updated_at) }}</p>
           </div>
         </div>
       </div>
 
       <!-- Reviewer's overall feedback -->
-      <div class="card mb-4">
-        <div class="card-header bg-warning-subtle text-warning-emphasis">
+      <div class="card section-card mb-4">
+        <div class="card-header section-card-header">
           <h4 class="card-title mb-0">
             <i class="bi bi-chat-square-text me-2"></i>
-            Reviewer: {{ review?.reviewer_name }}
-            <span :class="recommendationBadgeClass" class="ms-2">
-              {{ formatRecommendation(review?.recommendation) }}
-            </span>
+            Review Feedback
           </h4>
         </div>
         <div class="card-body">
           <div v-if="review?.feedback" class="mb-3">
             <h6 class="fw-semibold">Comments:</h6>
-            <div class="p-3 bg-light border-start border-warning border-4 rounded">{{ review.feedback }}</div>
+            <div class="feedback-note feedback-note--warning">{{ review.feedback }}</div>
           </div>
           <div v-if="review?.review_notes" class="mb-3">
             <h6 class="fw-semibold">Internal Notes:</h6>
-            <div class="p-3 bg-light border-start border-info border-4 rounded">{{ review.review_notes }}</div>
+            <div class="feedback-note feedback-note--info">{{ review.review_notes }}</div>
           </div>
           <p v-if="!review?.feedback && !review?.review_notes" class="text-muted fst-italic mb-0">
             No general feedback provided.
@@ -66,12 +64,12 @@
       </div>
 
       <!-- ── Word-level content diff ── -->
-      <div v-if="review?.edited_content" class="card mb-4">
-        <div class="card-header" style="background:#e8f4fd;color:#0c4a6e;">
+      <div v-if="review?.edited_content" class="card section-card mb-4">
+        <div class="card-header section-card-header">
           <h4 class="card-title mb-0">
             <i class="bi bi-pencil-square me-2"></i>
             Content Edits
-            <span class="ms-2 text-muted" style="font-size:0.875rem;">Select a change to accept or reject.</span>
+            <span class="section-hint">Select a change to accept or reject.</span>
           </h4>
         </div>
         <div class="card-body">
@@ -84,8 +82,8 @@
       </div>
 
       <!-- ── Structured feedback items ── -->
-      <div v-if="review?.feedback_items?.length" class="card mb-4">
-        <div class="card-header bg-danger-subtle text-danger-emphasis">
+      <div v-if="review?.feedback_items?.length" class="card section-card mb-4">
+        <div class="card-header section-card-header">
           <h4 class="card-title mb-0">
             <i class="bi bi-list-check me-2"></i>
             Requested Changes ({{ review.feedback_items.length }})
@@ -169,12 +167,22 @@
       <!-- ── Apply / action bar ── -->
       <div class="action-bar">
         <button
-          v-if="review?.edited_content || review?.feedback_items?.length"
-          @click="applyChanges"
+          v-if="hasReviewUpdates && canAdvanceSequence"
+          @click="applyChanges({ advanceSequence: true })"
           class="btn btn-primary btn-lg me-3"
           :disabled="applying"
         >
-          <span v-if="applying" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          <span v-if="applying && applyMode === 'advance'" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
+          <i v-else class="bi bi-fast-forward-circle me-2"></i>
+          Update Topic & Advance Review
+        </button>
+        <button
+          v-if="hasReviewUpdates"
+          @click="applyChanges()"
+          class="btn btn-outline-primary btn-lg me-3"
+          :disabled="applying"
+        >
+          <span v-if="applying && applyMode === 'update'" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
           <i v-else class="bi bi-check2-circle me-2"></i>
           Update Topic
         </button>
@@ -195,9 +203,8 @@
 </template>
 
 <script>
-import axios from 'axios'
 import { marked } from 'marked'
-import { apiGet, apiPut } from '@/api/base'
+import { apiGet, apiPost, apiPut } from '@/api/base'
 import ReviewDiffEditor from '@/components/ReviewDiffEditor.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -219,6 +226,7 @@ export default {
       // Per feedback-item responses: { [itemId]: { status, response } }
       itemResponses:   {},
       applying:        false,
+      applyMode:       null,
       applyError:      null,
       applySuccess:    false,
     }
@@ -230,12 +238,11 @@ export default {
       const md = this.topic.content.replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
       return marked.parse(md)
     },
-    recommendationBadgeClass() {
-      const map = {
-        approve: 'badge bg-success', approve_with_changes: 'badge bg-warning',
-        needs_more_info: 'badge bg-info', reject: 'badge bg-danger'
-      }
-      return map[this.review?.recommendation] || 'badge bg-secondary'
+    hasReviewUpdates() {
+      return Boolean(this.review?.edited_content || this.review?.feedback_items?.length)
+    },
+    canAdvanceSequence() {
+      return Boolean(this.review?.sequence_id)
     }
   },
   async mounted() {
@@ -273,8 +280,30 @@ export default {
       }
     },
 
-    async applyChanges() {
+    async advanceSequentialReview() {
+      if (!this.review?.sequence_id) return null
+
+      const sequence = await apiGet(`/api/sequences/${this.review.sequence_id}`)
+      const status = sequence?.status
+
+      if (status === 'completed') {
+        return sequence
+      }
+
+      if (status === 'paused') {
+        await apiPost(`/api/sequences/${this.review.sequence_id}/resume`, {})
+      } else if (status !== 'active') {
+        throw new Error(`Sequential review is ${this.formatStatus(status)} and cannot be advanced from this page.`)
+      }
+
+      return apiPost(`/api/sequences/${this.review.sequence_id}/advance`, {
+        message: `Topic updated after incorporating feedback for "${this.topic?.title || 'this topic'}".`
+      })
+    },
+
+    async applyChanges({ advanceSequence = false } = {}) {
       this.applying     = true
+      this.applyMode    = advanceSequence ? 'advance' : 'update'
       this.applyError   = null
       this.applySuccess = false
       try {
@@ -297,6 +326,10 @@ export default {
           })
         ))
 
+        if (advanceSequence && this.review?.sequence_id) {
+          await this.advanceSequentialReview()
+        }
+
         this.applySuccess = true
         this.$router.push({ name: 'IncorporateFeedback' })
       } catch (err) {
@@ -304,6 +337,7 @@ export default {
         this.applyError = err.message || 'Failed to update topic. Please try again.'
       } finally {
         this.applying = false
+        this.applyMode = null
       }
     },
 
@@ -348,7 +382,87 @@ export default {
 .review-feedback-container {
   max-width: 1100px;
   margin: 0 auto;
-  padding: 1.5rem;
+  padding: 2rem 1.5rem;
+}
+
+.dashboard-header {
+  margin-bottom: 1rem;
+}
+
+.dashboard-header h1 {
+  margin: 0;
+  font-size: 2rem;
+  font-weight: 700;
+  color: var(--text-dark-gray, #2c3e50);
+}
+
+.summary-card {
+  background: var(--bg-white, #fff);
+  border: 1px solid var(--border-light-gray, #dee2e6);
+  border-radius: var(--border-radius-lg, 10px);
+  box-shadow: var(--box-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+  padding: 1.25rem 1.5rem;
+}
+
+.summary-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.4fr) minmax(260px, 1fr);
+  gap: 1.25rem 2rem;
+  align-items: start;
+}
+
+.summary-topic {
+  margin: 0 0 0.75rem;
+  font-size: 1.1rem;
+  color: var(--text-dark-gray, #2c3e50);
+}
+
+.summary-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.75rem 1.25rem;
+  color: var(--text-medium-gray, #495057);
+  font-size: 0.95rem;
+}
+
+.summary-side {
+  color: var(--text-medium-gray, #495057);
+  font-size: 0.95rem;
+}
+
+.section-card {
+  border: 1px solid var(--border-light-gray, #dee2e6);
+  border-radius: var(--border-radius-lg, 10px);
+  box-shadow: var(--box-shadow-sm, 0 1px 3px rgba(0, 0, 0, 0.08));
+}
+
+.section-card-header {
+  background: var(--bg-white, #fff);
+  color: var(--text-dark-gray, #2c3e50);
+  border-bottom: 1px solid var(--border-light-gray, #dee2e6);
+}
+
+.section-hint {
+  margin-left: 0.5rem;
+  color: var(--text-medium-gray, #6c757d);
+  font-size: 0.875rem;
+  font-weight: 400;
+}
+
+.feedback-note {
+  padding: 0.875rem 1rem;
+  border-radius: 8px;
+  background: #f8f9fa;
+  border-left: 4px solid #cbd5e1;
+  color: var(--text-dark-gray, #2c3e50);
+}
+
+.feedback-note--warning {
+  border-left-color: #f59e0b;
+}
+
+.feedback-note--info {
+  border-left-color: #0ea5e9;
 }
 
 .feedback-item {
@@ -427,5 +541,11 @@ export default {
 @media (max-width: 600px) {
   .action-bar { flex-direction: column; }
   .action-bar .btn { width: 100%; }
+}
+
+@media (max-width: 768px) {
+  .summary-grid {
+    grid-template-columns: 1fr;
+  }
 }
 </style>

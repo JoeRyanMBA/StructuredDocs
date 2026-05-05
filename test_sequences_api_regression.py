@@ -438,3 +438,49 @@ def test_manual_advance_uses_next_available_step_when_order_has_gap(client, app,
         assert gap_step.status == 'active'
         assert gap_step.review_id == reviews[-1].id
         assert captured['reviewer_email'] == 'second-reviewer@example.com'
+
+
+def test_topic_sequences_summary_does_not_require_step_serialization(client, app, auth_header, seeded_data, monkeypatch):
+    with app.app_context():
+        from backend.models import ReviewSequence, ReviewSequenceStep
+
+        sequence = ReviewSequence(
+            topic_id=seeded_data['topic_id'],
+            created_by=seeded_data['requester_id'],
+            name='Summary Only Sequence',
+            status='paused',
+            current_position=0,
+            auto_advance_on_approve=True,
+            pause_on_changes=True,
+        )
+        db.session.add(sequence)
+        db.session.flush()
+
+        db.session.add(ReviewSequenceStep(
+            sequence_id=sequence.id,
+            step_order=0,
+            reviewer_id=seeded_data['first_reviewer_id'],
+            reviewer_role='reviewer',
+            step_name='Exploding Step',
+            status='pending',
+        ))
+        db.session.commit()
+
+        topic_id = seeded_data['topic_id']
+
+    def _explode(*_args, **_kwargs):
+        raise AssertionError('Step serialization should not run for topic sequence summaries')
+
+    monkeypatch.setattr('backend.models.ReviewSequenceStep.to_dict', _explode)
+
+    response = client.get(
+        f'/api/sequences/topic/{topic_id}',
+        headers=auth_header,
+    )
+
+    assert response.status_code == 200, response.data
+    payload = response.get_json()
+    assert len(payload) == 1
+    assert payload[0]['name'] == 'Summary Only Sequence'
+    assert payload[0]['status'] == 'paused'
+    assert 'steps' not in payload[0]
