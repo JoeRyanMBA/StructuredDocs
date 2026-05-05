@@ -124,8 +124,13 @@ def create_app(environ=None, start_response=None):
     print(f"Environment PORT: {os.environ.get('PORT', 'not set')}")
     print(f"Environment variables: {[k for k in os.environ.keys() if 'PORT' in k or 'HOST' in k or 'DATABASE' in k]}")
 
-    # CRITICAL: Check if essential files exist
-    essential_files = ['.enable_blueprints', 'frontend/dist/index.html', 'frontend/dist/favicon.ico']
+    # CRITICAL: Check if essential files exist.
+    # In API-only/containerized deployments, frontend static assets are served by a
+    # separate container and may not exist in the backend runtime.
+    require_frontend_dist = os.environ.get('REQUIRE_FRONTEND_DIST') == '1'
+    essential_files = ['.enable_blueprints']
+    if require_frontend_dist:
+        essential_files.extend(['frontend/dist/index.html', 'frontend/dist/favicon.ico'])
     for file_path in essential_files:
         if os.path.exists(file_path):
             print(f"✅ {file_path} exists")
@@ -134,7 +139,7 @@ def create_app(environ=None, start_response=None):
 
     # EMERGENCY FALLBACK: If critical files missing, create minimal app
     if not all(os.path.exists(f) for f in essential_files):
-        print("⚠️  Critical files missing! Creating emergency fallback app...")
+        print(f"⚠️  Critical files missing (require_frontend_dist={require_frontend_dist})! Creating emergency fallback app...")
         app = Flask(__name__)
 
         @app.route('/')
