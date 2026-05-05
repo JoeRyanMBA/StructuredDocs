@@ -155,8 +155,8 @@
                 v-if="['draft', 'pending_review', 'revisions_requested'].includes(t.status)"
                 @click="openSequentialReview(t)"
                 class="btn-icon btn-seq-review"
-                :title="t.status === 'draft' ? 'Sequential review setup' : 'Manage sequential review'"
-                :aria-label="t.status === 'draft' ? 'Sequential review setup' : 'Manage sequential review'"
+                :title="sequentialActionLabel(t)"
+                :aria-label="sequentialActionLabel(t)"
               >
                 <i class="bi bi-arrow-right-circle"></i>
               </button>
@@ -561,6 +561,17 @@ export default {
       const step = typeof sequence.position === 'number' ? `Current step: ${sequence.position + 1}` : ''
       return `${name}${this.formatStatus(sequence.status)}${step ? ` | ${step}` : ''}`
     },
+
+    hasExistingSequence(topic) {
+      const info = this.topicSequenceStatus[String(topic?.id)]
+      return !!info && !['none', 'unknown'].includes(info.status)
+    },
+
+    sequentialActionLabel(topic) {
+      return this.hasExistingSequence(topic) || topic?.status !== 'draft'
+        ? 'Manage sequential review'
+        : 'Sequential review setup'
+    },
     
     clearFilters() {
       this.searchQuery = ''
@@ -902,7 +913,7 @@ export default {
       
       // Use Vue reactivity instead of Bootstrap modal to avoid overlay issues
       this.selectedTopicForSequence = topic
-      this.sequentialModalMode = topic?.status === 'draft' ? 'setup' : 'manage'
+      this.sequentialModalMode = this.hasExistingSequence(topic) || topic?.status !== 'draft' ? 'manage' : 'setup'
       this.showSequentialModal = true
     },
 
