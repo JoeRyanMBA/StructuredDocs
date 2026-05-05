@@ -380,7 +380,9 @@ export default {
     canSubmit() {
       const hasOverallFeedback = !!(this.overallFeedback || '').trim()
       const hasFeedbackItemComment = (this.feedbackItems || []).some(item => !!(item?.comment || '').trim())
-      return !!this.overallRecommendation && (hasOverallFeedback || hasFeedbackItemComment || this.hasChanges)
+      if (!this.overallRecommendation) return false
+      if (this.overallRecommendation === 'approve') return true
+      return hasOverallFeedback || hasFeedbackItemComment || this.hasChanges
     }
   },
 
