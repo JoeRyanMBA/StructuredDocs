@@ -168,7 +168,7 @@
         <button
           v-if="hasReviewUpdates && canAdvanceSequence"
           @click="applyChanges({ advanceSequence: true })"
-          class="btn btn-primary btn-lg me-3"
+          class="btn btn-primary"
           :disabled="applying"
         >
           <span v-if="applying && applyMode === 'advance'" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
@@ -178,17 +178,17 @@
         <button
           v-if="hasReviewUpdates"
           @click="applyChanges()"
-          class="btn btn-outline-primary btn-lg me-3"
+          class="btn btn-secondary"
           :disabled="applying"
         >
           <span v-if="applying && applyMode === 'update'" class="spinner-border spinner-border-sm me-2" aria-hidden="true"></span>
           <i v-else class="bi bi-check2-circle me-2"></i>
           Update Topic
         </button>
-        <button @click="editTopicManually" class="btn btn-outline-secondary btn-lg me-3">
+        <button @click="editTopicManually" class="btn btn-secondary">
           <i class="bi bi-pencil-square me-2"></i>Open in Editor
         </button>
-        <button @click="goBack" class="btn btn-outline-secondary btn-lg">
+        <button @click="goBack" class="btn btn-secondary">
           <i class="bi bi-arrow-left me-2"></i>Back to Reviews
         </button>
       </div>
