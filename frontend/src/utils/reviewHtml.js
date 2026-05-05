@@ -11,6 +11,14 @@ const MEANINGFUL_VOID_TAGS = new Set([
   'object',
 ])
 
+function unwrapNode(node) {
+  if (!node?.parentNode) return
+  while (node.firstChild) {
+    node.parentNode.insertBefore(node.firstChild, node)
+  }
+  node.remove()
+}
+
 function hasMeaningfulContent(node) {
   if (!node) return false
 
@@ -43,6 +51,38 @@ function isIgnorableTrailingNode(node) {
   return !hasMeaningfulContent(node)
 }
 
+function normalizeListMarkup(container) {
+  container.querySelectorAll('.ql-ui').forEach((node) => node.remove())
+
+  container.querySelectorAll('[contenteditable]').forEach((node) => {
+    node.removeAttribute('contenteditable')
+  })
+
+  container.querySelectorAll('[data-list]').forEach((node) => {
+    node.removeAttribute('data-list')
+  })
+
+  container.querySelectorAll('li').forEach((item) => {
+    Array.from(item.children).forEach((child) => {
+      const tagName = child.tagName?.toLowerCase()
+      if (tagName === 'p' || tagName === 'div') {
+        unwrapNode(child)
+      }
+    })
+
+    Array.from(item.childNodes).forEach((child) => {
+      if (
+        child.nodeType === Node.ELEMENT_NODE &&
+        child.tagName.toLowerCase() === 'span' &&
+        !child.attributes.length &&
+        !hasMeaningfulContent(child)
+      ) {
+        child.remove()
+      }
+    })
+  })
+}
+
 export function normalizeReviewHtml(html) {
   if (!html) return ''
 
@@ -50,10 +90,11 @@ export function normalizeReviewHtml(html) {
   const container = doc.body.firstElementChild
   if (!container) return ''
 
+  normalizeListMarkup(container)
+
   while (container.lastChild && isIgnorableTrailingNode(container.lastChild)) {
     container.removeChild(container.lastChild)
   }
 
   return container.innerHTML.trim()
 }
-

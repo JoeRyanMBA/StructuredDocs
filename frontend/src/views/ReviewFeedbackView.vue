@@ -34,7 +34,6 @@
           </div>
           <div class="summary-side">
             <p class="mb-1"><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
-            <p class="mb-1"><strong>Requester Email:</strong> {{ review?.requester_email || '—' }}</p>
             <p class="mb-0"><strong>Last Updated:</strong> {{ formatDate(topic?.updated_at) }}</p>
           </div>
         </div>

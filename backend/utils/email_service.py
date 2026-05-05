@@ -138,9 +138,17 @@ class EmailService:
       <table width="600" cellpadding="0" cellspacing="0" style="max-width:600px;width:100%;">
         <tr>
           <td style="padding:20px 28px 12px;">
-            <img src="{logo_url}" alt="StructuredDocs" height="36"
-                 style="display:block;margin-bottom:10px;max-width:220px;" />
-            <p style="color:#1f2933;margin:0;font-size:20px;font-weight:600;">{title}</p>
+            <table width="100%" cellpadding="0" cellspacing="0" role="presentation">
+              <tr>
+                <td valign="middle" align="left" style="width:220px;padding-right:16px;">
+                  <img src="{logo_url}" alt="StructuredDocs" height="36"
+                       style="display:block;max-width:220px;" />
+                </td>
+                <td valign="middle" align="right">
+                  <p style="color:#1f2933;margin:0;font-size:20px;font-weight:600;">{title}</p>
+                </td>
+              </tr>
+            </table>
           </td>
         </tr>
         <tr>
