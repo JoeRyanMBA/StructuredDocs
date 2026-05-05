@@ -19,7 +19,7 @@
               v-model="searchQuery"
               type="text"
               class="filter-input"
-              placeholder="Search topics..."
+              placeholder="Search topics or #ID..."
               @input="applyFilters"
             />
           </div>
@@ -448,6 +448,7 @@ export default {
       if (this.searchQuery) {
         const query = this.searchQuery.toLowerCase()
         filtered = filtered.filter(topic => 
+          String(topic.id).includes(query.replace(/^#/, '')) ||
           topic.title.toLowerCase().includes(query) ||
           (topic.summary && topic.summary.toLowerCase().includes(query)) ||
           (topic.collection_name && topic.collection_name.toLowerCase().includes(query))

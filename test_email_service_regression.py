@@ -86,6 +86,9 @@ def test_email_layout_uses_background_free_header():
     assert 'color:#1f2933' in html
     assert 'border-radius:8px;' in html
     assert 'border-top:none' not in html
+    assert 'align="left" style="width:220px;padding-right:16px;"' in html
+    assert 'align="right"' in html
+    assert 'margin-bottom:10px' not in html
 
 
 def test_sequential_review_request_email_explains_sme_gate():
