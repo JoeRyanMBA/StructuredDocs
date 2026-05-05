@@ -75,3 +75,14 @@ def test_legacy_smtp_env_aliases_and_sender_fallback(monkeypatch):
     assert service.smtp_server == 'smtp.legacy.example.com'
     assert service.smtp_username == 'legacy-user'
     assert service.from_email == 'noreply@legacy.example.com'
+
+
+def test_email_layout_uses_background_free_header():
+    service = EmailService()
+
+    html = service._email_layout('Review Request', '<p>Hello</p>', 'https://example.com')
+
+    assert 'background:#005B6E' not in html
+    assert 'color:#1f2933' in html
+    assert 'border-radius:8px;' in html
+    assert 'border-top:none' not in html
