@@ -102,11 +102,19 @@ jobs:
               exit 1
             fi
 
-            $DC --env-file /opt/structureddocs/.env -f docker-compose.prod.yml up -d --build
-            $DC --env-file /opt/structureddocs/.env -f docker-compose.prod.yml ps
+            DOMAIN="${DOMAIN:-}"
+            if [[ -z "$DOMAIN" ]]; then
+              FRONTEND_URL="$(grep -E '^FRONTEND_URL=' /opt/structureddocs/.env | tail -n1 | cut -d= -f2-)"
+              DOMAIN="$(FRONTEND_URL="$FRONTEND_URL" python3 -c 'import os; from urllib.parse import urlparse; print(urlparse(os.environ["FRONTEND_URL"]).hostname or "")')"
+            fi
+            : "${DOMAIN:?DOMAIN is required; set DOMAIN in /opt/structureddocs/.env or provide a valid FRONTEND_URL.}"
+            export DOMAIN
+
+            $DC --env-file /opt/structureddocs/.env -f docker-compose.yml up -d --build --remove-orphans
+            $DC --env-file /opt/structureddocs/.env -f docker-compose.yml ps
             ok=0
             for i in $(seq 1 24); do
-              if curl -fsS http://localhost:8080/api/health > /dev/null; then
+              if curl -kfsSL --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/health" > /dev/null; then
                 ok=1
                 break
               fi
@@ -115,7 +123,7 @@ jobs:
             done
             if [[ "$ok" -ne 1 ]]; then
               echo "Healthcheck failed after retries. Recent app logs:"
-              $DC --env-file /opt/structureddocs/.env -f docker-compose.prod.yml logs --tail 120
+              $DC --env-file /opt/structureddocs/.env -f docker-compose.yml logs --tail 120
               exit 1
             fi
           EOF
