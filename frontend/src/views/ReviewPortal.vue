@@ -320,6 +320,7 @@ import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { toast } from '@/composables/useToast'
 import { sanitizeHtml } from '@/utils/sanitize'
+import { normalizeReviewHtml } from '@/utils/reviewHtml'
 
 export default {
   name: 'ReviewPortal',
@@ -456,7 +457,7 @@ export default {
           sanitize: false,
           smartypants: true
         })
-        this.originalContent = marked(this.review.topic_content)
+        this.originalContent = normalizeReviewHtml(marked(this.review.topic_content))
         this.editableContent = this.originalContent
         
         // Initialize Quill editor if not already done
@@ -490,7 +491,7 @@ export default {
 
         // Track changes
         this.quillEditor.on('text-change', () => {
-          this.editableContent = this.quillEditor.root.innerHTML
+          this.editableContent = normalizeReviewHtml(this.quillEditor.root.innerHTML)
           this.detectChanges()
         })
       }
@@ -502,17 +503,19 @@ export default {
     },
 
     detectChanges() {
-      if (this.originalContent && this.editableContent) {
-        this.hasChanges = this.originalContent !== this.editableContent
-        
-        // Simple change detection - count different words/elements
-        if (this.hasChanges) {
-          const originalWords = this.originalContent.replace(/<[^>]*>/g, '').split(/\s+/).length
-          const editedWords = this.editableContent.replace(/<[^>]*>/g, '').split(/\s+/).length
-          this.changeCount = Math.abs(editedWords - originalWords) + 1
-        } else {
-          this.changeCount = 0
-        }
+      const original = normalizeReviewHtml(this.originalContent)
+      const edited = normalizeReviewHtml(this.editableContent)
+
+      this.originalContent = original
+      this.editableContent = edited
+      this.hasChanges = original !== edited
+
+      if (this.hasChanges) {
+        const originalWords = original.replace(/<[^>]*>/g, '').trim().split(/\s+/).filter(Boolean).length
+        const editedWords = edited.replace(/<[^>]*>/g, '').trim().split(/\s+/).filter(Boolean).length
+        this.changeCount = Math.abs(editedWords - originalWords) + 1
+      } else {
+        this.changeCount = 0
       }
     },
 

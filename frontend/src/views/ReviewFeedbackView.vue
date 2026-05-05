@@ -28,9 +28,7 @@
         <div class="card-body">
           <div class="row">
             <div class="col-md-6">
-              <p class="mb-1"><strong>Status:</strong>
-                <span :class="statusBadgeClass">{{ formatStatus(topic?.status) }}</span>
-              </p>
+              <p class="mb-1"><strong>Status:</strong> {{ formatStatus(topic?.status) }}</p>
               <p class="mb-1"><strong>Requested By:</strong> {{ review?.requester_name || '—' }}</p>
             </div>
             <div class="col-md-6">
@@ -73,7 +71,7 @@
           <h4 class="card-title mb-0">
             <i class="bi bi-pencil-square me-2"></i>
             Content Edits
-            <span class="ms-2 badge bg-info text-dark" style="font-size:0.75rem;">click a change to accept / reject</span>
+            <span class="ms-2 text-muted" style="font-size:0.875rem;">Select a change to accept or reject.</span>
           </h4>
         </div>
         <div class="card-body">
@@ -231,14 +229,6 @@ export default {
       if (!this.topic?.content) return ''
       const md = this.topic.content.replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
       return marked.parse(md)
-    },
-    statusBadgeClass() {
-      const map = {
-        draft: 'badge bg-secondary', pending_review: 'badge bg-warning',
-        approved: 'badge bg-success', revisions_requested: 'badge bg-warning',
-        published: 'badge bg-primary', rejected: 'badge bg-danger'
-      }
-      return map[this.topic?.status] || 'badge bg-secondary'
     },
     recommendationBadgeClass() {
       const map = {
