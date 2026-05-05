@@ -199,9 +199,9 @@
 
       <div class="modal-footer seq-modal-footer">
         <div class="flex-spacer"></div>
-        <button type="button" class="btn btn-secondary" @click="closeModal" :disabled="loading">{{ mode === 'manage' ? 'Close' : 'Cancel' }}</button>
+        <button type="button" class="btn btn-secondary" @click="closeModal" :disabled="loading">{{ effectiveMode === 'manage' ? 'Close' : 'Cancel' }}</button>
         <button
-          v-if="mode === 'manage' && existingSequence"
+          v-if="effectiveMode === 'manage' && existingSequence"
           @click="saveSequenceChanges"
           type="button"
           class="btn btn-primary"
@@ -211,7 +211,7 @@
           <i v-else class="bi bi-save me-2" aria-hidden="true"></i>
           {{ loading ? 'Saving...' : 'Save Changes' }}
         </button>
-        <button v-if="mode !== 'manage'" @click="createSequence" type="button" class="btn btn-primary start-seq-btn" :disabled="loading || !isFormValid">
+        <button v-if="effectiveMode !== 'manage'" @click="createSequence" type="button" class="btn btn-primary start-seq-btn" :disabled="loading || !isFormValid">
           <span v-if="loading" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
           <i v-else class="bi bi-check-circle me-2" aria-hidden="true"></i>
           {{ loading ? 'Creating...' : 'Start Sequential Review' }}
@@ -255,8 +255,11 @@ export default {
   },
   computed: {
     modalTitle() {
-      if (this.mode === 'manage') return 'Manage Sequential Review'
+      if (this.effectiveMode === 'manage') return 'Manage Sequential Review'
       return this.existingSequence ? 'Manage Sequential Review' : 'Sequential Review Setup'
+    },
+    effectiveMode() {
+      return this.mode === 'manage' && this.existingSequence ? 'manage' : 'setup'
     },
     isFormValid() {
       return (
@@ -439,9 +442,7 @@ export default {
           if (!managedSequence) {
             this.existingSequence = null
             this.form.reviewers = []
-            if (this.mode === 'manage') {
-              this.error = 'No sequential review found for this topic.'
-            }
+            this.error = null
           } else {
             this.error = null
           }
