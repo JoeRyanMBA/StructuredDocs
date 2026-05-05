@@ -437,7 +437,7 @@ If `SECRET_KEY` or `JWT_SECRET_KEY` are not set (or were changed), all existing 
 - [ ] `data/images` and `instance` directories created with `chmod 777`
 - [ ] `.env` file created with `SECRET_KEY`, `JWT_SECRET_KEY`, `DATABASE_URL`, and `FRONTEND_URL`
 - [ ] `.enable_blueprints` file created
-- [ ] App built and started with `docker compose up --build -d`
+- [ ] App built and started with `docker compose -f docker-compose.prod.yml up --build -d`
 - [ ] Health check passes: `curl http://localhost:8080/api/health`
 - [ ] Admin user created via `setup_admin.py` and password changed
 - [ ] Reverse proxy (Caddy or Nginx) configured with SSL
