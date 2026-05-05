@@ -2,8 +2,8 @@
 # Set DOMAIN env var (e.g. structureddocs.online) or falls back to localhost for dev
 
 {$DOMAIN:localhost} {
-    # Proxy all traffic to the nginx frontend container
-    reverse_proxy frontend:80
+    # Proxy all traffic directly to the app container, which serves both the SPA and API.
+    reverse_proxy app:8080
 
     # Compress responses
     encode gzip
