@@ -6,6 +6,7 @@ from datetime import datetime, timedelta
 from ..models import db, ReviewSequence, ReviewSequenceStep, Topic, Stakeholder, Review, ReviewToken
 from sqlalchemy import and_, or_
 from sqlalchemy import inspect, text
+from ..extensions import limiter
 from ..services.review_sequences import create_review_token
 from ..utils.email_service import email_service
 
@@ -270,6 +271,7 @@ def create_review_sequence():
 
 @sequences_bp.route('/<int:sequence_id>', methods=['GET'])
 @jwt_required()
+@limiter.exempt
 def get_review_sequence(sequence_id):
     """Get details of a specific review sequence"""
     try:
@@ -352,6 +354,7 @@ def update_review_sequence(sequence_id):
 
 @sequences_bp.route('/topic/<int:topic_id>', methods=['GET'])
 @jwt_required()
+@limiter.exempt
 def get_topic_sequences(topic_id):
     """Get all review sequences for a topic"""
     try:
