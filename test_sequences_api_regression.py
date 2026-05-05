@@ -1,6 +1,7 @@
 from datetime import datetime, timedelta
 
 import pytest
+from sqlalchemy import text
 
 from flask_jwt_extended import create_access_token
 
@@ -221,6 +222,77 @@ def test_token_approval_auto_advances_sequence_to_next_reviewer(client, app, see
         assert next_step.status == 'active'
         assert next_step.review_id == next_review.id
         assert captured['review_url'] == f'/review/{next_token.token}'
+
+
+def test_token_feedback_with_changes_survives_sequence_db_error(client, app, seeded_data, monkeypatch):
+    with app.app_context():
+        from backend.models import ReviewSequence
+
+        sequence = ReviewSequence(
+            topic_id=seeded_data['topic_id'],
+            created_by=seeded_data['requester_id'],
+            name='Approve With Changes Sequence',
+            status='active',
+            current_position=0,
+            auto_advance_on_approve=True,
+            pause_on_changes=True,
+        )
+        db.session.add(sequence)
+        db.session.flush()
+
+        review = Review(
+            topic_id=seeded_data['topic_id'],
+            requested_by=seeded_data['requester_id'],
+            reviewer_id=seeded_data['first_reviewer_id'],
+            sequence_id=sequence.id,
+            sequence_position=0,
+            status='pending',
+        )
+        db.session.add(review)
+        db.session.flush()
+
+        token = ReviewToken(
+            token='sequence-change-token',
+            review_id=review.id,
+            reviewer_email=seeded_data['first_reviewer_email'],
+            expires_at=datetime.utcnow() + timedelta(days=7),
+        )
+        db.session.add(token)
+        db.session.commit()
+
+    from backend.routes import review_tokens as review_tokens_route
+
+    def _raise_session_error(_review, _recommendation):
+        db.session.execute(text('SELECT * FROM review_sequence_steps_missing_table'))
+        return False, None
+
+    monkeypatch.setattr(review_tokens_route, 'advance_sequence_for_review', _raise_session_error)
+
+    response = client.post(
+        '/api/review/sequence-change-token/feedback',
+        json={
+            'recommendation': 'approve_with_changes',
+            'feedback': 'Please use my edits.',
+            'feedback_items': [],
+            'edited_content': '<p>Updated content</p>',
+        },
+    )
+
+    assert response.status_code == 201, response.data
+    payload = response.get_json()
+    assert payload['sequence_advanced'] is False
+    assert 'manual verification' in payload['warning']
+
+    with app.app_context():
+        review = Review.query.filter_by(sequence_position=0).one()
+        topic = Topic.query.get(seeded_data['topic_id'])
+        token = ReviewToken.query.filter_by(token='sequence-change-token').one()
+
+        assert review.status == 'completed'
+        assert review.recommendation == 'approve_with_changes'
+        assert review.edited_content == '<p>Updated content</p>'
+        assert token.used_at is not None
+        assert topic.status == 'revisions_requested'
 
 
 def test_manual_advance_uses_next_available_step_when_order_has_gap(client, app, auth_header, seeded_data, monkeypatch):
