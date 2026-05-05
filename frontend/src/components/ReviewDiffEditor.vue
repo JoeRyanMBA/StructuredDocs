@@ -45,6 +45,7 @@
 
 <script>
 import { diffWords } from 'diff'
+import { normalizeReviewHtml } from '@/utils/reviewHtml'
 
 export default {
   name: 'ReviewDiffEditor',
@@ -62,8 +63,14 @@ export default {
   },
 
   computed: {
+    normalizedOriginalHtml() {
+      return normalizeReviewHtml(this.originalHtml)
+    },
+    normalizedEditedHtml() {
+      return normalizeReviewHtml(this.editedHtml)
+    },
     rawSegments() {
-      const parts = diffWords(this.originalHtml || '', this.editedHtml || '')
+      const parts = diffWords(this.normalizedOriginalHtml, this.normalizedEditedHtml)
       const segments = []
       let changeId = 0
       let i = 0
@@ -98,10 +105,10 @@ export default {
     rejectedCount() { return this.changeCount - this.acceptedCount },
 
     finalHtml() {
-      return this.rawSegments.map(seg => {
+      return normalizeReviewHtml(this.rawSegments.map(seg => {
         if (seg.type === 'equal') return seg.value
         return this.acceptedMap[seg.changeId] ? seg.addedHtml : seg.removedHtml
-      }).join('')
+      }).join(''))
     }
   },
 

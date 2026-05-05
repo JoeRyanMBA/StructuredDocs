@@ -250,6 +250,7 @@ import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { getBulkReview, submitBulkTopicFeedback } from '@/api/reviews.js'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { normalizeReviewHtml } from '@/utils/reviewHtml'
 
 export default {
   name: 'BulkReviewPortal',
@@ -299,9 +300,9 @@ export default {
       return this.topicEdits[this.currentTopic.review_id] ?? null
     },
     currentHasEdits() {
-      const edited = this.currentEditedContent
+      const edited = normalizeReviewHtml(this.currentEditedContent)
       if (!edited) return false
-      return edited !== (this.currentTopic?.topic_content || '')
+      return edited !== normalizeReviewHtml(this.currentTopic?.topic_content || '')
     },
   },
 
@@ -366,12 +367,13 @@ export default {
       })
       // Restore any previously saved edits, otherwise use original content
       const reviewId = this.currentTopic?.review_id
-      const saved = reviewId != null ? this.topicEdits[reviewId] : null
-      this.quillInstance.root.innerHTML = saved ?? (this.currentTopic?.topic_content || '')
+      const originalContent = normalizeReviewHtml(this.currentTopic?.topic_content || '')
+      const saved = reviewId != null ? normalizeReviewHtml(this.topicEdits[reviewId]) : null
+      this.quillInstance.root.innerHTML = saved ?? originalContent
       // Persist every keystroke to topicEdits
       this.quillInstance.on('text-change', () => {
         if (reviewId != null) {
-          this.topicEdits[reviewId] = this.quillInstance.root.innerHTML
+          this.topicEdits[reviewId] = normalizeReviewHtml(this.quillInstance.root.innerHTML)
         }
       })
     },
@@ -381,7 +383,7 @@ export default {
       const reviewId = this.currentTopic.review_id
       delete this.topicEdits[reviewId]
       if (this.quillInstance) {
-        this.quillInstance.root.innerHTML = this.currentTopic.topic_content || ''
+        this.quillInstance.root.innerHTML = normalizeReviewHtml(this.currentTopic.topic_content || '')
       }
     },
 
@@ -414,8 +416,8 @@ export default {
       this.submitting = true
       try {
         const topic = this.currentTopic
-        const edited = this.topicEdits[topic.review_id]
-        const hasEdits = edited != null && edited !== topic.topic_content
+        const edited = normalizeReviewHtml(this.topicEdits[topic.review_id])
+        const hasEdits = edited != null && edited !== normalizeReviewHtml(topic.topic_content || '')
         const payload = {
           recommendation: this.form.recommendation,
           feedback: this.form.feedback,
