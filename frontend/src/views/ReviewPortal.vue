@@ -274,7 +274,6 @@
                 class="form-textarea"
                 placeholder="Explain your feedback..."
                 rows="3"
-                required
               ></textarea>
             </div>
 
@@ -379,7 +378,9 @@ export default {
     },
     
     canSubmit() {
-      return this.overallRecommendation && (this.overallFeedback || this.feedbackItems.length > 0)
+      const hasOverallFeedback = !!(this.overallFeedback || '').trim()
+      const hasFeedbackItemComment = (this.feedbackItems || []).some(item => !!(item?.comment || '').trim())
+      return !!this.overallRecommendation && (hasOverallFeedback || hasFeedbackItemComment || this.hasChanges)
     }
   },
 

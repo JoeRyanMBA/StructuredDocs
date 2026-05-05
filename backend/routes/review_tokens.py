@@ -186,7 +186,20 @@ def submit_review_feedback(token):
         
         review.status = 'completed'
         review.completed_at = datetime.now()
-        sequence_advanced, sequence = advance_sequence_for_review(review, overall_recommendation)
+
+        sequence_advanced = False
+        sequence = review.sequence
+        try:
+            sequence_advanced, sequence = advance_sequence_for_review(review, overall_recommendation)
+        except Exception:
+            current_app.logger.exception(
+                'Sequence advance failed while submitting token feedback for review_id=%s',
+                review.id,
+            )
+            if sequence and sequence.status == 'active':
+                sequence.status = 'paused'
+                sequence.paused_at = datetime.now()
+
         apply_topic_status_for_review(review, overall_recommendation, sequence)
         
         # Mark token as used
