@@ -2,7 +2,7 @@
 
 import secrets
 from datetime import datetime, timedelta
-from flask import Blueprint, request, jsonify, render_template_string
+from flask import Blueprint, request, jsonify, render_template_string, current_app
 from ..models import db, ReviewToken, Review, ReviewFeedback, Topic
 from sqlalchemy.exc import IntegrityError
 from ..extensions import limiter
@@ -128,15 +128,34 @@ def submit_review_feedback(token):
         if not is_valid:
             return jsonify({'error': message}), 403
             
-        data = request.get_json()
-        feedback_items = data.get('feedback_items', [])
-        overall_recommendation = data.get('recommendation')
+        data = request.get_json(silent=True) or {}
+        raw_feedback_items = data.get('feedback_items', [])
+        overall_recommendation = (data.get('recommendation') or '').strip()
         overall_feedback = data.get('feedback')
-        edited_content = data.get('edited_content')  # NEW: Get edited content
+        edited_content = data.get('edited_content')
+
+        allowed_recommendations = {'approve', 'approve_with_changes', 'reject', 'needs_more_info'}
+        if overall_recommendation not in allowed_recommendations:
+            return jsonify({'error': 'A valid recommendation is required'}), 400
+
+        if raw_feedback_items is None:
+            raw_feedback_items = []
+        if not isinstance(raw_feedback_items, list):
+            return jsonify({'error': 'feedback_items must be a list'}), 400
+
+        if edited_content is not None and not isinstance(edited_content, str):
+            edited_content = str(edited_content)
         
         # Create feedback items
         created_items = []
-        for item in feedback_items:
+        for item in raw_feedback_items:
+            if not isinstance(item, dict):
+                continue
+
+            comment = (item.get('comment') or '').strip()
+            if not comment:
+                continue
+
             feedback = ReviewFeedback(
                 review_id=review_token.review_id,
                 feedback_type=item.get('feedback_type', 'general_comment'),
@@ -146,7 +165,7 @@ def submit_review_feedback(token):
                 line_reference=item.get('line_reference'),
                 original_text=item.get('original_text'),
                 suggested_text=item.get('suggested_text'),
-                comment=item.get('comment'),
+                comment=comment,
                 rationale=item.get('rationale'),
                 priority=item.get('priority', 'medium'),
                 impact=item.get('impact', 'moderate')
@@ -156,8 +175,7 @@ def submit_review_feedback(token):
         
         # Update review with overall feedback
         review = review_token.review
-        if overall_recommendation:
-            review.recommendation = overall_recommendation
+        review.recommendation = overall_recommendation
         if overall_feedback:
             review.feedback = overall_feedback
             
@@ -184,8 +202,13 @@ def submit_review_feedback(token):
             'sequence_advanced': sequence_advanced,
         }), 201
         
+    except IntegrityError as e:
+        db.session.rollback()
+        current_app.logger.warning('Review token feedback integrity error for token %s: %s', token, str(e))
+        return jsonify({'error': 'Unable to save feedback. Please verify feedback fields and try again.'}), 400
     except Exception as e:
         db.session.rollback()
+        current_app.logger.exception('Unexpected error while submitting token feedback for token %s', token)
         return jsonify({'error': str(e)}), 500
 
 

@@ -29,6 +29,14 @@ def _send_sequential_assignment_email(sequence, next_step, next_review, next_tok
         return False
 
     reviewer = next_step.reviewer
+    if not reviewer or not reviewer.email:
+        current_app.logger.warning(
+            "Cannot send sequential assignment email: missing reviewer/email for sequence_id=%s step=%s",
+            sequence.id,
+            next_position,
+        )
+        return False
+
     email_sent = False
 
     try:
