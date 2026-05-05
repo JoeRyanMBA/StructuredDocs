@@ -568,7 +568,7 @@ export default {
     },
 
     sequentialActionLabel(topic) {
-      return this.hasExistingSequence(topic) || topic?.status !== 'draft'
+      return this.hasExistingSequence(topic)
         ? 'Manage sequential review'
         : 'Sequential review setup'
     },
@@ -913,7 +913,7 @@ export default {
       
       // Use Vue reactivity instead of Bootstrap modal to avoid overlay issues
       this.selectedTopicForSequence = topic
-      this.sequentialModalMode = this.hasExistingSequence(topic) || topic?.status !== 'draft' ? 'manage' : 'setup'
+      this.sequentialModalMode = this.hasExistingSequence(topic) ? 'manage' : 'setup'
       this.showSequentialModal = true
     },
 
