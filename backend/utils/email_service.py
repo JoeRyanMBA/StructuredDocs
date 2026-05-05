@@ -774,6 +774,10 @@ class EmailService:
             sequential_block = (
                 f'<p><strong>Sequential Review:</strong> This is step {sequence_position} '
                 f'of {total_reviewers} in a sequential review process.</p>'
+                '<p>The sequential review process gets feedback or approval from a '
+                'Subject Matter Expert (SME) before other feedback. This step ensures '
+                'any technical elements or procedures are correct before getting '
+                'feedback or approval from other reviewers.</p>'
             )
 
         message_block = ""
@@ -831,7 +835,14 @@ class EmailService:
         # Sequential review specific text
         sequential_text = ""
         if is_sequential and sequence_position and total_reviewers:
-            sequential_text = f"\nSequential Review: This is step {sequence_position} of {total_reviewers} in a sequential review process.\n"
+            sequential_text = (
+                f"\nSequential Review: This is step {sequence_position} of {total_reviewers} "
+                "in a sequential review process.\n"
+                "The sequential review process gets feedback or approval from a "
+                "Subject Matter Expert (SME) before other feedback. This step ensures "
+                "any technical elements or procedures are correct before getting "
+                "feedback or approval from other reviewers.\n"
+            )
         
         # Author message
         message_section = ""

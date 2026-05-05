@@ -86,3 +86,43 @@ def test_email_layout_uses_background_free_header():
     assert 'color:#1f2933' in html
     assert 'border-radius:8px;' in html
     assert 'border-top:none' not in html
+
+
+def test_sequential_review_request_email_explains_sme_gate():
+    service = EmailService()
+
+    html = service._create_review_request_email_html(
+        'Reviewer Name',
+        'Topic Title',
+        'Author Name',
+        None,
+        'https://example.com/review/token',
+        is_sequential=True,
+        sequence_position=1,
+        total_reviewers=3,
+        base_url='https://example.com',
+    )
+    text = service._create_review_request_email_text(
+        'Reviewer Name',
+        'Topic Title',
+        'Author Name',
+        None,
+        'https://example.com/review/token',
+        is_sequential=True,
+        sequence_position=1,
+        total_reviewers=3,
+    )
+
+    explanation = (
+        'The sequential review process gets feedback or approval from a '
+        'Subject Matter Expert (SME) before other feedback.'
+    )
+    follow_on = (
+        'This step ensures any technical elements or procedures are correct '
+        'before getting feedback or approval from other reviewers.'
+    )
+
+    assert explanation in html
+    assert follow_on in html
+    assert explanation in text
+    assert follow_on in text
