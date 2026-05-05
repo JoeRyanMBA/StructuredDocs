@@ -288,13 +288,14 @@ export default {
       this.applyError   = null
       this.applySuccess = false
       try {
-        // 1. Update the topic content and mark as draft (feedback incorporated).
-        //    Always update status so the topic leaves 'revisions_requested' and
-        //    drops off the Incorporate Feedback list.
+        // 1. Update the topic content. Sequential reviews should remain in the
+        //    review flow after incorporation so the author can resume/advance
+        //    the paused sequence. Non-sequential reviews go back to draft.
+        const nextTopicStatus = this.review?.sequence_id ? 'pending_review' : 'draft'
         await apiPut(`/api/topics/${this.topicId}`, {
           title:   this.topic.title,
           content: this.review?.edited_content ? this.finalContentHtml : this.topic.content,
-          status:  'draft'
+          status:  nextTopicStatus
         })
 
         // 2. Persist each feedback-item response that was set
