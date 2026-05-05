@@ -1282,6 +1282,7 @@ class PasswordResetToken(db.Model):
 class ReviewToken(db.Model):
     """Secure tokens for external reviewer access without authentication"""
     __tablename__ = 'review_tokens'
+    DEFAULT_MAX_ACCESS_COUNT = 100
     
     id = db.Column(db.Integer, primary_key=True)
     token = db.Column(db.String(64), nullable=False, unique=True, index=True)
@@ -1298,7 +1299,7 @@ class ReviewToken(db.Model):
     # Security
     is_active = db.Column(db.Boolean, default=True, nullable=False)
     access_count = db.Column(db.Integer, default=0, nullable=False)
-    max_access_count = db.Column(db.Integer, default=10, nullable=False)
+    max_access_count = db.Column(db.Integer, default=DEFAULT_MAX_ACCESS_COUNT, nullable=False)
     
     # Relationships
     review = relationship("Review", backref="tokens")
@@ -1316,9 +1317,16 @@ class ReviewToken(db.Model):
             "used_at": self.used_at.isoformat() if self.used_at else None,
             "is_active": self.is_active,
             "access_count": self.access_count,
-            "max_access_count": self.max_access_count
+            "max_access_count": self.effective_max_access_count
         }
     
+    @property
+    def effective_max_access_count(self):
+        configured_limit = self.max_access_count or 0
+        if self.used_at is None and configured_limit < self.DEFAULT_MAX_ACCESS_COUNT:
+            return self.DEFAULT_MAX_ACCESS_COUNT
+        return configured_limit
+
     def is_valid(self):
         """Check if token is still valid for use"""
         if not self.is_active:
@@ -1327,7 +1335,7 @@ class ReviewToken(db.Model):
         if datetime.now() > self.expires_at:
             return False, "Token has expired"
             
-        if self.access_count >= self.max_access_count:
+        if self.access_count >= self.effective_max_access_count:
             return False, "Token access limit exceeded"
             
         return True, "Token is valid"

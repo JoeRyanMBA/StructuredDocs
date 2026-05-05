@@ -10,6 +10,7 @@ from ..services.review_sequences import apply_topic_status_for_review, advance_s
 from ..utils.settings import get_setting
 
 review_tokens_bp = Blueprint('review_tokens_api', __name__)
+ACCESS_COUNT_WINDOW = timedelta(minutes=15)
 
 def _token_rate_limit():
     return get_setting('review_token_rate_limit', '10 per hour')
@@ -41,7 +42,7 @@ def generate_review_token(review_id):
             review_id=review_id,
             reviewer_email=review.reviewer.email if review.reviewer else data.get('reviewer_email'),
             expires_at=expires_at,
-            max_access_count=data.get('max_access_count', 10)
+            max_access_count=data.get('max_access_count', ReviewToken.DEFAULT_MAX_ACCESS_COUNT)
         )
         
         db.session.add(review_token)
@@ -76,11 +77,13 @@ def get_review_by_token(token):
         if not is_valid:
             return jsonify({'error': message}), 403
             
-        # Update access tracking
-        review_token.access_count += 1
+        # Track distinct access sessions instead of counting every reload.
+        now = datetime.now()
+        if not review_token.last_accessed_at or (now - review_token.last_accessed_at) > ACCESS_COUNT_WINDOW:
+            review_token.access_count += 1
         if not review_token.accessed_at:
-            review_token.accessed_at = datetime.now()
-        review_token.last_accessed_at = datetime.now()
+            review_token.accessed_at = now
+        review_token.last_accessed_at = now
         db.session.commit()
         
         # Get review and topic data
@@ -102,10 +105,10 @@ def get_review_by_token(token):
                 'priority': review.priority,
                 'status': review.status
             },
-            'feedback_items': [item.to_dict() for item in feedback_items],
+                'feedback_items': [item.to_dict() for item in feedback_items],
             'token_info': {
                 'access_count': review_token.access_count,
-                'max_access_count': review_token.max_access_count,
+                'max_access_count': review_token.effective_max_access_count,
                 'expires_at': review_token.expires_at.isoformat()
             }
         })
