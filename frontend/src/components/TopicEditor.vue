@@ -114,8 +114,28 @@
               <button @click="insertMarkdown('`', '`')" class="toolbar-btn">⟨⟩ Code</button>
               <button @click="insertMarkdown('## ', '')" class="toolbar-btn">𝐇𝟐 Header</button>
               <button @click="insertMarkdown('### ', '')" class="toolbar-btn">𝐇𝟑 Header</button>
-              <button @click="insertMarkdown('- ', '')" class="toolbar-btn">• List</button>
-              <button @click="insertMarkdown('1. ', '')" class="toolbar-btn">1. List</button>
+              <div class="dropdown toolbar-dropdown">
+                <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+                  • List <span class="toolbar-dropdown__caret">▾</span>
+                </button>
+                <div class="dropdown-content">
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('bullet', 1)">Level 1</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('bullet', 2)">Level 2</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('bullet', 3)">Level 3</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('bullet', 4)">Level 4</button>
+                </div>
+              </div>
+              <div class="dropdown toolbar-dropdown">
+                <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+                  1. List <span class="toolbar-dropdown__caret">▾</span>
+                </button>
+                <div class="dropdown-content">
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 1)">Level 1</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 2)">Level 2</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 3)">Level 3</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 4)">Level 4</button>
+                </div>
+              </div>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
@@ -213,6 +233,45 @@
             Cancel
           </button>
         </div>
+
+        <section v-if="!topicId" class="markdown-cheat-sheet" aria-label="Markdown cheat sheet">
+          <h3 class="markdown-cheat-sheet__title">Markdown cheat sheet</h3>
+          <p class="markdown-cheat-sheet__intro">Most-used formatting for topic content.</p>
+          <div class="markdown-cheat-sheet__grid">
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Heading</span>
+              <code>## Section heading</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Bold</span>
+              <code>**Bold text**</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Italic</span>
+              <code>*Italic text*</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Link</span>
+              <code>[Link text](https://example.com)</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Bullet list</span>
+              <code>- List item</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Numbered list</span>
+              <code>1. First item</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Quote</span>
+              <code>&gt; Highlighted note</code>
+            </div>
+            <div class="markdown-cheat-sheet__item">
+              <span class="markdown-cheat-sheet__label">Inline code</span>
+              <code>`code snippet`</code>
+            </div>
+          </div>
+        </section>
       </div>
 
       <!-- Request Review Modal -->
@@ -1338,6 +1397,35 @@ export default {
       })
     },
 
+    insertListMarkdown(type, level = 1) {
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+
+      const safeLevel = Math.max(1, Number(level) || 1)
+      const indent = '    '.repeat(safeLevel - 1)
+      const marker = type === 'ordered' ? '1. ' : '- '
+      const prefix = `${indent}${marker}`
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const selectedText = textarea.value.substring(start, end)
+
+      const replacement = selectedText
+        ? selectedText
+            .split('\n')
+            .map(line => (line ? `${prefix}${line}` : line))
+            .join('\n')
+        : prefix
+
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end)
+      this.content = textarea.value
+
+      const newCursorPos = start + replacement.length
+      this.$nextTick(() => {
+        textarea.focus()
+        textarea.setSelectionRange(newCursorPos, newCursorPos)
+      })
+    },
+
     execCommand(command, value = null) {
       if (this.editorMode === 'wysiwyg') {
         this.$refs.richEditor?.exec(command, value)
@@ -1992,6 +2080,56 @@ export default {
   gap: 0.75rem;
   align-items: center;
 }
+
+.markdown-cheat-sheet {
+  margin-top: 1rem;
+  padding: 1rem 1.125rem;
+  border: 1px solid #dbe5f0;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.markdown-cheat-sheet__title {
+  margin: 0 0 0.25rem;
+  font-size: 1rem;
+  font-weight: 600;
+  color: #1f2937;
+}
+
+.markdown-cheat-sheet__intro {
+  margin: 0 0 0.875rem;
+  color: #526071;
+  font-size: 0.9rem;
+}
+
+.markdown-cheat-sheet__grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.75rem;
+}
+
+.markdown-cheat-sheet__item {
+  display: flex;
+  flex-direction: column;
+  gap: 0.35rem;
+}
+
+.markdown-cheat-sheet__label {
+  font-size: 0.85rem;
+  font-weight: 600;
+  color: #334155;
+}
+
+.markdown-cheat-sheet__item code {
+  display: block;
+  padding: 0.55rem 0.7rem;
+  border-radius: 6px;
+  background: #ffffff;
+  border: 1px solid #dbe5f0;
+  color: #0f172a;
+  font-size: 0.84rem;
+  word-break: break-word;
+}
 /* Simple resource picker styles */
 .tabs { display:flex; gap:.5rem; margin-bottom: .75rem; }
 /* Use global .btn styles for tab buttons */
@@ -2353,6 +2491,9 @@ export default {
 
 .dropdown-btn {
   position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
 }
 
 .dropdown-content {
@@ -2369,7 +2510,8 @@ export default {
   margin-top: 2px;
 }
 
-.dropdown:hover .dropdown-content {
+.dropdown:hover .dropdown-content,
+.dropdown:focus-within .dropdown-content {
   display: block;
 }
 
@@ -2396,6 +2538,11 @@ export default {
 
 .dropdown-item:last-child {
   border-radius: 0 0 4px 4px;
+}
+
+.toolbar-dropdown__caret {
+  font-size: 0.7rem;
+  color: #667085;
 }
 
 /* Content textarea styles */
