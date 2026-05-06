@@ -14,6 +14,7 @@ topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
 # Allowlist for TinyMCE HTML content — blocks <script>/<iframe>/event handlers
 _SAFE_TAGS = list(bleach.ALLOWED_TAGS) + [
     'p', 'div', 'span', 'h1', 'h2', 'h3', 'h4', 'h5', 'h6',
+    'ul', 'ol', 'li',
     'table', 'thead', 'tbody', 'tfoot', 'tr', 'td', 'th', 'colgroup', 'col',
     'img', 'figure', 'figcaption', 'br', 'hr',
     'pre', 'code', 'blockquote', 'sub', 'sup',

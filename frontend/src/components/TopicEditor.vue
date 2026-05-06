@@ -114,6 +114,7 @@
               <button @click="insertMarkdown('`', '`')" class="toolbar-btn">⟨⟩ Code</button>
               <button @click="insertMarkdown('## ', '')" class="toolbar-btn">𝐇𝟐 Header</button>
               <button @click="insertMarkdown('### ', '')" class="toolbar-btn">𝐇𝟑 Header</button>
+              <button @click="clearMarkdownFormatting()" class="toolbar-btn" title="Clear formatting from selected text">Tx Clear</button>
               <div class="dropdown toolbar-dropdown">
                 <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
                   • List <span class="toolbar-dropdown__caret">▾</span>
@@ -1430,6 +1431,41 @@ export default {
         textarea.focus()
         textarea.setSelectionRange(newCursorPos, newCursorPos)
       })
+    },
+
+    clearMarkdownFormatting() {
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      if (start === end) return
+
+      const selectedText = textarea.value.substring(start, end)
+      const replacement = this.stripMarkdownFormatting(selectedText)
+
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end)
+      this.content = textarea.value
+
+      this.$nextTick(() => {
+        textarea.focus()
+        textarea.setSelectionRange(start, start + replacement.length)
+      })
+    },
+
+    stripMarkdownFormatting(text) {
+      return String(text || '')
+        .replace(/!\[([^\]]*)\]\([^)]+\)/g, '$1')
+        .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1')
+        .replace(/`([^`]+)`/g, '$1')
+        .replace(/(\*\*|__)(.*?)\1/g, '$2')
+        .replace(/(\*|_)(.*?)\1/g, '$2')
+        .replace(/~~(.*?)~~/g, '$1')
+        .replace(/^#{1,6}\s+/gm, '')
+        .replace(/^>\s?/gm, '')
+        .replace(/^\s*[-*+]\s+/gm, '')
+        .replace(/^\s*\d+\.\s+/gm, '')
+        .replace(/<[^>]+>/g, '')
     },
 
     execCommand(command, value = null) {
