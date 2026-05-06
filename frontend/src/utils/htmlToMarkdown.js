@@ -14,16 +14,7 @@ export function htmlToMarkdown(html) {
   const cleanListItem = (node) => {
     const clone = node.cloneNode(true)
     if (!(clone instanceof HTMLElement)) return null
-
-    clone.querySelectorAll('li').forEach(li => {
-      if (!(li instanceof HTMLElement)) return
-      delete li.dataset.listLevel
-      li.style.removeProperty('margin-left')
-      li.style.removeProperty('list-style-type')
-      if (!li.getAttribute('style')) {
-        li.removeAttribute('style')
-      }
-    })
+    clone.querySelectorAll('ul, ol').forEach(list => list.remove())
 
     delete clone.dataset.listLevel
     clone.style.removeProperty('margin-left')
@@ -37,11 +28,33 @@ export function htmlToMarkdown(html) {
 
   const createSemanticList = (tagName) => doc.createElement(tagName.toLowerCase())
 
-  const buildSemanticList = (lists, tagName) => {
+  const collectListEntries = (listNode, tagName, inheritedLevel = 1, entries = []) => {
+    Array.from(listNode.children).forEach(child => {
+      if (!(child instanceof HTMLLIElement)) return
+
+      const level = Math.max(1, getListLevel(child) || inheritedLevel)
+      const item = cleanListItem(child)
+      if (item) {
+        entries.push({ level, item })
+      }
+
+      Array.from(child.children).forEach(nested => {
+        if (nested instanceof HTMLElement && nested.tagName === tagName) {
+          collectListEntries(nested, tagName, level + 1, entries)
+        }
+      })
+    })
+
+    return entries
+  }
+
+  const buildSemanticList = (entries, tagName) => {
     const root = createSemanticList(tagName)
     const stack = [{ level: 1, list: root, lastItem: null }]
 
-    const ensureLevel = (targetLevel) => {
+    const ensureLevel = (rawTargetLevel) => {
+      const targetLevel = Math.max(1, Math.min(rawTargetLevel, stack.length + 1))
+
       while (stack.length > targetLevel) {
         stack.pop()
       }
@@ -57,18 +70,12 @@ export function htmlToMarkdown(html) {
       }
     }
 
-    lists.forEach(listNode => {
-      Array.from(listNode.children).forEach(child => {
-        if (!(child instanceof HTMLLIElement)) return
-
-        const targetLevel = Math.max(1, getListLevel(child))
-        ensureLevel(targetLevel)
-        const entry = stack[stack.length - 1]
-        const listItem = cleanListItem(child)
-        if (!entry || !(listItem instanceof HTMLElement)) return
-        entry.list.appendChild(listItem)
-        entry.lastItem = listItem
-      })
+    entries.forEach(({ level, item }) => {
+      ensureLevel(level)
+      const entry = stack[stack.length - 1]
+      if (!entry || !(item instanceof HTMLElement)) return
+      entry.list.appendChild(item)
+      entry.lastItem = item
     })
 
     return root
@@ -110,7 +117,8 @@ export function htmlToMarkdown(html) {
       )
 
       if (hasStyledLevels) {
-        const semanticList = buildSemanticList(listNodes, tagName)
+        const entries = listNodes.flatMap(listNode => collectListEntries(listNode, tagName))
+        const semanticList = buildSemanticList(entries, tagName)
         current.replaceWith(semanticList)
         listNodes.slice(1).forEach(node => node.remove())
         spacerNodes.forEach(node => node.remove())
