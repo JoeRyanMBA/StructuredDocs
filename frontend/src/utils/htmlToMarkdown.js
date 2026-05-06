@@ -56,18 +56,57 @@ export function htmlToMarkdown(html) {
     return out
   }
 
-  const renderList = (listNode, isOrdered) => {
-    let index = 1
+  const renderListItem = (listItem, depth, index, isOrdered) => {
+    const inlineParts = []
+    const nestedBlocks = []
+
+    listItem.childNodes.forEach(child => {
+      if (child instanceof HTMLElement) {
+        const tag = child.tagName.toLowerCase()
+        if (tag === 'ul') {
+          nestedBlocks.push(renderList(child, depth + 1))
+          return
+        }
+        if (tag === 'ol') {
+          nestedBlocks.push(renderList(child, depth + 1))
+          return
+        }
+      }
+
+      inlineParts.push(renderNode(child))
+    })
+
+    const marker = isOrdered ? `${index}. ` : '- '
+    const text = inlineParts
+      .join('')
+      .replace(/\n+/g, ' ')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+    const prefix = `${'    '.repeat(Math.max(0, depth - 1))}${marker}`
+    const lines = [`${prefix}${text}`.trimEnd()]
+
+    nestedBlocks.forEach(block => {
+      const trimmed = block.trimEnd()
+      if (trimmed) {
+        lines.push(trimmed)
+      }
+    })
+
+    return lines.join('\n')
+  }
+
+  const renderList = (listNode, depth = 1) => {
+    const isOrdered = listNode.tagName.toLowerCase() === 'ol'
+    let index = Number(listNode.getAttribute('start') || 1)
     const lines = []
+
     listNode.childNodes.forEach(child => {
       if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== 'li') return
-      const item = renderChildren(child).replace(/\n+/g, ' ').trim()
-      if (!item) return
-      const marker = isOrdered ? `${index}. ` : '- '
-      lines.push(`${marker}${item}`)
+      lines.push(renderListItem(child, depth, index, isOrdered))
       index += 1
     })
-    return lines.join('\n') + '\n\n'
+
+    return lines.filter(Boolean).join('\n') + '\n\n'
   }
 
   const renderNode = (node) => {
@@ -95,8 +134,7 @@ export function htmlToMarkdown(html) {
       const alt = node.getAttribute('alt') || 'Image'
       return src ? `![${alt}](${src})` : ''
     }
-    if (tag === 'ul') return renderList(node, false)
-    if (tag === 'ol') return renderList(node, true)
+    if (tag === 'ul' || tag === 'ol') return renderList(node)
     if (tag === 'li') return `${renderChildren(node).trim()}\n`
     if (tag === 'div' && node.classList.contains('sd-snippet-ref')) {
       const snippetId = node.getAttribute('data-snippet-id')
