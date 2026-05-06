@@ -5,6 +5,30 @@
 export function htmlToMarkdown(html) {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html || '', 'text/html')
+  const isStyledListItem = (node) => {
+    if (!(node instanceof HTMLElement)) return false
+    return Boolean(node.dataset.listLevel) || Boolean(node.style.marginLeft)
+  }
+
+  const sanitizeStyledList = (listNode) => {
+    const clone = listNode.cloneNode(true)
+    if (!(clone instanceof HTMLElement)) return ''
+
+    clone.querySelectorAll('li').forEach(node => {
+      if (!(node instanceof HTMLElement)) return
+      if (!node.dataset.listLevel || node.dataset.listLevel === '1') {
+        delete node.dataset.listLevel
+      }
+      if (!node.style.marginLeft) {
+        node.style.removeProperty('margin-left')
+      }
+      if (!node.getAttribute('style')) {
+        node.removeAttribute('style')
+      }
+    })
+
+    return clone.outerHTML
+  }
 
   const normalizeSoftWrappedText = (text) => {
     const lines = text.split('\n')
@@ -134,7 +158,12 @@ export function htmlToMarkdown(html) {
       const alt = node.getAttribute('alt') || 'Image'
       return src ? `![${alt}](${src})` : ''
     }
-    if (tag === 'ul' || tag === 'ol') return renderList(node)
+    if (tag === 'ul' || tag === 'ol') {
+      if (Array.from(node.children).some(child => isStyledListItem(child))) {
+        return `${sanitizeStyledList(node)}\n\n`
+      }
+      return renderList(node)
+    }
     if (tag === 'li') return `${renderChildren(node).trim()}\n`
     if (tag === 'div' && node.classList.contains('sd-snippet-ref')) {
       const snippetId = node.getAttribute('data-snippet-id')
