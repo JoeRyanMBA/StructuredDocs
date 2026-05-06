@@ -5,33 +5,131 @@
 export function htmlToMarkdown(html) {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html || '', 'text/html')
+  const getListLevel = (node) => {
+    if (!(node instanceof HTMLElement)) return 1
+    const parsed = Number(node.dataset.listLevel || 1)
+    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+  }
+
+  const cleanListItem = (node) => {
+    const clone = node.cloneNode(true)
+    if (!(clone instanceof HTMLElement)) return null
+
+    clone.querySelectorAll('li').forEach(li => {
+      if (!(li instanceof HTMLElement)) return
+      delete li.dataset.listLevel
+      li.style.removeProperty('margin-left')
+      li.style.removeProperty('list-style-type')
+      if (!li.getAttribute('style')) {
+        li.removeAttribute('style')
+      }
+    })
+
+    delete clone.dataset.listLevel
+    clone.style.removeProperty('margin-left')
+    clone.style.removeProperty('list-style-type')
+    if (!clone.getAttribute('style')) {
+      clone.removeAttribute('style')
+    }
+
+    return clone
+  }
+
+  const createSemanticList = (tagName) => {
+    const list = doc.createElement(tagName.toLowerCase())
+    list.className = `sd-rich-list sd-rich-list--${tagName.toLowerCase() === 'ol' ? 'ordered' : 'bullet'}`
+    return list
+  }
+
+  const buildSemanticList = (lists, tagName) => {
+    const root = createSemanticList(tagName)
+    const stack = [{ level: 1, list: root, lastItem: null }]
+
+    const ensureLevel = (targetLevel) => {
+      while (stack.length > targetLevel) {
+        stack.pop()
+      }
+
+      while (stack.length < targetLevel) {
+        const parent = stack[stack.length - 1]
+        if (!(parent?.lastItem instanceof HTMLElement)) {
+          break
+        }
+        const nestedList = createSemanticList(tagName)
+        parent.lastItem.appendChild(nestedList)
+        stack.push({ level: stack.length + 1, list: nestedList, lastItem: null })
+      }
+    }
+
+    lists.forEach(listNode => {
+      Array.from(listNode.children).forEach(child => {
+        if (!(child instanceof HTMLLIElement)) return
+
+        const targetLevel = Math.max(1, getListLevel(child))
+        ensureLevel(targetLevel)
+        const entry = stack[stack.length - 1]
+        const listItem = cleanListItem(child)
+        if (!entry || !(listItem instanceof HTMLElement)) return
+        entry.list.appendChild(listItem)
+        entry.lastItem = listItem
+      })
+    })
+
+    return root
+  }
+
+  const normalizeStyledListGroups = (container) => {
+    const nodes = Array.from(container.childNodes)
+    let index = 0
+
+    while (index < nodes.length) {
+      const current = nodes[index]
+      if (!(current instanceof HTMLElement) || !['UL', 'OL'].includes(current.tagName)) {
+        index += 1
+        continue
+      }
+
+      const tagName = current.tagName
+      const listNodes = [current]
+      const spacerNodes = []
+      let cursor = index + 1
+
+      while (cursor < nodes.length) {
+        const node = nodes[cursor]
+        if (node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim()) {
+          spacerNodes.push(node)
+          cursor += 1
+          continue
+        }
+        if (node instanceof HTMLElement && node.tagName === tagName) {
+          listNodes.push(node)
+          cursor += 1
+          continue
+        }
+        break
+      }
+
+      const hasStyledLevels = listNodes.some(listNode =>
+        Array.from(listNode.children).some(child => child instanceof HTMLElement && isStyledListItem(child))
+      )
+
+      if (hasStyledLevels) {
+        const semanticList = buildSemanticList(listNodes, tagName)
+        current.replaceWith(semanticList)
+        listNodes.slice(1).forEach(node => node.remove())
+        spacerNodes.forEach(node => node.remove())
+      }
+
+      index = cursor
+    }
+  }
+
   const isStyledListItem = (node) => {
     if (!(node instanceof HTMLElement)) return false
     return Boolean(node.dataset.listLevel) || Boolean(node.style.marginLeft) || Boolean(node.style.listStyleType)
   }
 
-  const sanitizeStyledList = (listNode) => {
-    const clone = listNode.cloneNode(true)
-    if (!(clone instanceof HTMLElement)) return ''
-
-    clone.querySelectorAll('li').forEach(node => {
-      if (!(node instanceof HTMLElement)) return
-      if (!node.dataset.listLevel || node.dataset.listLevel === '1') {
-        delete node.dataset.listLevel
-      }
-      if (!node.style.marginLeft) {
-        node.style.removeProperty('margin-left')
-      }
-      if (!node.style.listStyleType) {
-        node.style.removeProperty('list-style-type')
-      }
-      if (!node.getAttribute('style')) {
-        node.removeAttribute('style')
-      }
-    })
-
-    return clone.outerHTML
-  }
+  normalizeStyledListGroups(doc.body)
 
   const normalizeSoftWrappedText = (text) => {
     const lines = text.split('\n')
@@ -162,8 +260,8 @@ export function htmlToMarkdown(html) {
       return src ? `![${alt}](${src})` : ''
     }
     if (tag === 'ul' || tag === 'ol') {
-      if (Array.from(node.children).some(child => isStyledListItem(child))) {
-        return `${sanitizeStyledList(node)}\n\n`
+      if (node.classList.contains('sd-rich-list')) {
+        return `${node.outerHTML}\n\n`
       }
       return renderList(node)
     }
