@@ -35,11 +35,7 @@ export function htmlToMarkdown(html) {
     return clone
   }
 
-  const createSemanticList = (tagName) => {
-    const list = doc.createElement(tagName.toLowerCase())
-    list.className = `sd-rich-list sd-rich-list--${tagName.toLowerCase() === 'ol' ? 'ordered' : 'bullet'}`
-    return list
-  }
+  const createSemanticList = (tagName) => doc.createElement(tagName.toLowerCase())
 
   const buildSemanticList = (lists, tagName) => {
     const root = createSemanticList(tagName)
@@ -259,12 +255,7 @@ export function htmlToMarkdown(html) {
       const alt = node.getAttribute('alt') || 'Image'
       return src ? `![${alt}](${src})` : ''
     }
-    if (tag === 'ul' || tag === 'ol') {
-      if (node.classList.contains('sd-rich-list')) {
-        return `${node.outerHTML}\n\n`
-      }
-      return renderList(node)
-    }
+    if (tag === 'ul' || tag === 'ol') return renderList(node)
     if (tag === 'li') return `${renderChildren(node).trim()}\n`
     if (tag === 'div' && node.classList.contains('sd-snippet-ref')) {
       const snippetId = node.getAttribute('data-snippet-id')

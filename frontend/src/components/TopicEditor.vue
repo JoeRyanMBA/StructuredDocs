@@ -2060,45 +2060,49 @@ export default {
 /* Visual paragraph separation (mirrors published KB CSS) */
 .wysiwyg-content p { margin: 0 0 1rem 0; line-height: 1.7; }
 .wysiwyg-content p:last-child { margin-bottom: 0; }
-.wysiwyg-content .sd-rich-list,
-.preview-content .sd-rich-list {
+.wysiwyg-content ul,
+.wysiwyg-content ol,
+.preview-content ul,
+.preview-content ol {
   margin: 0 0 1rem 0;
   padding-left: 1.5rem;
 }
-.wysiwyg-content .sd-rich-list .sd-rich-list,
-.preview-content .sd-rich-list .sd-rich-list {
+.wysiwyg-content li > ul,
+.wysiwyg-content li > ol,
+.preview-content li > ul,
+.preview-content li > ol {
   margin: 0.25rem 0 0;
 }
-.wysiwyg-content ul.sd-rich-list,
-.preview-content ul.sd-rich-list {
+.wysiwyg-content ul,
+.preview-content ul {
   list-style-type: disc;
 }
-.wysiwyg-content ul.sd-rich-list ul.sd-rich-list,
-.preview-content ul.sd-rich-list ul.sd-rich-list {
+.wysiwyg-content ul ul,
+.preview-content ul ul {
   list-style-type: circle;
 }
-.wysiwyg-content ul.sd-rich-list ul.sd-rich-list ul.sd-rich-list,
-.preview-content ul.sd-rich-list ul.sd-rich-list ul.sd-rich-list {
+.wysiwyg-content ul ul ul,
+.preview-content ul ul ul {
   list-style-type: square;
 }
-.wysiwyg-content ul.sd-rich-list ul.sd-rich-list ul.sd-rich-list ul.sd-rich-list,
-.preview-content ul.sd-rich-list ul.sd-rich-list ul.sd-rich-list ul.sd-rich-list {
+.wysiwyg-content ul ul ul ul,
+.preview-content ul ul ul ul {
   list-style-type: disc;
 }
-.wysiwyg-content ol.sd-rich-list,
-.preview-content ol.sd-rich-list {
+.wysiwyg-content ol,
+.preview-content ol {
   list-style-type: decimal;
 }
-.wysiwyg-content ol.sd-rich-list ol.sd-rich-list,
-.preview-content ol.sd-rich-list ol.sd-rich-list {
+.wysiwyg-content ol ol,
+.preview-content ol ol {
   list-style-type: lower-alpha;
 }
-.wysiwyg-content ol.sd-rich-list ol.sd-rich-list ol.sd-rich-list,
-.preview-content ol.sd-rich-list ol.sd-rich-list ol.sd-rich-list {
+.wysiwyg-content ol ol ol,
+.preview-content ol ol ol {
   list-style-type: lower-roman;
 }
-.wysiwyg-content ol.sd-rich-list ol.sd-rich-list ol.sd-rich-list ol.sd-rich-list,
-.preview-content ol.sd-rich-list ol.sd-rich-list ol.sd-rich-list ol.sd-rich-list {
+.wysiwyg-content ol ol ol ol,
+.preview-content ol ol ol ol {
   list-style-type: upper-alpha;
 }
 
