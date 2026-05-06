@@ -256,11 +256,17 @@
             </div>
             <div class="markdown-cheat-sheet__item">
               <span class="markdown-cheat-sheet__label">Bullet list</span>
-              <code>- List item</code>
+              <code class="markdown-cheat-sheet__example">- Level 1
+    - Level 2
+        - Level 3
+            - Level 4</code>
             </div>
             <div class="markdown-cheat-sheet__item">
               <span class="markdown-cheat-sheet__label">Numbered list</span>
-              <code>1. First item</code>
+              <code class="markdown-cheat-sheet__example">1. Level 1
+    1. Level 2
+        1. Level 3
+            1. Level 4</code>
             </div>
             <div class="markdown-cheat-sheet__item">
               <span class="markdown-cheat-sheet__label">Quote</span>
@@ -2129,6 +2135,10 @@ export default {
   color: #0f172a;
   font-size: 0.84rem;
   word-break: break-word;
+}
+
+.markdown-cheat-sheet__example {
+  white-space: pre-wrap;
 }
 /* Simple resource picker styles */
 .tabs { display:flex; gap:.5rem; margin-bottom: .75rem; }

@@ -7,7 +7,7 @@ export function htmlToMarkdown(html) {
   const doc = parser.parseFromString(html || '', 'text/html')
   const isStyledListItem = (node) => {
     if (!(node instanceof HTMLElement)) return false
-    return Boolean(node.dataset.listLevel) || Boolean(node.style.marginLeft)
+    return Boolean(node.dataset.listLevel) || Boolean(node.style.marginLeft) || Boolean(node.style.listStyleType)
   }
 
   const sanitizeStyledList = (listNode) => {
@@ -21,6 +21,9 @@ export function htmlToMarkdown(html) {
       }
       if (!node.style.marginLeft) {
         node.style.removeProperty('margin-left')
+      }
+      if (!node.style.listStyleType) {
+        node.style.removeProperty('list-style-type')
       }
       if (!node.getAttribute('style')) {
         node.removeAttribute('style')

@@ -139,7 +139,7 @@ export default {
 
       if (listItems.length) {
         listItems.forEach(listItem => this.setListItemLevel(listItem, safeLevel, listTag))
-        this.applyVisualListLevel(listItems, safeLevel)
+        this.applyVisualListLevel(listItems, safeLevel, type)
       }
 
       this.placeCaretAtEnd(listItems[listItems.length - 1] || this.getCurrentListItem() || this.$refs.editorEl)
@@ -186,18 +186,24 @@ export default {
 
       return [currentItem]
     },
-    applyVisualListLevel(listItems, level) {
+    applyVisualListLevel(listItems, level, type) {
       const marginLeft = level > 1 ? `${(level - 1) * 1.5}rem` : ''
+      const markerStyles = type === 'ordered'
+        ? { 1: 'decimal', 2: 'lower-alpha', 3: 'lower-roman', 4: 'upper-alpha' }
+        : { 1: 'disc', 2: 'circle', 3: 'square', 4: 'disc' }
 
       listItems.forEach(listItem => {
         if (!(listItem instanceof HTMLLIElement)) return
+        const markerStyle = markerStyles[level] || markerStyles[1]
 
         if (level > 1) {
           listItem.dataset.listLevel = String(level)
           listItem.style.marginLeft = marginLeft
+          listItem.style.listStyleType = markerStyle
         } else {
           delete listItem.dataset.listLevel
           listItem.style.removeProperty('margin-left')
+          listItem.style.listStyleType = markerStyle
         }
       })
     },
