@@ -6,6 +6,7 @@
       <button type="button" @click="exec('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
       <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
       <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
+      <button type="button" @click="clearFormatting()" class="toolbar-btn" title="Clear formatting from selected text">Tx Clear</button>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'bullet' }]">
         <button
           type="button"
@@ -108,6 +109,24 @@ export default {
     applyListLevel(type, level) {
       this.insertList(type, level)
       this.closeListMenu()
+    },
+    clearFormatting() {
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
+
+      const editor = this.$refs.editorEl
+      const selection = window.getSelection()
+      if (!editor || !selection || selection.rangeCount === 0) return
+
+      const range = selection.getRangeAt(0)
+      if (!editor.contains(range.commonAncestorContainer) || range.collapsed) return
+
+      const plainText = this.fragmentToPlainText(range.cloneContents()).trim()
+      range.deleteContents()
+      this.insertPlainText(range, plainText)
+      this.saveSelection()
+      this.emitUpdate()
     },
     exec(command, value = null) {
       if (!this.restoreSelection()) {
@@ -269,6 +288,50 @@ export default {
       })
 
       return root
+    },
+    fragmentToPlainText(fragment) {
+      const blockTags = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE'])
+      let output = ''
+
+      const appendNode = (node) => {
+        if (node.nodeType === Node.TEXT_NODE) {
+          output += node.textContent || ''
+          return
+        }
+        if (!(node instanceof HTMLElement)) return
+
+        if (node.tagName === 'BR') {
+          output += '\n'
+          return
+        }
+
+        node.childNodes.forEach(appendNode)
+        if (blockTags.has(node.tagName)) {
+          output += '\n'
+        }
+      }
+
+      fragment.childNodes.forEach(appendNode)
+      return output.replace(/\n{3,}/g, '\n\n')
+    },
+    insertPlainText(range, text) {
+      const selection = window.getSelection()
+      const lines = String(text || '').split('\n')
+      const fragment = document.createDocumentFragment()
+
+      lines.forEach((line, index) => {
+        fragment.appendChild(document.createTextNode(line))
+        if (index < lines.length - 1) {
+          fragment.appendChild(document.createElement('br'))
+        }
+      })
+
+      range.insertNode(fragment)
+      range.collapse(false)
+      if (selection) {
+        selection.removeAllRanges()
+        selection.addRange(range)
+      }
     },
     normalizeStyledListGroups() {
       const container = this.$refs.editorEl
