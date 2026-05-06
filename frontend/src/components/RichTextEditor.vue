@@ -89,18 +89,97 @@ export default {
     insertList(type, level = 1) {
       const safeLevel = Math.max(1, Math.min(4, Number(level) || 1))
       const command = type === 'ordered' ? 'insertOrderedList' : 'insertUnorderedList'
+      const listTag = type === 'ordered' ? 'OL' : 'UL'
 
       if (!this.restoreSelection()) {
         this.$refs.editorEl?.focus()
       }
 
       document.execCommand(command, false, null)
-      for (let depth = 1; depth < safeLevel; depth += 1) {
-        document.execCommand('indent', false, null)
+
+      const listItem = this.getCurrentListItem()
+      if (listItem) {
+        this.setListItemLevel(listItem, safeLevel, listTag)
       }
 
+      this.placeCaretAtEnd(listItem || this.$refs.editorEl)
       this.saveSelection()
       this.emitUpdate()
+    },
+    getCurrentListItem() {
+      const editor = this.$refs.editorEl
+      const selection = window.getSelection()
+      if (!editor || !selection || selection.rangeCount === 0) return null
+
+      let node = selection.getRangeAt(0).startContainer
+      if (node?.nodeType === Node.TEXT_NODE) {
+        node = node.parentNode
+      }
+
+      return node instanceof Element ? node.closest('li') : null
+    },
+    getListDepth(listItem) {
+      let depth = 1
+      let currentList = listItem?.parentElement
+
+      while (currentList) {
+        const parentListItem = currentList.parentElement?.closest('li')
+        if (!parentListItem) break
+        depth += 1
+        currentList = parentListItem.parentElement
+      }
+
+      return depth
+    },
+    setListItemLevel(listItem, targetLevel, listTag) {
+      if (!(listItem instanceof HTMLLIElement)) return
+
+      let current = listItem
+      let currentDepth = this.getListDepth(current)
+
+      while (currentDepth < targetLevel) {
+        const currentList = current.parentElement
+        const previousItem = current.previousElementSibling
+        if (!(previousItem instanceof HTMLLIElement)) break
+
+        let nestedList = Array.from(previousItem.children).find(child => child.tagName === listTag)
+        if (!nestedList) {
+          nestedList = document.createElement(listTag.toLowerCase())
+          previousItem.appendChild(nestedList)
+        }
+
+        nestedList.appendChild(current)
+        if (currentList instanceof HTMLElement && !currentList.children.length) {
+          currentList.remove()
+        }
+        currentDepth += 1
+      }
+
+      while (currentDepth > targetLevel) {
+        const currentList = current.parentElement
+        const parentItem = currentList?.closest('li')
+        const parentList = parentItem?.parentElement
+        if (!(currentList instanceof HTMLElement) || !(parentItem instanceof HTMLLIElement) || !(parentList instanceof HTMLElement)) {
+          break
+        }
+
+        parentList.insertBefore(current, parentItem.nextSibling)
+        if (!currentList.children.length) {
+          currentList.remove()
+        }
+        currentDepth -= 1
+      }
+    },
+    placeCaretAtEnd(node) {
+      if (!(node instanceof Node)) return
+      const selection = window.getSelection()
+      if (!selection) return
+
+      const range = document.createRange()
+      range.selectNodeContents(node)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
     },
     onInput() {
       if (this._inputTimer) clearTimeout(this._inputTimer)
