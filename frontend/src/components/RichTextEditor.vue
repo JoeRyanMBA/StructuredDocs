@@ -6,26 +6,38 @@
       <button type="button" @click="exec('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
       <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
       <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
-      <div class="dropdown toolbar-dropdown">
-        <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'bullet' }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          aria-haspopup="true"
+          :aria-expanded="(activeListMenu === 'bullet').toString()"
+          @click.stop="toggleListMenu('bullet')"
+        >
           • List <span class="toolbar-dropdown__caret">▾</span>
         </button>
-        <div class="dropdown-content">
-          <button type="button" class="dropdown-item" @click="insertList('bullet', 1)">Level 1</button>
-          <button type="button" class="dropdown-item" @click="insertList('bullet', 2)">Level 2</button>
-          <button type="button" class="dropdown-item" @click="insertList('bullet', 3)">Level 3</button>
-          <button type="button" class="dropdown-item" @click="insertList('bullet', 4)">Level 4</button>
+        <div v-show="activeListMenu === 'bullet'" class="dropdown-content" @click.stop>
+          <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 1)">Level 1</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 2)">Level 2</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 3)">Level 3</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 4)">Level 4</button>
         </div>
       </div>
-      <div class="dropdown toolbar-dropdown">
-        <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'ordered' }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          aria-haspopup="true"
+          :aria-expanded="(activeListMenu === 'ordered').toString()"
+          @click.stop="toggleListMenu('ordered')"
+        >
           1. List <span class="toolbar-dropdown__caret">▾</span>
         </button>
-        <div class="dropdown-content">
-          <button type="button" class="dropdown-item" @click="insertList('ordered', 1)">Level 1</button>
-          <button type="button" class="dropdown-item" @click="insertList('ordered', 2)">Level 2</button>
-          <button type="button" class="dropdown-item" @click="insertList('ordered', 3)">Level 3</button>
-          <button type="button" class="dropdown-item" @click="insertList('ordered', 4)">Level 4</button>
+        <div v-show="activeListMenu === 'ordered'" class="dropdown-content" @click.stop>
+          <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 1)">Level 1</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 2)">Level 2</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 3)">Level 3</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 4)">Level 4</button>
         </div>
       </div>
       <slot name="toolbar-extra" />
@@ -57,6 +69,7 @@ export default {
     return {
       _inputTimer: null,
       _savedRange: null,
+      activeListMenu: null,
     }
   },
   watch: {
@@ -71,13 +84,31 @@ export default {
     if (this.$refs.editorEl) {
       this.$refs.editorEl.innerHTML = this.modelValue || ''
     }
+    document.addEventListener('mousedown', this.onDocumentMouseDown)
   },
   beforeUnmount() {
     if (this._inputTimer) {
       clearTimeout(this._inputTimer)
     }
+    document.removeEventListener('mousedown', this.onDocumentMouseDown)
   },
   methods: {
+    toggleListMenu(menu) {
+      this.activeListMenu = this.activeListMenu === menu ? null : menu
+      this.saveSelection()
+    },
+    closeListMenu() {
+      this.activeListMenu = null
+    },
+    onDocumentMouseDown(event) {
+      if (!this.$el?.contains(event.target)) {
+        this.closeListMenu()
+      }
+    },
+    applyListLevel(type, level) {
+      this.insertList(type, level)
+      this.closeListMenu()
+    },
     exec(command, value = null) {
       if (!this.restoreSelection()) {
         this.$refs.editorEl?.focus()
@@ -90,6 +121,9 @@ export default {
       const safeLevel = Math.max(1, Math.min(4, Number(level) || 1))
       const command = type === 'ordered' ? 'insertOrderedList' : 'insertUnorderedList'
       const listTag = type === 'ordered' ? 'OL' : 'UL'
+      const originalRange = this.getSelectedRange()
+      const selectedItemsBeforeCommand = originalRange ? this.getIntersectingListItems(originalRange) : []
+      const multiBlockSelection = this.getSelectionBlockCount(originalRange) > 1
 
       if (!this.restoreSelection()) {
         this.$refs.editorEl?.focus()
@@ -97,14 +131,59 @@ export default {
 
       document.execCommand(command, false, null)
 
-      const listItem = this.getCurrentListItem()
-      if (listItem) {
-        this.setListItemLevel(listItem, safeLevel, listTag)
+      const listItems = this.getAffectedListItems({
+        listTag,
+        multiBlockSelection,
+        selectedItemsBeforeCommand,
+      })
+
+      if (listItems.length) {
+        listItems.forEach(listItem => this.setListItemLevel(listItem, safeLevel, listTag))
       }
 
-      this.placeCaretAtEnd(listItem || this.$refs.editorEl)
+      this.placeCaretAtEnd(listItems[listItems.length - 1] || this.getCurrentListItem() || this.$refs.editorEl)
       this.saveSelection()
       this.emitUpdate()
+    },
+    getSelectedRange() {
+      const selection = window.getSelection()
+      if (!selection || selection.rangeCount === 0) return this._savedRange?.cloneRange() || null
+      return selection.getRangeAt(0).cloneRange()
+    },
+    getIntersectingListItems(range) {
+      const editor = this.$refs.editorEl
+      if (!editor || !range) return []
+
+      return Array.from(editor.querySelectorAll('li')).filter(node => range.intersectsNode(node))
+    },
+    getSelectionBlockCount(range) {
+      const editor = this.$refs.editorEl
+      if (!editor || !range) return 0
+
+      const selector = 'p,div,li,h1,h2,h3,h4,h5,h6,pre,blockquote'
+      const blocks = Array.from(editor.querySelectorAll(selector)).filter(node => range.intersectsNode(node))
+      if (blocks.length > 0) return blocks.length
+
+      return range.toString().trim() ? 1 : 0
+    },
+    getAffectedListItems({ listTag, multiBlockSelection, selectedItemsBeforeCommand }) {
+      const selectionRange = this.getSelectedRange()
+      const intersectingAfterCommand = this.getIntersectingListItems(selectionRange)
+      if (intersectingAfterCommand.length > 1) {
+        return intersectingAfterCommand
+      }
+
+      const currentItem = this.getCurrentListItem()
+      const currentList = currentItem?.closest(listTag.toLowerCase())
+      if (!(currentItem instanceof HTMLLIElement) || !(currentList instanceof HTMLElement)) {
+        return currentItem ? [currentItem] : []
+      }
+
+      if (multiBlockSelection || selectedItemsBeforeCommand.length > 1) {
+        return Array.from(currentList.children).filter(child => child instanceof HTMLLIElement)
+      }
+
+      return [currentItem]
     },
     getCurrentListItem() {
       const editor = this.$refs.editorEl
@@ -324,7 +403,6 @@ export default {
 }
 
 .rte-toolbar .dropdown-content {
-  display: none;
   position: absolute;
   top: 100%;
   left: 0;
@@ -337,8 +415,7 @@ export default {
   z-index: 100;
 }
 
-.rte-toolbar .dropdown:hover .dropdown-content,
-.rte-toolbar .dropdown:focus-within .dropdown-content {
+.rte-toolbar .dropdown.is-open .dropdown-content {
   display: block;
 }
 
