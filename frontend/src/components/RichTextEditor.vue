@@ -140,9 +140,10 @@ export default {
       if (listItems.length) {
         listItems.forEach(listItem => this.setListItemLevel(listItem, safeLevel, listTag))
         this.applyVisualListLevel(listItems, safeLevel, type)
+        this.normalizeStyledListGroups()
       }
 
-      this.placeCaretAtEnd(listItems[listItems.length - 1] || this.getCurrentListItem() || this.$refs.editorEl)
+      this.placeCaretAtEnd(this.getCurrentListItem() || this.$refs.editorEl)
       this.saveSelection()
       this.emitUpdate()
     },
@@ -206,6 +207,119 @@ export default {
           listItem.style.listStyleType = markerStyle
         }
       })
+    },
+    createSemanticList(tagName) {
+      return document.createElement(tagName.toLowerCase())
+    },
+    cleanListItem(node) {
+      const clone = node.cloneNode(true)
+      if (!(clone instanceof HTMLElement)) return null
+      clone.querySelectorAll('ul, ol').forEach(list => list.remove())
+      delete clone.dataset.listLevel
+      clone.style.removeProperty('margin-left')
+      clone.style.removeProperty('list-style-type')
+      if (!clone.getAttribute('style')) {
+        clone.removeAttribute('style')
+      }
+      return clone
+    },
+    collectListEntries(listNode, tagName, inheritedLevel = 1, entries = []) {
+      Array.from(listNode.children).forEach(child => {
+        if (!(child instanceof HTMLLIElement)) return
+
+        const parsedLevel = Number(child.dataset.listLevel || inheritedLevel)
+        const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : inheritedLevel
+        const item = this.cleanListItem(child)
+        if (item) {
+          entries.push({ level, item })
+        }
+
+        Array.from(child.children).forEach(nested => {
+          if (nested instanceof HTMLElement && nested.tagName === tagName) {
+            this.collectListEntries(nested, tagName, level + 1, entries)
+          }
+        })
+      })
+
+      return entries
+    },
+    buildSemanticList(entries, tagName) {
+      const root = this.createSemanticList(tagName)
+      const stack = [{ list: root, lastItem: null }]
+
+      entries.forEach(({ level, item }) => {
+        const targetLevel = Math.max(1, Math.min(level, stack.length + 1))
+
+        while (stack.length > targetLevel) {
+          stack.pop()
+        }
+
+        while (stack.length < targetLevel) {
+          const parent = stack[stack.length - 1]
+          if (!(parent?.lastItem instanceof HTMLElement)) break
+          const nestedList = this.createSemanticList(tagName)
+          parent.lastItem.appendChild(nestedList)
+          stack.push({ list: nestedList, lastItem: null })
+        }
+
+        const entry = stack[stack.length - 1]
+        if (!entry || !(item instanceof HTMLElement)) return
+        entry.list.appendChild(item)
+        entry.lastItem = item
+      })
+
+      return root
+    },
+    normalizeStyledListGroups() {
+      const container = this.$refs.editorEl
+      if (!(container instanceof HTMLElement)) return
+
+      const nodes = Array.from(container.childNodes)
+      let index = 0
+
+      while (index < nodes.length) {
+        const current = nodes[index]
+        if (!(current instanceof HTMLElement) || !['UL', 'OL'].includes(current.tagName)) {
+          index += 1
+          continue
+        }
+
+        const tagName = current.tagName
+        const listNodes = [current]
+        const spacerNodes = []
+        let cursor = index + 1
+
+        while (cursor < nodes.length) {
+          const node = nodes[cursor]
+          if (node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim()) {
+            spacerNodes.push(node)
+            cursor += 1
+            continue
+          }
+          if (node instanceof HTMLElement && node.tagName === tagName) {
+            listNodes.push(node)
+            cursor += 1
+            continue
+          }
+          break
+        }
+
+        const hasStyledLevels = listNodes.some(listNode =>
+          Array.from(listNode.querySelectorAll(':scope > li')).some(child =>
+            child instanceof HTMLElement && (child.dataset.listLevel || child.style.marginLeft || child.style.listStyleType)
+          )
+        )
+
+        if (hasStyledLevels) {
+          const entries = listNodes.flatMap(listNode => this.collectListEntries(listNode, tagName))
+          const semanticList = this.buildSemanticList(entries, tagName)
+          current.replaceWith(semanticList)
+          listNodes.slice(1).forEach(node => node.remove())
+          spacerNodes.forEach(node => node.remove())
+        }
+
+        index = cursor
+      }
     },
     getCurrentListItem() {
       const editor = this.$refs.editorEl
