@@ -948,7 +948,7 @@ export default {
 }
 
 /* Quill Snow theme customization */
-.ql-toolbar {
+.quill-wrapper :deep(.ql-toolbar) {
   border-top: 1px solid var(--border-light-gray);
   border-left: 1px solid var(--border-light-gray);
   border-right: 1px solid var(--border-light-gray);
@@ -956,7 +956,7 @@ export default {
   border-radius: var(--border-radius-md) var(--border-radius-md) 0 0;
 }
 
-.ql-container {
+.quill-wrapper :deep(.ql-container) {
   border-bottom: 1px solid var(--border-light-gray);
   border-left: 1px solid var(--border-light-gray);
   border-right: 1px solid var(--border-light-gray);
@@ -967,28 +967,53 @@ export default {
   line-height: 1.6;
 }
 
-.ql-editor {
+.quill-wrapper :deep(.ql-editor) {
   padding: 1.5rem;
   min-height: 350px;
 }
 
-.ql-editor h1, .ql-editor h2, .ql-editor h3 {
+.quill-wrapper :deep(.ql-editor h1),
+.quill-wrapper :deep(.ql-editor h2),
+.quill-wrapper :deep(.ql-editor h3) {
   margin-top: 1.5rem;
   margin-bottom: 0.75rem;
   font-weight: 600;
   color: var(--text-dark-gray);
 }
 
-.ql-editor p {
+.quill-wrapper :deep(.ql-editor p) {
   margin-bottom: 1rem;
 }
 
-.ql-editor ul, .ql-editor ol {
+.quill-wrapper :deep(.ql-editor ul),
+.quill-wrapper :deep(.ql-editor ol) {
   margin-bottom: 1rem;
+  padding-left: 1.5rem;
 }
 
-.ql-editor li {
+.quill-wrapper :deep(.ql-editor ul) {
+  list-style-type: disc;
+}
+
+.quill-wrapper :deep(.ql-editor ol) {
+  list-style-type: decimal;
+}
+
+.quill-wrapper :deep(.ql-editor li) {
   margin-bottom: 0.25rem;
+  list-style-position: outside;
+}
+
+.quill-wrapper :deep(.ql-editor li[data-list='bullet']) {
+  list-style-type: disc;
+}
+
+.quill-wrapper :deep(.ql-editor li[data-list='ordered']) {
+  list-style-type: decimal;
+}
+
+.quill-wrapper :deep(.ql-editor li > .ql-ui) {
+  display: none;
 }
 
 .editor-actions {
