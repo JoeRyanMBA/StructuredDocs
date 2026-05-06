@@ -139,6 +139,7 @@ export default {
 
       if (listItems.length) {
         listItems.forEach(listItem => this.setListItemLevel(listItem, safeLevel, listTag))
+        this.applyVisualListLevel(listItems, safeLevel)
       }
 
       this.placeCaretAtEnd(listItems[listItems.length - 1] || this.getCurrentListItem() || this.$refs.editorEl)
@@ -184,6 +185,21 @@ export default {
       }
 
       return [currentItem]
+    },
+    applyVisualListLevel(listItems, level) {
+      const marginLeft = level > 1 ? `${(level - 1) * 1.5}rem` : ''
+
+      listItems.forEach(listItem => {
+        if (!(listItem instanceof HTMLLIElement)) return
+
+        if (level > 1) {
+          listItem.dataset.listLevel = String(level)
+          listItem.style.marginLeft = marginLeft
+        } else {
+          delete listItem.dataset.listLevel
+          listItem.style.removeProperty('margin-left')
+        }
+      })
     },
     getCurrentListItem() {
       const editor = this.$refs.editorEl
