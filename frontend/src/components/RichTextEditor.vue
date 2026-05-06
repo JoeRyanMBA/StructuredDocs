@@ -1,13 +1,33 @@
 <template>
   <div class="rte-wysiwyg-editor">
-    <div class="rte-toolbar">
+    <div class="rte-toolbar" @mousedown.prevent>
       <button type="button" @click="exec('bold')" class="toolbar-btn">𝐁 Bold</button>
       <button type="button" @click="exec('italic')" class="toolbar-btn">𝐼 Italic</button>
       <button type="button" @click="exec('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
       <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
       <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
-      <button type="button" @click="exec('insertUnorderedList')" class="toolbar-btn">• List</button>
-      <button type="button" @click="exec('insertOrderedList')" class="toolbar-btn">1. List</button>
+      <div class="dropdown toolbar-dropdown">
+        <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+          • List <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div class="dropdown-content">
+          <button type="button" class="dropdown-item" @click="insertList('bullet', 1)">Level 1</button>
+          <button type="button" class="dropdown-item" @click="insertList('bullet', 2)">Level 2</button>
+          <button type="button" class="dropdown-item" @click="insertList('bullet', 3)">Level 3</button>
+          <button type="button" class="dropdown-item" @click="insertList('bullet', 4)">Level 4</button>
+        </div>
+      </div>
+      <div class="dropdown toolbar-dropdown">
+        <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+          1. List <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div class="dropdown-content">
+          <button type="button" class="dropdown-item" @click="insertList('ordered', 1)">Level 1</button>
+          <button type="button" class="dropdown-item" @click="insertList('ordered', 2)">Level 2</button>
+          <button type="button" class="dropdown-item" @click="insertList('ordered', 3)">Level 3</button>
+          <button type="button" class="dropdown-item" @click="insertList('ordered', 4)">Level 4</button>
+        </div>
+      </div>
       <slot name="toolbar-extra" />
     </div>
     <div
@@ -18,6 +38,9 @@
       @input="onInput"
       @paste="onPaste"
       @keydown="onKeydown"
+      @mouseup="saveSelection"
+      @keyup="saveSelection"
+      @blur="saveSelection"
     ></div>
   </div>
 </template>
@@ -32,6 +55,8 @@ export default {
   emits: ['update:modelValue', 'paste'],
   data() {
     return {
+      _inputTimer: null,
+      _savedRange: null,
     }
   },
   watch: {
@@ -47,10 +72,34 @@ export default {
       this.$refs.editorEl.innerHTML = this.modelValue || ''
     }
   },
+  beforeUnmount() {
+    if (this._inputTimer) {
+      clearTimeout(this._inputTimer)
+    }
+  },
   methods: {
     exec(command, value = null) {
-      this.$refs.editorEl?.focus()
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
       document.execCommand(command, false, value)
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    insertList(type, level = 1) {
+      const safeLevel = Math.max(1, Math.min(4, Number(level) || 1))
+      const command = type === 'ordered' ? 'insertOrderedList' : 'insertUnorderedList'
+
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
+
+      document.execCommand(command, false, null)
+      for (let depth = 1; depth < safeLevel; depth += 1) {
+        document.execCommand('indent', false, null)
+      }
+
+      this.saveSelection()
       this.emitUpdate()
     },
     onInput() {
@@ -181,6 +230,67 @@ export default {
   background: #205493;
   color: #fff;
   border-color: #205493;
+}
+
+.rte-toolbar .dropdown {
+  position: relative;
+  display: inline-block;
+}
+
+.rte-toolbar .dropdown-btn {
+  position: relative;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.rte-toolbar .dropdown-content {
+  display: none;
+  position: absolute;
+  top: 100%;
+  left: 0;
+  min-width: 180px;
+  margin-top: 2px;
+  background: #fff;
+  border: 1px solid #dee2e6;
+  border-radius: 4px;
+  box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
+  z-index: 100;
+}
+
+.rte-toolbar .dropdown:hover .dropdown-content,
+.rte-toolbar .dropdown:focus-within .dropdown-content {
+  display: block;
+}
+
+.rte-toolbar .dropdown-item {
+  display: block;
+  width: 100%;
+  padding: 0.5rem 0.75rem;
+  background: none;
+  border: none;
+  color: #495057;
+  cursor: pointer;
+  font-size: 0.875rem;
+  text-align: left;
+  transition: background-color 0.2s ease;
+}
+
+.rte-toolbar .dropdown-item:hover {
+  background: #f8f9fa;
+}
+
+.rte-toolbar .dropdown-item:first-child {
+  border-radius: 4px 4px 0 0;
+}
+
+.rte-toolbar .dropdown-item:last-child {
+  border-radius: 0 0 4px 4px;
+}
+
+.rte-toolbar .toolbar-dropdown__caret {
+  font-size: 0.7rem;
+  color: #667085;
 }
 
 /* wysiwyg-content is defined globally in TopicEditor but included here for standalone pages */
