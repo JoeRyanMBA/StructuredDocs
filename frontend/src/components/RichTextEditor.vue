@@ -305,6 +305,19 @@ export default {
 
       return null
     },
+    isEmptySpacer(node) {
+      if (!node) return false
+      if (node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim()) return true
+      if (node.nodeType === Node.ELEMENT_NODE) {
+        if (node.tagName === 'BR') return true
+        if (['P', 'DIV', 'SPAN'].includes(node.tagName)) {
+          if (!node.textContent.trim() && (!node.children.length || (node.children.length === 1 && node.children[0].tagName === 'BR'))) {
+            return true
+          }
+        }
+      }
+      return false
+    },
     mergeAdjacentLists(container = this.$refs.editorEl) {
       if (!(container instanceof HTMLElement)) return
 
@@ -317,7 +330,7 @@ export default {
 
         let next = node.nextSibling
         while (next) {
-          if (next.nodeType === Node.TEXT_NODE && !(next.textContent || '').trim()) {
+          if (this.isEmptySpacer(next)) {
             const spacer = next
             next = next.nextSibling
             spacer.remove()
@@ -484,7 +497,7 @@ export default {
 
         while (cursor < nodes.length) {
           const node = nodes[cursor]
-          if (node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim()) {
+          if (this.isEmptySpacer(node)) {
             spacerNodes.push(node)
             cursor += 1
             continue
