@@ -240,17 +240,18 @@ export default {
       return [currentItem]
     },
     applyVisualListLevel(listItems, level, type) {
-      const marginLeft = level > 1 ? `${(level - 1) * 1.5}rem` : ''
       const markerStyles = type === 'ordered'
         ? { 1: 'decimal', 2: 'lower-alpha', 3: 'lower-roman', 4: 'upper-alpha' }
         : { 1: 'disc', 2: 'circle', 3: 'square', 4: 'disc' }
 
       listItems.forEach(listItem => {
         if (!(listItem instanceof HTMLLIElement)) return
-        const markerStyle = markerStyles[level] || markerStyles[1]
+        const actualLevel = Math.max(1, Math.min(4, this.getListDepth(listItem)))
+        const marginLeft = actualLevel > 1 ? `${(actualLevel - 1) * 1.5}rem` : ''
+        const markerStyle = markerStyles[actualLevel] || markerStyles[1]
 
-        if (level > 1) {
-          listItem.dataset.listLevel = String(level)
+        if (actualLevel > 1) {
+          listItem.dataset.listLevel = String(actualLevel)
           listItem.style.marginLeft = marginLeft
           listItem.style.listStyleType = markerStyle
         } else {
