@@ -857,7 +857,11 @@ export default {
     }
   },
   watch: {
-    editorMode(newMode) {
+    editorMode(newMode, oldMode) {
+      if (oldMode === 'wysiwyg') {
+        // Flush the latest WYSIWYG state to this.content before leaving it
+        this.updateContentFromWysiwyg()
+      }
       if (newMode === 'wysiwyg') {
         this.$nextTick(() => {
           this._initWysiwygContent()
@@ -1822,6 +1826,12 @@ export default {
 
     onRichEditorUpdate(html) {
       const md = this.htmlToMarkdown(html)
+      if (html && (html.includes('<ul') || html.includes('<ol'))) {
+        console.group('[TopicEditor] List HTML → Markdown')
+        console.log('HTML in:', html)
+        console.log('MD out:', md)
+        console.groupEnd()
+      }
       if (md !== this.content) {
         this.content = md
       }
