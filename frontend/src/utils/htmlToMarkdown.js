@@ -117,9 +117,8 @@ export function htmlToMarkdown(html) {
   }
 
   const buildSemanticList = (entries, defaultTagName) => {
-    const rootTagName = entries.length > 0 && entries[0].listTag ? entries[0].listTag : defaultTagName
-    const root = createSemanticList(rootTagName)
-    const stack = [{ level: 1, list: root, lastItem: null }]
+    const fragment = doc.createDocumentFragment()
+    const stack = []
 
     const ensureLevel = (rawTargetLevel, latestListTag) => {
       const targetLevel = Math.max(1, Math.min(rawTargetLevel, stack.length + 1))
@@ -128,14 +127,26 @@ export function htmlToMarkdown(html) {
         stack.pop()
       }
 
+      if (stack.length === targetLevel) {
+        const currentEntry = stack[stack.length - 1]
+        if (currentEntry.list.tagName.toUpperCase() !== (latestListTag || defaultTagName).toUpperCase()) {
+          stack.pop()
+        }
+      }
+
       while (stack.length < targetLevel) {
-        const parent = stack[stack.length - 1]
-        if (!(parent?.lastItem instanceof HTMLElement)) {
+        const parent = stack.length > 0 ? stack[stack.length - 1] : null
+        if (stack.length > 0 && !(parent?.lastItem instanceof HTMLElement)) {
           break
         }
         const targetTagName = latestListTag || defaultTagName
         const nestedList = createSemanticList(targetTagName)
-        parent.lastItem.appendChild(nestedList)
+        
+        if (stack.length === 0) {
+          fragment.appendChild(nestedList)
+        } else {
+          parent.lastItem.appendChild(nestedList)
+        }
         stack.push({ level: stack.length + 1, list: nestedList, lastItem: null })
       }
     }
@@ -148,7 +159,7 @@ export function htmlToMarkdown(html) {
       entry.lastItem = item
     })
 
-    return root
+    return fragment
   }
 
   const normalizeStyledListGroups = (container) => {
