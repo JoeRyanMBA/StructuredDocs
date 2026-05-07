@@ -176,7 +176,7 @@ export function htmlToMarkdown(html) {
           cursor += 1
           continue
         }
-        if (node instanceof HTMLElement && node.tagName === tagName) {
+        if (node instanceof HTMLElement && ['UL', 'OL'].includes(node.tagName)) {
           listNodes.push(node)
           cursor += 1
           continue
