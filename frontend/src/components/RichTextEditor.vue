@@ -142,7 +142,8 @@ export default {
       const listTag = type === 'ordered' ? 'OL' : 'UL'
       const originalRange = this.getSelectedRange()
       const selectedItemsBeforeCommand = originalRange ? this.getIntersectingListItems(originalRange) : []
-      const multiBlockSelection = this.getSelectionBlockCount(originalRange) > 1
+      const selectedBlockCount = this.getSelectionBlockCount(originalRange)
+      const multiBlockSelection = selectedBlockCount > 1
 
       if (!this.restoreSelection()) {
         this.$refs.editorEl?.focus()
@@ -169,6 +170,7 @@ export default {
             listTag,
             multiBlockSelection,
             selectedItemsBeforeCommand,
+            selectedBlockCount,
           })
 
       if (listItems.length) {
@@ -220,7 +222,7 @@ export default {
 
       return range.toString().trim() ? 1 : 0
     },
-    getAffectedListItems({ listTag, multiBlockSelection, selectedItemsBeforeCommand }) {
+    getAffectedListItems({ listTag, multiBlockSelection, selectedItemsBeforeCommand, selectedBlockCount = 0 }) {
       const selectionRange = this.getSelectedRange()
       const intersectingAfterCommand = this.getIntersectingListItems(selectionRange)
       if (intersectingAfterCommand.length > 1) {
@@ -235,6 +237,19 @@ export default {
 
       if (multiBlockSelection || selectedItemsBeforeCommand.length > 1) {
         return Array.from(currentList.children).filter(child => child instanceof HTMLLIElement)
+      }
+
+      if (multiBlockSelection && selectedBlockCount > 1) {
+        const editor = this.$refs.editorEl
+        const candidateLists = editor
+          ? Array.from(editor.querySelectorAll(listTag.toLowerCase()))
+          : []
+        const newestList = candidateLists.at(-1)
+        if (newestList instanceof HTMLElement) {
+          return Array.from(newestList.children)
+            .filter(child => child instanceof HTMLLIElement)
+            .slice(-selectedBlockCount)
+        }
       }
 
       return [currentItem]
