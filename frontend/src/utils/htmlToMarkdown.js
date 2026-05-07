@@ -70,7 +70,7 @@ export function htmlToMarkdown(html) {
           continue
         }
 
-        if (!(next instanceof HTMLElement) || next.tagName !== node.tagName) {
+        if (!(next instanceof HTMLElement) || !['UL', 'OL'].includes(next.tagName)) {
           break
         }
 
