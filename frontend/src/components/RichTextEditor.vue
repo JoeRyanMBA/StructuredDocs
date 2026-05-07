@@ -300,7 +300,7 @@ export default {
           continue
         }
 
-        return sibling instanceof HTMLElement && sibling.tagName === tagName ? sibling : null
+        return sibling instanceof HTMLElement && ['UL', 'OL'].includes(sibling.tagName) ? sibling : null
       }
 
       return null
@@ -324,7 +324,7 @@ export default {
             continue
           }
 
-          if (!(next instanceof HTMLElement) || next.tagName !== node.tagName) {
+          if (!(next instanceof HTMLElement) || !['UL', 'OL'].includes(next.tagName)) {
             break
           }
 
@@ -498,7 +498,7 @@ export default {
         }
 
         const hasStyledLevels = listNodes.some(listNode =>
-          Array.from(listNode.querySelectorAll(':scope > li')).some(child =>
+          Array.from(listNode.querySelectorAll('li')).some(child =>
             child instanceof HTMLElement && (child.dataset.listLevel || child.style.marginLeft || child.style.listStyleType)
           )
         )
