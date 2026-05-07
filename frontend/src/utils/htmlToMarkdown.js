@@ -53,6 +53,39 @@ export function htmlToMarkdown(html) {
 
   const createSemanticList = (tagName) => doc.createElement(tagName.toLowerCase())
 
+  const mergeAdjacentLists = (container) => {
+    let node = container.firstChild
+    while (node) {
+      if (!(node instanceof HTMLElement) || !['UL', 'OL'].includes(node.tagName)) {
+        node = node.nextSibling
+        continue
+      }
+
+      let next = node.nextSibling
+      while (next) {
+        if (next.nodeType === Node.TEXT_NODE && !(next.textContent || '').trim()) {
+          const spacer = next
+          next = next.nextSibling
+          spacer.remove()
+          continue
+        }
+
+        if (!(next instanceof HTMLElement) || next.tagName !== node.tagName) {
+          break
+        }
+
+        const adjacentList = next
+        next = adjacentList.nextSibling
+        while (adjacentList.firstChild) {
+          node.appendChild(adjacentList.firstChild)
+        }
+        adjacentList.remove()
+      }
+
+      node = next
+    }
+  }
+
   const collectListEntries = (listNode, tagName, inheritedLevel = 1, entries = []) => {
     let lastItemLevel = inheritedLevel
 
@@ -117,6 +150,8 @@ export function htmlToMarkdown(html) {
   }
 
   const normalizeStyledListGroups = (container) => {
+    mergeAdjacentLists(container)
+
     const nodes = Array.from(container.childNodes)
     let index = 0
 
