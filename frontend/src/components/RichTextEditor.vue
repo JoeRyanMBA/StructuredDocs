@@ -307,12 +307,16 @@ export default {
     },
     isEmptySpacer(node) {
       if (!node) return false
-      if (node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim()) return true
+      
+      const text = (node.textContent || '').replace(/[\s\u200B-\u200D\uFEFF]/g, '')
+      if (node.nodeType === Node.TEXT_NODE && !text) return true
+      
       if (node.nodeType === Node.ELEMENT_NODE) {
         if (node.tagName === 'BR') return true
         if (['P', 'DIV', 'SPAN'].includes(node.tagName)) {
-          if (!node.textContent.trim() && (!node.children.length || (node.children.length === 1 && node.children[0].tagName === 'BR'))) {
-            return true
+          if (!text) {
+            const hasMedia = node.querySelector('img, video, audio, iframe, canvas, object, hr, ul, ol, li, table')
+            if (!hasMedia) return true
           }
         }
       }
