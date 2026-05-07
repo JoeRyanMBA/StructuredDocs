@@ -18,7 +18,7 @@ const methodsStr = scriptMatches[1].replace(/this\./g, 'obj.');
 
 eval(`
 const obj = {
-  createSemanticList(tagName) { return dom.window.dom.window.document.createElement(tagName.toLowerCase()); },
+  createSemanticList(tagName) { return dom.window.document.createElement(tagName.toLowerCase()); },
   cleanListItem(node) {
       const clone = node.cloneNode(true)
       if (!(clone instanceof HTMLElement)) return null
@@ -86,7 +86,7 @@ const domHtml = \`<ul>
     </ul>
   </li>
 </ul>\`;
-const div = dom.window.dom.window.document.createElement('div');
+const div = dom.window.document.createElement('div');
 div.innerHTML = domHtml;
 
 const listNodes = [div.firstElementChild];
