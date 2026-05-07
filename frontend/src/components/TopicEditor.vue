@@ -1327,6 +1327,7 @@ export default {
       if (!this.title.trim()) return
 
       if (this.editorMode === 'wysiwyg') {
+        this.$refs.richEditor?.normalizeStyledListGroups?.()
         this.updateContentFromWysiwyg()
       }
       

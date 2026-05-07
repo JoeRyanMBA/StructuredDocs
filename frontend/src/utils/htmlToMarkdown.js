@@ -5,10 +5,35 @@
 export function htmlToMarkdown(html) {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html || '', 'text/html')
-  const getListLevel = (node) => {
-    if (!(node instanceof HTMLElement)) return 1
-    const parsed = Number(node.dataset.listLevel || 1)
-    return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+  const inferListLevelFromMargin = (marginValue) => {
+    const raw = String(marginValue || '').trim()
+    if (!raw) return null
+
+    const match = raw.match(/^(-?\d*\.?\d+)(px|rem)?$/i)
+    if (!match) return null
+
+    const value = Number(match[1])
+    if (!Number.isFinite(value) || value <= 0) return null
+
+    const unit = (match[2] || 'px').toLowerCase()
+    const step = unit === 'rem' ? 1.5 : 24
+    return Math.max(2, Math.round(value / step) + 1)
+  }
+
+  const getListLevel = (node, fallback = 1) => {
+    if (!(node instanceof HTMLElement)) return fallback
+
+    const parsed = Number(node.dataset.listLevel || node.getAttribute('data-list-level') || '')
+    if (Number.isFinite(parsed) && parsed > 0) {
+      return parsed
+    }
+
+    const marginLevel = inferListLevelFromMargin(node.style?.marginLeft)
+    if (marginLevel) {
+      return marginLevel
+    }
+
+    return fallback
   }
 
   const cleanListItem = (node) => {
@@ -29,20 +54,30 @@ export function htmlToMarkdown(html) {
   const createSemanticList = (tagName) => doc.createElement(tagName.toLowerCase())
 
   const collectListEntries = (listNode, tagName, inheritedLevel = 1, entries = []) => {
-    Array.from(listNode.children).forEach(child => {
-      if (!(child instanceof HTMLLIElement)) return
+    let lastItemLevel = inheritedLevel
 
-      const level = Math.max(1, getListLevel(child) || inheritedLevel)
-      const item = cleanListItem(child)
-      if (item) {
-        entries.push({ level, item })
+    Array.from(listNode.childNodes).forEach(child => {
+      if (child instanceof HTMLLIElement) {
+        const level = Math.max(1, getListLevel(child, inheritedLevel))
+        const item = cleanListItem(child)
+        if (item) {
+          entries.push({ level, item })
+          lastItemLevel = level
+        }
+
+        Array.from(child.childNodes).forEach(nested => {
+          if (nested instanceof HTMLElement && nested.tagName === tagName) {
+            const nestedLevel = Math.max(level + 1, getListLevel(nested, level + 1))
+            collectListEntries(nested, tagName, nestedLevel, entries)
+          }
+        })
+        return
       }
 
-      Array.from(child.children).forEach(nested => {
-        if (nested instanceof HTMLElement && nested.tagName === tagName) {
-          collectListEntries(nested, tagName, level + 1, entries)
-        }
-      })
+      if (child instanceof HTMLElement && child.tagName === tagName) {
+        const nestedLevel = Math.max(lastItemLevel + 1, getListLevel(child, lastItemLevel + 1))
+        collectListEntries(child, tagName, nestedLevel, entries)
+      }
     })
 
     return entries
@@ -112,12 +147,12 @@ export function htmlToMarkdown(html) {
         break
       }
 
-      const hasStyledLevels = listNodes.some(listNode =>
-        Array.from(listNode.children).some(child => child instanceof HTMLElement && isStyledListItem(child))
-      )
+      const hasStyledLevels = listNodes.some(listNode => hasListStructureSignal(listNode, tagName))
 
       if (hasStyledLevels) {
-        const entries = listNodes.flatMap(listNode => collectListEntries(listNode, tagName))
+        const entries = listNodes.flatMap(listNode =>
+          collectListEntries(listNode, tagName, getListLevel(listNode, 1))
+        )
         const semanticList = buildSemanticList(entries, tagName)
         current.replaceWith(semanticList)
         listNodes.slice(1).forEach(node => node.remove())
@@ -131,6 +166,23 @@ export function htmlToMarkdown(html) {
   const isStyledListItem = (node) => {
     if (!(node instanceof HTMLElement)) return false
     return Boolean(node.dataset.listLevel) || Boolean(node.style.marginLeft) || Boolean(node.style.listStyleType)
+  }
+
+  const hasListStructureSignal = (listNode, tagName) => {
+    if (!(listNode instanceof HTMLElement)) return false
+    if (getListLevel(listNode, 1) > 1) return true
+
+    return Array.from(listNode.childNodes).some(child => {
+      if (!(child instanceof HTMLElement)) return false
+      if (child.tagName === tagName) return true
+      if (child.tagName !== 'LI') return false
+
+      if (isStyledListItem(child)) return true
+
+      return Array.from(child.childNodes).some(nested =>
+        nested instanceof HTMLElement && nested.tagName === tagName
+      )
+    })
   }
 
   normalizeStyledListGroups(doc.body)
