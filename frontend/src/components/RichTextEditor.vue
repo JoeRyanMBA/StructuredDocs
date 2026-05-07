@@ -148,13 +148,28 @@ export default {
         this.$refs.editorEl?.focus()
       }
 
-      document.execCommand(command, false, null)
+      const currentItemBeforeCommand = this.getCurrentListItem()
+      const targetListSelector = listTag.toLowerCase()
+      const isAlreadyInTargetList = selectedItemsBeforeCommand.length > 0
+        ? selectedItemsBeforeCommand.every(item => item.closest(targetListSelector))
+        : currentItemBeforeCommand?.closest(targetListSelector) instanceof HTMLElement
 
-      const listItems = this.getAffectedListItems({
-        listTag,
-        multiBlockSelection,
-        selectedItemsBeforeCommand,
-      })
+      if (!isAlreadyInTargetList) {
+        document.execCommand(command, false, null)
+      }
+
+      const listItems = isAlreadyInTargetList
+        ? this.getExistingListItems({
+            listTag,
+            multiBlockSelection,
+            selectedItemsBeforeCommand,
+            currentItem: currentItemBeforeCommand,
+          })
+        : this.getAffectedListItems({
+            listTag,
+            multiBlockSelection,
+            selectedItemsBeforeCommand,
+          })
 
       if (listItems.length) {
         listItems.forEach(listItem => this.setListItemLevel(listItem, safeLevel, listTag))
@@ -165,6 +180,24 @@ export default {
       this.placeCaretAtEnd(this.getCurrentListItem() || this.$refs.editorEl)
       this.saveSelection()
       this.emitUpdate()
+    },
+    getExistingListItems({ listTag, multiBlockSelection, selectedItemsBeforeCommand, currentItem }) {
+      const targetListSelector = listTag.toLowerCase()
+
+      if (selectedItemsBeforeCommand.length > 0) {
+        return selectedItemsBeforeCommand.filter(item => item.closest(targetListSelector))
+      }
+
+      const currentList = currentItem?.closest(targetListSelector)
+      if (!(currentItem instanceof HTMLLIElement) || !(currentList instanceof HTMLElement)) {
+        return currentItem ? [currentItem] : []
+      }
+
+      if (multiBlockSelection) {
+        return Array.from(currentList.children).filter(child => child instanceof HTMLLIElement)
+      }
+
+      return [currentItem]
     },
     getSelectedRange() {
       const selection = window.getSelection()
