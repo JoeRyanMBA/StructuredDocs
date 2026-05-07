@@ -1325,6 +1325,10 @@ export default {
     },
     async saveTopic() {
       if (!this.title.trim()) return
+
+      if (this.editorMode === 'wysiwyg') {
+        this.updateContentFromWysiwyg()
+      }
       
       this.isSaving = true
       this.saveSuccess = null
