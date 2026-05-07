@@ -372,26 +372,42 @@ export default {
       return entries
     },
     buildSemanticList(entries, defaultTagName) {
-      const rootTagName = entries.length > 0 && entries[0].listTag ? entries[0].listTag : defaultTagName
-      const root = this.createSemanticList(rootTagName)
-      const stack = [{ list: root, lastItem: null }]
+      const fragment = document.createDocumentFragment()
+      const stack = []
 
-      entries.forEach(({ level, item, listTag }) => {
-        const targetLevel = Math.max(1, Math.min(level, stack.length + 1))
+      const ensureLevel = (rawTargetLevel, latestListTag) => {
+        const targetLevel = Math.max(1, Math.min(rawTargetLevel, stack.length + 1))
 
         while (stack.length > targetLevel) {
           stack.pop()
         }
 
-        while (stack.length < targetLevel) {
-          const parent = stack[stack.length - 1]
-          if (!(parent?.lastItem instanceof HTMLElement)) break
-          const targetTagName = listTag || defaultTagName
-          const nestedList = this.createSemanticList(targetTagName)
-          parent.lastItem.appendChild(nestedList)
-          stack.push({ list: nestedList, lastItem: null })
+        if (stack.length === targetLevel) {
+          const currentEntry = stack[stack.length - 1]
+          if (currentEntry.list.tagName.toUpperCase() !== (latestListTag || defaultTagName).toUpperCase()) {
+            stack.pop()
+          }
         }
 
+        while (stack.length < targetLevel) {
+          const parent = stack.length > 0 ? stack[stack.length - 1] : null
+          if (stack.length > 0 && !(parent?.lastItem instanceof HTMLElement)) {
+            break
+          }
+          const targetTagName = latestListTag || defaultTagName
+          const nestedList = this.createSemanticList(targetTagName)
+          
+          if (stack.length === 0) {
+            fragment.appendChild(nestedList)
+          } else {
+            parent.lastItem.appendChild(nestedList)
+          }
+          stack.push({ level: stack.length + 1, list: nestedList, lastItem: null })
+        }
+      }
+
+      entries.forEach(({ level, item, listTag }) => {
+        ensureLevel(level, listTag)
         const entry = stack[stack.length - 1]
         if (!entry || !(item instanceof HTMLElement)) return
         
@@ -399,7 +415,7 @@ export default {
         entry.lastItem = item
       })
 
-      return root
+      return fragment
     },
     fragmentToPlainText(fragment) {
       const blockTags = new Set(['P', 'DIV', 'LI', 'H1', 'H2', 'H3', 'H4', 'H5', 'H6', 'PRE', 'BLOCKQUOTE'])
