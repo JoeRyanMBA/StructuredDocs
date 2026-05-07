@@ -1,24 +1,11 @@
 const { JSDOM } = require('jsdom');
-const fs = require('fs');
-
 const dom = new JSDOM();
-global.DOMParser = dom.window.DOMParser;
-global.Node = dom.window.Node;
-global.HTMLElement = dom.window.HTMLElement;
-global.HTMLLIElement = dom.window.HTMLLIElement;
+const document = dom.window.document;
+const HTMLElement = dom.window.HTMLElement;
+const HTMLLIElement = dom.window.HTMLLIElement;
 
-const componentStr = fs.readFileSync('src/components/RichTextEditor.vue', 'utf8');
-
-// extract collectListEntries, cleanListItem, buildSemanticList, createSemanticList from the vue component methods
-const scriptMatches = componentStr.match(/methods: \{([\s\S]*)\n  \}/);
-if (!scriptMatches) { console.error("Methods not found"); process.exit(1); }
-
-// Extremely crude extraction for test
-const methodsStr = scriptMatches[1].replace(/this\./g, 'obj.');
-
-eval(`
 const obj = {
-  createSemanticList(tagName) { return dom.window.document.createElement(tagName.toLowerCase()); },
+  createSemanticList(tagName) { return document.createElement(tagName.toLowerCase()); },
   cleanListItem(node) {
       const clone = node.cloneNode(true)
       if (!(clone instanceof HTMLElement)) return null
@@ -31,7 +18,7 @@ const obj = {
       }
       return clone
   },
-  collectListEntries(listNode, tagName, inheritedLevel = 1, entries = []) {
+  collectListEntries(listNode, inheritedLevel = 1, entries = []) {
       Array.from(listNode.children).forEach(child => {
         if (!(child instanceof HTMLLIElement)) return
 
@@ -39,22 +26,25 @@ const obj = {
         const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : inheritedLevel
         const item = obj.cleanListItem(child)
         if (item) {
-          entries.push({ level, item })
+          entries.push({ level, item, listTag: listNode.tagName })
         }
 
         Array.from(child.children).forEach(nested => {
-          if (nested instanceof HTMLElement && nested.tagName === tagName) {
-            obj.collectListEntries(nested, tagName, level + 1, entries)
+          if (nested instanceof HTMLElement && (nested.tagName === 'UL' || nested.tagName === 'OL')) {
+            obj.collectListEntries(nested, level + 1, entries)
           }
         })
       })
       return entries
   },
-  buildSemanticList(entries, tagName) {
-      const root = obj.createSemanticList(tagName)
+  buildSemanticList(entries, defaultTagName) {
+      if (!entries.length) return obj.createSemanticList(defaultTagName)
+      
+      const rootTagName = entries[0].listTag || defaultTagName
+      const root = obj.createSemanticList(rootTagName)
       const stack = [{ list: root, lastItem: null }]
 
-      entries.forEach(({ level, item }) => {
+      entries.forEach(({ level, item, listTag }) => {
         const targetLevel = Math.max(1, Math.min(level, stack.length + 1))
 
         while (stack.length > targetLevel) {
@@ -64,35 +54,33 @@ const obj = {
         while (stack.length < targetLevel) {
           const parent = stack[stack.length - 1]
           if (!(parent?.lastItem instanceof HTMLElement)) break
-          const nestedList = obj.createSemanticList(tagName)
+          const nestedList = obj.createSemanticList(listTag || defaultTagName)
           parent.lastItem.appendChild(nestedList)
           stack.push({ list: nestedList, lastItem: null })
         }
 
         const entry = stack[stack.length - 1]
         if (!entry || !(item instanceof HTMLElement)) return
+        
+        // If the current list tag doesn't match what the item wants, we might need a sibling list?
+        // Actually, if we're at the same level but the tag changed (e.g. UL to OL),
+        // we should create a new list and append it to the parent!
+        // But for nested simplicity, let's just append the item to whatever list is at this level for now.
+        
         entry.list.appendChild(item)
         entry.lastItem = item
       })
-
       return root
   }
 };
 
-const domHtml = \`<ul>
-  <li>Level 1
-    <ul>
-      <li>Level 2</li>
-    </ul>
-  </li>
-</ul>\`;
-const div = dom.window.document.createElement('div');
+const domHtml = `<ul><li data-list-level="1">Bullet 1</li></ul><ol><li data-list-level="2">Number 1</li></ol>`;
+const div = document.createElement('div');
 div.innerHTML = domHtml;
 
-const listNodes = [div.firstElementChild];
-const entries = listNodes.flatMap(listNode => obj.collectListEntries(listNode, 'UL'));
+const listNodes = Array.from(div.children);
+const entries = listNodes.flatMap(listNode => obj.collectListEntries(listNode));
 const semanticList = obj.buildSemanticList(entries, 'UL');
 
-console.log('--- OUTPUT AFTER RTE NORMALIZE ---');
+console.log('--- OUTPUT ---');
 console.log(semanticList.outerHTML);
-`);
