@@ -279,6 +279,54 @@ export default {
     createSemanticList(tagName) {
       return document.createElement(tagName.toLowerCase())
     },
+    getPreviousAdjacentList(listNode, tagName) {
+      let sibling = listNode?.previousSibling || null
+
+      while (sibling) {
+        if (sibling.nodeType === Node.TEXT_NODE && !(sibling.textContent || '').trim()) {
+          sibling = sibling.previousSibling
+          continue
+        }
+
+        return sibling instanceof HTMLElement && sibling.tagName === tagName ? sibling : null
+      }
+
+      return null
+    },
+    mergeAdjacentLists(container = this.$refs.editorEl) {
+      if (!(container instanceof HTMLElement)) return
+
+      let node = container.firstChild
+      while (node) {
+        if (!(node instanceof HTMLElement) || !['UL', 'OL'].includes(node.tagName)) {
+          node = node.nextSibling
+          continue
+        }
+
+        let next = node.nextSibling
+        while (next) {
+          if (next.nodeType === Node.TEXT_NODE && !(next.textContent || '').trim()) {
+            const spacer = next
+            next = next.nextSibling
+            spacer.remove()
+            continue
+          }
+
+          if (!(next instanceof HTMLElement) || next.tagName !== node.tagName) {
+            break
+          }
+
+          const adjacentList = next
+          next = adjacentList.nextSibling
+          while (adjacentList.firstChild) {
+            node.appendChild(adjacentList.firstChild)
+          }
+          adjacentList.remove()
+        }
+
+        node = next
+      }
+    },
     cleanListItem(node) {
       const clone = node.cloneNode(true)
       if (!(clone instanceof HTMLElement)) return null
@@ -386,6 +434,8 @@ export default {
       const container = this.$refs.editorEl
       if (!(container instanceof HTMLElement)) return
 
+      this.mergeAdjacentLists(container)
+
       const nodes = Array.from(container.childNodes)
       let index = 0
 
@@ -466,7 +516,20 @@ export default {
 
       while (currentDepth < targetLevel) {
         const currentList = current.parentElement
-        const previousItem = current.previousElementSibling
+        if (!(currentList instanceof HTMLElement)) break
+
+        let previousItem = current.previousElementSibling
+        if (!(previousItem instanceof HTMLLIElement)) {
+          const previousList = this.getPreviousAdjacentList(currentList, listTag)
+          if (previousList instanceof HTMLElement) {
+            while (currentList.firstChild) {
+              previousList.appendChild(currentList.firstChild)
+            }
+            currentList.remove()
+            previousItem = previousList.lastElementChild
+          }
+        }
+
         if (!(previousItem instanceof HTMLLIElement)) break
 
         let nestedList = Array.from(previousItem.children).find(child => child.tagName === listTag)

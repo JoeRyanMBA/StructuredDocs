@@ -187,6 +187,7 @@ frontend/node_modules/
 npm-debug.log*
 yarn-debug.log*
 yarn-error.log*
+*.swp
 # package-lock.json  # Removed to allow tracking for Docker builds
 yarn.lock
 
@@ -198,6 +199,12 @@ yarn.lock
 # Email debug artifacts
 backend/debug_emails/
 backend/debug_emails/**
+
+# Local/generated workspace artifacts
+structured_docs.db
+test-results/
+perfectly_aligned_toc.pdf
+test_export.pdf
 
 # Docker image archives (too large for GitHub)
 *.tar.gz

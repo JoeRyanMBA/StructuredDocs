@@ -1,4 +1,4 @@
-from app_final_with_notifications_fix import create_app
+from backend.app import create_app
 
 app = create_app()
 
