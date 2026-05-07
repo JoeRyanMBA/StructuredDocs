@@ -237,6 +237,21 @@ export function htmlToMarkdown(html) {
     return out
   }
 
+  const getSingleListChild = (node) => {
+    if (!(node instanceof HTMLElement)) return null
+
+    const meaningful = Array.from(node.childNodes).filter(child => {
+      if (child.nodeType === Node.TEXT_NODE) {
+        return Boolean((child.textContent || '').trim())
+      }
+      return child instanceof HTMLElement
+    })
+
+    if (meaningful.length !== 1) return null
+    const onlyChild = meaningful[0]
+    return onlyChild instanceof HTMLElement && ['UL', 'OL'].includes(onlyChild.tagName) ? onlyChild : null
+  }
+
   const renderListItem = (listItem, depth, index, isOrdered) => {
     const inlineParts = []
     const nestedBlocks = []
@@ -315,7 +330,7 @@ export function htmlToMarkdown(html) {
       const alt = node.getAttribute('alt') || 'Image'
       return src ? `![${alt}](${src})` : ''
     }
-    if (tag === 'ul' || tag === 'ol') return renderList(node)
+    if (tag === 'ul' || tag === 'ol') return renderList(node, getListLevel(node, 1))
     if (tag === 'li') return `${renderChildren(node).trim()}\n`
     if (tag === 'div' && node.classList.contains('sd-snippet-ref')) {
       const snippetId = node.getAttribute('data-snippet-id')
@@ -323,7 +338,13 @@ export function htmlToMarkdown(html) {
         return `<div class="sd-snippet-ref" data-snippet-id="${snippetId}"></div>\n\n`
       }
     }
-    if (tag === 'p' || tag === 'div') return `${renderChildren(node).trim()}\n\n`
+    if (tag === 'p' || tag === 'div') {
+      const singleListChild = getSingleListChild(node)
+      if (singleListChild) {
+        return renderList(singleListChild, getListLevel(node, getListLevel(singleListChild, 1)))
+      }
+      return `${renderChildren(node).trim()}\n\n`
+    }
 
     return renderChildren(node)
   }
