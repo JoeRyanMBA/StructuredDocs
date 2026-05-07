@@ -201,10 +201,22 @@ export default {
 
       return [currentItem]
     },
+    isRangeInEditor(range) {
+      const editor = this.$refs.editorEl
+      if (!(editor instanceof HTMLElement) || !range) return false
+
+      return editor.contains(range.commonAncestorContainer)
+    },
     getSelectedRange() {
       const selection = window.getSelection()
-      if (!selection || selection.rangeCount === 0) return this._savedRange?.cloneRange() || null
-      return selection.getRangeAt(0).cloneRange()
+      if (selection && selection.rangeCount > 0) {
+        const range = selection.getRangeAt(0)
+        if (this.isRangeInEditor(range)) {
+          return range.cloneRange()
+        }
+      }
+
+      return this._savedRange?.cloneRange() || null
     },
     getIntersectingListItems(range) {
       const editor = this.$refs.editorEl
