@@ -86,7 +86,7 @@ export function htmlToMarkdown(html) {
     }
   }
 
-  const collectListEntries = (listNode, tagName, inheritedLevel = 1, entries = []) => {
+  const collectListEntries = (listNode, inheritedLevel = 1, entries = []) => {
     let lastItemLevel = inheritedLevel
 
     Array.from(listNode.childNodes).forEach(child => {
@@ -94,14 +94,14 @@ export function htmlToMarkdown(html) {
         const level = Math.max(1, getListLevel(child, inheritedLevel))
         const item = cleanListItem(child)
         if (item) {
-          entries.push({ level, item })
+          entries.push({ level, item, listTag: listNode.tagName })
           lastItemLevel = level
         }
 
         Array.from(child.childNodes).forEach(nested => {
           if (nested instanceof HTMLElement && (nested.tagName === 'UL' || nested.tagName === 'OL')) {
             const nestedLevel = Math.max(level + 1, getListLevel(nested, level + 1))
-            collectListEntries(nested, nested.tagName, nestedLevel, entries)
+            collectListEntries(nested, nestedLevel, entries)
           }
         })
         return
@@ -109,18 +109,19 @@ export function htmlToMarkdown(html) {
 
       if (child instanceof HTMLElement && (child.tagName === 'UL' || child.tagName === 'OL')) {
         const nestedLevel = Math.max(lastItemLevel + 1, getListLevel(child, lastItemLevel + 1))
-        collectListEntries(child, child.tagName, nestedLevel, entries)
+        collectListEntries(child, nestedLevel, entries)
       }
     })
 
     return entries
   }
 
-  const buildSemanticList = (entries, tagName) => {
-    const root = createSemanticList(tagName)
+  const buildSemanticList = (entries, defaultTagName) => {
+    const rootTagName = entries.length > 0 && entries[0].listTag ? entries[0].listTag : defaultTagName
+    const root = createSemanticList(rootTagName)
     const stack = [{ level: 1, list: root, lastItem: null }]
 
-    const ensureLevel = (rawTargetLevel) => {
+    const ensureLevel = (rawTargetLevel, latestListTag) => {
       const targetLevel = Math.max(1, Math.min(rawTargetLevel, stack.length + 1))
 
       while (stack.length > targetLevel) {
@@ -132,14 +133,15 @@ export function htmlToMarkdown(html) {
         if (!(parent?.lastItem instanceof HTMLElement)) {
           break
         }
-        const nestedList = createSemanticList(tagName)
+        const targetTagName = latestListTag || defaultTagName
+        const nestedList = createSemanticList(targetTagName)
         parent.lastItem.appendChild(nestedList)
         stack.push({ level: stack.length + 1, list: nestedList, lastItem: null })
       }
     }
 
-    entries.forEach(({ level, item }) => {
-      ensureLevel(level)
+    entries.forEach(({ level, item, listTag }) => {
+      ensureLevel(level, listTag)
       const entry = stack[stack.length - 1]
       if (!entry || !(item instanceof HTMLElement)) return
       entry.list.appendChild(item)
@@ -174,7 +176,7 @@ export function htmlToMarkdown(html) {
           cursor += 1
           continue
         }
-        if (node instanceof HTMLElement && node.tagName === tagName) {
+        if (node instanceof HTMLElement && (node.tagName === 'UL' || node.tagName === 'OL')) {
           listNodes.push(node)
           cursor += 1
           continue
@@ -182,11 +184,11 @@ export function htmlToMarkdown(html) {
         break
       }
 
-      const hasStyledLevels = listNodes.some(listNode => hasListStructureSignal(listNode, tagName))
+      const hasStyledLevels = listNodes.some(listNode => hasListStructureSignal(listNode, listNode.tagName))
 
       if (hasStyledLevels) {
         const entries = listNodes.flatMap(listNode =>
-          collectListEntries(listNode, tagName, getListLevel(listNode, 1))
+          collectListEntries(listNode, getListLevel(listNode, 1))
         )
         const semanticList = buildSemanticList(entries, tagName)
         current.replaceWith(semanticList)
