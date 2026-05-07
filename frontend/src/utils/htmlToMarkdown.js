@@ -99,17 +99,17 @@ export function htmlToMarkdown(html) {
         }
 
         Array.from(child.childNodes).forEach(nested => {
-          if (nested instanceof HTMLElement && nested.tagName === tagName) {
+          if (nested instanceof HTMLElement && (nested.tagName === 'UL' || nested.tagName === 'OL')) {
             const nestedLevel = Math.max(level + 1, getListLevel(nested, level + 1))
-            collectListEntries(nested, tagName, nestedLevel, entries)
+            collectListEntries(nested, nested.tagName, nestedLevel, entries)
           }
         })
         return
       }
 
-      if (child instanceof HTMLElement && child.tagName === tagName) {
+      if (child instanceof HTMLElement && (child.tagName === 'UL' || child.tagName === 'OL')) {
         const nestedLevel = Math.max(lastItemLevel + 1, getListLevel(child, lastItemLevel + 1))
-        collectListEntries(child, tagName, nestedLevel, entries)
+        collectListEntries(child, child.tagName, nestedLevel, entries)
       }
     })
 
@@ -210,12 +210,13 @@ export function htmlToMarkdown(html) {
     return Array.from(listNode.childNodes).some(child => {
       if (!(child instanceof HTMLElement)) return false
       if (child.tagName === tagName) return true
+      if (child.tagName === 'UL' || child.tagName === 'OL') return true
       if (child.tagName !== 'LI') return false
 
       if (isStyledListItem(child)) return true
 
       return Array.from(child.childNodes).some(nested =>
-        nested instanceof HTMLElement && nested.tagName === tagName
+        nested instanceof HTMLElement && (nested.tagName === 'UL' || nested.tagName === 'OL')
       )
     })
   }
