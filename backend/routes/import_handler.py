@@ -55,6 +55,202 @@ def detect_heading_level_from_style(style_name: str):
     return None
 
 
+def _style_level_from_list_name(style_name: str):
+    """Infer a zero-based nesting level from common Word list style names."""
+    if not style_name:
+        return 0
+
+    match = re.search(r'(?:^|\s)(\d+)\s*$', style_name.strip())
+    if not match:
+        return 0
+
+    try:
+        return max(0, int(match.group(1)) - 1)
+    except ValueError:
+        return 0
+
+
+def _base_docx_list_style_key(style_value: str):
+    cleaned = re.sub(r'\d+$', '', (style_value or '').strip())
+    return cleaned or (style_value or '').strip()
+
+
+def _docx_list_kind_from_num_fmt(num_fmt: str):
+    if not num_fmt:
+        return None
+
+    lowered = num_fmt.lower()
+    if lowered == 'bullet':
+        return 'bullet'
+    if lowered in {'decimal', 'lowerletter', 'upperletter', 'lowerroman', 'upperroman'}:
+        return 'numbered'
+    return None
+
+
+def _build_docx_numbering_maps(doc):
+    """Build lookup tables for DOCX numbering metadata."""
+    numbering_part = getattr(getattr(doc, 'part', None), 'numbering_part', None)
+    if numbering_part is None:
+        return {}, {}
+
+    root = numbering_part.element
+    abstract_levels = {}
+    style_kinds = {}
+
+    for abstract in root.xpath('./*[local-name()="abstractNum"]'):
+        abstract_id = abstract.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}abstractNumId')
+        if not abstract_id:
+            continue
+
+        level_map = {}
+        for level in abstract.xpath('./*[local-name()="lvl"]'):
+            ilvl_raw = level.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}ilvl')
+            try:
+                ilvl = int(ilvl_raw or 0)
+            except ValueError:
+                ilvl = 0
+
+            num_fmt = level.xpath('string(./*[local-name()="numFmt"]/@*[local-name()="val"])')
+            kind = _docx_list_kind_from_num_fmt(num_fmt)
+            if kind:
+                level_map[ilvl] = kind
+
+            style_id = level.xpath('string(./*[local-name()="pStyle"]/@*[local-name()="val"])')
+            if style_id and kind:
+                style_kinds[style_id] = kind
+
+        if level_map:
+            abstract_levels[abstract_id] = level_map
+
+    num_kinds = {}
+    for num in root.xpath('./*[local-name()="num"]'):
+        num_id = num.get('{http://schemas.openxmlformats.org/wordprocessingml/2006/main}numId')
+        abstract_id = num.xpath('string(./*[local-name()="abstractNumId"]/@*[local-name()="val"])')
+        if num_id and abstract_id in abstract_levels:
+            num_kinds[num_id] = abstract_levels[abstract_id]
+
+    return num_kinds, style_kinds
+
+
+def _detect_docx_list_info(paragraph, num_kinds, style_kinds):
+    """Return list metadata for a paragraph when Word encodes it as a list."""
+    style = getattr(paragraph, 'style', None)
+    style_name = getattr(style, 'name', '') or ''
+    style_id = getattr(style, 'style_id', '') or ''
+
+    ilvl = paragraph._p.xpath('string(./w:pPr/w:numPr/w:ilvl/@w:val)')
+    num_id = paragraph._p.xpath('string(./w:pPr/w:numPr/w:numId/@w:val)')
+
+    if num_id:
+        try:
+            level = max(0, int(ilvl or 0))
+        except ValueError:
+            level = 0
+        kind = num_kinds.get(num_id, {}).get(level) or num_kinds.get(num_id, {}).get(0)
+        if kind:
+            return {'kind': kind, 'level': level, 'key': f'num:{num_id}'}
+
+    lowered_style_name = style_name.lower()
+    style_kind = style_kinds.get(style_id)
+    if style_kind:
+        base_style_key = _base_docx_list_style_key(style_id or style_name)
+        return {
+            'kind': style_kind,
+            'level': _style_level_from_list_name(style_name or style_id),
+            'key': f'style:{base_style_key}',
+        }
+
+    if 'list bullet' in lowered_style_name or 'bullet list' in lowered_style_name:
+        base_style_key = _base_docx_list_style_key(style_id or style_name)
+        return {
+            'kind': 'bullet',
+            'level': _style_level_from_list_name(style_name),
+            'key': f'style:{base_style_key}',
+        }
+
+    if 'list number' in lowered_style_name or 'numbered list' in lowered_style_name or 'number list' in lowered_style_name:
+        base_style_key = _base_docx_list_style_key(style_id or style_name)
+        return {
+            'kind': 'numbered',
+            'level': _style_level_from_list_name(style_name),
+            'key': f'style:{base_style_key}',
+        }
+
+    return None
+
+
+def _convert_docx_to_markdown_fallback(file_content):
+    """Best-effort DOCX to markdown conversion when pandoc is unavailable."""
+    doc = Document(io.BytesIO(file_content))
+    num_kinds, style_kinds = _build_docx_numbering_maps(doc)
+    blocks = []
+    current_list_lines = []
+    numbering_state = {}
+    active_list_key = None
+
+    def flush_list_block():
+        nonlocal current_list_lines, active_list_key
+        if current_list_lines:
+            blocks.append('\n'.join(current_list_lines))
+            current_list_lines = []
+        active_list_key = None
+
+    for paragraph in doc.paragraphs:
+        text = (paragraph.text or '').strip()
+        style = getattr(paragraph, 'style', None)
+        style_name_raw = getattr(style, 'name', '') or ''
+
+        heading_level = detect_heading_level_from_style(style_name_raw)
+        if heading_level is not None and text:
+            flush_list_block()
+            hashes = '#' * min(heading_level, 6)
+            blocks.append(f'{hashes} {text}')
+            continue
+
+        list_info = _detect_docx_list_info(paragraph, num_kinds, style_kinds)
+        if list_info and text:
+            level = max(0, list_info['level'])
+            indent = '    ' * level
+
+            if list_info['kind'] == 'numbered':
+                if active_list_key != list_info['key']:
+                    numbering_state[list_info['key']] = {}
+                counters = numbering_state.setdefault(list_info['key'], {})
+                counters[level] = counters.get(level, 0) + 1
+                for depth in list(counters.keys()):
+                    if depth > level:
+                        counters.pop(depth, None)
+                marker = f"{counters[level]}."
+            else:
+                marker = '-'
+
+            current_list_lines.append(f'{indent}{marker} {text}')
+            active_list_key = list_info['key']
+            continue
+
+        flush_list_block()
+        if text:
+            blocks.append(text)
+
+    flush_list_block()
+
+    for table in doc.tables:
+        table_rows = []
+        for row in table.rows:
+            table_rows.append([cell.text.strip().replace('\n', ' ') for cell in row.cells])
+        if not table_rows:
+            continue
+
+        header = table_rows[0]
+        aligns = ['---'] * len(header)
+        table_lines = ['| ' + ' | '.join(header) + ' |', '| ' + ' | '.join(aligns) + ' |']
+        for row in table_rows[1:]:
+            table_lines.append('| ' + ' | '.join(row) + ' |')
+        blocks.append('\n'.join(table_lines))
+
+    return '\n\n'.join(blocks).strip()
+
+
 def _convert_word_to_markdown(file_content, import_doc_id):
     """Convert Word document to Markdown using pandoc with proper image handling"""
     try:
@@ -862,47 +1058,8 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             current_app.logger.error(f"First 500 bytes of file: {snippet}")
 
             try:
-                doc = Document(io.BytesIO(file_content))
-                # Extract paragraphs and headings
-                for p in doc.paragraphs:
-                    text = (p.text or '').strip()
-                    if not text:
-                        continue
-                    try:
-                        ps = getattr(p, 'style', None)
-                        style_name_raw = getattr(ps, 'name', '') or ''
-                    except Exception:
-                        style_name_raw = ''
-                    style_name = style_name_raw.lower()
-
-                    level = detect_heading_level_from_style(style_name)
-                    if level is not None and style_name and not re.search(r'heading\s*'+str(level), style_name):
-                        # Log only when mapping from a non-standard variant
-                        current_app.logger.debug(f"STYLE->HEADING: '{style_name_raw}' -> H{level}")
-                    if level == 1:
-                        lines.append(f"# {text}")
-                    elif level and level > 1:
-                        hashes = '#' * min(level, 6)
-                        lines.append(f"{hashes} {text}")
-                    else:
-                        lines.append(text)
-                # Extract tables and convert to Markdown
-                for table in doc.tables:
-                    # Get all rows as lists of cell text
-                    table_rows = []
-                    for row in table.rows:
-                        table_rows.append([cell.text.strip().replace('\n', ' ') for cell in row.cells])
-                    if not table_rows:
-                        continue
-                    # Build Markdown pipe table
-                    header = table_rows[0]
-                    aligns = ['---'] * len(header)
-                    md_table = ['| ' + ' | '.join(header) + ' |', '| ' + ' | '.join(aligns) + ' |']
-                    for row in table_rows[1:]:
-                        md_table.append('| ' + ' | '.join(row) + ' |')
-                    lines.append('')
-                    lines.extend(md_table)
-                    lines.append('')
+                markdown_content = _convert_docx_to_markdown_fallback(file_content)
+                lines = markdown_content.splitlines()
                 md_snippet = '\n'.join(lines[:10])
                 current_app.logger.debug(f"DOCX FALLBACK SNIPPET (first 10 lines):\n{md_snippet}")
                 current_app.logger.info(f"DOCX fallback parsed snippet for {imp_doc.filename}:\n{md_snippet}")
@@ -1305,9 +1462,7 @@ def _import_as_single_topic(file, source):
         except Exception as e:
             current_app.logger.error(f'Single-topic pandoc conversion failed: {e}', exc_info=True)
             try:
-                doc = Document(io.BytesIO(file_content))
-                lines = [p.text.strip() for p in doc.paragraphs if (p.text or '').strip()]
-                markdown_content = '\n\n'.join(lines)
+                markdown_content = _convert_docx_to_markdown_fallback(file_content)
             except Exception as e2:
                 current_app.logger.error(f'Single-topic python-docx fallback failed: {e2}', exc_info=True)
     else:
@@ -1405,9 +1560,7 @@ def _import_as_bulk_collection_item(file, source):
         except Exception as e:
             current_app.logger.error(f'Bulk-collection pandoc conversion failed: {e}', exc_info=True)
             try:
-                doc = Document(io.BytesIO(file_content))
-                lines = [p.text.strip() for p in doc.paragraphs if (p.text or '').strip()]
-                markdown_content = '\n\n'.join(lines)
+                markdown_content = _convert_docx_to_markdown_fallback(file_content)
             except Exception as e2:
                 current_app.logger.error(f'Bulk-collection python-docx fallback failed: {e2}', exc_info=True)
     else:
