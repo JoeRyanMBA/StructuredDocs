@@ -351,7 +351,7 @@ export default {
       }
       return clone
     },
-    collectListEntries(listNode, tagName, inheritedLevel = 1, entries = []) {
+    collectListEntries(listNode, inheritedLevel = 1, entries = []) {
       Array.from(listNode.children).forEach(child => {
         if (!(child instanceof HTMLLIElement)) return
 
@@ -359,23 +359,24 @@ export default {
         const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : inheritedLevel
         const item = this.cleanListItem(child)
         if (item) {
-          entries.push({ level, item })
+          entries.push({ level, item, listTag: listNode.tagName })
         }
 
         Array.from(child.children).forEach(nested => {
-          if (nested instanceof HTMLElement && nested.tagName === tagName) {
-            this.collectListEntries(nested, tagName, level + 1, entries)
+          if (nested instanceof HTMLElement && (nested.tagName === 'UL' || nested.tagName === 'OL')) {
+            this.collectListEntries(nested, level + 1, entries)
           }
         })
       })
 
       return entries
     },
-    buildSemanticList(entries, tagName) {
-      const root = this.createSemanticList(tagName)
+    buildSemanticList(entries, defaultTagName) {
+      const rootTagName = entries.length > 0 && entries[0].listTag ? entries[0].listTag : defaultTagName
+      const root = this.createSemanticList(rootTagName)
       const stack = [{ list: root, lastItem: null }]
 
-      entries.forEach(({ level, item }) => {
+      entries.forEach(({ level, item, listTag }) => {
         const targetLevel = Math.max(1, Math.min(level, stack.length + 1))
 
         while (stack.length > targetLevel) {
@@ -385,13 +386,15 @@ export default {
         while (stack.length < targetLevel) {
           const parent = stack[stack.length - 1]
           if (!(parent?.lastItem instanceof HTMLElement)) break
-          const nestedList = this.createSemanticList(tagName)
+          const targetTagName = listTag || defaultTagName
+          const nestedList = this.createSemanticList(targetTagName)
           parent.lastItem.appendChild(nestedList)
           stack.push({ list: nestedList, lastItem: null })
         }
 
         const entry = stack[stack.length - 1]
         if (!entry || !(item instanceof HTMLElement)) return
+        
         entry.list.appendChild(item)
         entry.lastItem = item
       })
@@ -470,7 +473,7 @@ export default {
             cursor += 1
             continue
           }
-          if (node instanceof HTMLElement && node.tagName === tagName) {
+          if (node instanceof HTMLElement && ['UL', 'OL'].includes(node.tagName)) {
             listNodes.push(node)
             cursor += 1
             continue
@@ -485,7 +488,7 @@ export default {
         )
 
         if (hasStyledLevels) {
-          const entries = listNodes.flatMap(listNode => this.collectListEntries(listNode, tagName))
+          const entries = listNodes.flatMap(listNode => this.collectListEntries(listNode))
           const semanticList = this.buildSemanticList(entries, tagName)
           current.replaceWith(semanticList)
           listNodes.slice(1).forEach(node => node.remove())
