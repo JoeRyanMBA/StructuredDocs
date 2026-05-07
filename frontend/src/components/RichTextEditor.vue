@@ -273,7 +273,7 @@ export default {
 
       listItems.forEach(listItem => {
         if (!(listItem instanceof HTMLLIElement)) return
-        const actualLevel = Math.max(1, Math.min(4, this.getListDepth(listItem)))
+        const actualLevel = Math.max(1, Math.min(4, level))
         const marginLeft = actualLevel > 1 ? `${(actualLevel - 1) * 1.5}rem` : ''
         const markerStyle = markerStyles[actualLevel] || markerStyles[1]
 
