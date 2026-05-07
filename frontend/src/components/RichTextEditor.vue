@@ -497,10 +497,10 @@ export default {
     },
     getCurrentListItem() {
       const editor = this.$refs.editorEl
-      const selection = window.getSelection()
-      if (!editor || !selection || selection.rangeCount === 0) return null
+      const range = this.getSelectedRange()
+      if (!editor || !range) return null
 
-      let node = selection.getRangeAt(0).startContainer
+      let node = range.startContainer
       if (node?.nodeType === Node.TEXT_NODE) {
         node = node.parentNode
       }
@@ -608,10 +608,10 @@ export default {
         const range = sel.getRangeAt(0)
         if (el.contains(range.startContainer)) {
           this._savedRange = range.cloneRange()
-          return
+          return true
         }
       }
-      this._savedRange = null
+      return false
     },
     restoreSelection() {
       const el = this.$refs.editorEl
