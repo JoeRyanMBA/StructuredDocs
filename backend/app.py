@@ -1043,6 +1043,21 @@ p { color: #666; }
                     print(f"   ✅ Found in backend, serving...")
                     return send_from_directory(backend_images_dir, filename)
 
+                # Fallback 3: configured image storage root and shared /app/data/images
+                configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+                candidate_roots = []
+                if configured_root:
+                    candidate_roots.append(configured_root)
+                candidate_roots.append('/app/data/images')
+
+                for root in candidate_roots:
+                    candidate_path = os.path.join(root, filename)
+                    print(f"🔍 Checking configured root: {candidate_path}")
+                    print(f"   Exists: {os.path.exists(candidate_path)}")
+                    if os.path.exists(candidate_path):
+                        print(f"   ✅ Found in configured root, serving...")
+                        return send_from_directory(root, filename)
+
                 # Debug: List what's actually in backend static images
                 print(f"❌ Not found in any location")
                 if os.path.exists(backend_images_dir):
