@@ -149,11 +149,10 @@ jobs:
             if [[ "$ok" -ne 1 ]]; then
               echo "HTTPS healthcheck failed while the app is healthy. Rewriting host Caddy config to proxy localhost:8080..."
               tmp_caddy="$(mktemp)"
-              cat > "$tmp_caddy" <<CADDYEOF
-${DOMAIN} {
-    reverse_proxy localhost:8080
-}
-CADDYEOF
+              printf '%s\n' \
+                "${DOMAIN} {" \
+                "    reverse_proxy localhost:8080" \
+                "}" > "$tmp_caddy"
 
               if run_privileged test -f /etc/caddy/Caddyfile; then
                 run_privileged cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak.$(date +%s)"
