@@ -79,6 +79,7 @@ export function htmlToMarkdown(html) {
         continue
       }
 
+      const nodeLevel = getListLevel(node, 1)
       let next = node.nextSibling
       while (next) {
         if (isEmptySpacer(next)) {
@@ -93,6 +94,12 @@ export function htmlToMarkdown(html) {
         }
 
         const adjacentList = next
+        const adjacentLevel = getListLevel(adjacentList, 1)
+
+        if (adjacentLevel !== nodeLevel) {
+          break
+        }
+
         next = adjacentList.nextSibling
         while (adjacentList.firstChild) {
           node.appendChild(adjacentList.firstChild)
