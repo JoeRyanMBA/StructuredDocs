@@ -77,6 +77,7 @@ function buildRenderer() {
 }
 
 import HelpIcon from '@/components/HelpIcon.vue'
+import { apiGet } from '@/api/base'
 
 export default {
   name: 'TopicView',
@@ -125,9 +126,7 @@ export default {
       this.loading = true
       this.error = null
       try {
-        const res = await fetch(`/api/topics/${this.topicId}`)
-        if (!res.ok) throw new Error(`HTTP ${res.status}`)
-        this.topic = await res.json()
+        this.topic = await apiGet(`/api/topics/${this.topicId}`)
       } catch (e) {
         this.error = `Could not load topic: ${e.message}`
       } finally {

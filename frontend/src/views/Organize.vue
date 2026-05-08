@@ -1535,9 +1535,7 @@ export default {
       this.previewModal.error = null;
       this.previewModal.topic = topic;
       try {
-        const res = await fetch(`/api/topics/${topic.id}`);
-        if (!res.ok) throw new Error('Failed to load topic');
-        const data = await res.json();
+        const data = await apiGet(`/api/topics/${topic.id}`);
         this.previewModal.title = data.title || topic.title;
         this.previewModal.content = data.content || '';
         this.previewModal.frontmatter = data.frontmatter || '';
