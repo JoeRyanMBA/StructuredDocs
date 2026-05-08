@@ -38,6 +38,12 @@ export default defineConfig({
         target: 'http://localhost:8080',
         changeOrigin: true,
         secure: false
+      },
+      '/images': {
+        // Proxy imported image loads to Flask so /images/imports/... works in dev
+        target: 'http://localhost:8080',
+        changeOrigin: true,
+        secure: false
       }
     }
   }
