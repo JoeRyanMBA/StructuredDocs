@@ -110,10 +110,6 @@ jobs:
             : "${DOMAIN:?DOMAIN is required; set DOMAIN in /opt/structureddocs/.env or provide a valid FRONTEND_URL.}"
             export DOMAIN
 
-            if docker ps -a --format '{{.Names}}' | grep -Fxq 'structureddocs_app'; then
-              docker rm -f structureddocs_app
-            fi
-
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f docker-compose.yml up -d --build --remove-orphans
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f docker-compose.yml ps
             ok=0
