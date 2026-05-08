@@ -155,7 +155,9 @@ jobs:
                 "}" > "$tmp_caddy"
 
               if run_privileged test -f /etc/caddy/Caddyfile; then
-                run_privileged cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak.$(date +%s)"
+                backup_dir="/opt/structureddocs/caddy-backups"
+                mkdir -p "$backup_dir"
+                cp /etc/caddy/Caddyfile "$backup_dir/Caddyfile.$(date +%s)" || true
               else
                 run_privileged mkdir -p /etc/caddy
               fi
