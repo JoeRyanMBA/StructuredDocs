@@ -179,7 +179,7 @@ class ImageHandler:
                     success_count += 1
                     # Update markdown content with new image path
                     old_ref = f"media/{temp_image_path.name}"
-                    new_ref = f"/images/imports/{self.import_doc_id}/{stored_image_info['filename']}"
+                    new_ref = stored_image_info.get('public_url') or f"/images/imports/{self.import_doc_id}/{stored_image_info['filename']}"
                     # Replace various possible reference formats.
                     # The optional (?:\{[^}]*\})? suffix strips Pandoc-style size attributes
                     # like {width="4.0in" height="2.0in"} that pandoc adds to image references.
