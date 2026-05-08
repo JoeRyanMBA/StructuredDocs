@@ -369,8 +369,10 @@ export default {
 
           const adjacentList = next
           const adjacentLevel = this.getListLevel(adjacentList)
+          const adjacentTag = this.getListTag(adjacentList, node.tagName)
+          const nodeTag = this.getListTag(node, node.tagName)
 
-          if (adjacentLevel !== nodeLevel) {
+          if (adjacentLevel !== nodeLevel || adjacentTag !== nodeTag) {
             break
           }
 
@@ -404,7 +406,7 @@ export default {
         const level = Number.isFinite(parsedLevel) && parsedLevel > 0 ? parsedLevel : inheritedLevel
         const item = this.cleanListItem(child)
         if (item) {
-          entries.push({ level, item, listTag: listNode.tagName })
+          entries.push({ level, item, listTag: this.getListTag(listNode, listNode.tagName) })
         }
 
         Array.from(child.children).forEach(nested => {
@@ -522,7 +524,7 @@ export default {
           continue
         }
 
-        const tagName = current.tagName
+        const tagName = this.getListTag(current, current.tagName)
         const listNodes = [current]
         const spacerNodes = []
         let cursor = index + 1
@@ -583,6 +585,24 @@ export default {
       }
 
       return depth
+    },
+    getListTag(node, fallback = 'UL') {
+      if (!(node instanceof HTMLElement)) return fallback.toUpperCase()
+      const tag = node.tagName.toUpperCase()
+      if (tag === 'OL') return 'OL'
+      if (tag !== 'UL') return fallback.toUpperCase()
+      const styleValue = String(node.style?.listStyleType || node.getAttribute('style') || '').toLowerCase()
+      if (/(^|\s)(decimal|decimal-leading-zero|lower-alpha|lower-roman|upper-alpha|upper-roman|alpha|roman)(\s|;|$)/.test(styleValue)) {
+        return 'OL'
+      }
+
+      const hasOrderedChildMarker = Array.from(node.children).some(child => {
+        if (!(child instanceof HTMLElement) || child.tagName !== 'LI') return false
+        const liStyle = String(child.style?.listStyleType || child.getAttribute('style') || '').toLowerCase()
+        return /(^|\s)(decimal|decimal-leading-zero|lower-alpha|lower-roman|upper-alpha|upper-roman|alpha|roman)(\s|;|$)/.test(liStyle)
+      })
+      if (hasOrderedChildMarker) return 'OL'
+      return 'UL'
     },
     setListItemLevel(listItem, targetLevel, listTag) {
       if (!(listItem instanceof HTMLLIElement)) return
