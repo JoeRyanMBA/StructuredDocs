@@ -102,6 +102,14 @@ jobs:
               exit 1
             fi
 
+            run_privileged() {
+              if sudo -n true >/dev/null 2>&1; then
+                sudo -n "$@"
+              else
+                "$@"
+              fi
+            }
+
             COMPOSE_FILE="docker-compose.prod.yml"
 
             DOMAIN="${DOMAIN:-}"
@@ -116,6 +124,21 @@ jobs:
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
             ok=0
             for i in $(seq 1 24); do
+              if curl -fsSL http://127.0.0.1:8080/api/health > /dev/null; then
+                ok=1
+                break
+              fi
+              echo "Local app health attempt $i/24 failed; retrying in 5s..."
+              sleep 5
+            done
+            if [[ "$ok" -ne 1 ]]; then
+              echo "Local app health failed after retries. Recent app logs:"
+              $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs --tail 120
+              exit 1
+            fi
+
+            ok=0
+            for i in $(seq 1 24); do
               if curl -kfsSL --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/health" > /dev/null; then
                 ok=1
                 break
@@ -124,8 +147,38 @@ jobs:
               sleep 5
             done
             if [[ "$ok" -ne 1 ]]; then
-              echo "Healthcheck failed after retries. Recent app logs:"
-              $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs --tail 120
-              exit 1
+              echo "HTTPS healthcheck failed while the app is healthy. Rewriting host Caddy config to proxy localhost:8080..."
+              tmp_caddy="$(mktemp)"
+              cat > "$tmp_caddy" <<CADDYEOF
+${DOMAIN} {
+    reverse_proxy localhost:8080
+}
+CADDYEOF
+
+              if run_privileged test -f /etc/caddy/Caddyfile; then
+                run_privileged cp /etc/caddy/Caddyfile "/etc/caddy/Caddyfile.bak.$(date +%s)"
+              else
+                run_privileged mkdir -p /etc/caddy
+              fi
+
+              run_privileged cp "$tmp_caddy" /etc/caddy/Caddyfile
+              rm -f "$tmp_caddy"
+              run_privileged systemctl reload caddy || run_privileged systemctl restart caddy
+
+              ok=0
+              for i in $(seq 1 24); do
+                if curl -kfsSL --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/health" > /dev/null; then
+                  ok=1
+                  break
+                fi
+                echo "Post-reload healthcheck attempt $i/24 failed; retrying in 5s..."
+                sleep 5
+              done
+
+              if [[ "$ok" -ne 1 ]]; then
+                echo "Healthcheck failed after Caddy reload. Recent app logs:"
+                $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs --tail 120
+                exit 1
+              fi
             fi
           EOF
