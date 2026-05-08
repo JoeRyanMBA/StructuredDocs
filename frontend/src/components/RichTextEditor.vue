@@ -353,6 +353,7 @@ export default {
           continue
         }
 
+        const nodeLevel = this.getListLevel(node)
         let next = node.nextSibling
         while (next) {
           if (this.isEmptySpacer(next)) {
@@ -367,6 +368,12 @@ export default {
           }
 
           const adjacentList = next
+          const adjacentLevel = this.getListLevel(adjacentList)
+
+          if (adjacentLevel !== nodeLevel) {
+            break
+          }
+
           next = adjacentList.nextSibling
           while (adjacentList.firstChild) {
             node.appendChild(adjacentList.firstChild)
