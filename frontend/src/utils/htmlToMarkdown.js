@@ -36,6 +36,27 @@ export function htmlToMarkdown(html) {
     return fallback
   }
 
+  const getListTag = (node, fallback = 'UL') => {
+    if (!(node instanceof HTMLElement)) return fallback.toUpperCase()
+    const tag = node.tagName.toUpperCase()
+    if (tag === 'OL') return 'OL'
+    if (tag !== 'UL') return fallback.toUpperCase()
+
+    const styleValue = String(node.style?.listStyleType || node.getAttribute('style') || '').toLowerCase()
+    if (/(^|\s)(decimal|decimal-leading-zero|lower-alpha|lower-roman|upper-alpha|upper-roman|alpha|roman)(\s|;|$)/.test(styleValue)) {
+      return 'OL'
+    }
+
+    const hasOrderedChildMarker = Array.from(node.children).some(child => {
+      if (!(child instanceof HTMLElement) || child.tagName !== 'LI') return false
+      const liStyle = String(child.style?.listStyleType || child.getAttribute('style') || '').toLowerCase()
+      return /(^|\s)(decimal|decimal-leading-zero|lower-alpha|lower-roman|upper-alpha|upper-roman|alpha|roman)(\s|;|$)/.test(liStyle)
+    })
+    if (hasOrderedChildMarker) return 'OL'
+
+    return 'UL'
+  }
+
   const cleanListItem = (node) => {
     const clone = node.cloneNode(true)
     if (!(clone instanceof HTMLElement)) return null
@@ -118,8 +139,10 @@ export function htmlToMarkdown(html) {
 
         const adjacentList = next
         const adjacentLevel = getListLevel(adjacentList, 1)
+        const adjacentTag = getListTag(adjacentList, node.tagName)
+        const nodeTag = getListTag(node, node.tagName)
 
-        if (adjacentLevel !== nodeLevel) {
+        if (adjacentLevel !== nodeLevel || adjacentTag !== nodeTag) {
           break
         }
 
@@ -142,7 +165,7 @@ export function htmlToMarkdown(html) {
         const level = Math.max(1, getListLevel(child, inheritedLevel))
         const item = cleanListItem(child)
         if (item) {
-          entries.push({ level, item, listTag: listNode.tagName })
+          entries.push({ level, item, listTag: getListTag(listNode, listNode.tagName) })
           lastItemLevel = level
         }
 
@@ -223,7 +246,7 @@ export function htmlToMarkdown(html) {
         continue
       }
 
-      const tagName = current.tagName
+      const tagName = getListTag(current, current.tagName)
       const listNodes = [current]
       const spacerNodes = []
       let cursor = index + 1
@@ -390,7 +413,7 @@ export function htmlToMarkdown(html) {
   }
 
   const renderList = (listNode, depth = 1) => {
-    const isOrdered = listNode.tagName.toLowerCase() === 'ol'
+    const isOrdered = getListTag(listNode) === 'OL'
     let index = Number(listNode.getAttribute('start') || 1)
     const lines = []
 
