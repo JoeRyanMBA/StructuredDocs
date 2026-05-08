@@ -71,6 +71,29 @@ export function htmlToMarkdown(html) {
     return false
   }
 
+  const unwrapListWrappers = (container) => {
+    if (!(container instanceof HTMLElement)) return
+
+    const candidates = Array.from(container.childNodes)
+    candidates.forEach(node => {
+      if (!(node instanceof HTMLElement)) return
+      if (!['DIV', 'P', 'SECTION'].includes(node.tagName)) return
+
+      const meaningful = Array.from(node.childNodes).filter(child => {
+        if (child.nodeType === Node.TEXT_NODE) {
+          return Boolean((child.textContent || '').trim())
+        }
+        return child instanceof HTMLElement
+      })
+
+      if (meaningful.length !== 1) return
+      const onlyChild = meaningful[0]
+      if (!(onlyChild instanceof HTMLElement) || !['UL', 'OL'].includes(onlyChild.tagName)) return
+
+      node.replaceWith(onlyChild)
+    })
+  }
+
   const mergeAdjacentLists = (container) => {
     let node = container.firstChild
     while (node) {
@@ -259,6 +282,7 @@ export function htmlToMarkdown(html) {
     })
   }
 
+  unwrapListWrappers(doc.body)
   normalizeStyledListGroups(doc.body)
 
   const normalizeSoftWrappedText = (text) => {
