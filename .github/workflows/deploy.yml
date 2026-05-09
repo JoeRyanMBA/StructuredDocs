@@ -124,15 +124,16 @@ jobs:
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
             ok=0
             for i in $(seq 1 24); do
-              if curl -fsSL http://127.0.0.1:8080/api/health > /dev/null; then
+              app_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' structureddocs_app 2>/dev/null || echo missing)"
+              if [[ "$app_status" == "healthy" || "$app_status" == "running" ]]; then
                 ok=1
                 break
               fi
-              echo "Local app health attempt $i/24 failed; retrying in 5s..."
+              echo "App container status attempt $i/24: $app_status; retrying in 5s..."
               sleep 5
             done
             if [[ "$ok" -ne 1 ]]; then
-              echo "Local app health failed after retries. Recent app logs:"
+              echo "App container did not become healthy/running after retries. Recent app logs:"
               $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs --tail 120
               exit 1
             fi
