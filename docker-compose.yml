@@ -29,6 +29,8 @@ services:
       - ./instance:/app/instance
       - ./data/images:/app/data/images
       - ./data/images:/app/backend/static/images
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     command: ["./start.sh"]
     restart: unless-stopped
 
