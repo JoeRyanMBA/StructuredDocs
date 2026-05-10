@@ -265,6 +265,7 @@
     <SequentialReviewModal
       v-if="showSequentialModal"
       :topic="selectedTopicForSequence"
+      :isVisible="showSequentialModal"
       :mode="sequentialModalMode"
       :availableReviewers="availableReviewers"
       :topicProjectIds="selectedTopicForSequence ? getTopicProjectIds(selectedTopicForSequence.id) : []"
