@@ -29,6 +29,74 @@
           </p>
         </div>
 
+        <!-- Stakeholder Management -->
+        <div class="mb-4">
+          <h6 class="mb-3"><i class="bi bi-person-plus me-1"></i>Stakeholder Management</h6>
+          
+          <div class="form-section mb-3">
+            <h6 class="mb-2">Add Existing Stakeholder as Reviewer</h6>
+            <div class="selector-row d-flex gap-2 mb-3">
+              <select v-model="selectedStakeholderId" class="form-select flex-grow-1">
+                <option value="">Select a stakeholder...</option>
+                <option v-for="stakeholder in availableStakeholders" :key="stakeholder.id" :value="stakeholder.id">
+                  {{ stakeholder.name }} ({{ stakeholder.organization || 'N/A' }})
+                </option>
+              </select>
+              <button type="button" @click="addSelectedStakeholderAsReviewer" :disabled="!selectedStakeholderId" class="btn btn-primary btn-sm">
+                <i class="bi bi-plus-circle me-1"></i>Add
+              </button>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h6 class="mb-2">Or Create New Stakeholder</h6>
+            <div class="mb-3">
+              <div class="row mb-2">
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.name" type="text" placeholder="Name *" required class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.email" type="email" placeholder="Email *" required class="form-control form-control-sm" />
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.title" type="text" placeholder="Title (optional)" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.organization" type="text" placeholder="Organization (optional)" class="form-control form-control-sm" />
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.division" type="text" placeholder="Division (optional)" class="form-control form-control-sm" />
+                </div>
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.department" type="text" placeholder="Department (optional)" class="form-control form-control-sm" />
+                </div>
+              </div>
+              <div class="row mb-2">
+                <div class="col-md-6">
+                  <input v-model="newStakeholder.phone" type="tel" placeholder="Phone (optional)" class="form-control form-control-sm" />
+                </div>
+              </div>
+              <div class="mb-2">
+                <textarea v-model="newStakeholder.bio" placeholder="Bio (optional)" class="form-control form-control-sm" rows="2"></textarea>
+              </div>
+              <div class="mb-2">
+                <textarea v-model="newStakeholder.expertiseText" placeholder="Expertise areas (one per line, optional)" class="form-control form-control-sm" rows="2"></textarea>
+              </div>
+              <button type="button" @click="createNewStakeholder" :disabled="!newStakeholder.name || !newStakeholder.email || creatingStakeholder" class="btn btn-primary btn-sm">
+                <span v-if="creatingStakeholder" class="spinner-border spinner-border-sm me-2" role="status" aria-hidden="true"></span>
+                <i v-else class="bi bi-plus-circle me-1"></i>
+                {{ creatingStakeholder ? 'Creating...' : 'Create Stakeholder' }}
+              </button>
+            </div>
+            <div v-if="stakeholderError" class="alert alert-danger alert-sm mt-2 mb-0">{{ stakeholderError }}</div>
+            <div v-if="stakeholderSuccess" class="alert alert-success alert-sm mt-2 mb-0">{{ stakeholderSuccess }}</div>
+          </div>
+        </div>
+
         <!-- Existing Sequence Management -->
         <div v-if="existingSequence" class="existing-sequence-box mb-4">
           <div class="d-flex justify-content-between align-items-start gap-3">
@@ -252,7 +320,23 @@ export default {
         reviewers: [],
         auto_advance_on_approve: true,
         pause_on_changes: true
-      }
+      },
+      selectedStakeholderId: '',
+      newStakeholder: {
+        name: '',
+        email: '',
+        title: '',
+        organization: '',
+        division: '',
+        department: '',
+        phone: '',
+        bio: '',
+        expertiseText: ''
+      },
+      creatingStakeholder: false,
+      stakeholderError: null,
+      stakeholderSuccess: null,
+      allStakeholders: []
     }
   },
   computed: {
@@ -274,10 +358,16 @@ export default {
     reviewerOptions() {
       if (this.reviewerChoices.length > 0) return this.reviewerChoices
       return this.mergeReviewerChoices(this.apiReviewerChoices)
+    },
+    availableStakeholders() {
+      // Return all stakeholders that aren't already in the reviewer list
+      const reviewerIds = new Set(this.form.reviewers.map(r => r.reviewer_id).filter(id => id))
+      return this.allStakeholders.filter(s => !reviewerIds.has(s.id))
     }
   },
   async mounted() {
     await this.loadAvailableReviewers()
+    await this.loadAllStakeholders()
     if (this.topic?.id) await this.checkExistingSequences()
   },
   methods: {
@@ -591,6 +681,105 @@ export default {
     async ensureReviewerChoices() {
       if (this.reviewerChoices.length > 0) return
       await this.loadAvailableReviewers()
+    },
+    async loadAllStakeholders() {
+      try {
+        const response = await apiGet('/api/stakeholders/')
+        this.allStakeholders = this.toReviewerList(response)
+          .map(stakeholder => ({
+            id: stakeholder.id,
+            name: stakeholder.name,
+            email: stakeholder.email,
+            organization: stakeholder.organization,
+            title: stakeholder.title,
+            role: 'reviewer'
+          }))
+      } catch (error) {
+        console.error('Failed to load stakeholders:', error)
+      }
+    },
+    async createNewStakeholder() {
+      if (!this.newStakeholder.name || !this.newStakeholder.email) return
+
+      this.creatingStakeholder = true
+      this.stakeholderError = null
+      this.stakeholderSuccess = null
+
+      try {
+        // Parse expertise areas from textarea
+        const expertise_areas = this.newStakeholder.expertiseText
+          .split('\n')
+          .map(area => area.trim())
+          .filter(area => area.length > 0)
+
+        const payload = {
+          name: this.newStakeholder.name,
+          email: this.newStakeholder.email,
+          title: this.newStakeholder.title || null,
+          organization: this.newStakeholder.organization || null,
+          division: this.newStakeholder.division || null,
+          department: this.newStakeholder.department || null,
+          phone: this.newStakeholder.phone || null,
+          bio: this.newStakeholder.bio || null,
+          expertise_areas: expertise_areas,
+          active: true
+        }
+
+        const response = await apiPost('/api/stakeholders/', payload)
+        
+        // Add new stakeholder to the list
+        const newStakeholderData = {
+          id: response.id,
+          name: response.name,
+          email: response.email,
+          organization: response.organization,
+          title: response.title,
+          role: 'reviewer'
+        }
+
+        this.allStakeholders.push(newStakeholderData)
+        this.reviewerChoices = this.mergeReviewerChoices([...this.reviewerChoices, newStakeholderData])
+
+        this.stakeholderSuccess = `${this.newStakeholder.name} has been created successfully. You can now add them to the review sequence.`
+        
+        // Reset form
+        this.newStakeholder = {
+          name: '',
+          email: '',
+          title: '',
+          organization: '',
+          division: '',
+          department: '',
+          phone: '',
+          bio: '',
+          expertiseText: ''
+        }
+
+        setTimeout(() => {
+          this.stakeholderSuccess = null
+        }, 3000)
+      } catch (error) {
+        this.stakeholderError = error?.message || 'Failed to create stakeholder. Please try again.'
+        console.error('Failed to create stakeholder:', error)
+      } finally {
+        this.creatingStakeholder = false
+      }
+    },
+    addSelectedStakeholderAsReviewer() {
+      if (!this.selectedStakeholderId) return
+
+      // Find the stakeholder
+      const stakeholder = this.allStakeholders.find(s => s.id === Number(this.selectedStakeholderId))
+      if (!stakeholder) return
+
+      // Add to reviewers list
+      this.form.reviewers.push({
+        reviewer_id: stakeholder.id,
+        step_name: `${stakeholder.name} Review`,
+        instructions: ''
+      })
+
+      this.selectedStakeholderId = ''
     },
     async saveSequenceChanges() {
       if (!this.existingSequence?.id) return
