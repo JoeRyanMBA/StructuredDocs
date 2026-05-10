@@ -71,6 +71,28 @@
         :initialContent="topic.content"
         :initialFrontmatter="topic.frontmatter"
         @save="onTopicSaved"
+        @show-review-modal="showReviewModal = true"
+        @show-sequential-modal="showSequentialModal = true"
+      />
+      
+      <!-- Request Review Modal -->
+      <RequestReviewModal
+        v-if="topicId"
+        :topic="{ id: topicId, title: topic.title }"
+        :isVisible="showReviewModal"
+        :currentUser="currentUserData"
+        @close="showReviewModal = false"
+        @review-requested="onReviewRequested"
+      />
+      
+      <!-- Sequential Review Modal -->
+      <SequentialReviewModal
+        v-if="topicId"
+        :topicId="topicId"
+        :isVisible="showSequentialModal"
+        :mode="sequentialMode"
+        @close="showSequentialModal = false"
+        @sequence-created="onReviewRequested"
       />
     </div>
   </div>
@@ -78,12 +100,14 @@
 
 <script>
 import TopicEditor from '@/components/TopicEditor.vue'
+import RequestReviewModal from '@/components/RequestReviewModal.vue'
+import SequentialReviewModal from '@/components/SequentialReviewModal.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
 import { apiGet } from '@/api/base'
 
 export default {
   name: 'EditTopicView',
-  components: { TopicEditor, HelpIcon },
+  components: { TopicEditor, RequestReviewModal, SequentialReviewModal, HelpIcon },
 
   data() {
     return {
@@ -99,7 +123,11 @@ export default {
       confirmation: null,
       reviewFeedback: [],
       reviewerName: null,
-      panelOpen: true
+      panelOpen: true,
+      showReviewModal: false,
+      showSequentialModal: false,
+      sequentialMode: 'setup',
+      currentUserData: {}
     }
   },
 
@@ -112,8 +140,12 @@ export default {
   created() {
     if (!this.hasId) {
       this.loading = false
+      this.loadCurrentUser()
       return
     }
+
+    // Load current user for review modals
+    this.loadCurrentUser()
 
     const topicFetch = apiGet(`/api/topics/${this.topicId}`)
       .then(data => {
@@ -143,6 +175,16 @@ export default {
   },
 
   methods: {
+    loadCurrentUser() {
+      try {
+        const userStr = localStorage.getItem('user')
+        if (userStr) {
+          this.currentUserData = JSON.parse(userStr)
+        }
+      } catch (e) {
+        console.error('Failed to load current user:', e)
+      }
+    },
     formatFeedbackType(type) {
       const labels = {
         'general_comment': 'General Comment', 'text_edit': 'Text Edit',
@@ -167,6 +209,12 @@ export default {
 
     onTopicSaved(data) {
       console.log('Saved response:', data)
+    },
+
+    onReviewRequested() {
+      this.showReviewModal = false
+      this.showSequentialModal = false
+      this.showConfirmation('✅ Review requested successfully')
     },
 
     showConfirmation(message) {

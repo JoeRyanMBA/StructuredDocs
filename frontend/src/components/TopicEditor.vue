@@ -220,10 +220,19 @@
           <button
             v-if="topicId"
             type="button"
-            @click="showReviewModal = true"
+            @click="$emit('show-review-modal')"
             class="btn btn-secondary"
           >
             Send for Review
+          </button>
+
+          <button
+            v-if="topicId"
+            type="button"
+            @click="$emit('show-sequential-modal')"
+            class="btn btn-secondary"
+          >
+            Sequential Review
           </button>
 
           <button
@@ -280,16 +289,6 @@
           </div>
         </section>
       </div>
-
-      <!-- Request Review Modal -->
-      <RequestReviewModal
-        v-if="topicId"
-        :topic="{ id: topicId, title: title }"
-        :isVisible="showReviewModal"
-        :currentUser="currentUserData"
-        @close="showReviewModal = false"
-        @review-requested="showReviewModal = false"
-      />
 
       <!-- Link Modal -->
   <div v-if="showLinkModal" class="modal-overlay" @click.self="showLinkModal = false">
@@ -610,14 +609,13 @@ import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
 import { searchTopics } from '@/api/topics.js'
-import RequestReviewModal from '@/components/RequestReviewModal.vue'
 import TagEditor from '@/components/TagEditor.vue'
 import SnippetSelector from '@/components/SnippetSelector.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
 
 export default {
   name: 'TopicEditor',
-  components: { RequestReviewModal, TagEditor, SnippetSelector, RichTextEditor },
+  components: { TagEditor, SnippetSelector, RichTextEditor },
   props: {
     topicId: {
       type: [String, Number],
@@ -651,7 +649,6 @@ export default {
       showImageModal: false,
       showLinkModal: false,
       showTableModal: false,
-      showReviewModal: false,
       editorMode: 'wysiwyg',
       spellcheckEnabled: false,
       wysiwygUpdateTimeout: null,
@@ -1328,11 +1325,29 @@ export default {
       }
     },
     async saveTopic() {
-      if (!this.title.trim()) return
+      console.log('[saveTopic] Saving topic...', {
+        topicId: this.topicId,
+        titleLength: this.title?.length,
+        contentLength: this.content?.length,
+        editorMode: this.editorMode
+      })
 
-      if (this.editorMode === 'wysiwyg') {
-        this.$refs.richEditor?.normalizeStyledListGroups?.()
-        this.updateContentFromWysiwyg()
+      if (!this.title.trim()) {
+        console.warn('[saveTopic] Title is empty, returning early')
+        return
+      }
+
+      try {
+        if (this.editorMode === 'wysiwyg') {
+          try {
+            this.$refs.richEditor?.normalizeStyledListGroups?.()
+          } catch (e) {
+            console.warn('[saveTopic] Error normalizing styled list groups:', e)
+          }
+          this.updateContentFromWysiwyg()
+        }
+      } catch (e) {
+        console.error('[saveTopic] Error during WYSIWYG processing:', e)
       }
       
       this.isSaving = true
@@ -1345,14 +1360,31 @@ export default {
           frontmatter: this.frontmatter
         }
         
+        console.log('[saveTopic] Sending payload:', {
+          method: this.topicId ? 'PUT' : 'POST',
+          endpoint: this.topicId ? `/api/topics/${this.topicId}` : '/api/topics/',
+          payloadSize: JSON.stringify(payload).length,
+          titleLength: payload.title.length,
+          contentLength: payload.content.length
+        })
+        
         let response
-        if (this.topicId) {
-          // Update existing topic
-          response = await apiPut(`/api/topics/${this.topicId}`, payload)
-        } else {
-          // Create new topic
-          response = await apiPost('/api/topics/', payload)
+        try {
+          if (this.topicId) {
+            // Update existing topic
+            console.log('[saveTopic] Calling apiPut for topic', this.topicId)
+            response = await apiPut(`/api/topics/${this.topicId}`, payload)
+          } else {
+            // Create new topic
+            console.log('[saveTopic] Calling apiPost for new topic')
+            response = await apiPost('/api/topics/', payload)
+          }
+        } catch (apiError) {
+          console.error('[saveTopic] API Error:', apiError)
+          throw apiError
         }
+        
+        console.log('[saveTopic] Response received:', { id: response?.id })
         
         const result = response
         
@@ -1365,30 +1397,36 @@ export default {
         }
         
         this.saveSuccess = this.topicId ? 'Topic updated successfully!' : 'Topic created successfully!'
-  // Update snapshot immediately so navigation (manual or automated) won't prompt
-  this.setSnapshot()
+        console.log('[saveTopic] Success:', this.saveSuccess)
+        
+        // Update snapshot immediately so navigation (manual or automated) won't prompt
+        this.setSnapshot()
         
         // Redirect to Review Dashboard after successful save
         setTimeout(() => { 
           this.saveSuccess = null
           if (this.topicId) {
             // For updates, navigate to Review Dashboard
+            console.log('[saveTopic] Redirecting to /dashboard')
             this.$router.push('/dashboard')
-          } else {
-            // For new topics, stay on the edit page with the new ID
-            // The parent component will handle this via the update:topicId emit
           }
-        }, 1500) // Reduced timeout for better UX
+        }, 1500)
         
       } catch (error) {
-        console.error('Save error:', error)
+        console.error('[saveTopic] Caught error:', error, {
+          message: error?.message,
+          stack: error?.stack
+        })
         try {
           const { toast } = await import('@/composables/useToast')
-          toast.error('Failed to save topic. Please try again.')
+          const msg = error?.message || 'Unknown error'
+          console.log('[saveTopic] Showing error toast:', msg)
+          toast.error('Failed to save topic. Error: ' + msg)
         } catch (_e) {
-          /* no-op if import fails at runtime */
+          console.error('[saveTopic] Failed to show toast:', _e)
         }
       } finally {
+        console.log('[saveTopic] Finally block - setting isSaving to false')
         this.isSaving = false
       }
     },
