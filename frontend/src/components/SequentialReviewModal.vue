@@ -1,5 +1,5 @@
 <template>
-  <div class="modal-overlay" @click.self="closeModal">
+  <div v-if="isVisible" class="modal-overlay" @click.self="closeModal">
     <div class="modal-content seq-modal-content" @click.stop>
       <div class="modal-header-row">
         <h3 class="modal-heading">
@@ -227,6 +227,8 @@ import { apiGet, apiPost } from '@/api/base'
 export default {
   name: 'SequentialReviewModal',
   props: {
+    topicId: { type: [String, Number], default: null },
+    isVisible: { type: Boolean, default: false },
     topic: { type: Object, default: null },
     mode: { type: String, default: 'setup' },
     availableReviewers: { type: Array, default: () => [] },

@@ -88,7 +88,7 @@
       <!-- Sequential Review Modal -->
       <SequentialReviewModal
         v-if="topicId"
-        :topicId="topicId"
+        :topic="{ id: topicId, title: topic.title, content: topic.content }"
         :isVisible="showSequentialModal"
         :mode="sequentialMode"
         @close="showSequentialModal = false"
