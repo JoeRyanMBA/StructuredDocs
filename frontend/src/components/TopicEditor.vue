@@ -240,7 +240,7 @@
             @click="$router.go(-1)"
             class="btn btn-secondary"
           >
-            Cancel
+            Close
           </button>
         </div>
 
@@ -1402,15 +1402,10 @@ export default {
         // Update snapshot immediately so navigation (manual or automated) won't prompt
         this.setSnapshot()
         
-        // Redirect to Review Dashboard after successful save
+        // Clear success message after 5 seconds
         setTimeout(() => { 
           this.saveSuccess = null
-          if (this.topicId) {
-            // For updates, navigate to Review Dashboard
-            console.log('[saveTopic] Redirecting to /dashboard')
-            this.$router.push('/dashboard')
-          }
-        }, 1500)
+        }, 5000)
         
       } catch (error) {
         console.error('[saveTopic] Caught error:', error, {
