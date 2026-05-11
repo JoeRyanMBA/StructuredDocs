@@ -543,13 +543,8 @@
             placeholder="Snippet title…"
             autofocus
           />
-          <label class="form-label">Content (Markdown)</label>
-          <textarea
-            v-model="createSnippetForm.content"
-            class="form-control snippet-content-area"
-            placeholder="Snippet content in Markdown…"
-            rows="8"
-          ></textarea>
+          <label class="form-label">Content</label>
+          <RichTextEditor v-model="createSnippetForm.content" class="snippet-create-editor" />
         </div>
         <div class="modal-footer">
           <button
@@ -1767,7 +1762,10 @@ export default {
         selectedText = window.getSelection()?.toString() || ''
         this.captureWysiwygSelection()
       }
-      this.createSnippetForm = { title: '', content: selectedText }
+      this.createSnippetForm = {
+        title: '',
+        content: selectedText ? marked.parse(selectedText) : ''
+      }
       this.createSnippetError = ''
       this.showCreateSnippetModal = true
     },
@@ -1777,9 +1775,10 @@ export default {
       this.createSnippetSaving = true
       this.createSnippetError = ''
       try {
+        const content = this.htmlToMarkdown(this.createSnippetForm.content)
         const snippet = await createSnippet({
           title: this.createSnippetForm.title.trim(),
-          content: this.createSnippetForm.content
+          content
         })
         const placeholder = this._buildSnippetPlaceholder(snippet)
         const bounds = this.createSnippetBounds
@@ -3266,5 +3265,16 @@ export default {
   font-family: 'Courier New', Courier, monospace;
   font-size: 0.85rem;
   resize: vertical;
+}
+.snippet-create-editor {
+  min-height: 260px;
+}
+
+.snippet-create-editor :deep(.rte-wysiwyg-editor) {
+  min-height: 260px;
+}
+
+.snippet-create-editor :deep(.wysiwyg-content) {
+  min-height: 200px;
 }
 </style>
