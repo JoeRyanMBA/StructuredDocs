@@ -745,6 +745,14 @@ export default {
       // Keep both property and attribute in sync for broad browser compatibility.
       el.spellcheck = value
       el.setAttribute('spellcheck', value ? 'true' : 'false')
+
+      // Some browsers update spellcheck underlines only after focus changes.
+      if (document.activeElement === el) {
+        el.blur()
+        requestAnimationFrame(() => {
+          el.focus()
+        })
+      }
       return true
     },
     // --- Public API (callable via $refs) ---

@@ -142,7 +142,8 @@
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
-                @click="toggleSpellcheck"
+                type="button"
+                @click.prevent.stop="toggleSpellcheck"
                 :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
               >🔤 Spell Check</button>
@@ -174,7 +175,8 @@
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
-                @click="toggleSpellcheck"
+                type="button"
+                @click.prevent.stop="toggleSpellcheck"
                 :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
               >🔤 Spell Check</button>
