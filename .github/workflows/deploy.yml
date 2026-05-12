@@ -123,11 +123,32 @@ jobs:
             # Stop and remove any stale container with the same name that may have been
             # created under a different Compose project (e.g. manual run or old deploy).
             docker rm -f structureddocs_app 2>/dev/null || true
+            docker rm -f structureddocs-caddy-1 2>/dev/null || true
 
-            # Stop the host-level Caddy if it is running so the container Caddy can
-            # bind ports 80/443. Suppress errors if Caddy is not installed/running.
+            # Stop common host-level web servers that may already own 80/443.
             run_privileged systemctl stop caddy 2>/dev/null || true
             run_privileged systemctl disable caddy 2>/dev/null || true
+            run_privileged systemctl stop nginx 2>/dev/null || true
+            run_privileged systemctl disable nginx 2>/dev/null || true
+            run_privileged systemctl stop apache2 2>/dev/null || true
+            run_privileged systemctl disable apache2 2>/dev/null || true
+
+            # Remove any docker containers publishing 80 or 443.
+            for cid in $(docker ps -q); do
+              ports="$(docker inspect --format '{{range $p, $conf := .NetworkSettings.Ports}}{{$p}} {{end}}' "$cid" 2>/dev/null || true)"
+              if echo "$ports" | grep -Eq '(^| )(80/tcp|443/tcp|443/udp)( |$)'; then
+                docker rm -f "$cid" || true
+              fi
+            done
+
+            # Fail early with a useful message if ports are still busy.
+            if command -v ss >/dev/null 2>&1; then
+              if ss -ltn '( sport = :80 or sport = :443 )' | grep -Eq ':80|:443'; then
+                echo "Ports 80/443 are still in use on the host. Free them before starting Caddy."
+                ss -ltnp '( sport = :80 or sport = :443 )' || true
+                exit 1
+              fi
+            fi
 
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" up -d --build --remove-orphans
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
