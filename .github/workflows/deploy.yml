@@ -124,6 +124,11 @@ jobs:
             # created under a different Compose project (e.g. manual run or old deploy).
             docker rm -f structureddocs_app 2>/dev/null || true
 
+            # Stop the host-level Caddy if it is running so the container Caddy can
+            # bind ports 80/443. Suppress errors if Caddy is not installed/running.
+            run_privileged systemctl stop caddy 2>/dev/null || true
+            run_privileged systemctl disable caddy 2>/dev/null || true
+
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" up -d --build --remove-orphans
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
             ok=0
