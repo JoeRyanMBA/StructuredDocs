@@ -47,6 +47,7 @@
       ref="editorEl"
       contenteditable="true"
       :spellcheck="spellcheck"
+      :lang="spellcheckLang"
       class="wysiwyg-content"
       @input="onInput"
       @paste="onPaste"
@@ -64,6 +65,7 @@ export default {
   props: {
     modelValue: { type: String, default: '' },
     spellcheck: { type: Boolean, default: false },
+    spellcheckLang: { type: String, default: 'en-US' },
   },
   emits: ['update:modelValue', 'paste'],
   data() {
@@ -80,10 +82,25 @@ export default {
         el.innerHTML = newVal || ''
       }
     },
+    spellcheck(newVal) {
+      const el = this.$refs.editorEl
+      if (!el) return
+      // Keep DOM property and attribute in sync so browser spellcheck updates immediately.
+      el.spellcheck = Boolean(newVal)
+      el.setAttribute('spellcheck', newVal ? 'true' : 'false')
+    },
+    spellcheckLang(newVal) {
+      const el = this.$refs.editorEl
+      if (!el) return
+      el.setAttribute('lang', newVal || 'en-US')
+    },
   },
   mounted() {
     if (this.$refs.editorEl) {
       this.$refs.editorEl.innerHTML = this.modelValue || ''
+      this.$refs.editorEl.spellcheck = Boolean(this.spellcheck)
+      this.$refs.editorEl.setAttribute('spellcheck', this.spellcheck ? 'true' : 'false')
+      this.$refs.editorEl.setAttribute('lang', this.spellcheckLang || 'en-US')
     }
     document.addEventListener('mousedown', this.onDocumentMouseDown)
   },
