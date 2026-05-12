@@ -83,11 +83,7 @@ export default {
       }
     },
     spellcheck(newVal) {
-      const el = this.$refs.editorEl
-      if (!el) return
-      // Keep DOM property and attribute in sync so browser spellcheck updates immediately.
-      el.spellcheck = Boolean(newVal)
-      el.setAttribute('spellcheck', newVal ? 'true' : 'false')
+      this.setSpellcheck(newVal)
     },
     spellcheckLang(newVal) {
       const el = this.$refs.editorEl
@@ -98,8 +94,7 @@ export default {
   mounted() {
     if (this.$refs.editorEl) {
       this.$refs.editorEl.innerHTML = this.modelValue || ''
-      this.$refs.editorEl.spellcheck = Boolean(this.spellcheck)
-      this.$refs.editorEl.setAttribute('spellcheck', this.spellcheck ? 'true' : 'false')
+      this.setSpellcheck(this.spellcheck)
       this.$refs.editorEl.setAttribute('lang', this.spellcheckLang || 'en-US')
     }
     document.addEventListener('mousedown', this.onDocumentMouseDown)
@@ -741,6 +736,16 @@ export default {
     },
     emitUpdate() {
       this.$emit('update:modelValue', this.$refs.editorEl?.innerHTML || '')
+    },
+    setSpellcheck(enabled) {
+      const el = this.$refs.editorEl
+      if (!el) return false
+
+      const value = Boolean(enabled)
+      // Keep both property and attribute in sync for broad browser compatibility.
+      el.spellcheck = value
+      el.setAttribute('spellcheck', value ? 'true' : 'false')
+      return true
     },
     // --- Public API (callable via $refs) ---
     saveSelection() {
