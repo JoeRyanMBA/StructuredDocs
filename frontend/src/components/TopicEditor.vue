@@ -869,6 +869,13 @@ export default {
         this._renderPreview()
       }
     },
+    spellcheckEnabled(newValue) {
+      if (this.editorMode === 'wysiwyg') {
+        this.$nextTick(() => {
+          this.$refs.richEditor?.setSpellcheck?.(newValue)
+        })
+      }
+    },
     // Remove content->HTML sync in wysiwyg to avoid caret jumping.
     initialContent(newValue) {
       this.content = newValue
@@ -1051,8 +1058,17 @@ export default {
     loadSpellcheckPreferences() {
       try {
         const raw = localStorage.getItem('topicEditorSpellcheckEnabled')
-        if (raw === '0') this.spellcheckEnabled = false
-        if (raw === '1') this.spellcheckEnabled = true
+        if (raw === '0') {
+          this.spellcheckEnabled = false
+          return
+        }
+        if (raw === '1') {
+          this.spellcheckEnabled = true
+          return
+        }
+        // Default on for first-time users and persist immediately.
+        this.spellcheckEnabled = true
+        this.persistSpellcheckPreferences()
       } catch (_e) {
         this.spellcheckEnabled = true
       }
@@ -1066,6 +1082,11 @@ export default {
     toggleSpellcheck() {
       this.spellcheckEnabled = !this.spellcheckEnabled
       this.persistSpellcheckPreferences()
+      if (this.editorMode === 'wysiwyg') {
+        this.$nextTick(() => {
+          this.$refs.richEditor?.setSpellcheck?.(this.spellcheckEnabled)
+        })
+      }
     },
     handleInsertVariable(){
       if(!this.selectedVariableSlug) return
