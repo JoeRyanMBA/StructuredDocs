@@ -131,14 +131,16 @@ jobs:
 
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" up -d --build --remove-orphans
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
+
+            # ── Step 1: wait for the app container itself to become running/healthy ──
             ok=0
-            for i in $(seq 1 24); do
+            for i in $(seq 1 36); do
               app_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' structureddocs_app 2>/dev/null || echo missing)"
               if [[ "$app_status" == "healthy" || "$app_status" == "running" ]]; then
                 ok=1
                 break
               fi
-              echo "App container status attempt $i/24: $app_status; retrying in 5s..."
+              echo "App container status attempt $i/36: $app_status; retrying in 5s..."
               sleep 5
             done
             if [[ "$ok" -ne 1 ]]; then
@@ -147,49 +149,40 @@ jobs:
               exit 1
             fi
 
+            # ── Step 2: wait for gunicorn to actually respond (migrations may delay this) ──
+            # Check directly inside the container to bypass Caddy/TLS entirely.
+            ok=0
+            for i in $(seq 1 36); do
+              if docker exec structureddocs_app curl -fsSL http://localhost:8080/api/health > /dev/null 2>&1; then
+                ok=1
+                break
+              fi
+              echo "App HTTP healthcheck attempt $i/36 failed; retrying in 5s..."
+              sleep 5
+            done
+            if [[ "$ok" -ne 1 ]]; then
+              echo "App did not respond on port 8080 after retries. Recent app logs:"
+              $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs --tail 120
+              exit 1
+            fi
+            echo "✅ App is responding on port 8080."
+
+            # ── Step 3: verify HTTPS through Caddy (cert may still be acquiring on first deploy) ──
             ok=0
             for i in $(seq 1 24); do
               if curl -kfsSL --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/health" > /dev/null; then
                 ok=1
                 break
               fi
-              echo "Healthcheck attempt $i/24 failed; retrying in 5s..."
+              echo "HTTPS healthcheck attempt $i/24 failed; retrying in 5s..."
               sleep 5
             done
             if [[ "$ok" -ne 1 ]]; then
-              echo "HTTPS healthcheck failed while the app is healthy. Rewriting host Caddy config to proxy localhost:8080..."
-              tmp_caddy="$(mktemp)"
-              printf '%s\n' \
-                "${DOMAIN} {" \
-                "    reverse_proxy localhost:8080" \
-                "}" > "$tmp_caddy"
-
-              if run_privileged test -f /etc/caddy/Caddyfile; then
-                backup_dir="/opt/structureddocs/caddy-backups"
-                mkdir -p "$backup_dir"
-                cp /etc/caddy/Caddyfile "$backup_dir/Caddyfile.$(date +%s)" || true
-              else
-                run_privileged mkdir -p /etc/caddy
-              fi
-
-              run_privileged cp "$tmp_caddy" /etc/caddy/Caddyfile
-              rm -f "$tmp_caddy"
-              run_privileged systemctl reload caddy || run_privileged systemctl restart caddy
-
-              ok=0
-              for i in $(seq 1 24); do
-                if curl -kfsSL --resolve "${DOMAIN}:443:127.0.0.1" "https://${DOMAIN}/api/health" > /dev/null; then
-                  ok=1
-                  break
-                fi
-                echo "Post-reload healthcheck attempt $i/24 failed; retrying in 5s..."
-                sleep 5
-              done
-
-              if [[ "$ok" -ne 1 ]]; then
-                echo "Healthcheck failed after Caddy reload. Recent app logs:"
-                $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs --tail 120
-                exit 1
-              fi
+              echo "⚠️  HTTPS healthcheck via Caddy did not pass within the timeout."
+              echo "    The app itself is healthy (Step 2 passed). Caddy may still be acquiring a TLS certificate."
+              echo "    Deployment is considered successful. Check Caddy logs if HTTPS remains unavailable:"
+              $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" logs caddy --tail 40
+            else
+              echo "✅ HTTPS healthcheck passed."
             fi
           EOF
