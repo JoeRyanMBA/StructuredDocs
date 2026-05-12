@@ -144,8 +144,9 @@
               <button
                 type="button"
                 @click.prevent.stop="toggleSpellcheck"
-                :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
+                :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active is-active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
+                :aria-pressed="spellcheckEnabled ? 'true' : 'false'"
               >🔤 Spell Check</button>
             </div>
             <textarea 
@@ -177,8 +178,9 @@
               <button
                 type="button"
                 @click.prevent.stop="toggleSpellcheck"
-                :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
+                :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active is-active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
+                :aria-pressed="spellcheckEnabled ? 'true' : 'false'"
               >🔤 Spell Check</button>
             </template>
           </RichTextEditor>
