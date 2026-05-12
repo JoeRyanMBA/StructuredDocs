@@ -120,6 +120,10 @@ jobs:
             : "${DOMAIN:?DOMAIN is required; set DOMAIN in /opt/structureddocs/.env or provide a valid FRONTEND_URL.}"
             export DOMAIN
 
+            # Stop and remove any stale container with the same name that may have been
+            # created under a different Compose project (e.g. manual run or old deploy).
+            docker rm -f structureddocs_app 2>/dev/null || true
+
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" up -d --build --remove-orphans
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
             ok=0
