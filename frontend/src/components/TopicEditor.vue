@@ -1582,7 +1582,7 @@ export default {
       const alt = this.imageAlt || 'Image'
       const caption = (this.imageCaption || '').trim()
       const imageMarkdown = caption
-        ? `![${alt}](${this.imageUrl})\n${caption}`
+        ? `![${alt}](${this.imageUrl})\n\n${caption}`
         : `![${alt}](${this.imageUrl})`
       
       if (this.editorMode === 'markdown') {
@@ -1595,7 +1595,7 @@ export default {
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
         const imgHtml = caption
-          ? `<img src="${this.imageUrl}" alt="${alt}" /><p>${escapedCaption}</p>`
+          ? `<p><img src="${this.imageUrl}" alt="${alt}" /></p><p>${escapedCaption}</p>`
           : `<img src="${this.imageUrl}" alt="${alt}" />`
         document.execCommand('insertHTML', false, imgHtml)
         this.updateContentFromWysiwyg()
@@ -2739,6 +2739,7 @@ export default {
   margin-bottom: 1rem;
 }
 
+.wysiwyg-content code,
 .wysiwyg-textarea code {
   background: #f8f9fa;
   padding: 0.2rem 0.4rem;
