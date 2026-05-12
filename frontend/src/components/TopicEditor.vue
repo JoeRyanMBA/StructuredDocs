@@ -142,7 +142,7 @@
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
-                @click="spellcheckEnabled = !spellcheckEnabled"
+                @click="toggleSpellcheck"
                 :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
               >🔤 Spell Check</button>
@@ -152,6 +152,7 @@
               v-model="content" 
               @paste="handleMarkdownPaste"
               :spellcheck="spellcheckEnabled"
+              lang="en-US"
               class="markdown-textarea"
               placeholder="Write your content in Markdown..."
               rows="20"
@@ -163,6 +164,7 @@
             v-if="editorMode === 'wysiwyg'"
             ref="richEditor"
             :spellcheck="spellcheckEnabled"
+            spellcheck-lang="en-US"
             @update:model-value="onRichEditorUpdate"
             @paste="handleWysiwygPaste"
           >
@@ -172,7 +174,7 @@
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
-                @click="spellcheckEnabled = !spellcheckEnabled"
+                @click="toggleSpellcheck"
                 :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
               >🔤 Spell Check</button>
@@ -645,7 +647,7 @@ export default {
       showLinkModal: false,
       showTableModal: false,
       editorMode: 'wysiwyg',
-      spellcheckEnabled: false,
+      spellcheckEnabled: true,
       wysiwygUpdateTimeout: null,
       allTags: [],
       selectedTagIds: [],
@@ -885,6 +887,7 @@ export default {
     window.addEventListener('beforeunload', this.beforeUnloadHandler)
   this.loadVariables()
   this.loadRecentVariables()
+  this.loadSpellcheckPreferences()
   this.loadPastePreferences()
   this.loadTags()
     // Initialize WYSIWYG editor content without creating a reactive loop that resets caret
@@ -1044,6 +1047,25 @@ export default {
         localStorage.setItem('topicEditorNormalizePastedLineBreaks', this.normalizePastedLineBreaks ? '1' : '0')
       } catch (_e) {
       }
+    },
+    loadSpellcheckPreferences() {
+      try {
+        const raw = localStorage.getItem('topicEditorSpellcheckEnabled')
+        if (raw === '0') this.spellcheckEnabled = false
+        if (raw === '1') this.spellcheckEnabled = true
+      } catch (_e) {
+        this.spellcheckEnabled = true
+      }
+    },
+    persistSpellcheckPreferences() {
+      try {
+        localStorage.setItem('topicEditorSpellcheckEnabled', this.spellcheckEnabled ? '1' : '0')
+      } catch (_e) {
+      }
+    },
+    toggleSpellcheck() {
+      this.spellcheckEnabled = !this.spellcheckEnabled
+      this.persistSpellcheckPreferences()
     },
     handleInsertVariable(){
       if(!this.selectedVariableSlug) return
