@@ -440,6 +440,10 @@ export function htmlToMarkdown(html) {
     if (tag === 'h3') return `### ${renderChildren(node).trim()}\n\n`
     if (tag === 'strong' || tag === 'b') return `**${renderChildren(node)}**`
     if (tag === 'em' || tag === 'i') return `*${renderChildren(node)}*`
+    if (tag === 'pre') {
+      const codeText = (node.textContent || '').replace(/\u00a0/g, ' ').trimEnd()
+      return codeText ? `\`\`\`\n${codeText}\n\`\`\`\n\n` : ''
+    }
     if (tag === 'code') return `\`${renderChildren(node).replace(/\n/g, ' ').trim()}\``
     if (tag === 'a') {
       const href = node.getAttribute('href') || ''

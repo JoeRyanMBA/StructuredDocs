@@ -3,7 +3,7 @@
     <div class="rte-toolbar" @mousedown.prevent>
       <button type="button" @click="exec('bold')" class="toolbar-btn">𝐁 Bold</button>
       <button type="button" @click="exec('italic')" class="toolbar-btn">𝐼 Italic</button>
-      <button type="button" @click="exec('formatBlock', 'code')" class="toolbar-btn">⟨⟩ Code</button>
+      <button type="button" @click="applyInlineCode" class="toolbar-btn">⟨⟩ Code</button>
       <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
       <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
       <button type="button" @click="clearFormatting()" class="toolbar-btn" title="Clear formatting from selected text">Tx Clear</button>
@@ -133,6 +133,48 @@ export default {
         this.$refs.editorEl?.focus()
       }
       document.execCommand(command, false, value)
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    applyInlineCode() {
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
+
+      const editor = this.$refs.editorEl
+      const selection = window.getSelection()
+      if (!editor || !selection || selection.rangeCount === 0) return
+
+      const range = selection.getRangeAt(0)
+      if (!editor.contains(range.commonAncestorContainer)) return
+
+      const activeCode = range.startContainer instanceof Node
+        ? (range.startContainer.nodeType === Node.ELEMENT_NODE
+            ? range.startContainer.closest?.('code')
+            : range.startContainer.parentElement?.closest('code'))
+        : null
+
+      if (activeCode instanceof HTMLElement) {
+        const textNode = document.createTextNode(activeCode.textContent || '')
+        activeCode.replaceWith(textNode)
+        const newRange = document.createRange()
+        newRange.selectNodeContents(textNode)
+        selection.removeAllRanges()
+        selection.addRange(newRange)
+        this.saveSelection()
+        this.emitUpdate()
+        return
+      }
+
+      const selectedText = selection.toString()
+      if (!selectedText) return
+
+      const escapedText = selectedText
+        .replace(/&/g, '&amp;')
+        .replace(/</g, '&lt;')
+        .replace(/>/g, '&gt;')
+
+      document.execCommand('insertHTML', false, `<code>${escapedText}</code>`)
       this.saveSelection()
       this.emitUpdate()
     },
