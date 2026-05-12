@@ -893,4 +893,12 @@ export default {
 .rte-wysiwyg-editor .wysiwyg-content {
   border-radius: 0 0 4px 4px;
 }
+
+.rte-wysiwyg-editor .wysiwyg-content code {
+  background: #f8f9fa;
+  padding: 0.2rem 0.4rem;
+  border-radius: 3px;
+  font-family: 'Courier New', monospace;
+  font-size: 0.9em;
+}
 </style>
