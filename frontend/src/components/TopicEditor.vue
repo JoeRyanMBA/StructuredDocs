@@ -2252,6 +2252,49 @@ export default {
   overflow: auto;
 }
 
+.preview-content table,
+.wysiwyg-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 1rem 0;
+}
+
+.preview-content th,
+.preview-content td,
+.wysiwyg-content th,
+.wysiwyg-content td {
+  border: 1px solid #dee2e6;
+  padding: 0.5rem;
+  vertical-align: top;
+}
+
+.preview-content th,
+.wysiwyg-content th {
+  background: #f8f9fa;
+  font-weight: 600;
+}
+
+.preview-content th[align='left'],
+.preview-content td[align='left'],
+.wysiwyg-content th[align='left'],
+.wysiwyg-content td[align='left'] {
+  text-align: left;
+}
+
+.preview-content th[align='center'],
+.preview-content td[align='center'],
+.wysiwyg-content th[align='center'],
+.wysiwyg-content td[align='center'] {
+  text-align: center;
+}
+
+.preview-content th[align='right'],
+.preview-content td[align='right'],
+.wysiwyg-content th[align='right'],
+.wysiwyg-content td[align='right'] {
+  text-align: right;
+}
+
 /* Editor actions styling */
 .editor-actions {
   /* margin-top: 2rem; */
