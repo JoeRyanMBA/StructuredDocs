@@ -426,6 +426,106 @@ export function htmlToMarkdown(html) {
     return lines.filter(Boolean).join('\n') + '\n\n'
   }
 
+  const getTableCellAlignment = (cell) => {
+    if (!(cell instanceof HTMLElement)) return ''
+
+    const alignAttr = String(cell.getAttribute('align') || '').trim().toLowerCase()
+    if (alignAttr === 'left' || alignAttr === 'center' || alignAttr === 'right') {
+      return alignAttr
+    }
+
+    const styleAlign = String(cell.style?.textAlign || '').trim().toLowerCase()
+    if (styleAlign === 'left' || styleAlign === 'center' || styleAlign === 'right') {
+      return styleAlign
+    }
+
+    return ''
+  }
+
+  const tableAlignmentMarker = (alignment) => {
+    if (alignment === 'left') return ':---'
+    if (alignment === 'center') return ':---:'
+    if (alignment === 'right') return '---:'
+    return '---'
+  }
+
+  const normalizeTableCell = (text) => {
+    return String(text || '')
+      .replace(/\u00a0/g, ' ')
+      .replace(/\n+/g, ' ')
+      .replace(/\|/g, '\\|')
+      .replace(/\s{2,}/g, ' ')
+      .trim()
+  }
+
+  const renderTable = (tableNode) => {
+    if (!(tableNode instanceof HTMLTableElement)) return ''
+
+    const rows = []
+    const directSections = Array.from(tableNode.children).filter(child =>
+      child instanceof HTMLElement && ['THEAD', 'TBODY', 'TFOOT'].includes(child.tagName)
+    )
+
+    if (directSections.length > 0) {
+      directSections.forEach(section => {
+        Array.from(section.children).forEach(row => {
+          if (row instanceof HTMLTableRowElement) {
+            rows.push(row)
+          }
+        })
+      })
+    } else {
+      Array.from(tableNode.children).forEach(child => {
+        if (child instanceof HTMLTableRowElement) {
+          rows.push(child)
+        }
+      })
+    }
+
+    const parsedRows = rows
+      .map(row => Array.from(row.children).filter(cell =>
+        cell instanceof HTMLTableCellElement
+      ))
+      .filter(cells => cells.length > 0)
+
+    if (!parsedRows.length) return ''
+
+    const columnCount = parsedRows.reduce((max, row) => Math.max(max, row.length), 0)
+    if (!columnCount) return ''
+
+    const alignments = Array.from({ length: columnCount }, () => '')
+    parsedRows.forEach(row => {
+      for (let i = 0; i < columnCount; i += 1) {
+        if (alignments[i]) continue
+        const cell = row[i]
+        const alignment = getTableCellAlignment(cell)
+        if (alignment) alignments[i] = alignment
+      }
+    })
+
+    const rowToMarkdownCells = (rowCells = []) => {
+      const cells = []
+      for (let i = 0; i < columnCount; i += 1) {
+        const cell = rowCells[i]
+        const content = cell ? normalizeTableCell(renderChildren(cell)) : ''
+        cells.push(content)
+      }
+      return cells
+    }
+
+    const headerCells = rowToMarkdownCells(parsedRows[0])
+    const separatorCells = alignments.map(tableAlignmentMarker)
+    const bodyRows = parsedRows.slice(1).map(row => rowToMarkdownCells(row))
+
+    const lines = [
+      `| ${headerCells.join(' | ')} |`,
+      `| ${separatorCells.join(' | ')} |`,
+      ...bodyRows.map(cells => `| ${cells.join(' | ')} |`)
+    ]
+
+    return lines.join('\n') + '\n\n'
+  }
+
   const renderNode = (node) => {
     if (node.nodeType === Node.TEXT_NODE) {
       return node.textContent || ''
@@ -455,6 +555,7 @@ export function htmlToMarkdown(html) {
       const alt = node.getAttribute('alt') || 'Image'
       return src ? `![${alt}](${src})` : ''
     }
+    if (tag === 'table') return renderTable(node)
     if (tag === 'ul' || tag === 'ol') return renderList(node, getListLevel(node, 1))
     if (tag === 'li') return `${renderChildren(node).trim()}\n`
     if (tag === 'div' && node.classList.contains('sd-snippet-ref')) {
