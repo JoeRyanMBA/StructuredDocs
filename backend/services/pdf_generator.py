@@ -74,6 +74,17 @@ def _pdf_sanitize_text(s: str) -> str:
     return s.strip()
 
 
+def _format_inline_markdown_for_pdf(text: str) -> str:
+    """Convert basic inline markdown syntax to ReportLab-compatible inline tags."""
+    if not text:
+        return ''
+    formatted = str(text)
+    formatted = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted)
+    formatted = re.sub(r'\*(.*?)\*', r'<i>\1</i>', formatted)
+    formatted = re.sub(r'`(.*?)`', r'<font face="Courier">\1</font>', formatted)
+    return formatted
+
+
 def _is_markdown_table_separator(line: str) -> bool:
     """Return True when *line* looks like a markdown table separator row."""
     if not line:
@@ -1085,7 +1096,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                                     alignment=TA_LEFT,
                                                 )
                                             table_data.append([
-                                                Paragraph(_pdf_sanitize_text(str(cell) or '&nbsp;'), cell_style)
+                                                Paragraph(_pdf_sanitize_text(_format_inline_markdown_for_pdf(str(cell) or '&nbsp;')), cell_style)
                                                 for cell in row
                                             ])
 
