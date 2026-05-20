@@ -82,9 +82,9 @@
               <td>{{ publication.title }}</td>
               <td>{{ publication.type || 'N/A' }}</td>
               <td>{{ formatStatus(publication.status) }}</td>
-              <td>{{ publication.pages_count || 0 }}</td>
+              <td>{{ getPageCount(publication) }}</td>
               <td>{{ publication.topics_count || 0 }}</td>
-              <td>{{ formatRelativeTime(publication.updated_at || publication.created_at) }}</td>
+              <td>{{ formatRelativeTime(getPublicationTimestamp(publication)) }}</td>
               <td>
                 <button @click="viewPublication(publication)" class="table-btn">Preview</button>
                 <button @click="editPublication(publication)" class="table-btn">Edit</button>
@@ -121,8 +121,8 @@
               <div class="publication-icon">{{ getPublicationIcon(publication.type) }}</div>
               <div class="publication-content">
                 <div class="publication-title">{{ publication.title }}</div>
-                <div class="publication-description">{{ publication.type }} • {{ publication.pages_count || 0 }} pages</div>
-                <div class="publication-meta">{{ formatRelativeTime(publication.updated_at) }}</div>
+                <div class="publication-description">{{ publication.type }} • {{ getPageCount(publication) }} pages</div>
+                <div class="publication-meta">{{ formatRelativeTime(getPublicationTimestamp(publication)) }}</div>
               </div>
               <div class="publication-status" :class="publication.status">{{ formatStatus(publication.status) }}</div>
             </div>
@@ -150,7 +150,7 @@
                 <div class="card-metrics">
                   <span class="card-metric">
                     <span class="metric-label">Pages:</span>
-                    {{ publication.pages_count || 0 }}
+                    {{ getPageCount(publication) }}
                   </span>
                   <span class="card-metric">
                     <span class="metric-label">Topics:</span>
@@ -163,7 +163,7 @@
                 </div>
               </div>
               <div class="card-footer">
-                <span class="card-date">Updated {{ formatRelativeTime(publication.updated_at || publication.created_at) }}</span>
+                <span class="card-date">Updated {{ formatRelativeTime(getPublicationTimestamp(publication)) }}</span>
                 <div class="card-actions">
                   <button v-if="publication.status === 'published'" @click.stop="downloadPublication(publication)" class="card-action-btn primary" :disabled="exportingPdf.has(publication.id)">
                     <span v-if="exportingPdf.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Exporting…</span>
@@ -285,7 +285,7 @@ export default {
         // Calculate stats from publications data
         const total = this.publications.length
         const active = this.publications.filter(p => p.status === 'published').length
-        const mobileKB = this.publications.filter(p => p.type === 'Mobile KB').reduce((sum, p) => sum + (p.pages_count || 0), 0)
+        const mobileKB = this.publications.filter(p => p.type === 'Mobile KB').reduce((sum, p) => sum + this.getPageCount(p), 0)
         const pdfs = this.publications.filter(p => p.type === 'PDF').length
         // Calculate published this month
         const oneMonthAgo = new Date()
@@ -442,6 +442,20 @@ export default {
         'processing': 'Processing'
       }
       return statusMap[status] || status
+    },
+    getPageCount(publication) {
+      const pagesCount = Number(publication?.pages_count)
+      if (Number.isFinite(pagesCount) && pagesCount >= 0) {
+        return pagesCount
+      }
+      const topicsCount = Number(publication?.topics_count)
+      if (Number.isFinite(topicsCount) && topicsCount >= 0) {
+        return topicsCount
+      }
+      return 0
+    },
+    getPublicationTimestamp(publication) {
+      return publication?.updated_at || publication?.created_at || null
     },
     formatFileSize(bytes) {
       if (!bytes) return 'Unknown'
