@@ -1,4 +1,5 @@
 from backend.services.pdf_generator import (
+    _format_inline_markdown_for_pdf,
     convert_markdown_to_html,
     convert_markdown_to_pdf_paragraphs,
 )
@@ -31,3 +32,10 @@ def test_convert_markdown_to_pdf_paragraphs_emits_table_sentinel():
     assert len(table_entries) == 1
     assert '"A"' in table_entries[0]
     assert '"left"' in table_entries[0]
+
+
+def test_pdf_inline_markdown_formatter_handles_bold_and_italic():
+    formatted = _format_inline_markdown_for_pdf('**Leave Type** and *Code*')
+
+    assert '<b>Leave Type</b>' in formatted
+    assert '<i>Code</i>' in formatted

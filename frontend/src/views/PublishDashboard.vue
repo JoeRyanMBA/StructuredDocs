@@ -96,6 +96,10 @@
                   <span v-if="exportingPdf.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Exporting…</span>
                   <span v-else>Export PDF</span>
                 </button>
+                <button @click="refreshPublicationFromTable(publication)" class="table-btn" :disabled="refreshingPublications.has(publication.id)">
+                  <span v-if="refreshingPublications.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Refreshing…</span>
+                  <span v-else>Refresh Publication</span>
+                </button>
               </td>
             </tr>
           </tbody>
@@ -183,7 +187,8 @@
 <script>
 import axiosInstance from '@/api/axiosInstance'
 import { apiGet } from '@/api/base'
-import { downloadMobileKnowledgeBase, downloadPublicationPdf, getPublications } from '@/api/publications'
+import { downloadMobileKnowledgeBase, downloadPublicationPdf, getPublications, refreshPublication } from '@/api/publications'
+import { toast } from '@/composables/useToast'
 import CompactToolbar from '@/components/CompactToolbar.vue'
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -223,6 +228,7 @@ export default {
       selectedTagIds: [],
       exportingPdf: new Set(),
       exportingKb: new Set(),
+      refreshingPublications: new Set(),
     }
   },
   
@@ -343,6 +349,23 @@ export default {
         const next = new Set(this.exportingPdf)
         next.delete(publication.id)
         this.exportingPdf = next
+      }
+    },
+    async refreshPublicationFromTable(publication) {
+      if (this.refreshingPublications.has(publication.id)) return
+      this.refreshingPublications = new Set([...this.refreshingPublications, publication.id])
+      try {
+        await refreshPublication(publication.id)
+        await this.loadPublications()
+        await this.loadStats()
+        toast.success(`Publication "${publication.title || 'Untitled'}" refreshed.`)
+      } catch (e) {
+        console.error('Refresh publication failed:', e)
+        toast.error(e?.message || 'Failed to refresh publication')
+      } finally {
+        const next = new Set(this.refreshingPublications)
+        next.delete(publication.id)
+        this.refreshingPublications = next
       }
     },
     downloadPublication(publication) {
