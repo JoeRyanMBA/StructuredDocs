@@ -4,6 +4,7 @@ import os
 import base64
 import mimetypes
 import io
+import json
 import traceback
 import tempfile
 import shutil
@@ -71,6 +72,72 @@ def _pdf_sanitize_text(s: str) -> str:
     # Remove Pandoc-style attribute blocks like {width=".." height=".."}
     s = re.sub(r'\{\s*(?:width|height|style|class)\s*=\s*"[^"]*"[^}]*\}', '', s)
     return s.strip()
+
+
+def _is_markdown_table_separator(line: str) -> bool:
+    """Return True when *line* looks like a markdown table separator row."""
+    if not line:
+        return False
+    candidate = line.strip()
+    if '|' not in candidate:
+        return False
+    # Examples: | --- | :---: | ---: |
+    return bool(re.match(r'^\|?\s*:?-{3,}:?\s*(\|\s*:?-{3,}:?\s*)+\|?\s*$', candidate))
+
+
+def _split_markdown_table_row(line: str):
+    """Split a markdown table row into cell values."""
+    if line is None:
+        return []
+    row = line.strip()
+    if row.startswith('|'):
+        row = row[1:]
+    if row.endswith('|'):
+        row = row[:-1]
+    cells = [c.strip().replace('\\|', '|') for c in re.split(r'(?<!\\)\|', row)]
+    return cells
+
+
+def _consume_markdown_table(lines, start_index):
+    """Parse a markdown table block from *lines* starting at *start_index*.
+
+    Returns (table_rows, next_index).
+    table_rows is None when no table starts at start_index.
+    """
+    if start_index + 1 >= len(lines):
+        return None, start_index
+
+    header_line = lines[start_index].strip()
+    separator_line = lines[start_index + 1].strip()
+    if '|' not in header_line or not _is_markdown_table_separator(separator_line):
+        return None, start_index
+
+    header_cells = _split_markdown_table_row(header_line)
+    if not header_cells:
+        return None, start_index
+
+    table_rows = [header_cells]
+    i = start_index + 2
+    while i < len(lines):
+        row_line = lines[i]
+        stripped = row_line.strip()
+        if not stripped or '|' not in stripped:
+            break
+        if _is_markdown_table_separator(stripped):
+            i += 1
+            continue
+        row_cells = _split_markdown_table_row(stripped)
+        if not row_cells:
+            break
+        # Normalize row width to match header width
+        if len(row_cells) < len(header_cells):
+            row_cells += [''] * (len(header_cells) - len(row_cells))
+        elif len(row_cells) > len(header_cells):
+            row_cells = row_cells[:len(header_cells)]
+        table_rows.append(row_cells)
+        i += 1
+
+    return table_rows, i
 
 
 class BackgroundImageDocTemplate(BaseDocTemplate):
@@ -984,6 +1051,62 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                             except Exception:
                                 pass  # skip broken image sentinel
                             continue
+                        # Table sentinel — render a ReportLab Table flowable.
+                        if para.startswith('__TABLE__:'):
+                            try:
+                                raw_json = para[len('__TABLE__:'):]
+                                table_rows = json.loads(raw_json)
+                                if table_rows and isinstance(table_rows, list):
+                                    normalized = []
+                                    max_cols = max(len(r) for r in table_rows if isinstance(r, list))
+                                    if max_cols > 0:
+                                        for row in table_rows:
+                                            row = row if isinstance(row, list) else ['']
+                                            row = row + [''] * (max_cols - len(row))
+                                            normalized.append(row)
+
+                                        table_data = []
+                                        for r_idx, row in enumerate(normalized):
+                                            cell_style = config.create_content_style(base_styles, level)
+                                            if r_idx == 0:
+                                                cell_style = ParagraphStyle(
+                                                    f'TableHeader{level}',
+                                                    parent=cell_style,
+                                                    fontName=config.FONTS['heading'],
+                                                    alignment=TA_LEFT,
+                                                )
+                                            table_data.append([
+                                                Paragraph(_pdf_sanitize_text(str(cell) or '&nbsp;'), cell_style)
+                                                for cell in row
+                                            ])
+
+                                        available_width = (
+                                            config.PAGE_SIZE[0]
+                                            - config.MARGINS['left']
+                                            - config.MARGINS['right']
+                                            - max(0, (level - 1) * config.INDENTS['content_per_level'])
+                                        )
+                                        col_width = max(48, available_width / max_cols)
+                                        pdf_table = Table(
+                                            table_data,
+                                            colWidths=[col_width] * max_cols,
+                                            hAlign='LEFT'
+                                        )
+                                        pdf_table.setStyle(TableStyle([
+                                            ('GRID', (0, 0), (-1, -1), 0.5, config.COLORS['border']),
+                                            ('BACKGROUND', (0, 0), (-1, 0), config.COLORS['light_bg']),
+                                            ('VALIGN', (0, 0), (-1, -1), 'TOP'),
+                                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
+                                            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
+                                            ('TOPPADDING', (0, 0), (-1, -1), 4),
+                                            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                                        ]))
+                                        story.append(Spacer(1, 4))
+                                        story.append(pdf_table)
+                                        story.append(Spacer(1, 6))
+                            except Exception:
+                                current_app.logger.debug('PDF: failed to render table sentinel')
+                            continue
                         # Bullet list item — use hanging-indent bullet style
                         if para.startswith('__BULLET__:'):
                             # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
@@ -1151,8 +1274,29 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
         # Replace & that are not followed by a valid entity pattern
         return re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9A-Fa-f]+;)', '&amp;', s)
     
-    for line in lines:
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         stripped = line.strip()
+
+        table_rows, next_index = _consume_markdown_table(lines, i)
+        if table_rows:
+            if current_paragraph:
+                paragraphs.append(' '.join(current_paragraph))
+                current_paragraph = []
+            if in_list and list_items:
+                if list_type == 'ordered':
+                    for num, item in list_items:
+                        paragraphs.append(f'__ORDERED__{num}__:{item}')
+                else:
+                    for item in list_items:
+                        paragraphs.append(f'__BULLET__:{item}')
+                list_items = []
+                list_type = None
+                in_list = False
+            paragraphs.append(f'__TABLE__:{json.dumps(table_rows)}')
+            i = next_index
+            continue
         
         # Handle headers (these will be rendered as bold text within content)
         if stripped.startswith('#'):
@@ -1405,6 +1549,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             formatted_line = formatted_line.strip()
             if formatted_line:  # Only add non-empty lines
                 current_paragraph.append(formatted_line)
+
+        i += 1
     
     # Add any remaining content
     if current_paragraph:
@@ -1529,8 +1675,34 @@ def convert_markdown_to_html(markdown_text):
     # Such lines must be passed through as-is so existing <ul>/<li> structure is preserved.
     _html_tag_re = re.compile(r'^</?[a-zA-Z][a-zA-Z0-9]*[\s>/]', re.IGNORECASE)
 
-    for line in lines:
+    i = 0
+    while i < len(lines):
+        line = lines[i]
         stripped = line.strip()
+
+        table_rows, next_index = _consume_markdown_table(lines, i)
+        if table_rows:
+            if in_list:
+                result_lines.append(f'</{list_type}>')
+                in_list = False
+                list_type = None
+
+            header = table_rows[0]
+            body = table_rows[1:]
+            table_html = ['<table>', '<thead>', '<tr>']
+            table_html.extend([f'<th>{cell}</th>' for cell in header])
+            table_html.extend(['</tr>', '</thead>'])
+            if body:
+                table_html.append('<tbody>')
+                for row in body:
+                    table_html.append('<tr>')
+                    table_html.extend([f'<td>{cell}</td>' for cell in row])
+                    table_html.append('</tr>')
+                table_html.append('</tbody>')
+            table_html.append('</table>')
+            result_lines.append(''.join(table_html))
+            i = next_index
+            continue
         if stripped.startswith('- ') or stripped.startswith('* '):
             if not in_list:
                 result_lines.append('<ul>')
@@ -1556,6 +1728,8 @@ def convert_markdown_to_html(markdown_text):
                     result_lines.append(f'<p>{stripped}</p>')
             else:
                 result_lines.append('')
+
+        i += 1
 
     if in_list:
         result_lines.append(f'</{list_type}>')
