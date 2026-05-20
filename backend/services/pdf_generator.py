@@ -8,6 +8,7 @@ import json
 import traceback
 import tempfile
 import shutil
+from pathlib import Path
 import requests as _http
 from bs4 import BeautifulSoup
 import mistune
@@ -83,6 +84,61 @@ def _format_inline_markdown_for_pdf(text: str) -> str:
     formatted = re.sub(r'\*(.*?)\*', r'<i>\1</i>', formatted)
     formatted = re.sub(r'`(.*?)`', r'<font face="Courier">\1</font>', formatted)
     return formatted
+
+
+def _resolve_local_image_path_for_pdf(src: str) -> str:
+    """Resolve a web/relative image path to an absolute local file path for PDF embedding."""
+    if not src:
+        return ''
+
+    source = src.strip()
+    if not source:
+        return ''
+
+    # Absolute local filesystem path
+    if os.path.isabs(source) and os.path.exists(source):
+        return source
+
+    # Non-local sources are handled elsewhere
+    if source.startswith(('http://', 'https://', 'data:')):
+        return ''
+
+    if source.startswith('/images/'):
+        rel_path = source[len('/images/'):]
+    elif source.startswith('/static/images/'):
+        rel_path = source[len('/static/images/'):]
+    else:
+        rel_path = source.lstrip('/')
+
+    candidate_roots = []
+    configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+    if configured_root:
+        candidate_roots.append(configured_root)
+    candidate_roots.append('/app/data/images')
+
+    try:
+        candidate_roots.append(os.path.join(current_app.config['STATIC_FOLDER'], 'images'))
+    except Exception:
+        pass
+
+    try:
+        root_dir = Path(__file__).resolve().parents[2]
+        candidate_roots.extend([
+            str(root_dir / 'frontend' / 'dist' / 'images'),
+            str(root_dir / 'frontend' / 'public' / 'images'),
+            str(root_dir / 'backend' / 'static' / 'images'),
+        ])
+    except Exception:
+        pass
+
+    for root in candidate_roots:
+        if not root:
+            continue
+        candidate = os.path.join(root, rel_path)
+        if os.path.exists(candidate):
+            return candidate
+
+    return ''
 
 
 def _is_markdown_table_separator(line: str) -> bool:
@@ -1356,7 +1412,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             
             
         # Handle bullet points and create proper lists
-        elif stripped.startswith('-') or stripped.startswith('*'):
+        elif re.match(r'^-\s+', stripped) or re.match(r'^\*\s+', stripped):
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
@@ -1365,7 +1421,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                 for num, item in list_items:
                     paragraphs.append(f'__ORDERED__{num}__:{item}')
                 list_items = []
-            bullet_text = stripped[1:].strip()
+            bullet_text = re.sub(r'^[-\*]\s+', '', stripped, count=1)
             list_items.append(bullet_text)
             list_type = 'bullet'
             in_list = True
@@ -1470,26 +1526,12 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         elif src.startswith('data:'):
                             # Skip data URIs as reportlab Paragraph img doesn't handle them
                             return ''
-                        elif src.startswith('/images/'):
-                            # Convert /images/ path to absolute path
-                            image_filename = src[8:]  # Remove /images/ prefix
-                            static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-                            absolute_src = os.path.join(static_images_dir, image_filename)
-                            src = absolute_src
-                        elif src.startswith('/static/images/'):
-                            # Convert /static/images/ path to absolute path
-                            image_filename = src[15:]  # Remove /static/images/ prefix
-                            static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-                            absolute_src = os.path.join(static_images_dir, image_filename)
-                            src = absolute_src
                         else:
-                            # If it's a relative path, make it absolute relative to static images
-                            static_images_dir = os.path.join(current_app.config['STATIC_FOLDER'], 'images')
-                            candidate = os.path.join(static_images_dir, src)
-                            if os.path.exists(candidate):
-                                src = candidate
+                            resolved = _resolve_local_image_path_for_pdf(src)
+                            if resolved:
+                                src = resolved
                             else:
-                                # If file doesn't exist, drop the image
+                                # If file doesn't exist in known roots, drop the image
                                 return ''
                     else:
                         return ''
