@@ -86,7 +86,7 @@
               <td>{{ publication.topics_count || 0 }}</td>
               <td>{{ formatRelativeTime(publication.updated_at || publication.created_at) }}</td>
               <td>
-                <button @click="viewPublication(publication)" class="table-btn">View</button>
+                <button @click="viewPublication(publication)" class="table-btn">Preview</button>
                 <button @click="editPublication(publication)" class="table-btn">Edit</button>
                 <button @click="downloadMobileKB(publication)" class="table-btn" :disabled="exportingKb.has(publication.id)">
                   <span v-if="exportingKb.has(publication.id)"><i class="bi bi-arrow-clockwise spin"></i> Exporting…</span>
@@ -170,7 +170,7 @@
                     <span v-else>Export PDF</span>
                   </button>
                   <button v-else-if="publication.status === 'draft'" @click.stop="publishNow(publication)" class="card-action-btn primary">Save Snapshot</button>
-                  <button @click.stop="editPublication(publication)" class="card-action-btn">Edit</button>
+                  <button @click.stop="viewPublication(publication)" class="card-action-btn">View</button>
                 </div>
               </div>
             </div>
@@ -187,6 +187,7 @@
 <script>
 import axiosInstance from '@/api/axiosInstance'
 import { apiGet } from '@/api/base'
+import { getCollections } from '@/api/collections'
 import { downloadMobileKnowledgeBase, downloadPublicationPdf, getPublications, refreshPublication } from '@/api/publications'
 import { toast } from '@/composables/useToast'
 import CompactToolbar from '@/components/CompactToolbar.vue'
@@ -226,6 +227,7 @@ export default {
       recentPublications: [],
       allTags: [],
       selectedTagIds: [],
+      collectionNameToId: {},
       exportingPdf: new Set(),
       exportingKb: new Set(),
       refreshingPublications: new Set(),
@@ -249,6 +251,7 @@ export default {
   async created() {
     await this.loadDashboardData()
     await this.loadTags()
+    await this.loadCollectionLookup()
   },
   methods: {
     async loadDashboardData() {
@@ -315,7 +318,13 @@ export default {
       this.$router.push(`/publications/${publication.id}`)
     },
     editPublication(publication) {
-      this.$router.push(`/publications/${publication.id}`)
+      const key = this.normalizeCollectionName(publication?.title)
+      const collectionId = this.collectionNameToId[key]
+      if (!collectionId) {
+        toast.error('Could not find source collection for this publication.')
+        return
+      }
+      this.$router.push(`/organize/${collectionId}`)
     },
     async publishNow(publication) {
       // Persist publish action to backend
@@ -377,6 +386,32 @@ export default {
         this.allTags = Array.isArray(data) ? data : (data.tags || [])
       } catch (e) {
         console.error('Failed to load tags', e)
+      }
+    },
+    normalizeCollectionName(name) {
+      return String(name || '').trim().toLowerCase()
+    },
+    async loadCollectionLookup() {
+      const lookup = {}
+      const flatten = (nodes) => {
+        if (!Array.isArray(nodes)) return
+        for (const node of nodes) {
+          const key = this.normalizeCollectionName(node?.name)
+          if (key && node?.id && !lookup[key]) {
+            lookup[key] = node.id
+          }
+          if (Array.isArray(node?.children) && node.children.length) {
+            flatten(node.children)
+          }
+        }
+      }
+
+      try {
+        const collections = await getCollections()
+        flatten(collections)
+        this.collectionNameToId = lookup
+      } catch (e) {
+        console.error('Failed to build collection lookup:', e)
       }
     },
     navigateTo(path) {

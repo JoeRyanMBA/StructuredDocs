@@ -180,7 +180,8 @@ class PDFConfig:
     @classmethod  
     def create_content_style(cls, base_styles, level=0):
         """Create content style with optional indentation"""
-        indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        # Keep body content flush-left for all heading levels.
+        indent = 0
         
         return ParagraphStyle(
             f'CustomContent{level}',
