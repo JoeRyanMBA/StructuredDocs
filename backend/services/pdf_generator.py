@@ -1067,7 +1067,16 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
 
                                         table_data = []
                                         for r_idx, row in enumerate(normalized):
-                                            cell_style = config.create_content_style(base_styles, level)
+                                            base_cell_style = config.create_content_style(base_styles, level)
+                                            cell_style = ParagraphStyle(
+                                                f'TableCell{level}_{r_idx}',
+                                                parent=base_cell_style,
+                                                leftIndent=0,
+                                                rightIndent=0,
+                                                firstLineIndent=0,
+                                                spaceAfter=0,
+                                                alignment=TA_LEFT,
+                                            )
                                             if r_idx == 0:
                                                 cell_style = ParagraphStyle(
                                                     f'TableHeader{level}',
@@ -1096,10 +1105,10 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                             ('GRID', (0, 0), (-1, -1), 0.5, config.COLORS['border']),
                                             ('BACKGROUND', (0, 0), (-1, 0), config.COLORS['light_bg']),
                                             ('VALIGN', (0, 0), (-1, -1), 'TOP'),
-                                            ('LEFTPADDING', (0, 0), (-1, -1), 6),
-                                            ('RIGHTPADDING', (0, 0), (-1, -1), 6),
-                                            ('TOPPADDING', (0, 0), (-1, -1), 4),
-                                            ('BOTTOMPADDING', (0, 0), (-1, -1), 4),
+                                            ('LEFTPADDING', (0, 0), (-1, -1), 2),
+                                            ('RIGHTPADDING', (0, 0), (-1, -1), 2),
+                                            ('TOPPADDING', (0, 0), (-1, -1), 3),
+                                            ('BOTTOMPADDING', (0, 0), (-1, -1), 3),
                                         ]))
                                         story.append(Spacer(1, 4))
                                         story.append(pdf_table)
