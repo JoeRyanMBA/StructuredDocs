@@ -46,6 +46,25 @@ export async function getPublication(publicationId) {
   return apiGet(`/api/publications/${publicationId}`)
 }
 
+function toSaveTree(nodes = []) {
+  return nodes
+    .map(node => {
+      const topicId = node?.topic_id ?? node?.topic?.id
+      if (!topicId) return null
+      return {
+        topic_id: topicId,
+        children: toSaveTree(node.children || [])
+      }
+    })
+    .filter(Boolean)
+}
+
+export async function refreshPublication(publicationId) {
+  const publication = await getPublication(publicationId)
+  const tree = toSaveTree(publication?.tree || [])
+  return apiPost(`/api/publications/${publicationId}/nodes`, { tree })
+}
+
 export async function downloadPublicationPdf(publicationId, filename = 'publication.pdf', tagIds = []) {
   const query = buildTagQuery(tagIds)
   const response = await axiosInstance.get(`/api/publications/${publicationId}/export/pdf${query}`, {

@@ -38,6 +38,9 @@
           </div>
           <p class="publication-description">{{ pub.description || 'No description' }}</p>
           <div class="card-actions">
+            <button @click.stop="refreshPublicationData(pub)" class="refresh-btn" :disabled="refreshingPublicationId === pub.id">
+              {{ refreshingPublicationId === pub.id ? 'Refreshing...' : 'Refresh Publication' }}
+            </button>
             <button @click.stop="downloadPDF(pub)" class="export-btn">
               📄 Export PDF
             </button>
@@ -51,8 +54,9 @@
 
 <script>
 import { apiGet } from '@/api/base'
-import { downloadPublicationPdf, getPublications } from '@/api/publications'
+import { downloadPublicationPdf, getPublications, refreshPublication } from '@/api/publications'
 import HelpIcon from '@/components/HelpIcon.vue'
+import { toast } from '@/composables/useToast'
 
 export default {
   name: 'PublishPDFView',
@@ -62,6 +66,7 @@ export default {
       publications: [],
       allTags: [],
       selectedTagIds: [],
+      refreshingPublicationId: null,
       loading: true,
       error: null
     }
@@ -95,6 +100,20 @@ export default {
       } catch (e) {
         console.error('PDF export failed:', e)
         this.error = e.message || 'Failed to export PDF'
+      }
+    },
+    async refreshPublicationData(pub) {
+      this.error = null
+      this.refreshingPublicationId = pub.id
+      try {
+        await refreshPublication(pub.id)
+        await this.loadPublications()
+        toast.success(`Publication "${pub.title || 'Untitled'}" refreshed.`)
+      } catch (e) {
+        console.error('Failed to refresh publication:', e)
+        this.error = e.message || 'Failed to refresh publication'
+      } finally {
+        this.refreshingPublicationId = null
       }
     },
     formatDate(dateString) {
@@ -227,6 +246,24 @@ export default {
 .card-actions {
   display: flex;
   gap: 0.5rem;
+}
+
+.refresh-btn,
+.export-btn {
+  border: none;
+  border-radius: 6px;
+  padding: 0.5rem 0.85rem;
+  color: #fff;
+  cursor: pointer;
+}
+
+.refresh-btn {
+  background: var(--text-secondary-cool-gray);
+}
+
+.refresh-btn:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 
 @media (max-width: 768px) {

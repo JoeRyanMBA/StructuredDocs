@@ -33,6 +33,9 @@
             <div class="recent-meta">Updated {{ formatDate(pub.updated_at || pub.created_at) }}</div>
           </div>
           <div class="recent-actions">
+            <button @click.stop="refreshPublicationData(pub.id)" class="btn-refresh btn-compact" :disabled="refreshingPublicationId === pub.id">
+              {{ refreshingPublicationId === pub.id ? 'Refreshing...' : 'Refresh' }}
+            </button>
             <button @click.stop="previewMobileKB(pub.id)" class="btn-preview btn-compact">Preview</button>
             <button @click.stop="exportMobileKB(pub.id)" class="btn-export btn-compact">Export KB</button>
           </div>
@@ -61,6 +64,9 @@
           </div>
           <p class="publication-description">{{ pub.description || 'No description' }}</p>
           <div class="card-actions">
+            <button @click.stop="refreshPublicationData(pub.id)" class="btn-refresh" :disabled="refreshingPublicationId === pub.id">
+              {{ refreshingPublicationId === pub.id ? 'Refreshing...' : 'Refresh Publication' }}
+            </button>
             <button @click.stop="previewMobileKB(pub.id)" class="btn-preview">
               <i class="bi bi-zoom-in" aria-hidden="true"></i> Preview
             </button>
@@ -77,7 +83,8 @@
 
 <script>
 import { apiGet } from '@/api/base'
-import { downloadMobileKnowledgeBase, getPublications, previewMobileKnowledgeBase } from '@/api/publications'
+import { downloadMobileKnowledgeBase, getPublications, previewMobileKnowledgeBase, refreshPublication } from '@/api/publications'
+import { toast } from '@/composables/useToast'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -96,6 +103,7 @@ export default {
       publications: [],
       allTags: [],
       selectedTagIds: [],
+      refreshingPublicationId: null,
       loading: true,
       error: null
     }
@@ -156,6 +164,21 @@ export default {
       } catch (e) {
         console.error('Failed to export mobile KB:', e)
         this.error = e.message || 'Failed to export mobile knowledge base'
+      }
+    },
+    async refreshPublicationData(pubId) {
+      this.error = null
+      this.refreshingPublicationId = pubId
+      try {
+        await refreshPublication(pubId)
+        await this.fetchPublications()
+        const refreshed = this.publications.find(pub => pub.id === pubId)
+        toast.success(`Publication "${refreshed?.title || 'Untitled'}" refreshed.`)
+      } catch (e) {
+        console.error('Failed to refresh publication:', e)
+        this.error = e.message || 'Failed to refresh publication'
+      } finally {
+        this.refreshingPublicationId = null
       }
     },
     scrollToAllPublications() {
@@ -381,7 +404,7 @@ export default {
   gap: 0.75rem;
 }
 
-.btn-preview, .btn-export {
+.btn-preview, .btn-export, .btn-refresh {
   flex: 1;
   padding: 0.5rem 1rem;
   border: none;
@@ -398,6 +421,16 @@ export default {
 
 .btn-preview:hover {
   background: var(--text-primary-charcoal);
+}
+
+.btn-refresh {
+  background: #4f6d7a;
+  color: white;
+}
+
+.btn-refresh:disabled {
+  opacity: 0.7;
+  cursor: default;
 }
 
 .btn-export {
