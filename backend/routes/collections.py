@@ -283,7 +283,9 @@ def publish_collection(collection_id):
         collection = Collection.query.get_or_404(collection_id)
         current_app.logger.debug(f"🎯 PUBLISH: Found collection '{collection.name}' with {len(collection.topics)} topics")
         title_pattern = collection.name
-        existing_pub = Publication.query.filter_by(title=title_pattern).first()
+        existing_pub = Publication.query.filter_by(source_collection_id=collection.id).first()
+        if not existing_pub:
+            existing_pub = Publication.query.filter_by(title=title_pattern).first()
 
         # Determine which variable slugs are actually used in this collection's content
         current_app.logger.debug(f"🎯 PUBLISH: Scanning for variable tokens in collection content")
@@ -337,6 +339,7 @@ def publish_collection(collection_id):
             current_app.logger.debug(f"🎯 PUBLISH: Updating existing publication")
             existing_pub.description = collection.description or f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
             existing_pub.form_number = collection.form_number
+            existing_pub.source_collection_id = collection.id
             # Use naive UTC to match DB column
             existing_pub.created_at = datetime.utcnow()
             current_app.logger.debug(f"🎯 PUBLISH: Deleting existing publication nodes")
@@ -439,7 +442,8 @@ def publish_collection(collection_id):
         publication = Publication(
             title=f"{collection.name}",
             description=collection.description or f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics",
-            form_number=collection.form_number
+            form_number=collection.form_number,
+            source_collection_id=collection.id,
         )
         db.session.add(publication)
         db.session.flush()
@@ -523,7 +527,9 @@ def delete_collection(collection_id):
         # If a publication exists for this collection, only allow deletion once the
         # collection is archived. At that point, delete the publication too so no
         # orphaned records are left behind.
-        existing_pub = Publication.query.filter_by(title=collection.name).first()
+        existing_pub = Publication.query.filter_by(source_collection_id=collection.id).first()
+        if not existing_pub:
+            existing_pub = Publication.query.filter_by(title=collection.name).first()
         if existing_pub:
             if not collection.archived:
                 return jsonify({'error': 'This collection has a publication. Archive the collection before deleting it.'}), 400

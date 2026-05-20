@@ -314,6 +314,11 @@ class Publication(db.Model):
     title       = db.Column(db.String(200), nullable=False)
     description = db.Column(db.Text, nullable=True)
     form_number = db.Column(db.String(100), nullable=True)
+    source_collection_id = db.Column(
+        db.Integer,
+        db.ForeignKey('collections.id', ondelete='SET NULL'),
+        nullable=True
+    )
     created_at  = db.Column(
         db.DateTime,
         server_default=func.now(),
@@ -337,6 +342,7 @@ class Publication(db.Model):
             "title":       self.title,
             "description": self.description,
             "form_number": self.form_number,
+            "source_collection_id": self.source_collection_id,
             "created_at":  self.created_at.isoformat(),
             "topics_count": len(self.nodes),  # Count of publication nodes (topics)
         }

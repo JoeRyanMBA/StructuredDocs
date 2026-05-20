@@ -318,6 +318,11 @@ export default {
       this.$router.push(`/publications/${publication.id}`)
     },
     editPublication(publication) {
+      const sourceCollectionId = Number(publication?.source_collection_id)
+      if (Number.isInteger(sourceCollectionId) && sourceCollectionId > 0) {
+        this.$router.push(`/organize/${sourceCollectionId}`)
+        return
+      }
       const key = this.normalizeCollectionName(publication?.title)
       const collectionId = this.collectionNameToId[key]
       if (!collectionId) {
