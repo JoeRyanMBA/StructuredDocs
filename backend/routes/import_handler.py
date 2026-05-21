@@ -271,7 +271,7 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             cmd = [
                 'pandoc',
                 '--from', 'docx',
-                '--to', 'markdown',
+                '--to', 'gfm',
                 '--wrap', 'none',  # Don't wrap lines
                 '--extract-media', temp_media_dir,  # Extract images to our temp media dir
                 '--markdown-headings=atx',  # Use ATX-style headings (#)
@@ -461,7 +461,7 @@ def _convert_word_to_markdown_no_images(file_content):
             cmd = [
                 'pandoc',
                 '--from', 'docx',
-                '--to', 'markdown',
+                '--to', 'gfm',
                 '--wrap', 'none',
                 '--markdown-headings=atx',
                 '--list-tables',
