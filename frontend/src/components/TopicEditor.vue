@@ -137,6 +137,17 @@
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 4)">Level 4</button>
                 </div>
               </div>
+              <div class="dropdown toolbar-dropdown">
+                <button type="button" class="toolbar-btn dropdown-btn" aria-haspopup="true">
+                  ▦ Table <span class="toolbar-dropdown__caret">▾</span>
+                </button>
+                <div class="dropdown-content">
+                  <button type="button" class="dropdown-item" @click="insertMarkdownTable(2, 2)">Insert 2 x 2</button>
+                  <button type="button" class="dropdown-item" @click="insertMarkdownTable(3, 3)">Insert 3 x 3</button>
+                  <button type="button" class="dropdown-item" @click="insertMarkdownTable(4, 4)">Insert 4 x 4</button>
+                  <button type="button" class="dropdown-item" @click="insertMarkdownTableFromPrompt()">Custom size...</button>
+                </div>
+              </div>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
@@ -1514,6 +1525,54 @@ export default {
       this.$nextTick(() => {
         textarea.focus()
         textarea.setSelectionRange(newCursorPos, newCursorPos)
+      })
+    },
+
+    insertMarkdownTableFromPrompt() {
+      const rowsInput = window.prompt('Number of rows (including header row):', '3')
+      if (rowsInput === null) return
+      const colsInput = window.prompt('Number of columns:', '3')
+      if (colsInput === null) return
+
+      const rows = Number.parseInt(rowsInput, 10)
+      const cols = Number.parseInt(colsInput, 10)
+      if (!Number.isFinite(rows) || !Number.isFinite(cols)) return
+
+      this.insertMarkdownTable(rows, cols)
+    },
+
+    insertMarkdownTable(rows = 3, cols = 3) {
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+
+      const rowCount = Math.max(2, Math.min(20, Number(rows) || 3))
+      const colCount = Math.max(1, Math.min(12, Number(cols) || 3))
+
+      const headerCells = Array.from({ length: colCount }, (_, idx) => `Column ${idx + 1}`)
+      const separatorCells = Array.from({ length: colCount }, () => '---')
+      const bodyRowCount = Math.max(1, rowCount - 1)
+      const bodyRows = Array.from({ length: bodyRowCount }, () => Array.from({ length: colCount }, () => ''))
+
+      const lines = [
+        `| ${headerCells.join(' | ')} |`,
+        `| ${separatorCells.join(' | ')} |`,
+        ...bodyRows.map(cells => `| ${cells.join(' | ')} |`)
+      ]
+
+      const tableMarkdown = `${lines.join('\n')}\n`
+      const start = textarea.selectionStart
+      const end = textarea.selectionEnd
+      const prefix = start > 0 && !textarea.value.slice(0, start).endsWith('\n') ? '\n\n' : ''
+      const suffix = end < textarea.value.length && !textarea.value.slice(end).startsWith('\n') ? '\n\n' : '\n'
+      const replacement = `${prefix}${tableMarkdown}${suffix}`
+
+      textarea.value = textarea.value.substring(0, start) + replacement + textarea.value.substring(end)
+      this.content = textarea.value
+
+      const caretPos = start + prefix.length + tableMarkdown.length
+      this.$nextTick(() => {
+        textarea.focus()
+        textarea.setSelectionRange(caretPos, caretPos)
       })
     },
 

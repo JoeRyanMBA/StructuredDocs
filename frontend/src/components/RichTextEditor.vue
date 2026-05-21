@@ -41,6 +41,33 @@
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 4)">Level 4</button>
         </div>
       </div>
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeTableMenu }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          aria-haspopup="true"
+          :aria-expanded="activeTableMenu.toString()"
+          @click.stop="toggleTableMenu"
+        >
+          ▦ Table <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div v-show="activeTableMenu" class="dropdown-content" @click.stop>
+          <button type="button" class="dropdown-item" @click="insertTable(2, 2)">Insert 2 x 2</button>
+          <button type="button" class="dropdown-item" @click="insertTable(3, 3)">Insert 3 x 3</button>
+          <button type="button" class="dropdown-item" @click="insertTable(4, 4)">Insert 4 x 4</button>
+          <button type="button" class="dropdown-item" @click="insertTableFromPrompt()">Custom size...</button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="addTableRow('above')">Add Row Above (Alt+Shift+Up)</button>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="addTableRow('below')">Add Row Below (Alt+Shift+Down)</button>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.canDeleteRow" @click="deleteCurrentRow">Delete Row</button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="addTableColumn('left')">Add Column Left (Alt+Shift+Left)</button>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="addTableColumn('right')">Add Column Right (Alt+Shift+Right)</button>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.canDeleteColumn" @click="deleteCurrentColumn">Delete Column</button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="toggleTableHeaderRow">Toggle Header Row</button>
+        </div>
+      </div>
       <slot name="toolbar-extra" />
     </div>
     <div
@@ -73,6 +100,12 @@ export default {
       _inputTimer: null,
       _savedRange: null,
       activeListMenu: null,
+      activeTableMenu: false,
+      tableContext: {
+        inTable: false,
+        canDeleteRow: false,
+        canDeleteColumn: false,
+      },
     }
   },
   watch: {
@@ -107,20 +140,395 @@ export default {
   },
   methods: {
     toggleListMenu(menu) {
+      this.activeTableMenu = false
       this.activeListMenu = this.activeListMenu === menu ? null : menu
       this.saveSelection()
     },
     closeListMenu() {
       this.activeListMenu = null
     },
+    toggleTableMenu() {
+      this.activeListMenu = null
+      this.activeTableMenu = !this.activeTableMenu
+      this.refreshTableContext()
+      this.saveSelection()
+    },
+    closeTableMenu() {
+      this.activeTableMenu = false
+    },
+    closeToolbarMenus() {
+      this.closeListMenu()
+      this.closeTableMenu()
+    },
     onDocumentMouseDown(event) {
       if (!this.$el?.contains(event.target)) {
-        this.closeListMenu()
+        this.closeToolbarMenus()
       }
     },
     applyListLevel(type, level) {
       this.insertList(type, level)
       this.closeListMenu()
+    },
+    insertTableFromPrompt() {
+      const rowsInput = window.prompt('Number of rows (including header row):', '3')
+      if (rowsInput === null) return
+      const colsInput = window.prompt('Number of columns:', '3')
+      if (colsInput === null) return
+
+      const rows = Number.parseInt(rowsInput, 10)
+      const cols = Number.parseInt(colsInput, 10)
+      if (!Number.isFinite(rows) || !Number.isFinite(cols)) return
+      this.insertTable(rows, cols)
+    },
+    insertTable(rows = 3, cols = 3) {
+      const rowCount = Math.max(1, Math.min(20, Number(rows) || 3))
+      const colCount = Math.max(1, Math.min(12, Number(cols) || 3))
+
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
+
+      const selection = window.getSelection()
+      const editor = this.$refs.editorEl
+      if (!selection || !editor || selection.rangeCount === 0) return
+      const range = selection.getRangeAt(0)
+      if (!editor.contains(range.startContainer)) return
+
+      const table = document.createElement('table')
+      table.className = 'sd-editor-table'
+
+      const thead = document.createElement('thead')
+      const headerRow = document.createElement('tr')
+      for (let c = 0; c < colCount; c += 1) {
+        const th = document.createElement('th')
+        th.textContent = `Column ${c + 1}`
+        headerRow.appendChild(th)
+      }
+      thead.appendChild(headerRow)
+      table.appendChild(thead)
+
+      const bodyRows = Math.max(1, rowCount - 1)
+      const tbody = document.createElement('tbody')
+      for (let r = 0; r < bodyRows; r += 1) {
+        const tr = document.createElement('tr')
+        for (let c = 0; c < colCount; c += 1) {
+          tr.appendChild(document.createElement('td'))
+        }
+        tbody.appendChild(tr)
+      }
+      table.appendChild(tbody)
+
+      range.deleteContents()
+      range.insertNode(table)
+
+      const spacer = document.createElement('p')
+      spacer.innerHTML = '<br>'
+      table.after(spacer)
+
+      const targetCell = table.querySelector('tbody td') || table.querySelector('th')
+      this.placeCaretInCell(targetCell)
+
+      this.closeTableMenu()
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    getCurrentTableCell() {
+      const range = this.getSelectedRange()
+      if (!range) return null
+
+      let node = range.startContainer
+      if (node?.nodeType === Node.TEXT_NODE) {
+        node = node.parentNode
+      }
+
+      return node instanceof Element ? node.closest('td, th') : null
+    },
+    getCurrentTable() {
+      return this.getCurrentTableCell()?.closest('table') || null
+    },
+    getCurrentTableRow() {
+      return this.getCurrentTableCell()?.closest('tr') || null
+    },
+    getColumnCount(table) {
+      if (!(table instanceof HTMLTableElement)) return 0
+      const rows = Array.from(table.querySelectorAll('tr'))
+      return rows.reduce((max, row) => Math.max(max, row.children.length), 0)
+    },
+    refreshTableContext() {
+      const cell = this.getCurrentTableCell()
+      const table = cell?.closest('table') || null
+      const row = cell?.closest('tr') || null
+      const inTable = Boolean(table && row)
+
+      if (!inTable) {
+        this.tableContext = { inTable: false, canDeleteRow: false, canDeleteColumn: false }
+        return
+      }
+
+      const totalRows = table.querySelectorAll('tr').length
+      const totalCols = this.getColumnCount(table)
+
+      this.tableContext = {
+        inTable: true,
+        canDeleteRow: totalRows > 1,
+        canDeleteColumn: totalCols > 1,
+      }
+    },
+    createTableRow(columnCount, useHeaderCells = false) {
+      const row = document.createElement('tr')
+      for (let i = 0; i < columnCount; i += 1) {
+        row.appendChild(document.createElement(useHeaderCells ? 'th' : 'td'))
+      }
+      return row
+    },
+    addTableRow(position = 'below') {
+      if (!this.restoreSelection()) this.$refs.editorEl?.focus()
+      const row = this.getCurrentTableRow()
+      const table = this.getCurrentTable()
+      if (!(row instanceof HTMLTableRowElement) || !(table instanceof HTMLTableElement)) return
+
+      const useHeaderCells = row.parentElement?.tagName === 'THEAD'
+      const newRow = this.createTableRow(Math.max(1, row.children.length), useHeaderCells)
+      if (position === 'above') {
+        row.before(newRow)
+      } else {
+        row.after(newRow)
+      }
+
+      this.placeCaretInCell(newRow.cells[0])
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    deleteCurrentRow() {
+      if (!this.restoreSelection()) this.$refs.editorEl?.focus()
+      const row = this.getCurrentTableRow()
+      const table = this.getCurrentTable()
+      if (!(row instanceof HTMLTableRowElement) || !(table instanceof HTMLTableElement)) return
+
+      const allRows = table.querySelectorAll('tr')
+      if (allRows.length <= 1) return
+
+      const targetRow = row.previousElementSibling || row.nextElementSibling
+      row.remove()
+
+      if (table.tHead && table.tHead.rows.length === 0) table.tHead.remove()
+      if (table.tBodies.length > 0) {
+        Array.from(table.tBodies).forEach(section => {
+          if (section.rows.length === 0) section.remove()
+        })
+      }
+
+      if (targetRow instanceof HTMLTableRowElement && targetRow.cells.length) {
+        this.placeCaretInCell(targetRow.cells[0])
+      } else {
+        this.placeCaretAtEnd(table)
+      }
+
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    addTableColumn(position = 'right') {
+      if (!this.restoreSelection()) this.$refs.editorEl?.focus()
+      const cell = this.getCurrentTableCell()
+      const table = this.getCurrentTable()
+      if (!(cell instanceof HTMLTableCellElement) || !(table instanceof HTMLTableElement)) return
+
+      const columnIndex = cell.cellIndex
+      const insertIndex = position === 'left' ? columnIndex : columnIndex + 1
+
+      Array.from(table.querySelectorAll('tr')).forEach((row, rowIndex) => {
+        const isHeaderRow = row.parentElement?.tagName === 'THEAD'
+        const tagName = isHeaderRow ? 'th' : 'td'
+        const newCell = document.createElement(tagName)
+        if (isHeaderRow) {
+          newCell.textContent = `Column ${insertIndex + 1}`
+        }
+
+        if (insertIndex >= row.children.length) {
+          row.appendChild(newCell)
+        } else {
+          row.insertBefore(newCell, row.children[insertIndex])
+        }
+
+        if (rowIndex === 0 && isHeaderRow) {
+          // Keep header labels sequential.
+          Array.from(row.children).forEach((headerCell, idx) => {
+            if (!String(headerCell.textContent || '').trim() || /^Column \d+$/.test(String(headerCell.textContent || '').trim())) {
+              headerCell.textContent = `Column ${idx + 1}`
+            }
+          })
+        }
+      })
+
+      const targetRow = cell.parentElement
+      const targetCell = targetRow?.children[insertIndex] || targetRow?.lastElementChild
+      this.placeCaretInCell(targetCell)
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    deleteCurrentColumn() {
+      if (!this.restoreSelection()) this.$refs.editorEl?.focus()
+      const cell = this.getCurrentTableCell()
+      const table = this.getCurrentTable()
+      if (!(cell instanceof HTMLTableCellElement) || !(table instanceof HTMLTableElement)) return
+
+      const columnCount = this.getColumnCount(table)
+      if (columnCount <= 1) return
+
+      const columnIndex = cell.cellIndex
+      Array.from(table.querySelectorAll('tr')).forEach(row => {
+        if (row.children[columnIndex]) {
+          row.children[columnIndex].remove()
+        }
+      })
+
+      if (table.tHead?.rows.length) {
+        const headerRow = table.tHead.rows[0]
+        Array.from(headerRow.cells).forEach((headerCell, idx) => {
+          if (!String(headerCell.textContent || '').trim() || /^Column \d+$/.test(String(headerCell.textContent || '').trim())) {
+            headerCell.textContent = `Column ${idx + 1}`
+          }
+        })
+      }
+
+      const row = this.getCurrentTableRow()
+      const targetIndex = Math.max(0, columnIndex - 1)
+      const targetCell = row?.children[targetIndex] || row?.lastElementChild
+      if (targetCell) this.placeCaretInCell(targetCell)
+
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    toggleTableHeaderRow() {
+      if (!this.restoreSelection()) this.$refs.editorEl?.focus()
+      const table = this.getCurrentTable()
+      if (!(table instanceof HTMLTableElement)) return
+
+      if (table.tHead?.rows.length) {
+        const headerRow = table.tHead.rows[0]
+        const plainRow = document.createElement('tr')
+        Array.from(headerRow.cells).forEach(cell => {
+          const td = document.createElement('td')
+          td.innerHTML = cell.innerHTML
+          plainRow.appendChild(td)
+        })
+        const tbody = table.tBodies[0] || table.createTBody()
+        tbody.insertBefore(plainRow, tbody.firstChild)
+        table.tHead.remove()
+        this.placeCaretInCell(plainRow.cells[0])
+      } else {
+        const firstBodyRow = table.tBodies[0]?.rows[0] || table.rows[0]
+        if (!(firstBodyRow instanceof HTMLTableRowElement)) return
+
+        const headerRow = document.createElement('tr')
+        Array.from(firstBodyRow.cells).forEach((cell, idx) => {
+          const th = document.createElement('th')
+          const existing = String(cell.textContent || '').trim()
+          th.textContent = existing || `Column ${idx + 1}`
+          headerRow.appendChild(th)
+        })
+
+        if (firstBodyRow.parentElement?.tagName === 'TBODY') {
+          firstBodyRow.remove()
+        } else {
+          firstBodyRow.parentElement?.removeChild(firstBodyRow)
+        }
+
+        let thead = table.tHead
+        if (!thead) {
+          thead = table.createTHead()
+        }
+        thead.appendChild(headerRow)
+        this.placeCaretInCell(headerRow.cells[0])
+      }
+
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    getLastBodyRow(table) {
+      if (!(table instanceof HTMLTableElement)) return null
+      const bodies = Array.from(table.tBodies)
+      for (let i = bodies.length - 1; i >= 0; i -= 1) {
+        const body = bodies[i]
+        if (body.rows.length > 0) {
+          return body.rows[body.rows.length - 1]
+        }
+      }
+      const allRows = Array.from(table.rows)
+      return allRows.length ? allRows[allRows.length - 1] : null
+    },
+    handleTableTab(event) {
+      if (event.key !== 'Tab' || event.shiftKey) return false
+
+      const cell = this.getCurrentTableCell()
+      const row = this.getCurrentTableRow()
+      const table = this.getCurrentTable()
+      if (!(cell instanceof HTMLTableCellElement) || !(row instanceof HTMLTableRowElement) || !(table instanceof HTMLTableElement)) {
+        return false
+      }
+
+      const lastRow = this.getLastBodyRow(table)
+      const isLastRow = row === lastRow
+      const isLastCell = cell.cellIndex === row.cells.length - 1
+      if (!isLastRow || !isLastCell) {
+        return false
+      }
+
+      event.preventDefault()
+      const columnCount = Math.max(1, row.cells.length)
+      const targetBody = row.parentElement?.tagName === 'TBODY'
+        ? row.parentElement
+        : (table.tBodies[0] || table.createTBody())
+      const newRow = this.createTableRow(columnCount, false)
+      targetBody.appendChild(newRow)
+      this.placeCaretInCell(newRow.cells[0])
+      this.saveSelection()
+      this.emitUpdate()
+      return true
+    },
+    handleTableShortcut(event) {
+      if (!event.altKey || !event.shiftKey) return false
+
+      const table = this.getCurrentTable()
+      if (!(table instanceof HTMLTableElement)) return false
+
+      if (event.key === 'ArrowUp') {
+        event.preventDefault()
+        this.addTableRow('above')
+        return true
+      }
+
+      if (event.key === 'ArrowDown') {
+        event.preventDefault()
+        this.addTableRow('below')
+        return true
+      }
+
+      if (event.key === 'ArrowLeft') {
+        event.preventDefault()
+        this.addTableColumn('left')
+        return true
+      }
+
+      if (event.key === 'ArrowRight') {
+        event.preventDefault()
+        this.addTableColumn('right')
+        return true
+      }
+
+      return false
+    },
+    placeCaretInCell(cell) {
+      if (!(cell instanceof HTMLElement)) return false
+      const selection = window.getSelection()
+      if (!selection) return false
+
+      const range = document.createRange()
+      range.selectNodeContents(cell)
+      range.collapse(false)
+      selection.removeAllRanges()
+      selection.addRange(range)
+      return true
     },
     clearFormatting() {
       if (!this.restoreSelection()) {
@@ -722,6 +1130,7 @@ export default {
       selection.addRange(range)
     },
     onInput() {
+      this.refreshTableContext()
       if (this._inputTimer) clearTimeout(this._inputTimer)
       this._inputTimer = setTimeout(() => this.emitUpdate(), 300)
     },
@@ -729,6 +1138,9 @@ export default {
       this.$emit('paste', event)
     },
     onKeydown(event) {
+      if (this.handleTableShortcut(event)) return
+      if (this.handleTableTab(event)) return
+
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'b') { event.preventDefault(); this.exec('bold') }
         else if (event.key === 'i') { event.preventDefault(); this.exec('italic') }
@@ -764,9 +1176,11 @@ export default {
         const range = sel.getRangeAt(0)
         if (el.contains(range.startContainer)) {
           this._savedRange = range.cloneRange()
+          this.refreshTableContext()
           return true
         }
       }
+      this.refreshTableContext()
       return false
     },
     restoreSelection() {
@@ -782,6 +1196,7 @@ export default {
     setContent(html) {
       if (this.$refs.editorEl) {
         this.$refs.editorEl.innerHTML = html || ''
+        this.refreshTableContext()
       }
     },
     getContent() {
@@ -956,6 +1371,12 @@ export default {
   border-radius: 0 0 4px 4px;
 }
 
+.rte-toolbar .dropdown-divider {
+  height: 1px;
+  margin: 0.2rem 0;
+  background: #e5e7eb;
+}
+
 .rte-toolbar .toolbar-dropdown__caret {
   font-size: 0.7rem;
   color: #667085;
@@ -972,5 +1393,24 @@ export default {
   border-radius: 3px;
   font-family: 'Courier New', monospace;
   font-size: 0.9em;
+}
+
+.rte-wysiwyg-editor .wysiwyg-content table {
+  width: 100%;
+  border-collapse: collapse;
+  margin: 0 0 1rem;
+}
+
+.rte-wysiwyg-editor .wysiwyg-content th,
+.rte-wysiwyg-editor .wysiwyg-content td {
+  border: 1px solid #ced4da;
+  padding: 0.45rem 0.55rem;
+  vertical-align: top;
+  min-width: 80px;
+}
+
+.rte-wysiwyg-editor .wysiwyg-content th {
+  background: #f1f5f9;
+  font-weight: 600;
 }
 </style>
