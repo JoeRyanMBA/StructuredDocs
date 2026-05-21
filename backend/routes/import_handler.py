@@ -1136,6 +1136,14 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
         current_app.logger.debug(f"LINE: '{text}' -> heading={is_heading} (preserve_hierarchy={preserve_hierarchy})")
         
         if is_heading:
+            heading_text = text.strip().lstrip('#').strip()
+
+            # Section/page-break artifacts can appear as empty headings after DOCX conversion.
+            # Ignore them so they do not create phantom topics or reset the current content buffer.
+            if not heading_text:
+                current_app.logger.debug("SKIPPED EMPTY HEADING: probable section break artifact")
+                continue
+
             # Check if we have a current title but no substantive content yet
             current_buffer_content = '\n'.join(buffer).strip()
             current_buffer_has_content = bool(current_buffer_content and 
@@ -1144,7 +1152,6 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             
             if current_title and not current_buffer_has_content:
                 # Merge this heading into the content of the previous heading
-                heading_text = text.strip().lstrip('#').strip()
                 if preserve_hierarchy:
                     # Keep original heading level when merging
                     hash_count = len(text.strip()) - len(text.strip().lstrip('#'))
@@ -1156,7 +1163,7 @@ def _parse_and_store(file, imp_doc, source, preserve_hierarchy=False):
             else:
                 # Normal case: commit previous section and start new one
                 commit_buffer()
-                current_title = text.strip().lstrip('#').strip()
+                current_title = heading_text
                 current_app.logger.debug(f"NEW_TITLE: '{current_title}'")
         else:
             buffer.append(text)
@@ -1670,6 +1677,10 @@ def _parse_hierarchical_content(markdown_content):
             # This is a heading - determine its level
             hash_count = len(line) - len(line.lstrip('#'))
             title = stripped.lstrip('#').strip()
+
+            # Ignore phantom headings produced by section/page break artifacts.
+            if not title:
+                continue
             
             # Commit content to the current item in stack
             if current_stack and current_content:
