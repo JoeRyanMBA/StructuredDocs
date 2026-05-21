@@ -56,7 +56,7 @@
       <div class="actions">
         <button @click="downloadPDF">Download PDF</button>
         <button @click="exportMobileKB" class="mobile-kb-btn">📱 Export Mobile Knowledge Base</button>
-        <button @click="previewMobileKB" class="preview-btn"><i class="bi bi-zoom-in" aria-hidden="true"></i> Preview Mobile KB</button>
+        <button @click="previewMobileKB"><i class="bi bi-zoom-in" aria-hidden="true"></i> Preview Mobile KB</button>
       </div>
 
     </div>
@@ -337,8 +337,6 @@ export default {
 }
 
 .actions button:hover { background: var(--primary-medium-teal); }
-.preview-btn { background: var(--text-secondary-cool-gray) !important; }
-.preview-btn:hover { background: var(--text-primary-charcoal) !important; }
 
 .loading, .error { margin-top: 1rem; font-size: 0.9rem; }
 .error { color: var(--error-coral-red); }

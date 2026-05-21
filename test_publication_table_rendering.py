@@ -50,6 +50,28 @@ def test_pdf_parser_does_not_treat_bold_prefix_as_bullet():
     assert '<b>Note:</b>' in paragraphs[0]
 
 
+def test_pdf_parser_formats_inline_markdown_inside_bullets():
+    paragraphs = convert_markdown_to_pdf_paragraphs(
+        '- **Integrity:** We act honestly and ethically in everything we do.'
+    )
+
+    assert len(paragraphs) == 1
+    assert paragraphs[0].startswith('__BULLET__:')
+    assert '<b>Integrity:</b>' in paragraphs[0]
+    assert '**Integrity:**' not in paragraphs[0]
+
+
+def test_pdf_parser_formats_inline_markdown_inside_numbered_lists():
+    paragraphs = convert_markdown_to_pdf_paragraphs(
+        '1. **Policy:** Follow lockout-tagout before servicing equipment.'
+    )
+
+    assert len(paragraphs) == 1
+    assert paragraphs[0].startswith('__ORDERED__1__:')
+    assert '<b>Policy:</b>' in paragraphs[0]
+    assert '**Policy:**' not in paragraphs[0]
+
+
 def test_resolve_local_image_path_for_pdf_uses_image_storage_root(tmp_path, monkeypatch):
     images_root = tmp_path / 'images'
     target = images_root / 'imports' / '2' / 'image2_67f3c0bd.png'

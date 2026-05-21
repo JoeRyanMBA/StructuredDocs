@@ -1349,6 +1349,12 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     def escape_unescaped_ampersands(s: str) -> str:
         # Replace & that are not followed by a valid entity pattern
         return re.sub(r'&(?!amp;|lt;|gt;|quot;|apos;|#\d+;|#x[0-9A-Fa-f]+;)', '&amp;', s)
+
+    def format_list_item_text(item_text: str) -> str:
+        """Normalize inline markdown within list item text for ReportLab rendering."""
+        if not item_text:
+            return ''
+        return _pdf_sanitize_text(_format_inline_markdown_for_pdf(item_text.strip()))
     
     i = 0
     while i < len(lines):
@@ -1422,6 +1428,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     paragraphs.append(f'__ORDERED__{num}__:{item}')
                 list_items = []
             bullet_text = re.sub(r'^[-\*]\s+', '', stripped, count=1)
+            bullet_text = format_list_item_text(bullet_text)
             list_items.append(bullet_text)
             list_type = 'bullet'
             in_list = True
@@ -1439,6 +1446,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             dot_pos = stripped.index('. ')
             num = int(stripped[:dot_pos])
             numbered_text = stripped[dot_pos + 2:].strip()
+            numbered_text = format_list_item_text(numbered_text)
             list_items.append((num, numbered_text))
             list_type = 'ordered'
             in_list = True
