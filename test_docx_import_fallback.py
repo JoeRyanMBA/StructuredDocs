@@ -6,6 +6,7 @@ from flask import Flask
 
 from backend.routes.import_handler import (
     _parse_and_store,
+    _parse_hierarchical_content,
     _convert_docx_to_markdown_fallback,
     _convert_word_to_markdown_no_images,
 )
@@ -104,3 +105,22 @@ Intro paragraph before table.
     assert '| Item | Owner |' in item.content
     assert '| --- | --- |' in item.content
     assert '| Lockout | Maintenance |' in item.content
+
+
+def test_parse_hierarchical_content_ignores_blank_heading_lines():
+    markdown_with_blank_heading = """# Safety Checklist
+Intro paragraph.
+
+#
+
+More content after the break.
+"""
+
+    app = Flask(__name__)
+    with app.app_context():
+        items = _parse_hierarchical_content(markdown_with_blank_heading)
+
+    assert len(items) == 1
+    assert items[0]['title'] == 'Safety Checklist'
+    assert 'Intro paragraph.' in items[0]['content']
+    assert 'More content after the break.' in items[0]['content']

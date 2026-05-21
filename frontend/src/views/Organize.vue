@@ -23,15 +23,30 @@
       <div class="collections-panel">
         <div class="panel-title-row">
           <h2>{{ currentCollection?.name || 'Collection' }}</h2>
-          <button
-            v-if="currentCollection"
-            @click="toggleAllExpanded"
-            class="icon-btn"
-            :title="isAllExpanded ? 'Collapse all topics' : 'Expand all topics'"
-            :aria-label="isAllExpanded ? 'Collapse all topics' : 'Expand all topics'"
-          >
-            <i :class="isAllExpanded ? 'bi bi-chevron-double-up' : 'bi bi-chevron-double-down'" aria-hidden="true"></i>
-          </button>
+          <div v-if="currentCollection" class="collection-bulk-actions">
+            <button
+              type="button"
+              class="collection-bulk-btn"
+              @click="expandAll"
+              :disabled="isAllExpanded || !(currentCollection.topics && currentCollection.topics.length)"
+              title="Expand all topics"
+              aria-label="Expand all topics"
+            >
+              <i class="bi bi-chevron-double-down" aria-hidden="true"></i>
+              <span>Expand All</span>
+            </button>
+            <button
+              type="button"
+              class="collection-bulk-btn"
+              @click="collapseAll"
+              :disabled="!isAllExpanded"
+              title="Collapse all topics"
+              aria-label="Collapse all topics"
+            >
+              <i class="bi bi-chevron-double-up" aria-hidden="true"></i>
+              <span>Collapse All</span>
+            </button>
+          </div>
         </div>
         
         <!-- Collection Properties Edit Panel (only in edit mode) -->
@@ -1615,6 +1630,39 @@ export default {
   align-items: center;
   justify-content: space-between;
   gap: 0.75rem;
+}
+
+.collection-bulk-actions {
+  display: flex;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+}
+
+.collection-bulk-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.75rem;
+  border: 1px solid var(--border-light-gray);
+  border-radius: 6px;
+  background: #ffffff;
+  color: var(--primary-deep-teal, #205493);
+  cursor: pointer;
+  font-size: 0.875rem;
+  font-weight: 600;
+  transition: background-color 0.2s ease, border-color 0.2s ease, color 0.2s ease;
+}
+
+.collection-bulk-btn:hover:not(:disabled) {
+  background: var(--extended-seafoam-green);
+  border-color: var(--extended-seafoam-green);
+  color: var(--primary-medium-teal, #2b9cd8);
+}
+
+.collection-bulk-btn:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
 }
 
 .collection-edit-panel {
