@@ -242,7 +242,7 @@ EOF
 cd /opt/structureddocs
 
 # Build the Docker image (this will take a few minutes the first time)
-docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up --build -d
 ```
 
 The startup sequence:
@@ -344,7 +344,7 @@ certbot --nginx -d yourdomain.com
 After setting up SSL, update `FRONTEND_URL` in your `.env` to use `https://`, then restart the container:
 
 ```bash
-docker compose -f docker-compose.prod.yml restart
+docker compose -f docker-compose.base.yml -f docker-compose.prod.yml restart
 ```
 
 ---
@@ -375,15 +375,15 @@ The container is configured with `restart: unless-stopped`, so it will automatic
 docker logs -f structureddocs_app
 
 # Stop the app
-docker compose -f docker-compose.prod.yml down
+docker compose -f docker-compose.base.yml -f docker-compose.prod.yml down
 
 # Restart the app
-docker compose -f docker-compose.prod.yml restart
+docker compose -f docker-compose.base.yml -f docker-compose.prod.yml restart
 
 # Update to the latest code
 cd /opt/structureddocs
 git pull
-docker compose -f docker-compose.prod.yml up --build -d
+docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up --build -d
 ```
 
 ### Backups
@@ -437,7 +437,7 @@ If `SECRET_KEY` or `JWT_SECRET_KEY` are not set (or were changed), all existing 
 - [ ] `data/images` and `instance` directories created with `chmod 777`
 - [ ] `.env` file created with `SECRET_KEY`, `JWT_SECRET_KEY`, `DATABASE_URL`, and `FRONTEND_URL`
 - [ ] `.enable_blueprints` file created
-- [ ] App built and started with `docker compose -f docker-compose.prod.yml up --build -d`
+- [ ] App built and started with `docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up --build -d`
 - [ ] Health check passes: `curl http://localhost:8080/api/health`
 - [ ] Admin user created via `setup_admin.py` and password changed
 - [ ] Reverse proxy (Caddy or Nginx) configured with SSL

@@ -116,6 +116,47 @@ def _load_version_metadata():
         meta['build_time'] = datetime.utcnow().isoformat() + 'Z'
     return meta
 
+
+def _validate_environment_configuration() -> None:
+    """Fail fast on missing critical environment variables outside local dev."""
+    app_env = (os.environ.get('APP_ENV') or '').strip().lower()
+    flask_env = (os.environ.get('FLASK_ENV') or '').strip().lower()
+
+    # In local development we allow relaxed config by default.
+    # Set STRICT_ENV_PREFLIGHT=1 to enforce checks locally.
+    is_local_dev = app_env in {'', 'dev', 'local'} or flask_env in {'', 'development', 'debug'}
+    strict_flag = (os.environ.get('STRICT_ENV_PREFLIGHT') or '').strip()
+    if is_local_dev and strict_flag != '1':
+        return
+
+    # Allow explicit bypass in exceptional environments.
+    if not is_local_dev and strict_flag == '0':
+        print('⚠️ STRICT_ENV_PREFLIGHT=0 in non-dev profile; skipping env preflight checks')
+        return
+
+    required_keys = [
+        'DATABASE_URL',
+        'SECRET_KEY',
+        'JWT_SECRET_KEY',
+        'FRONTEND_URL',
+        'ADMIN_API_KEY',
+    ]
+
+    missing = [k for k in required_keys if not (os.environ.get(k) or '').strip()]
+
+    # In non-dev modes, never allow silent SQLite fallback.
+    if (os.environ.get('DISABLE_SQLITE_FALLBACK') or '').strip() != '1':
+        missing.append('DISABLE_SQLITE_FALLBACK=1')
+
+    if missing:
+        profile = app_env or flask_env or 'unknown'
+        raise RuntimeError(
+            'Environment preflight failed for profile '
+            f"'{profile}'. Missing required settings: {', '.join(missing)}. "
+            'Set these in your deployment env file before startup. '
+            'To enforce checks in local dev, set STRICT_ENV_PREFLIGHT=1.'
+        )
+
 def create_app(environ=None, start_response=None):
     print("🚀 Creating Flask app...")
     print(f"Current working directory: {os.getcwd()}")
@@ -245,6 +286,7 @@ p { color: #666; }
         print(f"⚠️ Placeholder asset handling skipped due to error: {_ph_e}")
     # Load environment variables from .env file
     load_env_file()
+    _validate_environment_configuration()
 
     app = Flask(__name__, instance_relative_config=True)
 

@@ -18,9 +18,16 @@ HEALTH_TIMEOUT=120
 PULL_FIRST=0
 NO_BUILD=0
 SKIP_HEALTH=0
+SKIP_SMOKE=0
 START_ENV="test"
 STOP_AFTER="production"
 SINGLE_ENV=""
+IMAGE_TAG=""
+IMAGE_REPO=""
+
+SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
+SMOKE_SCRIPT_DEFAULT="$SCRIPT_DIR/smoke_check_env.sh"
+SMOKE_SCRIPT="$SMOKE_SCRIPT_DEFAULT"
 
 # Override ports if your deployment does not use defaults.
 TEST_PORT="${TEST_PORT:-18080}"
@@ -42,6 +49,10 @@ Options:
   --pull                   Run docker compose pull before up
   --no-build               Do not use --build on docker compose up
   --skip-health            Skip health endpoint checks
+  --skip-smoke             Skip smoke script execution
+  --smoke-script <path>    Smoke script path (default: scripts/smoke_check_env.sh)
+  --image-tag <tag>        Promote immutable image tag across all target environments
+  --image-repo <repo>      Image repository override when using --image-tag
   --health-endpoint <path> Health endpoint path (default: /api/health)
   --health-timeout <sec>   Max wait time per env health check (default: 120)
   -h, --help               Show help
@@ -84,6 +95,22 @@ while [[ $# -gt 0 ]]; do
     --skip-health)
       SKIP_HEALTH=1
       shift
+      ;;
+    --skip-smoke)
+      SKIP_SMOKE=1
+      shift
+      ;;
+    --smoke-script)
+      SMOKE_SCRIPT="$2"
+      shift 2
+      ;;
+    --image-tag)
+      IMAGE_TAG="$2"
+      shift 2
+      ;;
+    --image-repo)
+      IMAGE_REPO="$2"
+      shift 2
       ;;
     --health-endpoint)
       HEALTH_ENDPOINT="$2"
@@ -137,6 +164,19 @@ if ! command -v curl >/dev/null 2>&1; then
   exit 1
 fi
 
+if [[ "$SKIP_SMOKE" -ne 1 ]]; then
+  if [[ ! -x "$SMOKE_SCRIPT" ]]; then
+    echo "Smoke script is not executable or missing: $SMOKE_SCRIPT" >&2
+    echo "Use --skip-smoke or provide --smoke-script <path>" >&2
+    exit 1
+  fi
+fi
+
+if [[ -n "$IMAGE_TAG" ]]; then
+  PULL_FIRST=1
+  NO_BUILD=1
+fi
+
 declare -a ALL_ENVS=(test training production)
 declare -A PORT_BY_ENV=(
   [test]="$TEST_PORT"
@@ -173,28 +213,37 @@ deploy_env() {
 
   pushd "$env_dir" >/dev/null
 
+  local -a compose_cmd=(docker compose -p "$project_name" -f "$compose_file" --env-file "$env_file")
+  local -a compose_env=()
+  if [[ -n "$IMAGE_TAG" ]]; then
+    compose_env+=(IMAGE_TAG="$IMAGE_TAG")
+  fi
+  if [[ -n "$IMAGE_REPO" ]]; then
+    compose_env+=(IMAGE_REPO="$IMAGE_REPO")
+  fi
+
   if [[ "$PULL_FIRST" -eq 1 ]]; then
     echo "Pulling image updates for $env_name..."
-    docker compose \
-      -p "$project_name" \
-      -f "$compose_file" \
-      --env-file "$env_file" \
-      pull
+    if [[ "${#compose_env[@]}" -gt 0 ]]; then
+      env "${compose_env[@]}" "${compose_cmd[@]}" pull
+    else
+      "${compose_cmd[@]}" pull
+    fi
   fi
 
   echo "Applying compose changes for $env_name..."
   if [[ "$NO_BUILD" -eq 1 ]]; then
-    docker compose \
-      -p "$project_name" \
-      -f "$compose_file" \
-      --env-file "$env_file" \
-      up -d
+    if [[ "${#compose_env[@]}" -gt 0 ]]; then
+      env "${compose_env[@]}" "${compose_cmd[@]}" up -d
+    else
+      "${compose_cmd[@]}" up -d
+    fi
   else
-    docker compose \
-      -p "$project_name" \
-      -f "$compose_file" \
-      --env-file "$env_file" \
-      up -d --build
+    if [[ "${#compose_env[@]}" -gt 0 ]]; then
+      env "${compose_env[@]}" "${compose_cmd[@]}" up -d --build
+    else
+      "${compose_cmd[@]}" up -d --build
+    fi
   fi
 
   popd >/dev/null
@@ -224,6 +273,12 @@ deploy_env() {
     fi
     sleep 2
   done
+
+  if [[ "$SKIP_SMOKE" -eq 0 ]]; then
+    local base_url="http://127.0.0.1:${port}"
+    echo "Running smoke checks for $env_name via $base_url"
+    "$SMOKE_SCRIPT" "$base_url"
+  fi
 }
 
 build_target_env_list() {
@@ -260,6 +315,12 @@ build_target_env_list
 echo "Base directory: $BASE_DIR"
 echo "Target environments: ${TARGET_ENVS[*]}"
 echo "Promotion mode: stop on first failure"
+if [[ -n "$IMAGE_TAG" ]]; then
+  echo "Image promotion tag: $IMAGE_TAG"
+  if [[ -n "$IMAGE_REPO" ]]; then
+    echo "Image repository: $IMAGE_REPO"
+  fi
+fi
 
 for env_name in "${TARGET_ENVS[@]}"; do
   if ! deploy_env "$env_name"; then

@@ -14,6 +14,9 @@ Use the scaffold script and Caddy template added for this deployment style:
 
 - scripts/scaffold_single_vps_three_stacks.sh
 - scripts/deploy_single_vps_three_stacks.sh
+- scripts/smoke_check_env.sh
+- scripts/backup_env_db.sh
+- scripts/restore_env_db.sh
 - Caddyfile.single-vps.template
 
 Example:
@@ -43,6 +46,12 @@ Deploy all three stacks in promotion order with stop-on-failure:
 ./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs
 ```
 
+By default this script now performs, for each environment in order:
+
+- deploy
+- health check (`/api/health`)
+- smoke checks (`/api/health`, `/api/version`, and `/`)
+
 Useful variants:
 
 ```bash
@@ -54,6 +63,15 @@ Useful variants:
 
 # Deploy only production without rebuilding
 ./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --env production --no-build
+
+# Promote one immutable image tag across all environments
+./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --image-tag 2026.05.28
+
+# Promote one immutable tag from a specific registry/repo
+./scripts/deploy_single_vps_three_stacks.sh \
+  --base-dir /opt/structureddocs \
+  --image-repo ghcr.io/joeryanmba/structured-docs-backend \
+  --image-tag 2026.05.28
 ```
 
 ## 1. Architecture
@@ -133,6 +151,7 @@ Use this template (adjust only the `ports` value per environment):
 services:
   app:
     build: .
+    image: ${IMAGE_REPO:-structureddocs-backend}:${IMAGE_TAG:-latest}
     environment:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
@@ -157,6 +176,8 @@ services:
     ports:
       - "18080:8080"
     restart: unless-stopped
+    mem_limit: ${APP_MEM_LIMIT:-1g}
+    cpus: ${APP_CPU_LIMIT:-1.0}
     volumes:
       - ./.enable_blueprints:/app/.enable_blueprints:ro
       - ./instance:/app/instance
@@ -170,6 +191,12 @@ Use different host ports:
 - test: 18080:8080
 - training: 28080:8080
 - production: 38080:8080
+
+Note:
+
+- This repository also includes a canonical base compose template at `docker-compose.base.yml`.
+- For root-level production deploys, use both files together:
+  `docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d`
 
 ## 6. Reverse proxy routes
 
@@ -233,6 +260,20 @@ Rollback steps:
 1. checkout previous known-good commit or image tag
 2. redeploy with compose
 3. if migration caused incompatibility, restore environment-specific DB backup
+
+### Backup and restore helpers
+
+Backup one environment database:
+
+```bash
+./scripts/backup_env_db.sh --env test --base-dir /opt/structureddocs
+```
+
+Restore one environment database:
+
+```bash
+./scripts/restore_env_db.sh --env test --base-dir /opt/structureddocs --file /opt/structureddocs/test/backups/test_YYYYMMDDTHHMMSSZ.dump
+```
 
 ## 10. Operational checks (every release)
 

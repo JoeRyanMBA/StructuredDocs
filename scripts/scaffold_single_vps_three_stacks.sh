@@ -115,6 +115,7 @@ create_compose_file() {
 services:
   app:
     build: .
+    image: \${IMAGE_REPO:-structureddocs-backend}:\${IMAGE_TAG:-latest}
     environment:
       - PORT=8080
       - DATABASE_URL=\${DATABASE_URL}
@@ -139,6 +140,8 @@ services:
     ports:
       - "${host_port}:8080"
     restart: unless-stopped
+    mem_limit: \${APP_MEM_LIMIT:-1g}
+    cpus: \${APP_CPU_LIMIT:-1.0}
     volumes:
       - ./.enable_blueprints:/app/.enable_blueprints:ro
       - ./instance:/app/instance
