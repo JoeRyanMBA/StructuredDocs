@@ -52,3 +52,16 @@ Images are isolated by `SPACES_KEY_PREFIX` so environments do not overwrite each
 
 - Stop non-production servers when idle.
 - Monitor database and object-storage usage monthly.
+
+## Single VPS alternative
+
+If you want lower cost and can accept a single host as a shared failure domain,
+run three isolated stacks on one VPS (test, training, production) with:
+
+- separate compose project names
+- separate directories and volumes
+- separate databases
+- separate storage prefixes
+- separate env files and secrets
+
+See full guide: `docs/single-vps-three-stacks.md`
