@@ -13,6 +13,7 @@ The goal is strict logical isolation (config, data, ports, secrets) while sharin
 Use the scaffold script and Caddy template added for this deployment style:
 
 - scripts/scaffold_single_vps_three_stacks.sh
+- scripts/deploy_single_vps_three_stacks.sh
 - Caddyfile.single-vps.template
 
 Example:
@@ -34,6 +35,25 @@ For routing, copy and adapt the template:
 
 ```bash
 cp Caddyfile.single-vps.template /etc/caddy/Caddyfile
+```
+
+Deploy all three stacks in promotion order with stop-on-failure:
+
+```bash
+./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs
+```
+
+Useful variants:
+
+```bash
+# Pull first, then deploy test -> training -> production
+./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --pull
+
+# Promote only from training to production
+./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --start-env training --stop-after production
+
+# Deploy only production without rebuilding
+./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --env production --no-build
 ```
 
 ## 1. Architecture
