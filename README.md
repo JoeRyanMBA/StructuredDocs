@@ -92,6 +92,10 @@ See `.env.example` and `EMAIL_SENDING_README.md` for SMTP configuration and DMAR
 | DB       | SQLite (auto-created)                  | Managed or self-hosted Postgres (set `DATABASE_URL`)           |
 | Migrations | `cd backend && flask db upgrade`    | Manual or container start (`RUN_DB_MIGRATIONS=1`)              |
 
+For canonical Docker production layering, use:
+
+`docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build`
+
 ### Local Development (without Docker)
 
 ```bash

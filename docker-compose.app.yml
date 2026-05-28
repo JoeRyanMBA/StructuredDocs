@@ -5,7 +5,7 @@ services:
     build:
       context: .
       dockerfile: Dockerfile
-    image: structureddocs-backend:latest
+    image: ${IMAGE_REPO:-structureddocs-backend}:${IMAGE_TAG:-latest}
     restart: unless-stopped
     env_file:
       - backend/.env.example # Replace with real .env in production
@@ -14,6 +14,8 @@ services:
       RUN_DB_MIGRATIONS: "1"
     ports:
       - "8080:8080"
+    mem_limit: ${APP_MEM_LIMIT:-1g}
+    cpus: ${APP_CPU_LIMIT:-1.0}
     depends_on: []
     healthcheck:
       test: ["CMD", "curl", "-f", "http://localhost:8080/api/health"]

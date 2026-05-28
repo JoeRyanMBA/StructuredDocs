@@ -1,38 +1,10 @@
 services:
   app:
-    build: .
-    container_name: structureddocs_app
-    expose:
-      - "8080"
-    environment:
-      - PORT=8080
-      - DATABASE_URL=${DATABASE_URL:-sqlite:///structured_docs.db}
-      - DISABLE_SQLITE_FALLBACK=${DISABLE_SQLITE_FALLBACK:-0}
-      - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
-      - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
-      - IMAGE_STORAGE_ROOT=/app/data/images
-      # Email settings (override via .env or environment in production)
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
-      - SMTP_SERVER=${SMTP_SERVER:-smtp.protonmail.ch}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USERNAME=${SMTP_USERNAME:-}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
-      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
-      - FROM_EMAIL=${FROM_EMAIL:-}
-      - FROM_NAME=${FROM_NAME:-StructuredDocs}
-      - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
-      - ADMIN_API_KEY=${ADMIN_API_KEY:-}
-      - SECRET_KEY=${SECRET_KEY:-}
-      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-}
-    volumes:
-      - ./instance:/app/instance
-      - ./data/images:/app/data/images
-      - ./data/images:/app/backend/static/images
+    extends:
+      file: ./docker-compose.base.yml
+      service: app
     extra_hosts:
       - "host.docker.internal:host-gateway"
-    command: ["./start.sh"]
-    restart: unless-stopped
 
   caddy:
     image: caddy:2-alpine

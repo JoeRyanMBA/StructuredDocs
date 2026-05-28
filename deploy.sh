@@ -43,7 +43,7 @@ docker ps --filter name=structureddocs
 
 echo ""
 echo "Recent logs:"
-docker logs structureddocs_app --tail 20 2>/dev/null || true
+docker compose logs --tail 20 2>/dev/null || true
 
 echo ""
 echo "=== Deploy complete ==="

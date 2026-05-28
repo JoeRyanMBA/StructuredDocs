@@ -1,16 +1,18 @@
 #!/bin/bash
 # Deploy StructuredDocs to a specific environment VPS.
-# Usage: ./scripts/deploy.sh <environment> [server-ip]
+# Usage: ./scripts/deploy.sh <environment> [server-ip] [image-tag]
 #
 # Examples:
 #   ./scripts/deploy.sh test
 #   ./scripts/deploy.sh training
 #   ./scripts/deploy.sh production 64.225.29.187
+#   ./scripts/deploy.sh production 64.225.29.187 2026.05.28
 
 set -euo pipefail
 
 ENV="${1:-}"
 OVERRIDE_HOST="${2:-}"
+IMAGE_TAG_OVERRIDE="${3:-}"
 
 if [[ -z "$ENV" ]]; then
   echo "Usage: $0 <test|training|production> [server-ip]"
@@ -52,7 +54,7 @@ fi
 REMOTE_USER="root"
 REMOTE_DIR="/opt/structureddocs"
 IMAGE_NAME="structureddocs-backend"
-TAG="latest"
+TAG="${IMAGE_TAG_OVERRIDE:-latest}"
 
 echo "🚀 Deploying to: $ENV ($REMOTE_HOST)"
 echo "   Remote dir:    $REMOTE_DIR"
@@ -84,7 +86,7 @@ rm /tmp/structureddocs_backend_image.tar.gz
 
 echo "♻️  Restarting container..."
 docker compose down || true
-docker compose up -d
+IMAGE_TAG="$TAG" docker compose up -d
 
 echo "⏳ Waiting for health check..."
 sleep 5

@@ -2,35 +2,15 @@ version: '3.8'
 
 services:
   app:
-    image: structureddocs-backend:latest
-    container_name: structureddocs_app
+    extends:
+      file: ./docker-compose.base.yml
+      service: app
+    image: ${IMAGE_REPO:-structureddocs-backend}:${IMAGE_TAG:-latest}
     environment:
-      - PORT=8080
-      - DATABASE_URL=${DATABASE_URL}
       - DISABLE_SQLITE_FALLBACK=1
-      - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
-      - STORAGE_BACKEND=local
-      - IMAGE_STORAGE_ROOT=/app/data/images
-      - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
-      - SMTP_SERVER=${SMTP_SERVER:-}
-      - SMTP_PORT=${SMTP_PORT:-587}
-      - SMTP_USERNAME=${SMTP_USERNAME:-}
-      - SMTP_PASSWORD=${SMTP_PASSWORD:-}
-      - SMTP_USE_SSL=${SMTP_USE_SSL:-false}
-      - DEFAULT_FROM_EMAIL=${DEFAULT_FROM_EMAIL:-no-reply@structureddocs.online}
-      - FROM_EMAIL=${FROM_EMAIL:-}
-      - FROM_NAME=${FROM_NAME:-StructuredDocs}
-      - FRONTEND_URL=${FRONTEND_URL:-https://structureddocs.online}
-      - ADMIN_API_KEY=${ADMIN_API_KEY:-}
       - SECRET_KEY=${SECRET_KEY}
+      - JWT_SECRET_KEY=${JWT_SECRET_KEY:-${SECRET_KEY}}
     ports:
       - "8080:8080"
-    restart: unless-stopped
     volumes:
       - ./.enable_blueprints:/app/.enable_blueprints:ro
-      - ./instance:/app/instance
-      - ./data/images:/app/data/images
-      - ./data/images:/app/backend/static/images
-    command: ["./start.sh"]
-    # Optional: Run permission fix on startup (if needed)
-    # init: true  # Enable this if you want to run an init process
