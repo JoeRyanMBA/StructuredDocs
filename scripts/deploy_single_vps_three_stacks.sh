@@ -1,13 +1,13 @@
 #!/usr/bin/env bash
 # Deploy Single VPS three-stack environments in promotion order with health checks.
 #
-# Default order: test -> training -> production
+# Default order: dev -> staging -> production
 # Stops immediately on first failure.
 #
 # Usage examples:
 #   ./scripts/deploy_single_vps_three_stacks.sh
 #   ./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --pull
-#   ./scripts/deploy_single_vps_three_stacks.sh --start-env training --stop-after production
+#   ./scripts/deploy_single_vps_three_stacks.sh --start-env staging --stop-after production
 #   ./scripts/deploy_single_vps_three_stacks.sh --env production --no-build
 
 set -euo pipefail
@@ -19,7 +19,7 @@ PULL_FIRST=0
 NO_BUILD=0
 SKIP_HEALTH=0
 SKIP_SMOKE=0
-START_ENV="test"
+START_ENV="dev"
 STOP_AFTER="production"
 SINGLE_ENV=""
 IMAGE_TAG=""
@@ -30,8 +30,8 @@ SMOKE_SCRIPT_DEFAULT="$SCRIPT_DIR/smoke_check_env.sh"
 SMOKE_SCRIPT="$SMOKE_SCRIPT_DEFAULT"
 
 # Override ports if your deployment does not use defaults.
-TEST_PORT="${TEST_PORT:-18080}"
-TRAINING_PORT="${TRAINING_PORT:-28080}"
+DEV_PORT="${DEV_PORT:-${TRAINING_PORT:-18080}}"
+STAGING_PORT="${STAGING_PORT:-${TEST_PORT:-28080}}"
 PRODUCTION_PORT="${PRODUCTION_PORT:-38080}"
 
 usage() {
@@ -39,12 +39,12 @@ usage() {
 Usage: deploy_single_vps_three_stacks.sh [options]
 
 Options:
-  --base-dir <path>        Base directory containing test/training/production stacks
+  --base-dir <path>        Base directory containing dev/staging/production stacks
                            (default: /opt/structureddocs)
-  --env <name>             Deploy only one environment: test|training|production
-  --start-env <name>       Start promotion sequence at: test|training|production
-                           (default: test)
-  --stop-after <name>      Stop promotion sequence after: test|training|production
+  --env <name>             Deploy only one environment: dev|staging|production
+  --start-env <name>       Start promotion sequence at: dev|staging|production
+                           (default: dev)
+  --stop-after <name>      Stop promotion sequence after: dev|staging|production
                            (default: production)
   --pull                   Run docker compose pull before up
   --no-build               Do not use --build on docker compose up
@@ -58,12 +58,27 @@ Options:
   -h, --help               Show help
 
 Environment variable overrides for ports:
-  TEST_PORT, TRAINING_PORT, PRODUCTION_PORT
+  DEV_PORT, STAGING_PORT, PRODUCTION_PORT
+  Legacy aliases also supported: TEST_PORT, TRAINING_PORT
 USAGE
 }
 
 is_valid_env() {
-  [[ "$1" == "test" || "$1" == "training" || "$1" == "production" ]]
+  [[ "$1" == "dev" || "$1" == "staging" || "$1" == "production" || "$1" == "test" || "$1" == "training" ]]
+}
+
+normalize_env_name() {
+  case "$1" in
+    test)
+      echo "staging"
+      ;;
+    training)
+      echo "dev"
+      ;;
+    *)
+      echo "$1"
+      ;;
+  esac
 }
 
 while [[ $# -gt 0 ]]; do
@@ -138,17 +153,20 @@ if ! [[ "$HEALTH_TIMEOUT" =~ ^[0-9]+$ ]]; then
 fi
 
 if [[ -n "$SINGLE_ENV" ]]; then
+  SINGLE_ENV="$(normalize_env_name "$SINGLE_ENV")"
   if ! is_valid_env "$SINGLE_ENV"; then
     echo "Invalid --env value: $SINGLE_ENV" >&2
     exit 1
   fi
 fi
 
+START_ENV="$(normalize_env_name "$START_ENV")"
 if ! is_valid_env "$START_ENV"; then
   echo "Invalid --start-env value: $START_ENV" >&2
   exit 1
 fi
 
+STOP_AFTER="$(normalize_env_name "$STOP_AFTER")"
 if ! is_valid_env "$STOP_AFTER"; then
   echo "Invalid --stop-after value: $STOP_AFTER" >&2
   exit 1
@@ -177,10 +195,10 @@ if [[ -n "$IMAGE_TAG" ]]; then
   NO_BUILD=1
 fi
 
-declare -a ALL_ENVS=(test training production)
+declare -a ALL_ENVS=(dev staging production)
 declare -A PORT_BY_ENV=(
-  [test]="$TEST_PORT"
-  [training]="$TRAINING_PORT"
+  [dev]="$DEV_PORT"
+  [staging]="$STAGING_PORT"
   [production]="$PRODUCTION_PORT"
 )
 

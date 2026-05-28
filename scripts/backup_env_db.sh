@@ -2,7 +2,7 @@
 # Backup DATABASE_URL for one single-VPS environment stack.
 #
 # Usage:
-#   ./scripts/backup_env_db.sh --env test --base-dir /opt/structureddocs
+#   ./scripts/backup_env_db.sh --env dev --base-dir /opt/structureddocs
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ OUT_DIR=""
 
 usage() {
   cat <<'USAGE'
-Usage: backup_env_db.sh --env <test|training|production> [options]
+Usage: backup_env_db.sh --env <dev|staging|production> [options]
 
 Options:
   --env <name>       Environment name (required)
@@ -47,8 +47,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$ENV_NAME" != "test" && "$ENV_NAME" != "training" && "$ENV_NAME" != "production" ]]; then
-  echo "--env must be one of: test, training, production" >&2
+if [[ "$ENV_NAME" == "test" ]]; then
+  ENV_NAME="staging"
+elif [[ "$ENV_NAME" == "training" ]]; then
+  ENV_NAME="dev"
+fi
+
+if [[ "$ENV_NAME" != "dev" && "$ENV_NAME" != "staging" && "$ENV_NAME" != "production" ]]; then
+  echo "--env must be one of: dev, staging, production" >&2
   exit 1
 fi
 

@@ -3,16 +3,22 @@
 # Run this on the server itself (or pipe via SSH) immediately after provisioning.
 #
 # Usage (run on the server):
-#   bash "$0" <test|training|production>
+#   bash "$0" <dev|staging|production>
 #
 # Usage (run from local machine):
-#   ssh root@SERVER_IP 'bash -s' < /path/to/this-script.sh test
+#   ssh root@SERVER_IP 'bash -s' < /path/to/this-script.sh dev
 
 set -euo pipefail
 
 ENV="${1:-}"
-if [[ -z "$ENV" || ! "$ENV" =~ ^(test|training|production)$ ]]; then
-  echo "Usage: $0 <test|training|production>"
+if [[ "$ENV" == "test" ]]; then
+  ENV="staging"
+elif [[ "$ENV" == "training" ]]; then
+  ENV="dev"
+fi
+
+if [[ -z "$ENV" || ! "$ENV" =~ ^(dev|staging|production)$ ]]; then
+  echo "Usage: $0 <dev|staging|production>"
   exit 1
 fi
 

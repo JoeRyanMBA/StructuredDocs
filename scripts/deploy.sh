@@ -3,8 +3,8 @@
 # Usage: ./scripts/deploy.sh <environment> [server-ip] [image-tag]
 #
 # Examples:
-#   ./scripts/deploy.sh test
-#   ./scripts/deploy.sh training
+#   ./scripts/deploy.sh dev
+#   ./scripts/deploy.sh staging
 #   ./scripts/deploy.sh production 64.225.29.187
 #   ./scripts/deploy.sh production 64.225.29.187 2026.05.28
 
@@ -15,32 +15,38 @@ OVERRIDE_HOST="${2:-}"
 IMAGE_TAG_OVERRIDE="${3:-}"
 
 if [[ -z "$ENV" ]]; then
-  echo "Usage: $0 <test|training|production> [server-ip]"
+  echo "Usage: $0 <dev|staging|production> [server-ip]"
   exit 1
+fi
+
+if [[ "$ENV" == "test" ]]; then
+  ENV="staging"
+elif [[ "$ENV" == "training" ]]; then
+  ENV="dev"
 fi
 
 # ---------------------------------------------------------------------------
 # Server IP addresses — update these after provisioning
 # ---------------------------------------------------------------------------
-TEST_HOST="${STRUCTUREDDOCS_TEST_HOST:-}"
-TRAINING_HOST="${STRUCTUREDDOCS_TRAINING_HOST:-}"
+DEV_HOST="${STRUCTUREDDOCS_DEV_HOST:-${STRUCTUREDDOCS_TRAINING_HOST:-}}"
+STAGING_HOST="${STRUCTUREDDOCS_STAGING_HOST:-${STRUCTUREDDOCS_TEST_HOST:-}}"
 PRODUCTION_HOST="${STRUCTUREDDOCS_PRODUCTION_HOST:-}"
 
 case "$ENV" in
-  test)
-    REMOTE_HOST="${OVERRIDE_HOST:-$TEST_HOST}"
-    ENV_FILE="envs/test.env.example"
+  dev)
+    REMOTE_HOST="${OVERRIDE_HOST:-$DEV_HOST}"
+    ENV_FILE="envs/dev.env.example"
     ;;
-  training)
-    REMOTE_HOST="${OVERRIDE_HOST:-$TRAINING_HOST}"
-    ENV_FILE="envs/training.env.example"
+  staging)
+    REMOTE_HOST="${OVERRIDE_HOST:-$STAGING_HOST}"
+    ENV_FILE="envs/staging.env.example"
     ;;
   production)
     REMOTE_HOST="${OVERRIDE_HOST:-$PRODUCTION_HOST}"
     ENV_FILE="envs/production.env.example"
     ;;
   *)
-    echo "❌ Unknown environment: $ENV. Must be one of: test, training, production"
+    echo "❌ Unknown environment: $ENV. Must be one of: dev, staging, production"
     exit 1
     ;;
 esac
