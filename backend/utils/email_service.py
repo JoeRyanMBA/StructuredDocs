@@ -351,6 +351,35 @@ class EmailService:
             logger.error(f"Failed to send review request: {str(e)}")
             return False
 
+    def send_review_cancellation(self, reviewer_email, reviewer_name, topic_title,
+                                 topic_id, reason=None, replacement_reviewer_name=None,
+                                 base_url=None):
+        """Send cancellation notice to a previously assigned reviewer."""
+        try:
+            subject = f"Review Request Canceled: {topic_title} (Topic #{topic_id})"
+
+            html_content = self._create_review_cancellation_email_html(
+                reviewer_name=reviewer_name,
+                topic_title=topic_title,
+                topic_id=topic_id,
+                reason=reason,
+                replacement_reviewer_name=replacement_reviewer_name,
+                base_url=base_url,
+            )
+
+            text_content = self._create_review_cancellation_email_text(
+                reviewer_name=reviewer_name,
+                topic_title=topic_title,
+                topic_id=topic_id,
+                reason=reason,
+                replacement_reviewer_name=replacement_reviewer_name,
+            )
+
+            return self._send_email(reviewer_email, subject, html_content, text_content)
+        except Exception as e:
+            logger.error(f"Failed to send review cancellation email: {str(e)}")
+            return False
+
     def send_password_setup_email(self, user_email, user_name, setup_url, 
                                  created_by_admin=True, admin_name=None):
         """Send password setup email to new users"""
@@ -998,6 +1027,65 @@ Thank you for your time and expertise.
 
 Best regards,
 StructuredDocs Review System
+"""
+
+    def _create_review_cancellation_email_html(self, reviewer_name, topic_title,
+                                               topic_id, reason=None,
+                                               replacement_reviewer_name=None,
+                                               base_url=None):
+        """Create HTML content for cancellation notices."""
+        replacement_line = ''
+        if replacement_reviewer_name:
+            replacement_line = (
+                f'<p style="margin:4px 0;"><strong>Reassigned To:</strong> '
+                f'{replacement_reviewer_name}</p>'
+            )
+
+        reason_block = ''
+        if reason:
+            reason_block = (
+                '<div style="background:#f8f9fa;padding:12px;border-radius:6px;'
+                'margin:12px 0;border-left:4px solid #6c757d;">'
+                f'<p style="margin:0;"><strong>Reason:</strong> {reason}</p>'
+                '</div>'
+            )
+
+        body = f"""
+    <p>Hello {reviewer_name},</p>
+    <p>The review request below has been canceled and no action is required from you.</p>
+    <div style="background:#fff3cd;padding:16px;border-radius:6px;margin:16px 0;border-left:4px solid #ffc107;">
+      <p style="margin:0 0 6px;font-weight:bold;font-size:1.05em;">Topic #{topic_id}: {topic_title}</p>
+      <p style="margin:4px 0;"><strong>Status:</strong> Canceled</p>
+      {replacement_line}
+    </div>
+    {reason_block}
+    <p style="color:#6c757d;font-size:13px;margin-top:16px;">
+      If you have questions, contact the requestor in StructuredDocs.
+    </p>"""
+
+        return self._email_layout('Review Request Canceled', body, base_url)
+
+    def _create_review_cancellation_email_text(self, reviewer_name, topic_title,
+                                               topic_id, reason=None,
+                                               replacement_reviewer_name=None):
+        """Create plain text content for cancellation notices."""
+        replacement_line = (
+            f"Reassigned To: {replacement_reviewer_name}\n"
+            if replacement_reviewer_name else ''
+        )
+        reason_line = f"Reason: {reason}\n" if reason else ''
+
+        return f"""
+Review Request Canceled
+
+Hello {reviewer_name},
+
+The following review request has been canceled and no action is required from you:
+
+Topic #{topic_id}: {topic_title}
+Status: Canceled
+{replacement_line}{reason_line}
+If you have questions, contact the requestor in StructuredDocs.
 """
 
     def _create_password_setup_email_html(self, user_name, setup_url,

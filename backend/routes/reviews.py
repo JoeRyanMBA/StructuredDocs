@@ -1,5 +1,5 @@
 from flask import Blueprint, request, jsonify, current_app
-from flask_jwt_extended import jwt_required
+from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from ..models import db, Topic, Collection, ImportDocument, Review, Stakeholder, ProjectStakeholder, ReviewToken
 from typing import TYPE_CHECKING
@@ -353,6 +353,162 @@ def follow_up_review(review_id):
             }), 200
         
     except Exception as e:
+        return jsonify({'error': str(e)}), 500
+
+
+@reviews_bp.route('/<int:review_id>/cancel', methods=['POST'])
+@jwt_required()
+def cancel_or_reassign_review(review_id):
+    """Cancel an in-flight review, optionally reassigning to a new reviewer."""
+    try:
+        review = Review.query.get_or_404(review_id)
+        data = request.get_json(silent=True) or {}
+
+        if review.status not in ['pending', 'in_progress']:
+            return jsonify({'error': 'Only pending or in-progress reviews can be canceled or reassigned'}), 400
+
+        if review.sequence_id:
+            return jsonify({'error': 'This review belongs to a sequence. Use sequence controls to advance or reassign reviewers.'}), 400
+
+        if review.batch_id:
+            return jsonify({'error': 'This review belongs to a bulk batch. Use batch controls to manage reviewer changes.'}), 400
+
+        replacement_reviewer_id = data.get('replacement_reviewer_id')
+        notify_cancelled_reviewer = bool(data.get('notify_cancelled_reviewer', True))
+        cancellation_message = (data.get('cancellation_message') or '').strip()
+        reassign_message = (data.get('reassign_message') or '').strip()
+
+        replacement_reviewer = None
+        if replacement_reviewer_id is not None:
+            try:
+                replacement_reviewer_id = int(replacement_reviewer_id)
+            except (TypeError, ValueError):
+                return jsonify({'error': 'replacement_reviewer_id must be an integer'}), 400
+
+            if replacement_reviewer_id == review.reviewer_id:
+                return jsonify({'error': 'Replacement reviewer must be different from the current reviewer'}), 400
+
+            replacement_reviewer = Stakeholder.query.get_or_404(replacement_reviewer_id)
+            if not replacement_reviewer.can_review:
+                return jsonify({'error': 'Selected replacement reviewer cannot perform reviews'}), 400
+
+        now = datetime.utcnow()
+
+        # Deactivate any outstanding review links so old invitations cannot be used.
+        active_tokens = ReviewToken.query.filter_by(review_id=review.id, is_active=True).all()
+        for token in active_tokens:
+            token.is_active = False
+            token.used_at = token.used_at or now
+
+        previous_reviewer = review.reviewer
+        previous_reviewer_name = previous_reviewer.name if previous_reviewer else None
+
+        actor_id = get_jwt_identity()
+        review.status = 'declined'
+        review.completed_at = now
+        review.review_notes = (
+            f"Canceled by requester (user_id={actor_id})"
+            + (f". Reason: {cancellation_message}" if cancellation_message else '')
+        )
+
+        created_review = None
+        created_token = None
+        reassigned = replacement_reviewer is not None
+
+        if reassigned:
+            created_review = Review(
+                topic_id=review.topic_id,
+                requested_by=review.requested_by,
+                reviewer_id=replacement_reviewer.id,
+                priority=review.priority,
+                due_date=review.due_date,
+                author_message=reassign_message or review.author_message
+            )
+            db.session.add(created_review)
+            db.session.flush()
+
+            expires_at = (created_review.due_date + timedelta(days=7)) if created_review.due_date else (now + timedelta(days=14))
+            created_token = ReviewToken(
+                token=secrets.token_urlsafe(32),
+                review_id=created_review.id,
+                reviewer_email=replacement_reviewer.email,
+                expires_at=expires_at,
+            )
+            db.session.add(created_token)
+
+            if review.topic:
+                review.topic.status = 'pending_review'
+                review.topic.updated_at = now
+        else:
+            # If no other active review remains for this topic, return the topic to draft.
+            remaining_active_reviews = Review.query.filter(
+                Review.topic_id == review.topic_id,
+                Review.id != review.id,
+                Review.status.in_(['pending', 'in_progress'])
+            ).count()
+            if review.topic and remaining_active_reviews == 0:
+                review.topic.status = 'draft'
+                review.topic.updated_at = now
+
+        db.session.commit()
+
+        cancellation_email_sent = None
+        reassignment_email_sent = None
+
+        if notify_cancelled_reviewer and previous_reviewer and previous_reviewer.email:
+            try:
+                cancellation_email_sent = email_service.send_review_cancellation(
+                    reviewer_email=previous_reviewer.email,
+                    reviewer_name=previous_reviewer.name,
+                    topic_title=review.topic.title if review.topic else f'Topic #{review.topic_id}',
+                    topic_id=review.topic_id,
+                    reason=cancellation_message or None,
+                    replacement_reviewer_name=replacement_reviewer.name if replacement_reviewer else None,
+                )
+            except Exception:
+                current_app.logger.exception('Failed to send cancellation notice for review_id=%s', review.id)
+                cancellation_email_sent = False
+
+        if created_review and created_token and replacement_reviewer:
+            try:
+                reassignment_email_sent = email_service.send_review_notification(
+                    reviewer_email=replacement_reviewer.email,
+                    reviewer_name=replacement_reviewer.name,
+                    topic_title=review.topic.title if review.topic else f'Topic #{review.topic_id}',
+                    topic_id=review.topic_id,
+                    author_message=created_review.author_message,
+                    due_date=created_review.due_date,
+                    priority=created_review.priority,
+                    review_token=created_token.token,
+                )
+                if not reassignment_email_sent:
+                    created_review.email_delivery_unavailable = True
+                    db.session.commit()
+            except Exception:
+                created_review.email_delivery_unavailable = True
+                db.session.commit()
+                current_app.logger.exception('Failed to send reassignment notice for review_id=%s', created_review.id)
+                reassignment_email_sent = False
+
+        return jsonify({
+            'message': 'Review reassigned successfully' if reassigned else 'Review canceled successfully',
+            'canceled_review': review.to_dict(),
+            'replacement_review': created_review.to_dict() if created_review else None,
+            'emails': {
+                'notify_cancelled_reviewer_requested': notify_cancelled_reviewer,
+                'cancelled_reviewer_email_sent': cancellation_email_sent,
+                'replacement_reviewer_email_sent': reassignment_email_sent,
+            },
+            'meta': {
+                'cancelled_reviewer_name': previous_reviewer_name,
+                'replacement_reviewer_name': replacement_reviewer.name if replacement_reviewer else None,
+                'deactivated_token_count': len(active_tokens),
+            }
+        }), 200
+
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Failed to cancel/reassign review_id=%s', review_id)
         return jsonify({'error': str(e)}), 500
 
 @reviews_bp.route('/pending', methods=['GET'])
