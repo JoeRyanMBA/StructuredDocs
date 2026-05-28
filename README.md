@@ -5,6 +5,12 @@
 
 StructuredDocs is a document management and knowledge-base platform. Users organize content into a **Project → Collection → Topic** hierarchy, edit rich HTML content with TinyMCE or Quill, route topics through a structured review and approval workflow, and publish finished content as PDFs, HTML knowledge bases, or mobile-optimised sites. Word (`.docx`), HTML, and Markdown documents can be imported and automatically parsed into the hierarchy.
 
+## Documentation Hub
+
+For implementation, database, infrastructure, and operations guidance, start with:
+
+- [docs/README.md](docs/README.md)
+
 ## Features
 
 - **Hierarchical authoring** – Projects contain nested Collections and Topics with a rich-text editor (TinyMCE 6 / Quill 2)
@@ -81,7 +87,7 @@ Backend (VPS):
 
 See `backend/.env.example` for a full template.
 
-See `.env.example` and `EMAIL_SENDING_README.md` for SMTP configuration and DMARC alignment guidance.
+See `.env.example` and `docs/email-sending.md` for SMTP configuration and DMARC alignment guidance.
 
 ### Deployment Workflow Summary
 
