@@ -49,6 +49,17 @@ export async function sendFollowUpReminder(reviewId) {
   return apiPost(`/api/reviews/${reviewId}/follow-up`, {})
 }
 
+export async function cancelReview(reviewId, payload = {}) {
+  return apiPost(`/api/reviews/${reviewId}/cancel`, payload)
+}
+
+export async function reassignReview(reviewId, replacementReviewerId, payload = {}) {
+  return apiPost(`/api/reviews/${reviewId}/cancel`, {
+    ...payload,
+    replacement_reviewer_id: replacementReviewerId,
+  })
+}
+
 // --- Bulk Review (token-based, no JWT needed) ---
 
 export async function requestBulkReview(data) {

@@ -171,6 +171,16 @@
                   @click="followUp(review)"
                   class="btn btn-secondary btn-sm"
                 >Follow Up</button>
+                <button
+                  v-if="['pending', 'in_progress'].includes(review.status)"
+                  @click="reassignReviewAction(review)"
+                  class="btn btn-secondary btn-sm"
+                >Reassign</button>
+                <button
+                  v-if="['pending', 'in_progress'].includes(review.status)"
+                  @click="cancelReviewAction(review)"
+                  class="btn btn-outline-danger btn-sm"
+                >Cancel</button>
                 <button @click="viewReview(review)" class="btn btn-secondary btn-sm">View</button>
               </td>
             </tr>
@@ -194,6 +204,60 @@
             <li><strong>Author incorporates changes:</strong> use Incorporate Feedback to apply requested edits, then re-submit if needed.</li>
           </ol>
           <p><strong>Sequential review:</strong> when enabled, reviewers run in order (expert-first), and each next reviewer gets the updated content flow.</p>
+        </div>
+      </div>
+    </div>
+
+    <div v-if="showReassignModal" class="guide-modal-backdrop" @click.self="closeReassignModal">
+      <div class="guide-modal reassign-modal" role="dialog" aria-modal="true" aria-label="Reassign review">
+        <div class="guide-modal-header">
+          <h3>Reassign Review</h3>
+          <button type="button" class="guide-close-btn" @click="closeReassignModal" aria-label="Close">&times;</button>
+        </div>
+        <div class="guide-modal-body">
+          <p class="reassign-summary">
+            Reassign <strong>{{ reassigningReview?.topic_title || 'this topic' }}</strong>
+            from <strong>{{ reassigningReview?.reviewer_name || 'current reviewer' }}</strong>.
+          </p>
+
+          <div class="reassign-field">
+            <label for="replacementReviewer" class="reassign-label">Replacement reviewer</label>
+            <select
+              id="replacementReviewer"
+              v-model="selectedReplacementReviewerId"
+              class="filter-select reassign-select"
+              :disabled="reassignSubmitting"
+            >
+              <option value="">Select a reviewer</option>
+              <option
+                v-for="reviewer in reassignChoices"
+                :key="reviewer.id"
+                :value="String(reviewer.id)"
+              >
+                {{ reviewer.name }}{{ reviewer.email ? ` (${reviewer.email})` : '' }}
+              </option>
+            </select>
+          </div>
+
+          <label class="reassign-checkbox-row">
+            <input
+              v-model="notifyCancelledReviewer"
+              type="checkbox"
+              :disabled="reassignSubmitting"
+            />
+            <span>Notify current reviewer by email that this review was canceled/reassigned</span>
+          </label>
+
+          <p v-if="reassignError" class="reassign-error">{{ reassignError }}</p>
+
+          <div class="reassign-actions">
+            <button type="button" class="btn btn-secondary" @click="closeReassignModal" :disabled="reassignSubmitting">
+              Cancel
+            </button>
+            <button type="button" class="btn btn-primary" @click="submitReassignReview" :disabled="reassignSubmitting || !selectedReplacementReviewerId">
+              {{ reassignSubmitting ? 'Reassigning...' : 'Confirm Reassign' }}
+            </button>
+          </div>
         </div>
       </div>
     </div>
@@ -247,6 +311,13 @@ export default {
       searchQuery: '',
       filterStatus: 'all',
       filterUrgent: false,
+      showReassignModal: false,
+      reassigningReview: null,
+      reassignChoices: [],
+      selectedReplacementReviewerId: '',
+      notifyCancelledReviewer: true,
+      reassignSubmitting: false,
+      reassignError: '',
     }
   },
 
@@ -399,6 +470,103 @@ export default {
       } catch (error) {
   console.error('Error sending follow-up reminder:', error)
   import('@/composables/useToast').then(({ toast }) => toast.error(`Failed to send follow-up reminder: ${error.message}`))
+      }
+    },
+
+    async cancelReviewAction(review) {
+      const confirmed = confirm(
+        `Cancel review for "${review.topic_title}" assigned to ${review.reviewer_name || 'this reviewer'}?`
+      )
+      if (!confirmed) return
+
+      const notifyCancelledReviewer = confirm(
+        'Send an email notice to the current reviewer that this review was canceled?\n\nOK = send email, Cancel = do not send email.'
+      )
+
+      try {
+        const { cancelReview } = await import('@/api/reviews.js')
+        const { toast } = await import('@/composables/useToast')
+
+        const response = await cancelReview(review.id, {
+          notify_cancelled_reviewer: notifyCancelledReviewer,
+        })
+
+        toast.success(response?.message || 'Review canceled successfully.')
+        await this.loadDashboardData(false)
+      } catch (error) {
+        console.error('Error canceling review:', error)
+        const { toast } = await import('@/composables/useToast')
+        toast.error(`Failed to cancel review: ${error.message}`)
+      }
+    },
+
+    async reassignReviewAction(review) {
+      try {
+        const { getReviewers } = await import('@/api/reviews.js')
+        const { toast } = await import('@/composables/useToast')
+
+        const reviewers = await getReviewers()
+        const choices = (Array.isArray(reviewers) ? reviewers : []).filter(
+          (r) => Number(r.id) !== Number(review.reviewer_id)
+        )
+
+        if (choices.length === 0) {
+          toast.error('No replacement reviewers are currently available.')
+          return
+        }
+
+        this.reassigningReview = review
+        this.reassignChoices = choices
+        this.selectedReplacementReviewerId = ''
+        this.notifyCancelledReviewer = true
+        this.reassignSubmitting = false
+        this.reassignError = ''
+        this.showReassignModal = true
+      } catch (error) {
+        console.error('Error reassigning review:', error)
+        const { toast } = await import('@/composables/useToast')
+        toast.error(`Failed to reassign review: ${error.message}`)
+      }
+    },
+
+    closeReassignModal() {
+      if (this.reassignSubmitting) return
+      this.showReassignModal = false
+      this.reassigningReview = null
+      this.reassignChoices = []
+      this.selectedReplacementReviewerId = ''
+      this.notifyCancelledReviewer = true
+      this.reassignError = ''
+    },
+
+    async submitReassignReview() {
+      if (!this.reassigningReview || !this.selectedReplacementReviewerId) {
+        this.reassignError = 'Please select a replacement reviewer.'
+        return
+      }
+
+      this.reassignSubmitting = true
+      this.reassignError = ''
+      try {
+        const { reassignReview } = await import('@/api/reviews.js')
+        const { toast } = await import('@/composables/useToast')
+
+        const response = await reassignReview(
+          this.reassigningReview.id,
+          Number(this.selectedReplacementReviewerId),
+          {
+            notify_cancelled_reviewer: this.notifyCancelledReviewer,
+          }
+        )
+
+        toast.success(response?.message || 'Review reassigned successfully.')
+        this.closeReassignModal()
+        await this.loadDashboardData(false)
+      } catch (error) {
+        console.error('Error submitting reassignment:', error)
+        this.reassignError = error.message || 'Failed to reassign review.'
+      } finally {
+        this.reassignSubmitting = false
       }
     },
 
@@ -573,6 +741,52 @@ export default {
 
 .guide-modal-body li {
   margin-bottom: 0.45rem;
+}
+
+.reassign-modal {
+  width: min(560px, 94vw);
+}
+
+.reassign-summary {
+  margin-bottom: 0.9rem;
+  color: var(--text-dark-gray);
+}
+
+.reassign-field {
+  margin-bottom: 0.9rem;
+}
+
+.reassign-label {
+  display: block;
+  font-size: 0.85rem;
+  font-weight: 600;
+  margin-bottom: 0.35rem;
+  color: var(--text-medium-gray);
+}
+
+.reassign-select {
+  width: 100%;
+}
+
+.reassign-checkbox-row {
+  display: flex;
+  align-items: flex-start;
+  gap: 0.5rem;
+  margin: 0.5rem 0 0.75rem;
+  color: var(--text-dark-gray);
+  font-size: 0.9rem;
+}
+
+.reassign-error {
+  color: var(--error-dark-red);
+  margin: 0.25rem 0 0.75rem;
+  font-size: 0.85rem;
+}
+
+.reassign-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.5rem;
 }
 
 /* Review Items */
