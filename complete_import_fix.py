@@ -276,9 +276,9 @@ After importing, verify:
 """
     
     try:
-        with open('/workspaces/StructuredDocs/COMPLETE_IMPORT_GUIDE.md', 'w') as f:
+        with open('/workspaces/StructuredDocs/docs/import-guide.md', 'w') as f:
             f.write(guide_content)
-        print(f"\n📖 Created COMPLETE_IMPORT_GUIDE.md")
+        print(f"\n📖 Created docs/import-guide.md")
         return True
     except Exception as e:
         print(f"\n⚠️  Could not create guide: {e}")
@@ -361,10 +361,10 @@ def main():
         print("1. Use **Collection Import** (not Topics import) for documents with images")
         print("2. Ensure images are EMBEDDED (not linked) in your Word documents")
         print("3. Apply proper heading styles (Heading 1, 2, 3) in Word")
-        print("4. See COMPLETE_IMPORT_GUIDE.md for detailed instructions")
+        print("4. See docs/import-guide.md for detailed instructions")
         
         print(f"\n📖 Documentation Created:")
-        print("   • COMPLETE_IMPORT_GUIDE.md - Full import instructions")
+        print("   • docs/import-guide.md - Full import instructions")
         print("   • Available import fix tools for troubleshooting")
         
         return True

@@ -16,5 +16,5 @@ Focus areas:
 
 Useful repo references:
 - [backend/routes/import_handler.py](../../backend/routes/import_handler.py)
-- [COMPLETE_IMPORT_GUIDE.md](../../COMPLETE_IMPORT_GUIDE.md)
+- [import-guide.md](../../docs/import-guide.md)
 - [README.md](../../README.md)
