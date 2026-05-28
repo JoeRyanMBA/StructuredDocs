@@ -1,0 +1,43 @@
+# Single VPS, three isolated StructuredDocs stacks.
+#
+# Update the domains to match your DNS configuration.
+# Backends are mapped to local ports exposed by each stack:
+#   test -> 18080
+#   training -> 28080
+#   production -> 38080
+
+test.yourdomain.com {
+    reverse_proxy 127.0.0.1:18080
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+training.yourdomain.com {
+    reverse_proxy 127.0.0.1:28080
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+app.yourdomain.com {
+    reverse_proxy 127.0.0.1:38080
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
