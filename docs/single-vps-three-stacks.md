@@ -8,6 +8,34 @@ This runbook deploys StructuredDocs as three isolated environments on one VPS:
 
 The goal is strict logical isolation (config, data, ports, secrets) while sharing one host.
 
+## Quick start with helper files in this repo
+
+Use the scaffold script and Caddy template added for this deployment style:
+
+- scripts/scaffold_single_vps_three_stacks.sh
+- Caddyfile.single-vps.template
+
+Example:
+
+```bash
+./scripts/scaffold_single_vps_three_stacks.sh \
+  --base-dir /opt/structureddocs \
+  --repo-url https://github.com/JoeRyanMBA/StructuredDocs.git \
+  --branch main
+```
+
+Then, in each environment folder (`/opt/structureddocs/test`, `/opt/structureddocs/training`, `/opt/structureddocs/production`):
+
+```bash
+docker compose -f docker-compose.single.yml --env-file .env up -d --build
+```
+
+For routing, copy and adapt the template:
+
+```bash
+cp Caddyfile.single-vps.template /etc/caddy/Caddyfile
+```
+
 ## 1. Architecture
 
 - One VPS hosts three Docker Compose projects.
