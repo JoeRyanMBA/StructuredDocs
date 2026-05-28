@@ -2,7 +2,7 @@
 # Restore DATABASE_URL for one single-VPS environment stack from a pg_dump custom file.
 #
 # Usage:
-#   ./scripts/restore_env_db.sh --env test --file /opt/structureddocs/test/backups/test_*.dump
+#   ./scripts/restore_env_db.sh --env dev --file /opt/structureddocs/dev/backups/dev_*.dump
 
 set -euo pipefail
 
@@ -12,7 +12,7 @@ DUMP_FILE=""
 
 usage() {
   cat <<'USAGE'
-Usage: restore_env_db.sh --env <test|training|production> --file <backup.dump> [options]
+Usage: restore_env_db.sh --env <dev|staging|production> --file <backup.dump> [options]
 
 Options:
   --env <name>       Environment name (required)
@@ -54,8 +54,14 @@ while [[ $# -gt 0 ]]; do
   esac
 done
 
-if [[ "$ENV_NAME" != "test" && "$ENV_NAME" != "training" && "$ENV_NAME" != "production" ]]; then
-  echo "--env must be one of: test, training, production" >&2
+if [[ "$ENV_NAME" == "test" ]]; then
+  ENV_NAME="staging"
+elif [[ "$ENV_NAME" == "training" ]]; then
+  ENV_NAME="dev"
+fi
+
+if [[ "$ENV_NAME" != "dev" && "$ENV_NAME" != "staging" && "$ENV_NAME" != "production" ]]; then
+  echo "--env must be one of: dev, staging, production" >&2
   exit 1
 fi
 

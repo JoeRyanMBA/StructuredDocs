@@ -2,8 +2,8 @@
 # Scaffold three isolated StructuredDocs stacks on one VPS.
 #
 # Creates:
-#   <base-dir>/test
-#   <base-dir>/training
+#   <base-dir>/dev
+#   <base-dir>/staging
 #   <base-dir>/production
 #
 # In each environment directory, ensures:
@@ -73,8 +73,8 @@ SCRIPT_DIR="$(cd "$(dirname "${BASH_SOURCE[0]}")" && pwd)"
 REPO_ROOT="$(cd "$SCRIPT_DIR/.." && pwd)"
 
 declare -A PORT_BY_ENV=(
-  [test]=18080
-  [training]=28080
+  [dev]=18080
+  [staging]=28080
   [production]=38080
 )
 
@@ -206,7 +206,7 @@ clone_repo_if_needed() {
 
 mkdir -p "$BASE_DIR"
 
-for env_name in test training production; do
+for env_name in dev staging production; do
   env_dir="$BASE_DIR/$env_name"
   host_port="${PORT_BY_ENV[$env_name]}"
 
@@ -226,8 +226,8 @@ cat <<EOF
 Scaffold complete.
 
 Environment folders:
-  $BASE_DIR/test      (port 18080)
-  $BASE_DIR/training  (port 28080)
+  $BASE_DIR/dev       (port 18080)
+  $BASE_DIR/staging   (port 28080)
   $BASE_DIR/production (port 38080)
 
 Next steps per environment:

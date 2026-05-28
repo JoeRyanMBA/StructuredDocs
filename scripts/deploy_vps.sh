@@ -1,7 +1,7 @@
 #!/bin/bash
 # Provider-neutral wrapper for environment deployments to a VPS.
 # Usage:
-#   ./scripts/deploy_vps.sh <test|training|production> [server-ip]
+#   ./scripts/deploy_vps.sh <dev|staging|production> [server-ip]
 
 set -euo pipefail
 

@@ -14,7 +14,7 @@ If you are new to the project, start in the first section and continue downward.
 
 - Deployment strategy and alternatives: [deployment-strategy.md](deployment-strategy.md)
 - Multi-environment strategy: [multi-environment.md](multi-environment.md)
-- Single VPS with isolated test/training/prod stacks: [single-vps-three-stacks.md](single-vps-three-stacks.md)
+- Single VPS with isolated dev/staging/prod stacks: [single-vps-three-stacks.md](single-vps-three-stacks.md)
 - SSH access and key setup: [../SSH_SETUP_README.md](../SSH_SETUP_README.md)
 
 ## Deployment and Operations

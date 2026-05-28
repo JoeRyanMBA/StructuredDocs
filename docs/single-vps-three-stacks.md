@@ -2,8 +2,8 @@
 
 This runbook deploys StructuredDocs as three isolated environments on one VPS:
 
-- test
-- training
+- dev
+- staging
 - production
 
 The goal is strict logical isolation (config, data, ports, secrets) while sharing one host.
@@ -28,7 +28,7 @@ Example:
   --branch main
 ```
 
-Then, in each environment folder (`/opt/structureddocs/test`, `/opt/structureddocs/training`, `/opt/structureddocs/production`):
+Then, in each environment folder (`/opt/structureddocs/dev`, `/opt/structureddocs/staging`, `/opt/structureddocs/production`):
 
 ```bash
 docker compose -f docker-compose.single.yml --env-file .env up -d --build
@@ -55,11 +55,11 @@ By default this script now performs, for each environment in order:
 Useful variants:
 
 ```bash
-# Pull first, then deploy test -> training -> production
+# Pull first, then deploy dev -> staging -> production
 ./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --pull
 
-# Promote only from training to production
-./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --start-env training --stop-after production
+# Promote only from staging to production
+./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --start-env staging --stop-after production
 
 # Deploy only production without rebuilding
 ./scripts/deploy_single_vps_three_stacks.sh --base-dir /opt/structureddocs --env production --no-build
@@ -86,8 +86,8 @@ Useful variants:
 
 Example domain and port map:
 
-- test.yourdomain.com -> 127.0.0.1:18080
-- training.yourdomain.com -> 127.0.0.1:28080
+- dev.yourdomain.com -> 127.0.0.1:18080
+- staging.yourdomain.com -> 127.0.0.1:28080
 - app.yourdomain.com -> 127.0.0.1:38080
 
 ## 2. Important constraints in this repo
@@ -106,8 +106,8 @@ For single-VPS multi-stack deployments:
 
 Create one parent directory and one folder per environment:
 
-- /opt/structureddocs/test
-- /opt/structureddocs/training
+- /opt/structureddocs/dev
+- /opt/structureddocs/staging
 - /opt/structureddocs/production
 
 Inside each folder:
@@ -123,24 +123,40 @@ Inside each folder:
 
 Start from templates:
 
-- envs/test.env.example
-- envs/training.env.example
+- envs/dev.env.example
+- envs/staging.env.example
 - envs/production.env.example
 
 Required isolation settings per environment:
 
 - DATABASE_URL points to unique database:
-  - structureddocs_test
-  - structureddocs_training
+  - structureddocs_dev
+  - structureddocs_staging
   - structureddocs_prod
 - SPACES_KEY_PREFIX is unique:
-  - test
-  - training
+  - dev
+  - staging
   - prod
 - SECRET_KEY and JWT_SECRET_KEY are unique
 - ADMIN_API_KEY is unique
 - FRONTEND_URL matches environment domain
-- EMAIL_DEBUG is true for test, false for training/prod (recommended)
+- EMAIL_DEBUG is true for dev, false for staging/prod (recommended)
+
+## 4.1 Secrets and keys during promotion
+
+You do not rotate secrets every time you promote a release.
+
+Use this model:
+
+- Keep one stable secret set per environment (`dev`, `staging`, `production`).
+- Promote the same immutable image tag across environments.
+- Let each environment inject its own secrets from its local `.env` file.
+
+In practice:
+
+- `SECRET_KEY`, `JWT_SECRET_KEY`, `ADMIN_API_KEY`, `DATABASE_URL`, and storage credentials stay environment-specific.
+- Release promotion changes only image/commit version, not secret values.
+- Rotate secrets on a schedule or incident response basis, not for every deploy.
 
 ## 5. Compose file per environment
 
@@ -188,8 +204,8 @@ services:
 
 Use different host ports:
 
-- test: 18080:8080
-- training: 28080:8080
+- dev: 18080:8080
+- staging: 28080:8080
 - production: 38080:8080
 
 Note:
@@ -205,11 +221,11 @@ Configure Caddy or Nginx to route each host to the matching local port.
 Caddy example:
 
 ```caddy
-test.yourdomain.com {
+dev.yourdomain.com {
   reverse_proxy 127.0.0.1:18080
 }
 
-training.yourdomain.com {
+staging.yourdomain.com {
   reverse_proxy 127.0.0.1:28080
 }
 
@@ -235,7 +251,7 @@ Repeat per environment folder:
 
 Promotion path:
 
-- test -> training -> production
+- dev -> staging -> production
 
 Deploy command per environment folder:
 
@@ -266,13 +282,13 @@ Rollback steps:
 Backup one environment database:
 
 ```bash
-./scripts/backup_env_db.sh --env test --base-dir /opt/structureddocs
+./scripts/backup_env_db.sh --env dev --base-dir /opt/structureddocs
 ```
 
 Restore one environment database:
 
 ```bash
-./scripts/restore_env_db.sh --env test --base-dir /opt/structureddocs --file /opt/structureddocs/test/backups/test_YYYYMMDDTHHMMSSZ.dump
+./scripts/restore_env_db.sh --env dev --base-dir /opt/structureddocs --file /opt/structureddocs/dev/backups/dev_YYYYMMDDTHHMMSSZ.dump
 ```
 
 ## 10. Operational checks (every release)
@@ -301,4 +317,4 @@ Cons:
 - Add container resource limits per environment
 - Add nightly DB backups per environment
 - Add alerting on disk, memory, and health endpoints
-- Keep production deploys gated by test and training smoke checks
+- Keep production deploys gated by dev and staging smoke checks
