@@ -156,7 +156,12 @@ jobs:
             # ── Step 1: wait for the app container itself to become running/healthy ──
             ok=0
             for i in $(seq 1 36); do
-              app_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' structureddocs_app 2>/dev/null || echo missing)"
+              app_cid="$($DC -p structureddocs --env-file /opt/structureddocs/.env -f \"$COMPOSE_FILE\" ps -q app 2>/dev/null || true)"
+              if [[ -n "$app_cid" ]]; then
+                app_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$app_cid" 2>/dev/null || echo missing)"
+              else
+                app_status="missing"
+              fi
               if [[ "$app_status" == "healthy" || "$app_status" == "running" ]]; then
                 ok=1
                 break
@@ -174,7 +179,8 @@ jobs:
             # Check directly inside the container to bypass Caddy/TLS entirely.
             ok=0
             for i in $(seq 1 36); do
-              if docker exec structureddocs_app curl -fsSL http://localhost:8080/api/health > /dev/null 2>&1; then
+              app_cid="$($DC -p structureddocs --env-file /opt/structureddocs/.env -f \"$COMPOSE_FILE\" ps -q app 2>/dev/null || true)"
+              if [[ -n "$app_cid" ]] && docker exec "$app_cid" curl -fsSL http://localhost:8080/api/health > /dev/null 2>&1; then
                 ok=1
                 break
               fi
