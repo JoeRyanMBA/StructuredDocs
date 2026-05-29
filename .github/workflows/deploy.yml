@@ -75,6 +75,7 @@ jobs:
             --exclude '.env' \
             --exclude 'instance/' \
             --exclude 'structured_docs.db' \
+            --exclude 'data/' \
             --exclude 'data/images/' \
             ./ "${VPS_USER}@${VPS_HOST}:/opt/structureddocs/app/"
 
@@ -153,10 +154,21 @@ jobs:
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" up -d --build --remove-orphans
             $DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps
 
+            app_container_id() {
+              # Prefer label lookup because it is stable regardless of generated container names.
+              docker ps -aq \
+                --filter "label=com.docker.compose.project=structureddocs" \
+                --filter "label=com.docker.compose.service=app" \
+                | head -n1
+            }
+
             # ── Step 1: wait for the app container itself to become running/healthy ──
             ok=0
             for i in $(seq 1 36); do
-              app_cid="$($DC -p structureddocs --env-file /opt/structureddocs/.env -f \"$COMPOSE_FILE\" ps -q app 2>/dev/null || true)"
+              app_cid="$(app_container_id || true)"
+              if [[ -z "$app_cid" ]]; then
+                app_cid="$($DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps -q app 2>/dev/null || true)"
+              fi
               if [[ -n "$app_cid" ]]; then
                 app_status="$(docker inspect --format '{{if .State.Health}}{{.State.Health.Status}}{{else}}{{.State.Status}}{{end}}' "$app_cid" 2>/dev/null || echo missing)"
               else
@@ -179,7 +191,10 @@ jobs:
             # Check directly inside the container to bypass Caddy/TLS entirely.
             ok=0
             for i in $(seq 1 36); do
-              app_cid="$($DC -p structureddocs --env-file /opt/structureddocs/.env -f \"$COMPOSE_FILE\" ps -q app 2>/dev/null || true)"
+              app_cid="$(app_container_id || true)"
+              if [[ -z "$app_cid" ]]; then
+                app_cid="$($DC -p structureddocs --env-file /opt/structureddocs/.env -f "$COMPOSE_FILE" ps -q app 2>/dev/null || true)"
+              fi
               if [[ -n "$app_cid" ]] && docker exec "$app_cid" curl -fsSL http://localhost:8080/api/health > /dev/null 2>&1; then
                 ok=1
                 break
