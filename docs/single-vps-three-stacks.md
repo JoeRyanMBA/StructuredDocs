@@ -84,6 +84,8 @@ Useful variants:
   - its own local bind-mount directories
   - its own environment file and secrets
 
+For the final working setup on this VPS, PostgreSQL runs on the host rather than in a container, and each app container connects back to it through `host.docker.internal:5432`.
+
 Example domain and port map:
 
 - dev.yourdomain.com -> 127.0.0.1:18080
@@ -142,6 +144,18 @@ Required isolation settings per environment:
 - FRONTEND_URL matches environment domain
 - EMAIL_DEBUG is true for dev, false for staging/prod (recommended)
 
+Working host-Postgres values for this VPS:
+
+- use `host.docker.internal` in `DATABASE_URL`
+- use port `5432`
+- use `sslmode=disable`
+- add a `pg_hba.conf` rule for each Docker bridge subnet used by the stacks
+
+Example `DATABASE_URL` values:
+
+- dev: `postgresql://structureddocs_dev:YOUR_DEV_PASSWORD@host.docker.internal:5432/structureddocs_dev?sslmode=disable`
+- staging: `postgresql://structureddocs_staging:YOUR_STAGING_PASSWORD@host.docker.internal:5432/structureddocs_staging?sslmode=disable`
+
 ## 4.1 Secrets and keys during promotion
 
 You do not rotate secrets every time you promote a release.
@@ -168,6 +182,8 @@ services:
   app:
     build: .
     image: ${IMAGE_REPO:-structureddocs-backend}:${IMAGE_TAG:-latest}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PORT=8080
       - DATABASE_URL=${DATABASE_URL}
@@ -200,6 +216,12 @@ services:
       - ./data/images:/app/data/images
       - ./data/images:/app/backend/static/images
     command: ["./start.sh"]
+```
+
+The app reads `.enable_blueprints` as a single comma-separated line. The working value on this VPS is:
+
+```text
+users,admin,find_replace,collections,dashboard,feedback,help_links,images,import_handler,links,metrics,milestones,notifications,public_images,variables,projects,publications,review_tokens,reviews,bulk_reviews,sequences,stakeholders,snippets,tags,tasks,topics
 ```
 
 Use different host ports:
@@ -241,11 +263,13 @@ Repeat per environment folder:
 1. Copy env template to `.env` and fill secrets.
 2. Create data dirs.
 3. Ensure writable paths:
-   - `chmod 777 data/images instance`
-4. Start stack:
-   - `docker compose -f docker-compose.single.yml --env-file .env up -d --build`
-5. Verify health:
-   - `curl -sS http://127.0.0.1:<env-port>/api/health`
+   `chmod 777 data/images instance`
+4. If PostgreSQL is on the host, add the Docker bridge subnet used by the stack to `/etc/postgresql/16/main/pg_hba.conf`.
+  Example working subnets on this VPS: `172.23.0.0/16` for dev and `172.24.0.0/16` for staging.
+5. Start stack:
+   `docker compose -f docker-compose.single.yml --env-file .env up -d --build`
+6. Verify health:
+   `curl -sS http://127.0.0.1:<env-port>/api/health`
 
 ## 8. Deploy and promote
 
@@ -257,6 +281,8 @@ Deploy command per environment folder:
 
 - `docker compose -f docker-compose.single.yml --env-file .env pull`
 - `docker compose -f docker-compose.single.yml --env-file .env up -d --build`
+
+In the working host-Postgres setup, the app container must have `extra_hosts` for `host.docker.internal`, and `DATABASE_URL` must point at `host.docker.internal:5432` with `sslmode=disable`.
 
 If using local source checkout instead of image pull:
 
