@@ -5,7 +5,11 @@ structureddocs.online, dev.structureddocs.online, staging.structureddocs.online 
     @app_requests not path /.well-known/acme-challenge/*
 
     # Proxy all traffic directly to the app container, which serves both the SPA and API.
-    reverse_proxy @app_requests app:8080
+    reverse_proxy @app_requests app:8080 {
+        header_down -X-Content-Type-Options
+        header_down -X-Frame-Options
+        header_down -Referrer-Policy
+    }
 
     # Compress responses
     encode gzip
@@ -20,7 +24,11 @@ structureddocs.online, dev.structureddocs.online, staging.structureddocs.online 
 }
 
 localhost, dev.localhost, staging.localhost {
-    reverse_proxy app:8080
+    reverse_proxy app:8080 {
+        header_down -X-Content-Type-Options
+        header_down -X-Frame-Options
+        header_down -Referrer-Policy
+    }
 
     encode gzip
 
