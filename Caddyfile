@@ -1,16 +1,29 @@
 # StructuredDocs Caddy reverse proxy with auto HTTPS.
-# Explicit hostnames avoid TLS mis-issuance if DOMAIN is unset on the VPS.
+# Only request public certificates for user-facing hostnames.
 
-structureddocs.online, dev.structureddocs.online, staging.structureddocs.online,
-structureddocs.joe-ryan.mba, dev.structureddocs.joe-ryan.mba, staging.structureddocs.joe-ryan.mba,
-localhost, dev.localhost, staging.localhost {
+structureddocs.online, dev.structureddocs.online, staging.structureddocs.online {
+    @app_requests not path /.well-known/acme-challenge/*
+
     # Proxy all traffic directly to the app container, which serves both the SPA and API.
-    reverse_proxy app:8080
+    reverse_proxy @app_requests app:8080
 
     # Compress responses
     encode gzip
 
     # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+localhost, dev.localhost, staging.localhost {
+    reverse_proxy app:8080
+
+    encode gzip
+
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
