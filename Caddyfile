@@ -1,7 +1,8 @@
 # StructuredDocs Caddy reverse proxy with auto HTTPS
-# Set DOMAIN env var (e.g. structureddocs.online) or falls back to localhost for dev
+# Set DOMAIN env var (e.g. structureddocs.online) or falls back to localhost for dev.
+# Serves the apex plus common environment subdomains.
 
-{$DOMAIN:localhost} {
+{$DOMAIN:localhost}, dev.{$DOMAIN:localhost}, staging.{$DOMAIN:localhost} {
     # Proxy all traffic directly to the app container, which serves both the SPA and API.
     reverse_proxy app:8080
 
