@@ -19,7 +19,7 @@
     "lodash": "^4.17.21",
     "marked": "^15.0.12",
     "quill": "^2.0.3",
-    "tinymce": "^8.0.2",
+    "tinymce": "^8.6.0",
     "vue": "^3.4.0",
     "vue-quill-editor": "^3.0.6",
     "vue-router": "^4.1.0",
