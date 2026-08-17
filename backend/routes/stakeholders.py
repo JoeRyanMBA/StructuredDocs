@@ -115,13 +115,13 @@ def get_stakeholder(stakeholder_id):
         return jsonify({
             "id": stakeholder_id,
             "name": "Dr. Sarah Johnson",
-            "email": "sarah.johnson@census.gov",
+            "email": "sarah.johnson@example.com",
             "title": "Senior Project Manager",
-            "organization": "U.S. Census Bureau",
+            "organization": "Data Services Organization",
             "department": "Data Collection Operations",
             "phone": "(301) 555-0101",
             "expertise_areas": ["Project Management", "Data Collection", "Survey Design"],
-            "bio": "15+ years experience managing large-scale census and survey operations.",
+            "bio": "15+ years experience managing large-scale data and survey operations.",
             "active": True,
             "created_at": "2025-01-15T10:00:00",
             "updated_at": "2025-07-25T14:30:00"
@@ -221,7 +221,7 @@ def search_stakeholders():
                 "name": "Dr. Sarah Johnson",
                 "email": "sarah.johnson@census.gov",
                 "title": "Senior Project Manager",
-                "organization": "U.S. Census Bureau"
+                "organization": "Data Services Organization"
             },
             {
                 "id": 2,

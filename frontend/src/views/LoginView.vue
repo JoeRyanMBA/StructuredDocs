@@ -2,7 +2,7 @@
   <div class="login-container">
     <div class="login-card">
       <div class="login-header">
-        <div class="census-logo">
+        <div class="logo">
           <span class="logo-wrapper">
             <span v-show="!symbolLogoLoaded" class="logo-skeleton" aria-hidden="true"></span>
             <img
@@ -153,7 +153,7 @@
               v-model="accessRequest.email"
               type="email"
               required
-              placeholder="your.email@census.gov"
+              placeholder="your.email@example.com"
             />
           </div>
           
@@ -213,7 +213,7 @@
               v-model="passwordReset.email"
               type="email"
               required
-              placeholder="your.email@census.gov"
+              placeholder="your.email@example.com"
             />
           </div>
           
@@ -326,11 +326,11 @@ export default {
       // Mock valid credentials
       const validCredentials = [
         { email: 'admin@example.com', password: 'admin123', role: 'admin', name: 'Admin User' },
-        { email: 'john.smith@census.gov', password: 'demo123' },
-        { email: 'sarah.johnson@census.gov', password: 'demo123' },
-        { email: 'mike.chen@census.gov', password: 'demo123' },
-        { email: 'lisa.park@census.gov', password: 'demo123' },
-        { email: 'alex.rodriguez@census.gov', password: 'demo123' }
+        { email: 'john.smith@example.com', password: 'demo123' },
+        { email: 'sarah.johnson@example.com', password: 'demo123' },
+        { email: 'mike.chen@example.com', password: 'demo123' },
+        { email: 'lisa.park@example.com', password: 'demo123' },
+        { email: 'alex.rodriguez@example.com', password: 'demo123' }
       ]
       
       const matchedUser = validCredentials.find(cred => 
@@ -419,13 +419,13 @@ export default {
 }
 
 /* Center the logo and force 160x160 */
-.census-logo {
+.logo {
   display: flex;
   flex-direction: column;
   align-items: center;
 }
 
-.census-logo .logo-image {
+.logo .logo-image {
   display: block;
   width: 160px;
   height: 160px;
@@ -434,7 +434,7 @@ export default {
 }
 
 /* Shimmer wrapper for login logo */
-.census-logo .logo-wrapper {
+.logo .logo-wrapper {
   position: relative;
   display: block;
   width: 160px;
@@ -442,7 +442,7 @@ export default {
   margin-bottom: 0.5rem;
 }
 
-.census-logo .logo-skeleton {
+.logo .logo-skeleton {
   position: absolute;
   inset: 0;
   border-radius: 4px;
@@ -457,12 +457,12 @@ export default {
 }
 
 /* Ensure image doesn't add extra internal gap; spacing handled by wrapper */
-.census-logo .logo-image {
+.logo .logo-image {
   margin-bottom: 0;
   display: block;
 }
 
-.census-logo h1 {
+.logo h1 {
   margin: 0 0 0.5rem 0;
   font-size: 1.5rem;
   font-weight: 600;

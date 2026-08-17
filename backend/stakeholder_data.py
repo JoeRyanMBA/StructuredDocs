@@ -12,13 +12,13 @@ def seed_stakeholders_data():
     return [
         {
             "name": "Dr. Sarah Johnson",
-            "email": "sarah.johnson@census.gov",
+            "email": "sarah.johnson@example.com",
             "title": "Senior Project Manager",
-            "organization": "U.S. Census Bureau",
+            "organization": "Data Services Organization",
             "department": "Data Collection Operations",
             "phone": "(301) 555-0101",
             "expertise_areas": json.dumps(["Project Management", "Data Collection", "Survey Design", "Quality Assurance"]),
-            "bio": "15+ years experience managing large-scale census and survey operations. Specializes in multi-year project coordination and stakeholder management."
+            "bio": "15+ years experience managing large-scale data and survey operations. Specializes in multi-year project coordination and stakeholder management."
         },
         {
             "name": "Prof. Michael Chen",
@@ -32,13 +32,13 @@ def seed_stakeholders_data():
         },
         {
             "name": "Dr. Amanda Rodriguez",
-            "email": "amanda.rodriguez@census.gov",
+            "email": "amanda.rodriguez@example.com",
             "title": "Quality Assurance Specialist",
-            "organization": "U.S. Census Bureau",
+            "organization": "Data Services Organization",
             "department": "Quality Assurance Division",
             "phone": "(301) 555-0103",
             "expertise_areas": json.dumps(["Quality Control", "Data Validation", "Process Improvement", "Statistical Quality"]),
-            "bio": "Specialist in survey quality assurance and data validation processes. Leads quality control initiatives across multiple Census programs."
+            "bio": "Specialist in data quality assurance and data validation processes. Leads quality control initiatives across multiple programs."
         },
         {
             "name": "James Wilson",
