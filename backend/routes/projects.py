@@ -615,7 +615,7 @@ def get_project_reviews(project_id):
                     "id": 2,
                     "topic": {
                         "id": 3,
-                        "title": "Statistical Disclosure Control in Census Publications"
+                        "title": "Statistical Disclosure Control in Publications"
                     },
                     "assigned_stakeholder": {
                         "id": 3,

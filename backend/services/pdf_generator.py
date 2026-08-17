@@ -298,7 +298,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
         self.add_content_footer(canvas, doc)
     
     def add_title_footer(self, canvas, doc):
-        """Add footer for title page with Census logo"""
+        """Add footer for title page with Organization logo"""
         try:
             canvas.saveState()
             page_width, page_height = self.pagesize
@@ -309,7 +309,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             logo_width = 2.0 * inch  # Title page logo should be 2" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
-            # Add Census logo (positioned at left edge)
+            # Add Organization logo (positioned at left edge)
             title_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Title_Page_Logo.png')
             if os.path.exists(title_logo_path):
                 try:
@@ -331,8 +331,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             footer_text_y = logo_y + logo_height - 32  # Move text down about 14 more points
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
-            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
+            # Top row: Organization name (centered) and form number (right)
+            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
             
             if self.publication is not None:
                 form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
@@ -372,7 +372,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
-            # Add Census logo
+            # Add Organization logo
             footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
             if os.path.exists(footer_logo_path):
                 try:
@@ -391,8 +391,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.setFont("Helvetica", 9)
             footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
             
-            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
+            # Top row: Organization name (centered) and revision date (right)
+            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -432,7 +432,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
-            # Add Census logo
+            # Add organization logo
             footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
             if os.path.exists(footer_logo_path):
                 try:
@@ -453,8 +453,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             # Footer text positioning - below the horizontal line
             footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
-            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
+            # Top row: Organization name (centered) and revision date (right)
+            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -596,7 +596,7 @@ class HeaderDocTemplate(BaseDocTemplate):
         self.add_content_footer(canvas, doc)
     
     def add_title_footer(self, canvas, doc):
-        """Add footer for title page with Census logo"""
+        """Add footer for title page with Organization logo"""
         try:
             canvas.saveState()
             page_width, page_height = self.pagesize
@@ -607,7 +607,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             logo_width = 2.0 * inch  # Title page logo should be 2" wide
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
-            # Add Census logo (positioned at left edge)
+            # Add Organization logo (positioned at left edge)
             title_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Title_Page_Logo.png')
             if os.path.exists(title_logo_path):
                 try:
@@ -629,8 +629,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             footer_text_y = logo_y + logo_height - 26  # Move text down about 14 more points
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
-            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
+            # Top row: "StructuredDocs" (centered) and revision date (right)
+            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
             
             form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id if self.publication else '0000':04d}")
             form_text = f"Form: {form_number}"
@@ -668,7 +668,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
-            # Add Census logo
+            # Add Organization logo
             footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
             if os.path.exists(footer_logo_path):
                 try:
@@ -689,8 +689,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             # Footer text positioning - below the horizontal line
             footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
             
-            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
+            # Top row: "StructuredDocs" (centered) and revision date (right)
+            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -730,7 +730,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
-            # Add Census logo
+            # Add Organization logo
             footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
             if os.path.exists(footer_logo_path):
                 try:
@@ -751,8 +751,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             # Footer text positioning - below the horizontal line
             footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
-            # Top row: "U.S. Census Bureau" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "U.S. Census Bureau")
+            # Top row: "StructuredDocs" (centered) and revision date (right)
+            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"

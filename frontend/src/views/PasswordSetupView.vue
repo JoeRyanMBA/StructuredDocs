@@ -3,7 +3,7 @@
     <div class="login-card">
       <!-- Shared header identical to LoginView -->
       <div class="login-header">
-        <div class="census-logo">
+        <div class="logo">
           <span class="logo-wrapper">
             <span v-show="!symbolLogoLoaded" class="logo-skeleton" aria-hidden="true"></span>
             <img
@@ -359,12 +359,12 @@ export default {
 .login-container { min-height: 100vh; display:flex; align-items:center; justify-content:center; padding:2rem; }
 .login-card { background:#fff; border-radius:12px; box-shadow:0 20px 40px rgba(0,0,0,0.1); overflow:hidden; max-width:400px; width:100%; }
 .login-header { background: var(--primary-deep-teal); color:#fff; padding:2rem; text-align:center; }
-.census-logo { display:flex; flex-direction:column; align-items:center; }
-.census-logo .logo-image { display:block; width:160px; height:160px; object-fit:contain; margin-bottom:0; }
-.census-logo .logo-wrapper { position:relative; display:block; width:160px; height:160px; margin-bottom:0.5rem; }
-.census-logo .logo-skeleton { position:absolute; inset:0; border-radius:4px; background:linear-gradient(90deg,#f2f4f7 25%,#e9eef3 37%,#f2f4f7 63%); background-size:400% 100%; animation:logo-shimmer 1.2s ease-in-out infinite; }
+.logo { display:flex; flex-direction:column; align-items:center; }
+.logo .logo-image { display:block; width:160px; height:160px; object-fit:contain; margin-bottom:0; }
+.logo .logo-wrapper { position:relative; display:block; width:160px; height:160px; margin-bottom:0.5rem; }
+.logo .logo-skeleton { position:absolute; inset:0; border-radius:4px; background:linear-gradient(90deg,#f2f4f7 25%,#e9eef3 37%,#f2f4f7 63%); background-size:400% 100%; animation:logo-shimmer 1.2s ease-in-out infinite; }
 @keyframes logo-shimmer { 0%{background-position:100% 0;} 100%{background-position:0 0;} }
-.census-logo h1 { margin:0 0 .5rem 0; font-size:1.5rem; font-weight:600; color:#fff; text-shadow:0 1px 8px rgba(0,0,0,0.18); }
+.logo h1 { margin:0 0 .5rem 0; font-size:1.5rem; font-weight:600; color:#fff; text-shadow:0 1px 8px rgba(0,0,0,0.18); }
 .system-title { margin:0; font-size:.9rem; opacity:.9; }
 .login-form-container { padding:2rem; }
 .login-form-container h2 { margin:0 0 .5rem 0; color:var(--primary-deep-teal); font-size:1.5rem; font-weight:600; }
@@ -425,6 +425,6 @@ export default {
 
 @media (max-width: 768px) {
   .login-container { padding:1rem; }
-  .census-logo .logo-image, .census-logo .logo-wrapper { width:120px; height:120px; }
+  .logo .logo-image, .logo .logo-wrapper { width:120px; height:120px; }
 }
 </style>

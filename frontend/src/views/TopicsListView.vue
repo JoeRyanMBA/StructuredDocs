@@ -722,7 +722,7 @@ export default {
         console.error('Failed to fetch reviewers:', err)
         // Set fallback reviewers if API fails
         this.availableReviewers = [
-          { id: 1, name: 'Default Reviewer', email: 'reviewer@census.gov' }
+          { id: 1, name: 'Default Reviewer', email: 'reviewer@example.com' }
         ]
       }
     },

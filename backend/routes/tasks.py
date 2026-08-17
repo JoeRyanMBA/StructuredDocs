@@ -274,8 +274,8 @@ def get_task(task_id):
         # Placeholder response
         return jsonify({
             "id": task_id,
-            "title": "Review Census Methodology Document",
-            "description": "Complete review of the updated census methodology documentation for accuracy and completeness.",
+            "title": "Review Methodology Document",
+            "description": "Complete review of the updated methodology documentation for accuracy and completeness.",
             "status": "in_progress",
             "priority": "high",
             "due_date": "2025-08-15",
@@ -283,12 +283,12 @@ def get_task(task_id):
             "project_id": 1,
             "collection_id": None,
             "topic_id": None,
-            "assigned_to": "sarah.johnson@census.gov",
-            "created_by": "admin@census.gov",
+            "assigned_to": "sarah.johnson@example.com",
+            "created_by": "admin@example.com",
             "tags": '["documentation", "review", "methodology"]',
             "created_at": "2025-08-01T09:00:00",
             "updated_at": "2025-08-02T14:30:00",
-            "project_name": "Census 2030 Modernization Initiative",
+            "project_name": "Data Modernization Initiative",
             "collection_name": None,
             "topic_name": None
         })

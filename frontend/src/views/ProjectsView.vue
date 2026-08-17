@@ -918,9 +918,9 @@ export default {
           {
             id: 1,
             name: "Dr. Sarah Johnson",
-            email: "sarah.johnson@census.gov",
+            email: "sarah.johnson@example.com",
             title: "Senior Project Manager",
-            organization: "U.S. Census Bureau"
+            organization: "StructuredDocs"
           },
           {
             id: 2,
@@ -932,9 +932,9 @@ export default {
           {
             id: 3,
             name: "Dr. Amanda Rodriguez",
-            email: "amanda.rodriguez@census.gov",
+            email: "amanda.rodriguez@example.com",
             title: "Quality Assurance Specialist",
-            organization: "U.S. Census Bureau"
+            organization: "StructuredDocs"
           }
         ]
       } finally {

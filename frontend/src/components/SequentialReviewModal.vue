@@ -670,9 +670,9 @@ export default {
 
       if (this.reviewerChoices.length === 0) {
         const fallbackChoices = this.mergeReviewerChoices([
-          { id: 1, name: 'Expert Reviewer', email: 'expert@census.gov', role: 'senior_analyst' },
-          { id: 2, name: 'Technical Reviewer', email: 'tech@census.gov', role: 'analyst' },
-          { id: 3, name: 'Editorial Reviewer', email: 'editor@census.gov', role: 'editor' }
+          { id: 1, name: 'Expert Reviewer', email: 'expert@example.com', role: 'senior_analyst' },
+          { id: 2, name: 'Technical Reviewer', email: 'tech@example.com', role: 'analyst' },
+          { id: 3, name: 'Editorial Reviewer', email: 'editor@example.com', role: 'editor' }
         ])
         this.apiReviewerChoices = fallbackChoices
         this.reviewerChoices = fallbackChoices
