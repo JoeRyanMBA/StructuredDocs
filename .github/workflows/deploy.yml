@@ -55,8 +55,14 @@ jobs:
           : "${VPS_HOST:?VPS_HOST secret is required}"
           : "${VPS_USER:?VPS_USER secret is required}"
           PORT="${VPS_PORT:-22}"
+          SSH_OPTS=(
+            -i ~/.ssh/id_ed25519
+            -p "$PORT"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
 
-          ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
+          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" <<'EOF'
             set -euo pipefail
             mkdir -p /opt/structureddocs/app
             mkdir -p /opt/structureddocs/app/data/images
@@ -64,7 +70,7 @@ jobs:
           EOF
 
           rsync -az --delete --omit-dir-times --no-perms \
-            -e "ssh -i ~/.ssh/id_ed25519 -p $PORT" \
+            -e "ssh -i ~/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
             --exclude '.git' \
             --exclude '.github' \
             --exclude '.venv' \
@@ -79,7 +85,7 @@ jobs:
             --exclude 'data/images/' \
             ./ "${VPS_USER}@${VPS_HOST}:/opt/structureddocs/app/"
 
-          ssh -i ~/.ssh/id_ed25519 -p "$PORT" "${VPS_USER}@${VPS_HOST}" <<'EOF'
+          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" <<'EOF'
             set -euo pipefail
             cd /opt/structureddocs/app
 
