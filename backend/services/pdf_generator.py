@@ -23,6 +23,7 @@ from reportlab.platypus.doctemplate import PageTemplate, BaseDocTemplate
 from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
+from backend.utils.storage import resolve_local_storage_root
 
 
 
@@ -114,6 +115,7 @@ def _resolve_local_image_path_for_pdf(src: str) -> str:
     configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
     if configured_root:
         candidate_roots.append(configured_root)
+    candidate_roots.append(resolve_local_storage_root())
     candidate_roots.append('/app/data/images')
 
     try:
@@ -1671,6 +1673,7 @@ def convert_image_to_base64(image_src):
             ]
         except Exception:
             pass
+        candidate_roots.append(resolve_local_storage_root())
         candidate_roots.append('/app/data/images')
 
         full_image_path = None
