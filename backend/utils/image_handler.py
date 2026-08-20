@@ -311,8 +311,10 @@ class ImageHandler:
             # Create image info
             # For local storage, keep the canonical web path at /images/imports/... so
             # gallery/publication consumers do not depend on storage-internal paths.
-            frontend_path = public_url if not is_local_storage else f"/images/imports/{self.import_doc_id}/{new_filename}"
-            canonical_public_url = frontend_path if is_local_storage else public_url
+            canonical_public_url = f"/images/imports/{self.import_doc_id}/{new_filename}"
+            frontend_path = canonical_public_url if is_local_storage else public_url
+            if is_local_storage and public_url and public_url.startswith('/images/'):
+                canonical_public_url = public_url
             
             image_info = {
                 'filename': new_filename,
