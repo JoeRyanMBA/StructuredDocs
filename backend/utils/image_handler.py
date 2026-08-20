@@ -7,7 +7,7 @@ from urllib.parse import urlparse
 from PIL import Image
 import mimetypes
 from flask import current_app
-from backend.utils.storage import get_storage_backend
+from backend.utils.storage import get_storage_backend, resolve_local_storage_root
 
 class ImageHandler:
     """Handles image extraction, storage, and path management for imports"""
@@ -45,6 +45,7 @@ class ImageHandler:
         candidate_roots = []
         if configured_root:
             candidate_roots.append(Path(configured_root))
+        candidate_roots.append(Path(resolve_local_storage_root()))
         candidate_roots.append(Path('/app/data/images'))
         candidate_roots.append(Path(current_app.root_path) / 'static' / 'images')
 

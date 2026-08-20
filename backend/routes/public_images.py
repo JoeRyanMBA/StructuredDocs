@@ -36,11 +36,13 @@ def serve_import_image(doc_id: int, filename: str):
                 return redirect(db_image.public_url, code=302)
         
         # Otherwise, try to serve from local storage
-        # Backend storage candidates (shared root first)
+        # Backend storage candidates (configured root first, then repo-local writable fallback)
         configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+        from backend.utils.storage import resolve_local_storage_root
         backend_roots = []
         if configured_root:
             backend_roots.append(Path(configured_root))
+        backend_roots.append(Path(resolve_local_storage_root()))
         backend_roots.append(Path('/app/data/images'))
         backend_roots.append(Path(current_app.root_path) / 'static' / 'images')
 
