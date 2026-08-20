@@ -11,6 +11,7 @@ from ..utils.storage import S3CompatibleStorage, LocalStorage, get_storage_backe
 from ..utils.image_registry import (
     build_canonical_image_payload,
     derive_local_image_paths,
+    normalize_import_image_public_url,
     register_canonical_image,
 )
 
@@ -352,17 +353,17 @@ def images_usage_summary():
         topics = Topic.query.with_entities(Topic.id, Topic.title, Topic.content).all()
         topic_title_map = {t.id: t.title for t in topics}
 
-        # Build map: image public_url → list of topic_ids that reference it
-        image_topic_map = {}  # public_url → set of topic_ids
+        # Build map: canonical image URL → list of topic_ids that reference it
+        image_topic_map = {}  # canonical public_url → set of topic_ids
         for img in images:
-            url = img.public_url
+            raw_url = img.public_url
+            if not raw_url:
+                continue
+            url = normalize_import_image_public_url(raw_url, document_id=img.document_id, filename=img.filename)
             if not url:
                 continue
-            # Normalize to relative path so it matches what's embedded in topic content
-            if not url.startswith('/images/imports/') and img.document_id and img.filename:
-                url = f"/images/imports/{img.document_id}/{img.filename}"
-            referencing = {t.id for t in topics if t.content and url in t.content}
-            image_topic_map[img.public_url] = referencing
+            referencing = {t.id for t in topics if t.content and (url in t.content or raw_url in t.content)}
+            image_topic_map[url] = referencing
 
         # For each image, look up collections/projects for those topic_ids
         col_cache = {}   # collection_id → (name, proj_id, proj_name)
@@ -382,7 +383,7 @@ def images_usage_summary():
 
         result = {}
         for img in images:
-            url = img.public_url
+            url = normalize_import_image_public_url(img.public_url, document_id=img.document_id, filename=img.filename)
             topic_ids = image_topic_map.get(url, set())
             collections = {}
             projects = {}

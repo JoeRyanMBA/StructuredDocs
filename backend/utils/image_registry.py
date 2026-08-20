@@ -8,8 +8,43 @@ IMAGE_REGISTRY_FILENAME = '__system_image_registry__.md'
 IMAGE_REGISTRY_REVIEWER = 'system:image-registry'
 
 
+def normalize_import_image_public_url(public_url: str | None, *, document_id: int | None = None, filename: str | None = None) -> str:
+    """Normalize import image URLs to a single canonical /images/imports/... form.
+
+    Imported documents may carry legacy variants such as /imports/<id>/<file>,
+    images/imports/<id>/<file>, or a full remote URL. We normalize all local
+    import variants to the same canonical path so matching and file existence
+    checks stay consistent across the app.
+    """
+    raw = (public_url or '').strip()
+    if not raw:
+        return ''
+    if raw.startswith(('http://', 'https://')):
+        return raw
+
+    normalized = raw.replace('\\', '/').strip()
+    while normalized.startswith('./'):
+        normalized = normalized[2:]
+
+    if normalized.startswith('images/imports/'):
+        normalized = '/' + normalized
+    elif normalized.startswith('imports/'):
+        normalized = '/images/' + normalized
+    elif normalized.startswith('/imports/'):
+        normalized = '/images' + normalized
+    elif normalized.startswith('images/') and not normalized.startswith('/images/'):
+        normalized = '/' + normalized
+
+    if document_id is not None and filename:
+        canonical = f'/images/imports/{document_id}/{filename}'
+        if '/images/imports/' in normalized or normalized.startswith('/imports/') or normalized.startswith('images/imports/') or normalized.startswith('imports/'):
+            return canonical
+
+    return normalized
+
+
 def _normalize_public_url(public_url: str | None) -> str:
-    return (public_url or '').strip()
+    return normalize_import_image_public_url(public_url)
 
 
 def is_image_registry_document(document) -> bool:
@@ -125,6 +160,7 @@ def register_canonical_image(
 
 def build_canonical_image_payload(image, *, include_file_exists=False):
     payload = image.to_dict(include_file_exists=include_file_exists)
+    payload['public_url'] = normalize_import_image_public_url(payload.get('public_url'), document_id=getattr(image, 'document_id', None), filename=getattr(image, 'filename', None))
     payload['file_path'] = payload.get('public_url')
     payload['size'] = payload.get('file_size')
     payload['source'] = infer_image_source(payload.get('public_url'), getattr(image, 'document', None))
