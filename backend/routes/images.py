@@ -7,7 +7,7 @@ from flask_jwt_extended import jwt_required
 from werkzeug.utils import secure_filename
 from datetime import datetime
 from ..models import db, ImportDocument, ImportImage
-from ..utils.storage import S3CompatibleStorage, LocalStorage, get_storage_backend
+from ..utils.storage import S3CompatibleStorage, LocalStorage, get_storage_backend, resolve_local_storage_root
 from ..utils.image_registry import (
     build_canonical_image_payload,
     derive_local_image_paths,
@@ -77,10 +77,11 @@ def get_images():
         backend_images_dir = os.path.join(current_app.root_path, 'static', 'images')
         roots.append((backend_images_dir, '/images'))
 
-        shared_images_dir = '/app/data/images'
+        shared_images_dir = resolve_local_storage_root()
         if configured_root:
             roots.append((configured_root, '/images'))
         roots.append((shared_images_dir, '/images'))
+        roots.append(('/app/data/images', '/images'))
 
         discovered_public_urls = set()
         registered_new_images = 0

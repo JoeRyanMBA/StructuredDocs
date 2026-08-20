@@ -577,10 +577,12 @@ class ImportImage(db.Model):
                 backend_path = Path(self.backend_path) if self.backend_path else None
                 frontend_path = Path(self.frontend_path) if self.frontend_path else None
 
+                from backend.utils.storage import resolve_local_storage_root
                 configured_root = Path((os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()) if os.environ.get('IMAGE_STORAGE_ROOT') else None
                 fallback_backend_paths = []
                 if configured_root:
                     fallback_backend_paths.append(configured_root / 'imports' / str(self.document_id) / self.filename)
+                fallback_backend_paths.append(Path(resolve_local_storage_root()) / 'imports' / str(self.document_id) / self.filename)
                 fallback_backend_paths.append(Path('/app/data/images') / 'imports' / str(self.document_id) / self.filename)
                 fallback_backend_paths.append(Path(current_app.root_path) / 'static' / 'images' / 'imports' / str(self.document_id) / self.filename)
 
@@ -590,7 +592,8 @@ class ImportImage(db.Model):
                         backend_exists = backend_path.exists()
                     else:
                         # Legacy rows may store relative paths like imports/<doc>/<file>
-                        backend_exists = any((root / backend_path).exists() for root in [configured_root, Path('/app/data/images'), Path(current_app.root_path) / 'static' / 'images'] if root is not None)
+                        candidate_roots = [root for root in [configured_root, Path(resolve_local_storage_root()), Path('/app/data/images'), Path(current_app.root_path) / 'static' / 'images'] if root is not None]
+                        backend_exists = any((root / backend_path).exists() for root in candidate_roots)
 
                 if not backend_exists:
                     backend_exists = any(path.exists() for path in fallback_backend_paths)

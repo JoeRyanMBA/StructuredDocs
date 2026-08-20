@@ -5,6 +5,50 @@ import os
 from pathlib import Path
 from typing import Optional
 
+
+def resolve_local_storage_root() -> str:
+    """Return the writable local image root for this environment.
+
+    In local development or non-container runs, IMAGE_STORAGE_ROOT is often unset.
+    We prefer a repo-local writable directory instead of the container-only
+    /app/... paths that may not exist or be writable in this environment.
+    """
+    configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+    if configured_root:
+        candidate = Path(configured_root)
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            test_file = candidate / '.write_test'
+            test_file.write_text('ok')
+            test_file.unlink()
+            return str(candidate)
+        except Exception:
+            pass
+
+    candidates = [
+        Path('/app/data/images'),
+        Path('/app/backend/static/images'),
+        Path(__file__).resolve().parents[1] / 'data' / 'images',
+        Path(__file__).resolve().parents[1] / 'backend' / 'static' / 'images',
+        Path.cwd() / 'data' / 'images',
+        Path.cwd() / 'backend' / 'static' / 'images',
+    ]
+
+    for candidate in candidates:
+        try:
+            candidate.mkdir(parents=True, exist_ok=True)
+            test_file = candidate / '.write_test'
+            test_file.write_text('ok')
+            test_file.unlink()
+            return str(candidate)
+        except Exception:
+            continue
+
+    fallback = Path(__file__).resolve().parents[1] / 'data' / 'images'
+    fallback.mkdir(parents=True, exist_ok=True)
+    return str(fallback)
+
+
 class StorageBackend:
     """Abstract base for storage backends"""
     
@@ -165,7 +209,7 @@ def get_storage_backend() -> StorageBackend:
     import logging
     logger = logging.getLogger(__name__)
 
-    storage_root = os.environ.get('IMAGE_STORAGE_ROOT', '/app/backend/static/images')
+    storage_root = resolve_local_storage_root()
     if backend_mode in {'local', 'filesystem', 'vps'}:
         logger.info(f"✅ STORAGE_BACKEND={backend_mode}; using LocalStorage at {storage_root}")
         return LocalStorage(storage_root)

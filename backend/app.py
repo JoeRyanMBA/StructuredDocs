@@ -1085,11 +1085,13 @@ p { color: #666; }
                     print(f"   ✅ Found in backend, serving...")
                     return send_from_directory(backend_images_dir, filename)
 
-                # Fallback 3: configured image storage root and shared /app/data/images
+                # Fallback 3: configured image storage root and app-local writable storage
                 configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+                from backend.utils.storage import resolve_local_storage_root
                 candidate_roots = []
                 if configured_root:
                     candidate_roots.append(configured_root)
+                candidate_roots.append(resolve_local_storage_root())
                 candidate_roots.append('/app/data/images')
 
                 for root in candidate_roots:
