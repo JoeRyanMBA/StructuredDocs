@@ -4,7 +4,7 @@
 set -euo pipefail
 
 REMOTE_USER="${REMOTE_USER:-root}"
-REMOTE_HOST="${REMOTE_HOST:-your.server.example.com}"
+REMOTE_HOST="${REMOTE_HOST:-95.216.122.195}"
 KEY_PATH="${KEY_PATH:-$HOME/.ssh/structureddocs_deploy}"
 PUB_PATH="$KEY_PATH.pub"
 
