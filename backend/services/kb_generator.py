@@ -2,11 +2,38 @@ import re
 import os
 import json
 import base64
+import mimetypes
 from datetime import datetime
 from .pdf_generator import convert_markdown_to_html
+from .export_branding import get_export_branding_settings, resolve_brand_asset_path
+
+
+def _resolve_html_logo_src(raw_value):
+    """Resolve an admin-provided logo setting to a usable HTML img src."""
+    candidate = (raw_value or '').strip()
+    if not candidate:
+        return ''
+    if candidate.startswith(('http://', 'https://', 'data:')):
+        return candidate
+
+    local_path = resolve_brand_asset_path(candidate)
+    if not local_path or not os.path.exists(local_path):
+        return ''
+
+    with open(local_path, 'rb') as image_file:
+        image_data = image_file.read()
+    mime_type = mimetypes.guess_type(local_path)[0] or 'image/png'
+    encoded = base64.b64encode(image_data).decode('ascii')
+    return f'data:{mime_type};base64,{encoded}'
 
 def generate_mobile_kb_html(publication, tree):
     """Generate mobile-first HTML for knowledge base using template"""
+    branding = get_export_branding_settings()
+    html_logo_src = _resolve_html_logo_src(branding.get('html_logo', ''))
+    header_logo_html = (
+        f'<img class="kb-brand-logo" src="{html_logo_src}" alt="{branding["brand_name"]} logo" />'
+        if html_logo_src else ''
+    )
     
     # Read the template file - get the absolute path to the root directory
     import os
@@ -135,6 +162,10 @@ def generate_mobile_kb_html(publication, tree):
     result = result.replace('<!-- Dynamic content sections will be inserted here -->', content_html)
     result = result.replace('{{ date }}', datetime.now().strftime('%B %d, %Y'))
     result = result.replace('{{ publication_title }}', publication.title)
+    result = result.replace('{{ brand_name }}', branding['brand_name'])
+    result = result.replace('{{ html_primary_color }}', branding['html_primary_color'])
+    result = result.replace('{{ html_accent_color }}', branding['html_accent_color'])
+    result = result.replace('{{ header_logo_html }}', header_logo_html)
     
     # Add tree data for breadcrumb navigation
     import json
@@ -148,6 +179,38 @@ def generate_mobile_kb_html(publication, tree):
 
 def generate_mobile_kb_html_inline(publication, tree):
     """Generate mobile-first HTML for knowledge base"""
+    branding = get_export_branding_settings()
+    html_logo_src = _resolve_html_logo_src(branding.get('html_logo', ''))
+    header_logo_html = (
+        f'<img class="kb-brand-logo" src="{html_logo_src}" alt="{branding["brand_name"]} logo" />'
+        if html_logo_src else ''
+    )
+    branding_css = f"""
+    <style>
+        :root {{
+            --sd-primary: {branding['html_primary_color']};
+            --sd-accent: {branding['html_accent_color']};
+        }}
+        .kb-brand-logo {{
+            height: 36px;
+            max-width: 120px;
+            object-fit: contain;
+            border-radius: 4px;
+            background: rgba(255, 255, 255, 0.16);
+            padding: 2px 6px;
+        }}
+        .kb-header {{ background: var(--sd-primary) !important; }}
+        .nav-link {{ color: var(--sd-primary) !important; }}
+        .nav-link.sub-item {{ border-left-color: var(--sd-primary) !important; }}
+        .content-section h1 {{ border-bottom-color: var(--sd-primary) !important; }}
+        .content-section h2 {{ color: var(--sd-primary) !important; }}
+        .content-section h1,
+        .content-section h3,
+        .content-section h4,
+        .content-section h5,
+        .content-section h6 {{ color: var(--sd-accent) !important; }}
+    </style>
+    """
     
     # Mobile-first CSS template
     mobile_css = """
@@ -940,12 +1003,14 @@ def generate_mobile_kb_html_inline(publication, tree):
     <meta name="apple-mobile-web-app-title" content="{publication.title}">
     <title>{publication.title} - Mobile Knowledge Base</title>
     {mobile_css}
+    {branding_css}
 </head>
 <body>
     <div class="kb-container">
         <header class="kb-header">
             <div class="kb-header-inner">
                 <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">☰</button>
+                {header_logo_html}
                 <div class="kb-title-group">
                     <h1 class="kb-title">{publication.title}</h1>
                     <p class="kb-subtitle">Mobile Knowledge Base</p>
@@ -980,7 +1045,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         
         <footer class="footer">
             Generated on {current_time}<br>
-            Optimized for mobile devices
+            {branding['brand_name']} - Optimized for mobile devices
         </footer>
     </div>
     

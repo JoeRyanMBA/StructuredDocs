@@ -23,6 +23,13 @@ DEFAULTS: dict[str, tuple[str, str]] = {
     'review_token_rate_limit':    ('10 per hour',  'Max review token generations per hour per IP'),
     'review_feedback_rate_limit': ('30 per hour',  'Max review feedback submissions per hour per IP'),
     'max_upload_size_mb':         ('20',           'Max upload file size in megabytes'),
+    'export_brand_name':          ('StructuredDocs', 'Brand name shown in PDF and HTML exports'),
+    'export_pdf_title_logo':      ('Title_Page_Logo.png', 'PDF title page logo (filename in backend/static/backgrounds or absolute path)'),
+    'export_pdf_footer_logo':     ('Footer_Logo.png', 'PDF footer logo (filename in backend/static/backgrounds or absolute path)'),
+    'export_pdf_cover_background':('SC Cover Background.png', 'Default PDF cover background image (filename in backend/static/backgrounds or absolute path)'),
+    'export_html_logo':           ('', 'HTML export logo URL, data URI, or local image filename/path to embed'),
+    'export_html_primary_color':  ('#005a9c', 'Primary HTML export brand color (#RRGGBB)'),
+    'export_html_accent_color':   ('#112E51', 'Accent HTML export brand color (#RRGGBB)'),
 }
 
 

@@ -24,6 +24,7 @@ from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
 from backend.utils.storage import resolve_local_storage_root
+from .export_branding import get_export_branding_settings, resolve_brand_asset_path
 
 
 
@@ -212,10 +213,12 @@ def _consume_markdown_table(lines, start_index):
 class BackgroundImageDocTemplate(BaseDocTemplate):
     """Custom document template that supports background images, headers and footers on pages"""
     
-    def __init__(self, filename, background_image_path=None, publication=None, **kwargs):
+    def __init__(self, filename, background_image_path=None, publication=None, branding=None, **kwargs):
         BaseDocTemplate.__init__(self, filename, **kwargs)
         self.background_image_path = background_image_path
         self.publication = publication
+        self.branding = branding or {}
+        self.brand_name = self.branding.get('brand_name', 'StructuredDocs')
         self.page_count = 0  # Track page numbers across templates
         self.toc_start_page = 2  # TOC starts at page 2 (roman numerals)
         self.content_start_page = 1  # Content pages start after TOC
@@ -312,7 +315,10 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Add Organization logo (positioned at left edge)
-            title_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Title_Page_Logo.png')
+            title_logo_path = resolve_brand_asset_path(
+                self.branding.get('pdf_title_logo', ''),
+                'Title_Page_Logo.png'
+            )
             if os.path.exists(title_logo_path):
                 try:
                     canvas.drawImage(
@@ -334,7 +340,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
             # Top row: Organization name (centered) and form number (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
+            canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
             
             if self.publication is not None:
                 form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id:04d}")
@@ -375,7 +381,10 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
             # Add Organization logo
-            footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
+            footer_logo_path = resolve_brand_asset_path(
+                self.branding.get('pdf_footer_logo', ''),
+                'Footer_Logo.png'
+            )
             if os.path.exists(footer_logo_path):
                 try:
                     canvas.drawImage(
@@ -394,7 +403,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
             
             # Top row: Organization name (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
+            canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -435,7 +444,10 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
             # Add organization logo
-            footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
+            footer_logo_path = resolve_brand_asset_path(
+                self.branding.get('pdf_footer_logo', ''),
+                'Footer_Logo.png'
+            )
             if os.path.exists(footer_logo_path):
                 try:
                     canvas.drawImage(
@@ -456,7 +468,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
             # Top row: Organization name (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
+            canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -529,9 +541,11 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
 class HeaderDocTemplate(BaseDocTemplate):
     """Document template with headers and footers for PDF documents without background images"""
     
-    def __init__(self, filename, publication=None, **kwargs):
+    def __init__(self, filename, publication=None, branding=None, **kwargs):
         BaseDocTemplate.__init__(self, filename, **kwargs)
         self.publication = publication
+        self.branding = branding or {}
+        self.brand_name = self.branding.get('brand_name', 'StructuredDocs')
         self.page_count = 0  # Track page numbers across templates
         self.toc_start_page = 2  # TOC starts at page 2 (roman numerals)
         self.content_start_page = 1  # Content pages start after TOC
@@ -610,7 +624,10 @@ class HeaderDocTemplate(BaseDocTemplate):
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Add Organization logo (positioned at left edge)
-            title_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Title_Page_Logo.png')
+            title_logo_path = resolve_brand_asset_path(
+                self.branding.get('pdf_title_logo', ''),
+                'Title_Page_Logo.png'
+            )
             if os.path.exists(title_logo_path):
                 try:
                     canvas.drawImage(
@@ -632,7 +649,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
             # Top row: "StructuredDocs" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
+            canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
             
             form_number = getattr(self.publication, 'form_number', f"xx.{self.publication.id if self.publication else '0000':04d}")
             form_text = f"Form: {form_number}"
@@ -671,7 +688,10 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
             # Add Organization logo
-            footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
+            footer_logo_path = resolve_brand_asset_path(
+                self.branding.get('pdf_footer_logo', ''),
+                'Footer_Logo.png'
+            )
             if os.path.exists(footer_logo_path):
                 try:
                     canvas.drawImage(
@@ -692,7 +712,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
             
             # Top row: "StructuredDocs" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
+            canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -733,7 +753,10 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
             # Add Organization logo
-            footer_logo_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'Footer_Logo.png')
+            footer_logo_path = resolve_brand_asset_path(
+                self.branding.get('pdf_footer_logo', ''),
+                'Footer_Logo.png'
+            )
             if os.path.exists(footer_logo_path):
                 try:
                     canvas.drawImage(
@@ -754,7 +777,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
             
             # Top row: "StructuredDocs" (centered) and revision date (right)
-            canvas.drawCentredString(page_width / 2, footer_text_y, "StructuredDocs")
+            canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
             
             # Removed form_number, using revision date instead
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
@@ -840,6 +863,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     if not config_type:
         config_type = 'default'
 
+    branding = get_export_branding_settings()
+
     # Select configuration based on type
     if config_type == 'corporate':
         config = CorporateConfig
@@ -854,8 +879,11 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
 
     # If no background image is specified, use the default SC Cover Background.png
     if not background_image_path:
-        default_bg_path = os.path.join(os.path.dirname(os.path.dirname(__file__)), 'static', 'backgrounds', 'SC Cover Background.png')
-        if os.path.exists(default_bg_path):
+        default_bg_path = resolve_brand_asset_path(
+            branding.get('pdf_cover_background', ''),
+            'SC Cover Background.png'
+        )
+        if default_bg_path and os.path.exists(default_bg_path):
             background_image_path = default_bg_path
             current_app.logger.debug(f"DEBUG: Using default background image: {background_image_path}")
 
@@ -867,6 +895,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 buf,
                 background_image_path=background_image_path,
                 publication=publication,
+                branding=branding,
                 pagesize=config.PAGE_SIZE,
                 rightMargin=config.MARGINS['right'],
                 leftMargin=config.MARGINS['left'],
@@ -878,6 +907,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             return HeaderDocTemplate(
                 buf,
                 publication=publication,
+                branding=branding,
                 pagesize=config.PAGE_SIZE,
                 rightMargin=config.MARGINS['right'],
                 leftMargin=config.MARGINS['left'],
