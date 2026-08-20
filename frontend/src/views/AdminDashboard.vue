@@ -119,6 +119,12 @@
               <h3>System Limits</h3>
             </div>
           </button>
+          <button class="quick-action-card" @click="navigateTo('/admin/settings')">
+            <div class="action-icon">🎨</div>
+            <div class="action-content" title="Configure logo and color branding for PDF and HTML exports">
+              <h3>Export Branding</h3>
+            </div>
+          </button>
           <button class="quick-action-card danger" @click="confirmClearDatabase">
             <div class="action-icon">⚠️</div>
             <div class="action-content" title="Clear all data except admin user">
