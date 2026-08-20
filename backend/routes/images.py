@@ -19,6 +19,35 @@ images_bp = Blueprint('images', __name__, url_prefix='/api/images')
 # Allowed file extensions for image uploads
 ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'gif', 'bmp', 'webp', 'svg'}
 
+
+def _require_admin_user():
+    """Return the current admin user or None when access is denied."""
+    from ..models import User
+    from flask_jwt_extended import get_jwt_identity
+
+    try:
+        user_id = int(get_jwt_identity())
+    except (TypeError, ValueError):
+        return None
+
+    user = User.query.get(user_id)
+    if not user or getattr(user, 'role', None) != 'admin':
+        return None
+    return user
+
+
+def _delete_image_record(image):
+    """Delete the on-disk file and database record for a single image."""
+    for candidate in [image.backend_path, image.frontend_path]:
+        if candidate and os.path.exists(candidate):
+            try:
+                os.remove(candidate)
+            except OSError:
+                current_app.logger.warning(f"Could not remove image file at {candidate}")
+
+    db.session.delete(image)
+
+
 def allowed_file(filename):
     """Check if file has an allowed extension"""
     return '.' in filename and \
@@ -246,25 +275,60 @@ def upload_image():
         current_app.logger.error(f"Error uploading image: {str(e)}")
         return jsonify({'error': 'Failed to upload image'}), 500
 
+@images_bp.route('/bulk-delete', methods=['POST'])
+@jwt_required()
+def bulk_delete_images():
+    """Delete multiple images after verifying admin permissions."""
+    try:
+        admin_user = _require_admin_user()
+        if not admin_user:
+            return jsonify({'error': 'Admin access required'}), 403
+
+        data = request.get_json(silent=True) or {}
+        image_ids = data.get('image_ids') or data.get('ids') or []
+        if not isinstance(image_ids, list):
+            return jsonify({'error': 'image_ids must be a list'}), 400
+
+        normalized_ids = []
+        for value in image_ids:
+            try:
+                normalized_ids.append(int(value))
+            except (TypeError, ValueError):
+                continue
+
+        if not normalized_ids:
+            return jsonify({'message': 'No images selected for deletion', 'deleted': 0}), 400
+
+        images = ImportImage.query.filter(ImportImage.id.in_(normalized_ids)).all()
+        for image in images:
+            _delete_image_record(image)
+
+        db.session.commit()
+        return jsonify({
+            'message': 'Images deleted successfully',
+            'deleted': len(images),
+            'image_ids': [image.id for image in images],
+        }), 200
+    except Exception as e:
+        db.session.rollback()
+        current_app.logger.exception('Error deleting multiple images')
+        return jsonify({'error': 'Failed to delete selected images'}), 500
+
+
 @images_bp.route('/<int:image_id>', methods=['DELETE'])
 @jwt_required()
 def delete_image(image_id):
     """Delete an image by its canonical ImportImage record ID."""
     try:
+        admin_user = _require_admin_user()
+        if not admin_user:
+            return jsonify({'error': 'Admin access required'}), 403
+
         image = ImportImage.query.get_or_404(image_id)
-
-        # Best-effort local cleanup only; remote object cleanup is intentionally left unchanged.
-        for candidate in [image.backend_path, image.frontend_path]:
-            if candidate and os.path.exists(candidate):
-                try:
-                    os.remove(candidate)
-                except OSError:
-                    current_app.logger.warning(f"Could not remove image file at {candidate}")
-
-        db.session.delete(image)
+        _delete_image_record(image)
         db.session.commit()
         return jsonify({'message': 'Image deleted successfully'}), 200
-        
+
     except Exception as e:
         db.session.rollback()
         current_app.logger.error(f"Error deleting image: {str(e)}")

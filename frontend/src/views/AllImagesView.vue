@@ -47,6 +47,48 @@
       </div>
     </div>
 
+    <div v-if="isAdmin" class="bulk-actions-bar">
+      <label class="select-all-toggle">
+        <input
+          type="checkbox"
+          :checked="allFilteredSelected"
+          :indeterminate.prop="someFilteredSelected && !allFilteredSelected"
+          @change="toggleSelectAllFiltered"
+        />
+        <span>Select all</span>
+      </label>
+      <button
+        type="button"
+        class="btn btn-danger btn-sm"
+        :disabled="selectedImageIds.length === 0 || deletingSelected"
+        @click="deleteSelectedImages"
+      >
+        <i class="bi bi-trash" aria-hidden="true"></i>
+        {{ deletingSelected ? 'Deleting...' : `Delete selected (${selectedImageIds.length})` }}
+      </button>
+    </div>
+
+    <div v-if="showBulkDeleteConfirm" class="modal-overlay" @click.self="cancelBulkDeleteConfirmation">
+      <div class="modal small" @click.stop>
+        <div class="modal-header-row modal-header">
+          <h3>Confirm bulk delete</h3>
+          <button class="plain-close btn-close" @click="cancelBulkDeleteConfirmation">✕</button>
+        </div>
+        <div class="modal-body">
+          <p>
+            Delete <strong>{{ selectedImageIds.length }}</strong> selected image{{ selectedImageIds.length === 1 ? '' : 's' }}?
+          </p>
+          <p class="text-muted">This action cannot be undone.</p>
+        </div>
+        <div class="modal-footer">
+          <button @click="cancelBulkDeleteConfirmation" class="btn btn-secondary">Cancel</button>
+          <button @click="confirmBulkDelete" class="btn btn-danger" :disabled="deletingSelected">
+            {{ deletingSelected ? 'Deleting...' : `Delete ${selectedImageIds.length} image${selectedImageIds.length === 1 ? '' : 's'}` }}
+          </button>
+        </div>
+      </div>
+    </div>
+
     <div v-if="loading" class="loading">
       <div class="loading-spinner"></div>
       <p>Loading images...</p>
@@ -94,8 +136,16 @@
           :key="image.id"
           class="image-card"
           @click="selectImage(image)"
-          :class="{ 'selected': selectedImage?.id === image.id }"
+          :class="{ 'selected': selectedImage?.id === image.id, 'bulk-selected': isImageSelected(image.id) }"
         >
+          <div v-if="isAdmin" class="selection-checkbox-wrap" @click.stop>
+            <input
+              type="checkbox"
+              :checked="isImageSelected(image.id)"
+              @change="toggleImageSelection(image.id)"
+              aria-label="Select image"
+            />
+          </div>
           <div class="image-container">
             <img 
               :src="getImageUrl(image)" 
@@ -141,9 +191,20 @@
           :key="image.id"
           class="list-row"
           @click="selectImage(image)"
-          :class="{ 'selected': selectedImage?.id === image.id }"
+          :class="{ 'selected': selectedImage?.id === image.id, 'bulk-selected': isImageSelected(image.id) }"
         >
-          <div class="col-id">#{{ image.id }}</div>
+          <div class="col-id">
+            <span v-if="isAdmin" class="selection-checkbox-wrap list-checkbox">
+              <input
+                type="checkbox"
+                :checked="isImageSelected(image.id)"
+                @change="toggleImageSelection(image.id)"
+                @click.stop
+                aria-label="Select image"
+              />
+            </span>
+            #{{ image.id }}
+          </div>
           <div class="col-filename">
             <img
               :src="getImageUrl(image)" 
@@ -282,10 +343,21 @@ export default {
       selectedImage: null,
       showDetailsModal: false,
       message: '',
-      messageType: 'success' // 'success' or 'error'
+      messageType: 'success', // 'success' or 'error'
+      selectedImageIds: [],
+      deletingSelected: false,
+      isAdmin: false,
+      showBulkDeleteConfirm: false
     }
   },
   computed: {
+    allFilteredSelected() {
+      if (!this.filteredImages.length) return false
+      return this.filteredImages.every(image => this.selectedImageIds.includes(image.id))
+    },
+    someFilteredSelected() {
+      return this.filteredImages.some(image => this.selectedImageIds.includes(image.id))
+    },
     totalSize() {
       return this.filteredImages.reduce((total, image) => {
         return total + (image.size || 0)
@@ -322,9 +394,72 @@ export default {
     }
   },
   async created() {
+    const user = JSON.parse(localStorage.getItem('user') || '{}')
+    this.isAdmin = user && user.role === 'admin'
     await this.loadImages()
   },
   methods: {
+    isImageSelected(imageId) {
+      return this.selectedImageIds.includes(imageId)
+    },
+    toggleImageSelection(imageId) {
+      if (!this.isAdmin) return
+      if (this.selectedImageIds.includes(imageId)) {
+        this.selectedImageIds = this.selectedImageIds.filter(id => id !== imageId)
+      } else {
+        this.selectedImageIds.push(imageId)
+      }
+    },
+    toggleSelectAllFiltered() {
+      if (!this.isAdmin) return
+      const filteredIds = this.filteredImages.map(image => image.id)
+      if (this.allFilteredSelected) {
+        this.selectedImageIds = this.selectedImageIds.filter(id => !filteredIds.includes(id))
+      } else {
+        const merged = new Set([...this.selectedImageIds, ...filteredIds])
+        this.selectedImageIds = [...merged]
+      }
+    },
+    deleteSelectedImages() {
+      if (!this.isAdmin || !this.selectedImageIds.length) return
+      this.showBulkDeleteConfirm = true
+    },
+    cancelBulkDeleteConfirmation() {
+      this.showBulkDeleteConfirm = false
+    },
+    async confirmBulkDelete() {
+      if (!this.isAdmin || !this.selectedImageIds.length) return
+
+      this.deletingSelected = true
+      this.showBulkDeleteConfirm = false
+
+      try {
+        const response = await fetch(`${this.apiBase || ''}/api/images/bulk-delete`, {
+          method: 'POST',
+          credentials: 'include',
+          headers: {
+            'Content-Type': 'application/json',
+            'Authorization': `Bearer ${localStorage.getItem('access_token') || ''}`
+          },
+          body: JSON.stringify({ image_ids: this.selectedImageIds })
+        })
+
+        const payload = await response.json().catch(() => ({}))
+        if (!response.ok) {
+          throw new Error(payload.error || 'Failed to delete selected images')
+        }
+
+        const deletedCount = Array.isArray(payload.image_ids) ? payload.image_ids.length : this.selectedImageIds.length
+        this.selectedImageIds = []
+        await this.loadImages()
+        toast.success(payload.message || `Deleted ${deletedCount} image${deletedCount === 1 ? '' : 's'} successfully.`)
+      } catch (error) {
+        console.error('Bulk delete failed:', error)
+        toast.error(error.message || 'Failed to delete selected images')
+      } finally {
+        this.deletingSelected = false
+      }
+    },
     imageTopics(image) {
       return this.imageUsage[image?.public_url]?.topics || []
     },
@@ -555,6 +690,46 @@ export default {
   align-items: center;
   margin-bottom: 2rem;
   flex-wrap: wrap;
+}
+
+.bulk-actions-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 1rem;
+  margin-bottom: 1.25rem;
+  padding: 0.75rem 1rem;
+  border: 1px solid #e5e7eb;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.select-all-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-weight: 600;
+  color: #374151;
+}
+
+.selection-checkbox-wrap {
+  position: absolute;
+  top: 0.75rem;
+  left: 0.75rem;
+  z-index: 2;
+  background: rgba(255, 255, 255, 0.9);
+  border-radius: 6px;
+  padding: 0.2rem 0.25rem;
+}
+
+.list-checkbox {
+  position: static;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  background: transparent;
+  padding: 0;
+  margin-right: 0.5rem;
 }
 
 .search-controls {
