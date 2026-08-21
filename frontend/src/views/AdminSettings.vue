@@ -19,9 +19,22 @@
               class="setting-input"
               type="text"
               :placeholder="placeholderFor(key)"
+              :disabled="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()"
             />
+            <label v-if="isCoverBackgroundKey(key)" class="cover-toggle">
+              <input
+                type="checkbox"
+                :checked="isNoCoverBackgroundEnabled()"
+                @change="toggleNoCoverBackground($event.target.checked)"
+              />
+              <span>No cover background (blank cover)</span>
+            </label>
             <div v-if="isImageSetting(key)" class="image-controls">
-              <select class="setting-input" @change="applyAssetSelection(key, $event.target.value)">
+              <select
+                class="setting-input"
+                :disabled="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()"
+                @change="applyAssetSelection(key, $event.target.value)"
+              >
                 <option value="">Select uploaded image...</option>
                 <option v-for="asset in visibleBrandingAssets" :key="asset.name" :value="asset.name">
                   {{ asset.name }}
@@ -32,7 +45,7 @@
                   type="file"
                   class="upload-input"
                   accept="image/*"
-                  :disabled="isUploadingAsset(key)"
+                  :disabled="isUploadingAsset(key) || (isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled())"
                   @change="uploadAssetForKey(key, $event)"
                 />
                 <span v-if="isUploadingAsset(key)">Uploading...</span>
@@ -50,12 +63,12 @@
             </div>
             <div v-if="isImageSetting(key)" class="asset-filter-row">
               <label class="asset-filter-toggle">
-                <input type="checkbox" v-model="showUnusedOnly" />
+                <input type="checkbox" v-model="showUnusedOnly" :disabled="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()" />
                 <span>Show only unused images</span>
               </label>
               <span class="asset-filter-meta">{{ visibleBrandingAssets.length }} shown / {{ brandingAssets.length }} total</span>
             </div>
-            <div v-if="isImageSetting(key) && visibleBrandingAssets.length" class="asset-thumb-grid">
+            <div v-if="isImageSetting(key) && (!isCoverBackgroundKey(key) || !isNoCoverBackgroundEnabled()) && visibleBrandingAssets.length" class="asset-thumb-grid">
               <div
                 v-for="asset in visibleBrandingAssets"
                 :key="`${key}-${asset.name}`"
@@ -90,6 +103,7 @@
               </div>
             </div>
             <div v-else-if="isImageSetting(key)" class="asset-empty-note">No images match this filter.</div>
+            <div v-if="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()" class="asset-empty-note">Cover background is disabled for PDF exports.</div>
           </div>
         </div>
       </div>
@@ -229,6 +243,7 @@ const DEFAULT_VALUES = {
   export_html_primary_color: '#005a9c',
   export_html_accent_color: '#112E51',
 }
+const NO_COVER_BACKGROUND_SENTINEL = '__none__'
 
 const IMAGE_SETTING_KEYS = [
   'export_html_logo',
@@ -340,6 +355,15 @@ export default {
     isImageSetting(key) {
       return IMAGE_SETTING_KEYS.includes(key)
     },
+    isCoverBackgroundKey(key) {
+      return key === 'export_pdf_cover_background'
+    },
+    isNoCoverBackgroundEnabled() {
+      return (this.edits.export_pdf_cover_background || '').trim() === NO_COVER_BACKGROUND_SENTINEL
+    },
+    toggleNoCoverBackground(enabled) {
+      this.edits.export_pdf_cover_background = enabled ? NO_COVER_BACKGROUND_SENTINEL : ''
+    },
     isUploadingAsset(key) {
       return !!this.uploadingAssetKeys[key]
     },
@@ -353,6 +377,7 @@ export default {
     assetUrlForSetting(key) {
       const value = (this.edits[key] || '').trim()
       if (!value) return ''
+      if (value === NO_COVER_BACKGROUND_SENTINEL) return ''
       if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
         return value
       }
@@ -670,6 +695,14 @@ export default {
   font-size: 0.78rem;
   color: #6b7280;
   padding: 4px 0;
+}
+
+.cover-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #374151;
 }
 
 .asset-thumb-btn {

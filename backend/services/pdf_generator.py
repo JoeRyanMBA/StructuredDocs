@@ -24,7 +24,7 @@ from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
 from backend.utils.storage import resolve_local_storage_root
-from .export_branding import get_export_branding_settings, resolve_brand_asset_path
+from .export_branding import get_export_branding_settings, resolve_brand_asset_path, NO_COVER_BACKGROUND_SENTINEL
 
 
 
@@ -879,13 +879,17 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
 
     # If no background image is specified, use the default SC Cover Background.png
     if not background_image_path:
-        default_bg_path = resolve_brand_asset_path(
-            branding.get('pdf_cover_background', ''),
-            'SC Cover Background.png'
-        )
-        if default_bg_path and os.path.exists(default_bg_path):
-            background_image_path = default_bg_path
-            current_app.logger.debug(f"DEBUG: Using default background image: {background_image_path}")
+        cover_setting = (branding.get('pdf_cover_background', '') or '').strip()
+        if cover_setting == NO_COVER_BACKGROUND_SENTINEL:
+            current_app.logger.debug("DEBUG: Cover background disabled by admin setting")
+        else:
+            default_bg_path = resolve_brand_asset_path(
+                cover_setting,
+                'SC Cover Background.png'
+            )
+            if default_bg_path and os.path.exists(default_bg_path):
+                background_image_path = default_bg_path
+                current_app.logger.debug(f"DEBUG: Using default background image: {background_image_path}")
 
     def _make_doc(buf):
         """Create a fresh doc template writing to the given buffer."""
