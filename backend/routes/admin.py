@@ -1,4 +1,4 @@
-from flask import Blueprint, request, jsonify, current_app
+from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog, SystemSetting
 from ..utils.email_service import get_email_service
@@ -707,7 +707,7 @@ def list_export_branding_assets():
             stat = os.stat(path)
             rows.append({
                 'name': name,
-                'url': f'/static/backgrounds/{name}',
+                'url': f'/api/admin/export-branding/assets/{name}/preview',
                 'size': stat.st_size,
                 'modified_at': datetime.utcfromtimestamp(stat.st_mtime).isoformat() + 'Z',
                 'used_by': usage_map.get(name, []),
@@ -758,10 +758,31 @@ def upload_export_branding_asset():
 
     return jsonify({
         'filename': final_name,
-        'url': f'/static/backgrounds/{final_name}',
+        'url': f'/api/admin/export-branding/assets/{final_name}/preview',
         'target_key': target_key or None,
         'setting_updated': bool(target_key),
     }), 200
+
+
+@admin_bp.route('/export-branding/assets/<path:filename>/preview', methods=['GET'])
+@jwt_required()
+def preview_export_branding_asset(filename):
+    """Serve a branding asset image for admin preview. Admin only."""
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    if err:
+        return err
+
+    candidate = os.path.basename((filename or '').strip())
+    if not candidate or candidate != filename or not _allowed_branding_file(candidate):
+        return jsonify({'error': 'Invalid filename'}), 400
+
+    assets_dir = _branding_backgrounds_dir()
+    path = os.path.join(assets_dir, candidate)
+    if not os.path.exists(path):
+        return jsonify({'error': 'Image not found'}), 404
+
+    return send_from_directory(assets_dir, candidate)
 
 
 @admin_bp.route('/export-branding/assets/<path:filename>', methods=['DELETE'])

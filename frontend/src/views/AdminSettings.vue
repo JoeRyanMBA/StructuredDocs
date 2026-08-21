@@ -382,7 +382,7 @@ export default {
         return value
       }
       const basename = value.split('/').pop()
-      return basename ? `/static/backgrounds/${basename}` : ''
+      return basename ? `/api/admin/export-branding/assets/${encodeURIComponent(basename)}/preview` : ''
     },
     assetPreviewUrl(filename) {
       const value = (filename || '').trim()
@@ -391,7 +391,7 @@ export default {
         return value
       }
       const basename = value.split('/').pop()
-      return basename ? `/static/backgrounds/${basename}` : ''
+      return basename ? `/api/admin/export-branding/assets/${encodeURIComponent(basename)}/preview` : ''
     },
     normalizeHexColor(value, fallback) {
       const trimmed = (value || '').trim()
