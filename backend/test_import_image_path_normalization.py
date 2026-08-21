@@ -70,3 +70,17 @@ def test_convert_markdown_to_html_resolves_canonical_import_paths_without_leadin
 
     assert 'data:image/png;base64,' in html
     assert 'Figure' in html
+
+
+def test_convert_image_to_base64_resolves_image_from_static_backgrounds_folder(tmp_path):
+    app = Flask(__name__)
+    backgrounds_dir = tmp_path / 'backgrounds'
+    backgrounds_dir.mkdir()
+    asset_path = backgrounds_dir / 'uploaded_logo.png'
+    asset_path.write_bytes(b'fake-branding-bytes')
+
+    with app.app_context():
+        app.config['STATIC_FOLDER'] = str(backgrounds_dir)
+        result = convert_image_to_base64('uploaded_logo.png')
+
+    assert result.startswith('data:image/png;base64,')
