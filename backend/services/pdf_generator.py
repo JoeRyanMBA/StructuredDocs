@@ -8,6 +8,7 @@ import json
 import traceback
 import tempfile
 import shutil
+from datetime import datetime
 from pathlib import Path
 import requests as _http
 from bs4 import BeautifulSoup
@@ -376,17 +377,17 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
             
-            # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
-            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
-            logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
-            logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
+            # Keep the footer compact: smaller logo, tighter vertical spacing.
+            logo_x = self.leftMargin + 0.12 * inch
+            logo_y = 0.18 * inch
+            logo_width = 1.2 * inch
+            logo_height = 0.55 * inch
             
             # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height - 24  # Match standard page positioning 
+            footer_text_y = logo_y + logo_height - 12
 
             # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 18  # Position line 18pt above text for more space   
+            line_y = footer_text_y + 12
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
@@ -411,7 +412,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
-            footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
+            footer_text_y = logo_y + logo_height - 12
             
             # Top row: Organization name (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
@@ -422,11 +423,11 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
             canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
             
-            # Bottom row: Page number in roman numerals (starts at ii) - right-aligned
+            # Bottom row: Page number in roman numerals (starts at ii) - anchored to the right margin
             roman_page = self.int_to_roman(doc.page)
             page_text = f"Page {roman_page}"
             page_text_width = canvas.stringWidth(page_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - page_text_width, footer_text_y - 12, page_text)
+            canvas.drawString(page_width - self.rightMargin - page_text_width, footer_text_y - 12, page_text)
             
             canvas.restoreState()
         except Exception as e:
@@ -681,24 +682,19 @@ class HeaderDocTemplate(BaseDocTemplate):
         try:
             canvas.saveState()
             page_width, page_height = self.pagesize
-            # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
-            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
-            logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
-            logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
-            
-            # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height  # Align with top of logo
-            
-            # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 18  # Position line 18pt above text for more space
+
+            # Keep the footer compact: smaller logo, tighter spacing.
+            logo_x = self.leftMargin + 0.12 * inch
+            logo_y = 0.18 * inch
+            logo_width = 1.2 * inch
+            logo_height = 0.55 * inch
+
+            footer_text_y = logo_y + logo_height - 12
+            line_y = footer_text_y + 12
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
-            canvas.setLineWidth(0.5)
-            canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
-            
-            # Add Organization logo
+
             footer_logo_path = resolve_brand_asset_path(
                 self.branding.get('pdf_footer_logo', ''),
                 'Footer_Logo.png'
@@ -711,32 +707,24 @@ class HeaderDocTemplate(BaseDocTemplate):
                         width=logo_width,
                         height=logo_height,
                         preserveAspectRatio=True,
-                        mask='auto'  # Enable transparency support
+                        mask='auto'
                     )
                 except:
                     current_app.logger.debug("Warning: Could not load footer logo")
-            
-            # Set font for footer text
+
             canvas.setFont("Helvetica", 9)
-            
-            # Footer text positioning - below the horizontal line
-            footer_text_y = logo_y + logo_height - 24  # Match standard page positioning
-            
-            # Top row: "StructuredDocs" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
-            
-            # Removed form_number, using revision date instead
+
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
             right_margin_x = page_width - self.rightMargin
             text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
             canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
-            
-            # Bottom row: Page number in roman numerals (starts at ii) - right-aligned
+
             roman_page = self.int_to_roman(doc.page)
             page_text = f"Page {roman_page}"
             page_text_width = canvas.stringWidth(page_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - page_text_width, footer_text_y - 12, page_text)
-            
+            canvas.drawString(page_width - self.rightMargin - page_text_width, footer_text_y - 12, page_text)
+
             canvas.restoreState()
         except Exception as e:
             current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
@@ -746,24 +734,19 @@ class HeaderDocTemplate(BaseDocTemplate):
         try:
             canvas.saveState()
             page_width, page_height = self.pagesize
-            # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
-            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
-            logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
-            logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
-            
-            # Footer text positioning - align with top of logo
-            footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
-            
-            # Horizontal line positioning - directly above the text (no gap)
-            line_y = footer_text_y + 18  # Position line 18pt above text for more space
+
+            # Keep the footer compact: smaller logo, tighter spacing.
+            logo_x = self.leftMargin + 0.12 * inch
+            logo_y = 0.18 * inch
+            logo_width = 1.2 * inch
+            logo_height = 0.55 * inch
+
+            footer_text_y = logo_y + logo_height - 12
+            line_y = footer_text_y + 12
             canvas.setStrokeColor(colors.black)
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
-            canvas.setLineWidth(0.5)
-            canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
-            
-            # Add Organization logo
+
             footer_logo_path = resolve_brand_asset_path(
                 self.branding.get('pdf_footer_logo', ''),
                 'Footer_Logo.png'
@@ -776,31 +759,23 @@ class HeaderDocTemplate(BaseDocTemplate):
                         width=logo_width,
                         height=logo_height,
                         preserveAspectRatio=True,
-                        mask='auto'  # Enable transparency support
+                        mask='auto'
                     )
                 except:
                     current_app.logger.debug("Warning: Could not load footer logo")
-            
-            # Set font for footer text
+
             canvas.setFont("Helvetica", 9)
-            
-            # Footer text positioning - below the horizontal line
-            footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
-            
-            # Top row: "StructuredDocs" (centered) and revision date (right)
             canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
-            
-            # Removed form_number, using revision date instead
+
             revised_text = f"Revised: {datetime.now().strftime('%m/%d/%y')}"
             right_margin_x = page_width - self.rightMargin
             text_width = canvas.stringWidth(revised_text, "Helvetica", 9)
             canvas.drawString(right_margin_x - text_width, footer_text_y, revised_text)
-            
-            # Bottom row: Page number in Arabic numerals - right-aligned
+
             page_text = f"Page {doc.page}"
             page_text_width = canvas.stringWidth(page_text, "Helvetica", 9)
-            canvas.drawString(right_margin_x - page_text_width, footer_text_y - 12, page_text)
-            
+            canvas.drawString(page_width - self.rightMargin - page_text_width, footer_text_y - 12, page_text)
+
             canvas.restoreState()
         except Exception as e:
             current_app.logger.debug(f"Warning: Could not add content footer: {e}")

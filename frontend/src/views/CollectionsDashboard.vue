@@ -524,6 +524,10 @@ export default {
       }
     },
 
+    createNewCollection() {
+      this.showCreateModal = true
+    },
+
     resetNewCollection() {
       this.newCollection = {
         name: '',
