@@ -137,6 +137,38 @@ def test_pdf_uses_png_when_svg_logo_is_uploaded(tmp_path, monkeypatch):
     assert resolved != str(svg_path)
 
 
+def test_pdf_uses_cli_svg_converter_when_cairosvg_is_missing(tmp_path, monkeypatch):
+    svg_path = tmp_path / 'brand_logo.svg'
+    svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+
+    real_import = __import__
+
+    def fake_import(name, *args, **kwargs):
+        if name == 'cairosvg':
+            raise ModuleNotFoundError('No module named cairosvg')
+        return real_import(name, *args, **kwargs)
+
+    monkeypatch.setattr('builtins.__import__', fake_import)
+
+    calls = []
+
+    def fake_run(cmd, **kwargs):
+        calls.append(cmd)
+        out_path = cmd[-1]
+        if out_path.endswith('.png'):
+            Path(out_path).write_bytes(b'cli-png-bytes')
+        return types.SimpleNamespace(returncode=0, stdout='', stderr='')
+
+    monkeypatch.setattr(pdf_generator_module.subprocess, 'run', fake_run)
+    monkeypatch.setattr(pdf_generator_module.shutil, 'which', lambda executable: '/usr/bin/' + executable if executable in {'rsvg-convert', 'convert', 'magick'} else None)
+
+    resolved = pdf_generator_module._resolve_pdf_renderable_image_path(str(svg_path))
+
+    assert resolved.endswith('.png')
+    assert os.path.exists(resolved)
+    assert calls
+
+
 def test_pdf_title_and_footer_templates_use_svg_rasterization(monkeypatch):
     calls = []
 
