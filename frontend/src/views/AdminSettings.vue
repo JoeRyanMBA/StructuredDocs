@@ -36,7 +36,7 @@
                 @change="applyAssetSelection(key, $event.target.value)"
               >
                 <option value="">Select uploaded image...</option>
-                <option v-for="asset in visibleBrandingAssets" :key="asset.name" :value="asset.name">
+                <option v-for="asset in visibleBrandingAssetsForKey(key)" :key="asset.name" :value="asset.name">
                   {{ asset.name }}
                 </option>
               </select>
@@ -61,16 +61,24 @@
                 Preview
               </a>
             </div>
+            <div v-if="isImageSetting(key) && selectedAssetMissingForKey(key)" class="asset-empty-note error-text">
+              Selected image file was not found in uploaded assets. Re-upload it or choose another image.
+            </div>
             <div v-if="isImageSetting(key)" class="asset-filter-row">
               <label class="asset-filter-toggle">
-                <input type="checkbox" v-model="showUnusedOnly" :disabled="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()" />
+                <input
+                  type="checkbox"
+                  :checked="isUnusedOnlyEnabled(key)"
+                  :disabled="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()"
+                  @change="setUnusedOnly(key, $event.target.checked)"
+                />
                 <span>Show only unused images</span>
               </label>
-              <span class="asset-filter-meta">{{ visibleBrandingAssets.length }} shown / {{ brandingAssets.length }} total</span>
+              <span class="asset-filter-meta">{{ visibleBrandingAssetsForKey(key).length }} shown / {{ brandingAssets.length }} total</span>
             </div>
-            <div v-if="isImageSetting(key) && (!isCoverBackgroundKey(key) || !isNoCoverBackgroundEnabled()) && visibleBrandingAssets.length" class="asset-thumb-grid">
+            <div v-if="isImageSetting(key) && (!isCoverBackgroundKey(key) || !isNoCoverBackgroundEnabled()) && visibleBrandingAssetsForKey(key).length" class="asset-thumb-grid">
               <div
-                v-for="asset in visibleBrandingAssets"
+                v-for="asset in visibleBrandingAssetsForKey(key)"
                 :key="`${key}-${asset.name}`"
                 class="asset-thumb-btn"
                 :class="{ active: edits[key] === asset.name }"
@@ -271,7 +279,10 @@ export default {
       uploadingAssetKeys: {},
       deletingAssetNames: {},
       assetPreviewUrls: {},
-      showUnusedOnly: false,
+      showUnusedOnlyByKey: IMAGE_SETTING_KEYS.reduce((acc, settingKey) => {
+        acc[settingKey] = false
+        return acc
+      }, {}),
       publicationSearch: '',
       selectedPublicationId: '',
       publications: [],
@@ -332,12 +343,6 @@ export default {
         const idText = String(pub?.id ?? '').toLowerCase()
         return title.includes(term) || idText.includes(term)
       })
-    },
-    visibleBrandingAssets() {
-      if (!this.showUnusedOnly) {
-        return this.brandingAssets
-      }
-      return this.brandingAssets.filter(asset => !asset?.used_by || asset.used_by.length === 0)
     },
   },
   watch: {
@@ -401,6 +406,39 @@ export default {
     },
     isCoverBackgroundKey(key) {
       return key === 'export_pdf_cover_background'
+    },
+    isUnusedOnlyEnabled(key) {
+      return !!this.showUnusedOnlyByKey[key]
+    },
+    setUnusedOnly(key, enabled) {
+      this.showUnusedOnlyByKey = {
+        ...this.showUnusedOnlyByKey,
+        [key]: !!enabled,
+      }
+    },
+    visibleBrandingAssetsForKey(key) {
+      const selected = this.normalizeAssetBasename(this.edits[key])
+      return (this.brandingAssets || []).filter(asset => {
+        const name = this.normalizeAssetBasename(asset?.name)
+        if (!name) return false
+        if (selected && name === selected) {
+          return true
+        }
+        if (!this.isUnusedOnlyEnabled(key)) {
+          return true
+        }
+        return !asset?.used_by || asset.used_by.length === 0
+      })
+    },
+    selectedAssetMissingForKey(key) {
+      const raw = (this.edits[key] || '').trim()
+      if (!raw || raw === NO_COVER_BACKGROUND_SENTINEL) return false
+      if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('/')) {
+        return false
+      }
+      const basename = this.normalizeAssetBasename(raw)
+      if (!basename) return false
+      return !this.brandingAssets.some(asset => this.normalizeAssetBasename(asset?.name) === basename)
     },
     isNoCoverBackgroundEnabled() {
       return (this.edits.export_pdf_cover_background || '').trim() === NO_COVER_BACKGROUND_SENTINEL
