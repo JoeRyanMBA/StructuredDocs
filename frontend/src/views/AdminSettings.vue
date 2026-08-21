@@ -540,7 +540,7 @@ export default {
       this.saveError = null
       this.saveSuccess = false
       try {
-        const result = await uploadExportBrandingAsset(file)
+        const result = await uploadExportBrandingAsset(file, key)
         if (result?.filename) {
           this.edits[key] = result.filename
         }
@@ -795,18 +795,21 @@ export default {
 }
 
 .cover-toggle {
-  display: flex;
+  display: inline-flex;
   align-items: center;
   justify-content: flex-start;
   flex-wrap: nowrap;
   gap: 6px;
   font-size: 0.82rem;
   color: #374151;
-  width: 100%;
+  width: auto;
+  margin: 0;
+  padding: 0;
 }
 
 .cover-toggle span {
-  white-space: nowrap;
+  white-space: normal;
+  line-height: 1.2;
 }
 
 .asset-thumb-btn {
