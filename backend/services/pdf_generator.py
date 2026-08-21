@@ -105,12 +105,18 @@ def _resolve_local_image_path_for_pdf(src: str) -> str:
     if source.startswith(('http://', 'https://', 'data:')):
         return ''
 
-    if source.startswith('/images/'):
-        rel_path = source[len('/images/'):]
-    elif source.startswith('/static/images/'):
-        rel_path = source[len('/static/images/'):]
+    normalized = source.replace('\\', '/')
+    if normalized.startswith('images/') and not normalized.startswith('/images/'):
+        normalized = '/' + normalized
+
+    if normalized.startswith('/images/'):
+        rel_path = normalized[len('/images/'):]
+    elif normalized.startswith('/static/images/'):
+        rel_path = normalized[len('/static/images/'):]
+    elif normalized.startswith('static/images/'):
+        rel_path = normalized[len('static/images/'):]
     else:
-        rel_path = source.lstrip('/')
+        rel_path = normalized.lstrip('/')
 
     candidate_roots = []
     configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
@@ -120,7 +126,11 @@ def _resolve_local_image_path_for_pdf(src: str) -> str:
     candidate_roots.append('/app/data/images')
 
     try:
-        candidate_roots.append(os.path.join(current_app.config['STATIC_FOLDER'], 'images'))
+        static_root = os.path.join(current_app.root_path, 'static')
+        candidate_roots.extend([
+            os.path.join(static_root, 'images'),
+            os.path.join(static_root, 'backgrounds'),
+        ])
     except Exception:
         pass
 
@@ -130,6 +140,7 @@ def _resolve_local_image_path_for_pdf(src: str) -> str:
             str(root_dir / 'frontend' / 'dist' / 'images'),
             str(root_dir / 'frontend' / 'public' / 'images'),
             str(root_dir / 'backend' / 'static' / 'images'),
+            str(root_dir / 'backend' / 'static' / 'backgrounds'),
         ])
     except Exception:
         pass
@@ -1694,13 +1705,18 @@ def convert_image_to_base64(image_src):
         if normalized_src and os.path.exists(normalized_src):
             candidate_paths.append(normalized_src)
 
+        if normalized_src.startswith('images/') and not normalized_src.startswith('/images/'):
+            normalized_src = '/' + normalized_src
+
         # Strip well-known prefixes to get the bare filename / relative path.
         if normalized_src.startswith('/images/'):
-            rel_path = normalized_src[8:]
+            rel_path = normalized_src[len('/images/'):]
         elif normalized_src.startswith('/static/images/'):
-            rel_path = normalized_src[15:]
+            rel_path = normalized_src[len('/static/images/'):]
+        elif normalized_src.startswith('static/images/'):
+            rel_path = normalized_src[len('static/images/'):]
         else:
-            rel_path = normalized_src  # bare filename or unknown relative path
+            rel_path = normalized_src.lstrip('/')
 
         if rel_path:
             candidate_paths.append(rel_path)
@@ -1712,7 +1728,11 @@ def convert_image_to_base64(image_src):
         # Search all directories the backend serves images from.
         candidate_roots = []
         try:
-            candidate_roots.append(os.path.join(current_app.config['STATIC_FOLDER'], 'images'))
+            static_root = os.path.join(current_app.root_path, 'static')
+            candidate_roots.extend([
+                os.path.join(static_root, 'images'),
+                os.path.join(static_root, 'backgrounds'),
+            ])
         except Exception:
             pass
         try:
@@ -1721,6 +1741,7 @@ def convert_image_to_base64(image_src):
                 os.path.join(root_dir, 'frontend', 'dist', 'images'),
                 os.path.join(root_dir, 'frontend', 'public', 'images'),
                 os.path.join(root_dir, 'backend', 'static', 'images'),
+                os.path.join(root_dir, 'backend', 'static', 'backgrounds'),
             ]
         except Exception:
             pass
