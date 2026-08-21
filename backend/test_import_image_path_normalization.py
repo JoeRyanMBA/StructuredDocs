@@ -2,6 +2,7 @@ from pathlib import Path
 
 from flask import Flask
 
+from backend.services import pdf_generator as pdf_generator_module
 from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
 from backend.utils.image_registry import normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content
 from backend.utils.storage import resolve_local_storage_root
@@ -105,3 +106,8 @@ def test_normalize_stale_temp_image_refs_in_content_keeps_unknown_paths():
     content = '![Figure](/tmp/unknown/media/ghost.png)'
     rewritten = normalize_stale_temp_image_refs_in_content(content, basename_map={})
     assert rewritten == content
+
+
+def test_pdf_generator_exposes_datetime_for_footer_logo_rendering():
+    assert hasattr(pdf_generator_module, 'datetime')
+    assert pdf_generator_module.datetime is not None
