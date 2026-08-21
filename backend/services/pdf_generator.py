@@ -9,6 +9,7 @@ import json
 import traceback
 import tempfile
 import shutil
+import subprocess
 from datetime import datetime
 from pathlib import Path
 import requests as _http
@@ -120,21 +121,38 @@ def _resolve_pdf_renderable_image_path(image_path: str) -> str:
     if ext != '.svg':
         return candidate
 
-    try:
-        import cairosvg
-    except Exception:
-        _pdf_debug("SVG logo requested for PDF but cairosvg is not installed.")
-        return candidate
+    base_name = os.path.splitext(os.path.basename(candidate))[0] or 'brand_logo'
+    temp_dir = tempfile.mkdtemp(prefix='sd_svg_pdf_')
+    png_path = os.path.join(temp_dir, f'{base_name}.png')
 
     try:
-        base_name = os.path.splitext(os.path.basename(candidate))[0] or 'brand_logo'
-        temp_dir = tempfile.mkdtemp(prefix='sd_svg_pdf_')
-        png_path = os.path.join(temp_dir, f'{base_name}.png')
+        import cairosvg
         cairosvg.svg2png(url=candidate, write_to=png_path, output_width=1200)
         if os.path.exists(png_path):
             return png_path
     except Exception as exc:
-        _pdf_debug(f"Warning: Could not rasterize SVG logo for PDF: {exc}")
+        _pdf_debug(f"SVG logo requested for PDF; cairosvg unavailable or failed: {exc}")
+
+    fallback_commands = []
+    for exe in ('rsvg-convert', 'convert', 'magick'):
+        resolved_binary = shutil.which(exe)
+        if resolved_binary:
+            fallback_commands.append((exe, resolved_binary))
+
+    for exe, resolved_binary in fallback_commands:
+        try:
+            if exe == 'rsvg-convert':
+                cmd = [resolved_binary, candidate, '-o', png_path]
+            elif exe == 'convert':
+                cmd = [resolved_binary, candidate, '-resize', '1200x', png_path]
+            else:
+                cmd = [resolved_binary, candidate, png_path]
+
+            completed = subprocess.run(cmd, capture_output=True, text=True, check=False)
+            if completed.returncode == 0 and os.path.exists(png_path):
+                return png_path
+        except Exception as exc:
+            _pdf_debug(f"Warning: fallback SVG converter '{exe}' failed: {exc}")
 
     return candidate
 
