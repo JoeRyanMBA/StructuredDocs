@@ -7,6 +7,7 @@ from ..utils.settings import get_setting, set_setting, DEFAULTS
 from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import os
+import json
 from typing import Any
 from werkzeug.utils import secure_filename
 from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
@@ -22,6 +23,7 @@ EXPORT_BRANDING_IMAGE_KEYS = {
 }
 
 ALLOWED_BRANDING_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'}
+HIDDEN_BRANDING_ASSETS_KEY = 'export_branding_hidden_assets'
 
 
 def _branding_backgrounds_dir() -> str:
@@ -32,6 +34,31 @@ def _branding_backgrounds_dir() -> str:
 def _allowed_branding_file(filename: str) -> bool:
     ext = os.path.splitext(filename or '')[1].lower()
     return ext in ALLOWED_BRANDING_EXTENSIONS
+
+
+def _get_hidden_branding_assets() -> set[str]:
+    raw = (get_setting(HIDDEN_BRANDING_ASSETS_KEY, '[]') or '').strip()
+    if not raw:
+        return set()
+    try:
+        payload = json.loads(raw)
+    except Exception:
+        return set()
+    if not isinstance(payload, list):
+        return set()
+    hidden = set()
+    for item in payload:
+        if not isinstance(item, str):
+            continue
+        name = os.path.basename(item.strip())
+        if name and _allowed_branding_file(name):
+            hidden.add(name)
+    return hidden
+
+
+def _set_hidden_branding_assets(items: set[str]) -> None:
+    clean = sorted(name for name in items if name and _allowed_branding_file(name))
+    set_setting(HIDDEN_BRANDING_ASSETS_KEY, json.dumps(clean))
 
 
 def _extract_bearer_or_raw_token() -> str:
@@ -686,6 +713,7 @@ def list_export_branding_assets():
     # Build a reverse map: filename -> [setting keys that currently use it].
     rows_by_key = {row.key: row.value for row in SystemSetting.query.filter(SystemSetting.key.in_(list(EXPORT_BRANDING_IMAGE_KEYS))).all()}
     usage_map: dict[str, list[str]] = {}
+    hidden_assets = _get_hidden_branding_assets()
     for key in EXPORT_BRANDING_IMAGE_KEYS:
         default_val = DEFAULTS.get(key, ('', ''))[0]
         current_val = (rows_by_key.get(key) or default_val or '').strip()
@@ -703,6 +731,8 @@ def list_export_branding_assets():
             if not os.path.isfile(path):
                 continue
             if not _allowed_branding_file(name):
+                continue
+            if name in hidden_assets:
                 continue
             stat = os.stat(path)
             rows.append({
@@ -779,6 +809,8 @@ def preview_export_branding_asset(filename):
 
     assets_dir = _branding_backgrounds_dir()
     path = os.path.join(assets_dir, candidate)
+    if candidate in _get_hidden_branding_assets():
+        return jsonify({'error': 'Image not found'}), 404
     if not os.path.exists(path):
         return jsonify({'error': 'Image not found'}), 404
 
@@ -817,11 +849,15 @@ def delete_export_branding_asset(filename):
 
     assets_dir = _branding_backgrounds_dir()
     target_path = os.path.join(assets_dir, candidate)
-    if not os.path.exists(target_path):
-        return jsonify({'error': 'Image not found'}), 404
+    hidden_assets = _get_hidden_branding_assets()
+    if candidate in hidden_assets:
+        return jsonify({'deleted': candidate, 'already_hidden': True}), 200
 
     try:
-        os.remove(target_path)
+        if os.path.exists(target_path):
+            os.remove(target_path)
+        hidden_assets.add(candidate)
+        _set_hidden_branding_assets(hidden_assets)
     except Exception as exc:
         current_app.logger.exception('Failed deleting branding asset')
         return jsonify({'error': str(exc)}), 500
