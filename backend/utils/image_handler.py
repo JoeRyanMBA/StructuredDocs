@@ -178,24 +178,35 @@ class ImageHandler:
                 if stored_image_info:
                     stored_images.append(stored_image_info)
                     success_count += 1
-                    # Update markdown content with new image path
-                    old_ref = f"media/{temp_image_path.name}"
                     new_ref = stored_image_info.get('public_url') or f"/images/imports/{self.import_doc_id}/{stored_image_info['filename']}"
-                    # Replace various possible reference formats.
-                    # The optional (?:\{[^}]*\})? suffix strips Pandoc-style size attributes
-                    # like {width="4.0in" height="2.0in"} that pandoc adds to image references.
-                    pandoc_attrs = r'(?:\{[^}]*\})?'
-                    patterns = [
-                        rf"!\[.*?\]\({re.escape(old_ref)}\){pandoc_attrs}",
-                        rf"!\[.*?\]\({re.escape(temp_image_path.name)}\){pandoc_attrs}",
-                        rf"!\[.*?\]\(.*?{re.escape(temp_image_path.stem)}.*?\){pandoc_attrs}"
-                    ]
-                    for pattern in patterns:
-                        matches = re.finditer(pattern, updated_content)
-                        for match in matches:
-                            alt_text = re.search(r'!\[(.*?)\]', match.group()).group(1)
-                            new_markdown = f"![{alt_text}]({new_ref})"
-                            updated_content = updated_content.replace(match.group(), new_markdown)
+
+                    def replace_markdown_image(match):
+                        alt_text = match.group(1)
+                        image_ref = match.group(2).strip()
+                        ref_name = os.path.basename(image_ref.replace('\\', '/').split('?', 1)[0].split('#', 1)[0])
+                        if ref_name != temp_image_path.name:
+                            return match.group(0)
+                        return f"![{alt_text}]({new_ref})"
+
+                    def replace_html_image(match):
+                        pre_attrs = match.group(1)
+                        image_ref = match.group(2).strip()
+                        post_attrs = match.group(3)
+                        ref_name = os.path.basename(image_ref.replace('\\', '/').split('?', 1)[0].split('#', 1)[0])
+                        if ref_name != temp_image_path.name:
+                            return match.group(0)
+                        return f'<img{pre_attrs}src="{new_ref}"{post_attrs}>'
+
+                    updated_content = re.sub(
+                        r'!\[([^\]]*)\]\(([^)]+)\)',
+                        replace_markdown_image,
+                        updated_content,
+                    )
+                    updated_content = re.sub(
+                        r'<img([^>]*?)src="([^"]*)"([^>]*?)>',
+                        replace_html_image,
+                        updated_content,
+                    )
                 else:
                     failed_count += 1
                     current_app.logger.warning(f"⚠️  Image storage returned None: {temp_image_path.name}")

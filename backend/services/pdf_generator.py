@@ -1677,6 +1677,8 @@ def convert_image_to_base64(image_src):
     - Absolute http/https URLs are returned as-is (they work from any browser).
     - /images/<filename> paths and bare filenames are resolved by searching all
       known local image directories; if found, the file is embedded as base64.
+    - Temporary pandoc paths such as /tmp/.../media/image1.png are also resolved
+      by basename so legacy imports still render correctly.
     - Falls back to the original src if the image cannot be found.
     """
     try:
@@ -1684,13 +1686,28 @@ def convert_image_to_base64(image_src):
         if image_src.startswith('http://') or image_src.startswith('https://') or image_src.startswith('data:'):
             return image_src
 
+        candidate_paths = []
+        normalized_src = str(image_src).strip().replace('\\', '/')
+        if normalized_src.startswith('file://'):
+            normalized_src = normalized_src[7:]
+
+        if normalized_src and os.path.exists(normalized_src):
+            candidate_paths.append(normalized_src)
+
         # Strip well-known prefixes to get the bare filename / relative path.
-        if image_src.startswith('/images/'):
-            rel_path = image_src[8:]
-        elif image_src.startswith('/static/images/'):
-            rel_path = image_src[15:]
+        if normalized_src.startswith('/images/'):
+            rel_path = normalized_src[8:]
+        elif normalized_src.startswith('/static/images/'):
+            rel_path = normalized_src[15:]
         else:
-            rel_path = image_src  # bare filename or unknown relative path
+            rel_path = normalized_src  # bare filename or unknown relative path
+
+        if rel_path:
+            candidate_paths.append(rel_path)
+
+        basename = os.path.basename(normalized_src) or os.path.basename(rel_path)
+        if basename:
+            candidate_paths.append(basename)
 
         # Search all directories the backend serves images from.
         candidate_roots = []
@@ -1710,12 +1727,32 @@ def convert_image_to_base64(image_src):
         candidate_roots.append(resolve_local_storage_root())
         candidate_roots.append('/app/data/images')
 
-        full_image_path = None
+        # Allow absolute temp paths and pandoc-generated media refs to resolve by basename.
         for root in candidate_roots:
-            candidate = os.path.join(root, rel_path)
-            if os.path.exists(candidate):
-                full_image_path = candidate
-                break
+            if root:
+                candidate_paths.append(os.path.join(root, rel_path))
+                if basename:
+                    candidate_paths.append(os.path.join(root, basename))
+
+        for temp_root in ('/tmp', '/var/tmp', '/private/tmp', '/app', os.path.expanduser('~')):
+            if not temp_root or not os.path.isdir(temp_root):
+                continue
+            if basename:
+                for match in Path(temp_root).rglob(basename):
+                    if match.is_file():
+                        candidate_paths.append(str(match))
+
+        full_image_path = None
+        for candidate in candidate_paths:
+            candidate = candidate.strip()
+            if not candidate:
+                continue
+            try:
+                if os.path.exists(candidate) and os.path.isfile(candidate):
+                    full_image_path = candidate
+                    break
+            except Exception:
+                continue
 
         if not full_image_path:
             current_app.logger.debug(f"Warning: Image not found for '{image_src}' (searched {len(candidate_roots)} directories)")
