@@ -54,3 +54,19 @@ def test_convert_markdown_to_html_rewrites_tmp_pandoc_image_paths_to_data_urls(t
     assert '/tmp/import_8_kr60p3wc' not in html
     assert 'data:image/png;base64,' in html
     assert 'Figure' in html
+
+
+def test_convert_markdown_to_html_resolves_canonical_import_paths_without_leading_slash(tmp_path, monkeypatch):
+    storage_root = tmp_path / 'custom-images'
+    storage_root.mkdir()
+    image_path = storage_root / 'imports' / '5' / 'image2.png'
+    image_path.parent.mkdir(parents=True)
+    image_path.write_bytes(b'fake-image-bytes-2')
+
+    monkeypatch.setenv('IMAGE_STORAGE_ROOT', str(storage_root))
+    app = Flask(__name__)
+    with app.app_context():
+        html = convert_markdown_to_html('![Figure](images/imports/5/image2.png)')
+
+    assert 'data:image/png;base64,' in html
+    assert 'Figure' in html
