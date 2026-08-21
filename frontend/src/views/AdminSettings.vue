@@ -345,10 +345,10 @@ export default {
       this.logoPreviewErrored = false
     },
   },
-  mounted() {
-    this.reload()
-    this.loadBrandingAssets()
-    this.loadPublications()
+  async mounted() {
+    await this.reload()
+    await this.loadBrandingAssets()
+    await this.loadPublications()
   },
   beforeUnmount() {
     this.revokeAssetPreviewUrls()
@@ -611,6 +611,7 @@ export default {
         this.saveError = null
       }
       await this.reload()
+      await this.loadBrandingAssets()
       return true
     },
     async save() {
