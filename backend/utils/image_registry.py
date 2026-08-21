@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import os
+import re
 from datetime import datetime
 
 
@@ -41,6 +42,122 @@ def normalize_import_image_public_url(public_url: str | None, *, document_id: in
             return canonical
 
     return normalized
+
+
+def build_import_image_basename_map(images=None):
+    """Build a basename -> canonical public URL map for imported images.
+
+    This is used to rewrite stale pandoc /tmp/.../media/... refs back to their
+    permanent /images/imports/<doc>/<filename> equivalents in already-saved content.
+    """
+    if images is None:
+        try:
+            from backend.models import ImportImage
+            images = ImportImage.query.filter(ImportImage.public_url.isnot(None)).all()
+        except Exception:
+            return {}
+
+    mapping: dict[str, str] = {}
+    for image in images or []:
+        if image is None:
+            continue
+        public_url = getattr(image, 'public_url', '') or ''
+        normalized = normalize_import_image_public_url(
+            public_url,
+            document_id=getattr(image, 'document_id', None),
+            filename=getattr(image, 'filename', None),
+        )
+        if not normalized:
+            continue
+        basename = os.path.basename(normalized.replace('\\', '/'))
+        if basename:
+            mapping[basename] = normalized
+    return mapping
+
+
+def normalize_stale_temp_image_refs_in_content(content: str | None, *, basename_map: dict[str, str] | None = None) -> str:
+    """Rewrite stale pandoc temp image refs to their canonical permanent URLs when known."""
+    if not content:
+        return content or ''
+    if not basename_map:
+        return content
+
+    def resolve_url(url: str | None) -> str | None:
+        if not url:
+            return None
+        cleaned = url.strip().replace('\\', '/')
+        cleaned = cleaned.split('?', 1)[0].split('#', 1)[0]
+        basename = os.path.basename(cleaned)
+        if not basename or '/tmp/' not in cleaned.lower():
+            return None
+        canonical = basename_map.get(basename)
+        return canonical if canonical else None
+
+    def replace_markdown(match):
+        alt_text = match.group(1)
+        ref = match.group(2)
+        replacement = resolve_url(ref)
+        if replacement is None:
+            return match.group(0)
+        return f'![{alt_text}]({replacement})'
+
+    def replace_html(match):
+        prefix = match.group(1)
+        ref = match.group(2)
+        suffix = match.group(3)
+        replacement = resolve_url(ref)
+        if replacement is None:
+            return match.group(0)
+        return f'{prefix}{replacement}{suffix}'
+
+    rewritten = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_markdown, content)
+    rewritten = re.sub(r'(<img\b[^>]*\bsrc=["\'])([^"\']+)(["\'][^>]*>)', replace_html, rewritten)
+    return rewritten
+
+
+def normalize_stale_temp_image_refs_in_database(db_session, *, include_topics=True, include_publications=True):
+    """One-time repair for topic/publication content that still contains temp pandoc refs."""
+    try:
+        from backend.models import ImportImage, Topic, PublicationNode
+
+        basename_map = build_import_image_basename_map(ImportImage.query.filter(ImportImage.public_url.isnot(None)).all())
+        if not basename_map:
+            return {'topics_updated': 0, 'publication_nodes_updated': 0, 'updated_records': []}
+
+        updated = []
+        topics_updated = 0
+        if include_topics:
+            for topic in Topic.query.all():
+                if not topic or not topic.content:
+                    continue
+                rewritten = normalize_stale_temp_image_refs_in_content(topic.content, basename_map=basename_map)
+                if rewritten != topic.content:
+                    topic.content = rewritten
+                    updated.append({'type': 'topic', 'id': topic.id})
+                    topics_updated += 1
+
+        publication_nodes_updated = 0
+        if include_publications:
+            for node in PublicationNode.query.all():
+                if not node or not node.content_snapshot:
+                    continue
+                rewritten = normalize_stale_temp_image_refs_in_content(node.content_snapshot, basename_map=basename_map)
+                if rewritten != node.content_snapshot:
+                    node.content_snapshot = rewritten
+                    updated.append({'type': 'publication_node', 'id': node.id})
+                    publication_nodes_updated += 1
+
+        if updated:
+            db_session.session.commit()
+        return {
+            'topics_updated': topics_updated,
+            'publication_nodes_updated': publication_nodes_updated,
+            'updated_records': updated,
+        }
+    except Exception:
+        if 'db_session' in locals() and hasattr(db_session, 'session'):
+            db_session.session.rollback()
+        raise
 
 
 def _normalize_public_url(public_url: str | None) -> str:

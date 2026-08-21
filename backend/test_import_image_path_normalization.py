@@ -3,7 +3,7 @@ from pathlib import Path
 from flask import Flask
 
 from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
-from backend.utils.image_registry import normalize_import_image_public_url
+from backend.utils.image_registry import normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content
 from backend.utils.storage import resolve_local_storage_root
 
 
@@ -84,3 +84,24 @@ def test_convert_image_to_base64_resolves_image_from_static_backgrounds_folder(t
         result = convert_image_to_base64('uploaded_logo.png')
 
     assert result.startswith('data:image/png;base64,')
+
+
+def test_normalize_stale_temp_image_refs_in_content_rewrites_pandoc_tmp_urls():
+    content = 'Before\n![Figure](/tmp/import_8_kr60p3wc/media/media/image1.png)\nAfter\n<img src="/tmp/import_8_kr60p3wc/media/media/image2.png" alt="alt">'
+    rewritten = normalize_stale_temp_image_refs_in_content(
+        content,
+        basename_map={
+            'image1.png': '/images/imports/5/image1.png',
+            'image2.png': '/images/imports/5/image2.png',
+        }
+    )
+
+    assert '/tmp/import_8_kr60p3wc' not in rewritten
+    assert '/images/imports/5/image1.png' in rewritten
+    assert '/images/imports/5/image2.png' in rewritten
+
+
+def test_normalize_stale_temp_image_refs_in_content_keeps_unknown_paths():
+    content = '![Figure](/tmp/unknown/media/ghost.png)'
+    rewritten = normalize_stale_temp_image_refs_in_content(content, basename_map={})
+    assert rewritten == content
