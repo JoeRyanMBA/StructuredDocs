@@ -6,6 +6,7 @@ from ..utils.settings import get_setting
 
 
 HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}$")
+NO_COVER_BACKGROUND_SENTINEL = "__none__"
 
 
 DEFAULT_BRANDING: Dict[str, str] = {
@@ -39,6 +40,8 @@ def resolve_brand_asset_path(value: str, fallback_filename: str = "") -> str:
     - Relative paths from repo root
     """
     candidate = (value or "").strip() or fallback_filename
+    if candidate == NO_COVER_BACKGROUND_SENTINEL:
+        return ""
     if not candidate:
         return ""
 

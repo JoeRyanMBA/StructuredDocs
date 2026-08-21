@@ -9,6 +9,7 @@ from datetime import datetime, timedelta
 import os
 from typing import Any
 from werkzeug.utils import secure_filename
+from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -689,6 +690,8 @@ def list_export_branding_assets():
         default_val = DEFAULTS.get(key, ('', ''))[0]
         current_val = (rows_by_key.get(key) or default_val or '').strip()
         if not current_val:
+            continue
+        if current_val == NO_COVER_BACKGROUND_SENTINEL:
             continue
         basename = os.path.basename(current_val)
         usage_map.setdefault(basename, []).append(key)
