@@ -1,4 +1,5 @@
-from flask import current_app
+import logging
+from flask import current_app, has_app_context
 import re
 import os
 import base64
@@ -87,6 +88,55 @@ def _format_inline_markdown_for_pdf(text: str) -> str:
     formatted = re.sub(r'\*(.*?)\*', r'<i>\1</i>', formatted)
     formatted = re.sub(r'`(.*?)`', r'<font face="Courier">\1</font>', formatted)
     return formatted
+
+
+def _pdf_debug(message: str) -> None:
+    """Log PDF diagnostics without assuming a Flask app context exists."""
+    if has_app_context():
+        current_app.logger.debug(message)
+        return
+    logging.getLogger(__name__).debug(message)
+
+
+def _resolve_pdf_renderable_image_path(image_path: str) -> str:
+    """Return a filesystem path that ReportLab can draw for PDF exports.
+
+    Uploads may be SVGs, but ReportLab cannot render SVG directly. Convert SVGs
+    to a temporary PNG on demand and return the converted path; PNG/JPG/GIF
+    files pass through unchanged.
+    """
+    candidate = (image_path or '').strip()
+    if not candidate:
+        return ''
+
+    resolved = resolve_brand_asset_path(candidate, '')
+    if resolved:
+        candidate = resolved
+
+    if not os.path.exists(candidate):
+        return candidate
+
+    ext = os.path.splitext(candidate)[1].lower()
+    if ext != '.svg':
+        return candidate
+
+    try:
+        import cairosvg
+    except Exception:
+        _pdf_debug("SVG logo requested for PDF but cairosvg is not installed.")
+        return candidate
+
+    try:
+        base_name = os.path.splitext(os.path.basename(candidate))[0] or 'brand_logo'
+        temp_dir = tempfile.mkdtemp(prefix='sd_svg_pdf_')
+        png_path = os.path.join(temp_dir, f'{base_name}.png')
+        cairosvg.svg2png(url=candidate, write_to=png_path, output_width=1200)
+        if os.path.exists(png_path):
+            return png_path
+    except Exception as exc:
+        _pdf_debug(f"Warning: Could not rasterize SVG logo for PDF: {exc}")
+
+    return candidate
 
 
 def _resolve_local_image_path_for_pdf(src: str) -> str:
@@ -299,7 +349,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                 )
                 canvas.restoreState()
             except Exception as e:
-                current_app.logger.debug(f"Warning: Could not add background image: {e}")
+                _pdf_debug(f"Warning: Could not add background image: {e}")
         
         # Add title page footer
         self.add_title_footer(canvas, doc)
@@ -327,9 +377,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Add Organization logo (positioned at left edge)
-            title_logo_path = resolve_brand_asset_path(
-                self.branding.get('pdf_title_logo', ''),
-                'Title_Page_Logo.png'
+            title_logo_path = _resolve_pdf_renderable_image_path(
+                self.branding.get('pdf_title_logo', '')
             )
             if os.path.exists(title_logo_path):
                 try:
@@ -342,7 +391,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    current_app.logger.debug("Warning: Could not load title page logo")
+                    _pdf_debug("Warning: Could not load title page logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 10)
@@ -369,7 +418,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add title footer: {e}")
+            _pdf_debug(f"Warning: Could not add title footer: {e}")
     
     def add_toc_footer(self, canvas, doc):
         """Add footer for TOC pages with horizontal line"""
@@ -393,9 +442,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
             # Add Organization logo
-            footer_logo_path = resolve_brand_asset_path(
-                self.branding.get('pdf_footer_logo', ''),
-                'Footer_Logo.png'
+            footer_logo_path = _resolve_pdf_renderable_image_path(
+                self.branding.get('pdf_footer_logo', '')
             )
             if os.path.exists(footer_logo_path):
                 try:
@@ -408,7 +456,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    current_app.logger.debug("Warning: Could not load footer logo")
+                    _pdf_debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -431,7 +479,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
+            _pdf_debug(f"Warning: Could not add TOC footer: {e}")
 
     def add_content_footer(self, canvas, doc):
         """Add footer for content pages with horizontal line"""
@@ -456,9 +504,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
             
             # Add organization logo
-            footer_logo_path = resolve_brand_asset_path(
-                self.branding.get('pdf_footer_logo', ''),
-                'Footer_Logo.png'
+            footer_logo_path = _resolve_pdf_renderable_image_path(
+                self.branding.get('pdf_footer_logo', '')
             )
             if os.path.exists(footer_logo_path):
                 try:
@@ -471,7 +518,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    current_app.logger.debug("Warning: Could not load footer logo")
+                    _pdf_debug("Warning: Could not load footer logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -495,8 +542,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
-            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
+            _pdf_debug(f"Warning: Could not add content footer: {e}")
+            _pdf_debug(f"Warning: Could not add content footer: {e}")
     
     def int_to_roman(self, num):
         """Convert integer to roman numerals"""
@@ -547,7 +594,7 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.restoreState()
             
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add header: {e}")
+            _pdf_debug(f"Warning: Could not add header: {e}")
 
 
 class HeaderDocTemplate(BaseDocTemplate):
@@ -636,9 +683,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
             
             # Add Organization logo (positioned at left edge)
-            title_logo_path = resolve_brand_asset_path(
-                self.branding.get('pdf_title_logo', ''),
-                'Title_Page_Logo.png'
+            title_logo_path = _resolve_pdf_renderable_image_path(
+                self.branding.get('pdf_title_logo', '')
             )
             if os.path.exists(title_logo_path):
                 try:
@@ -651,7 +697,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'  # Enable transparency support
                     )
                 except:
-                    current_app.logger.debug("Warning: Could not load title page logo")
+                    _pdf_debug("Warning: Could not load title page logo")
             
             # Set font for footer text
             canvas.setFont("Helvetica", 9)
@@ -675,7 +721,7 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             canvas.restoreState()
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add title footer: {e}")
+            _pdf_debug(f"Warning: Could not add title footer: {e}")
     
     def add_toc_footer(self, canvas, doc):
         """Add footer for TOC pages with horizontal line"""
@@ -695,9 +741,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
 
-            footer_logo_path = resolve_brand_asset_path(
-                self.branding.get('pdf_footer_logo', ''),
-                'Footer_Logo.png'
+            footer_logo_path = _resolve_pdf_renderable_image_path(
+                self.branding.get('pdf_footer_logo', '')
             )
             if os.path.exists(footer_logo_path):
                 try:
@@ -710,7 +755,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'
                     )
                 except:
-                    current_app.logger.debug("Warning: Could not load footer logo")
+                    _pdf_debug("Warning: Could not load footer logo")
 
             canvas.setFont("Helvetica", 9)
             canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
@@ -727,7 +772,7 @@ class HeaderDocTemplate(BaseDocTemplate):
 
             canvas.restoreState()
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add TOC footer: {e}")
+            _pdf_debug(f"Warning: Could not add TOC footer: {e}")
 
     def add_content_footer(self, canvas, doc):
         """Add footer for content pages with horizontal line"""
@@ -747,9 +792,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.setLineWidth(0.5)
             canvas.line(self.leftMargin, line_y, page_width - self.rightMargin, line_y)
 
-            footer_logo_path = resolve_brand_asset_path(
-                self.branding.get('pdf_footer_logo', ''),
-                'Footer_Logo.png'
+            footer_logo_path = _resolve_pdf_renderable_image_path(
+                self.branding.get('pdf_footer_logo', '')
             )
             if os.path.exists(footer_logo_path):
                 try:
@@ -762,7 +806,7 @@ class HeaderDocTemplate(BaseDocTemplate):
                         mask='auto'
                     )
                 except:
-                    current_app.logger.debug("Warning: Could not load footer logo")
+                    _pdf_debug("Warning: Could not load footer logo")
 
             canvas.setFont("Helvetica", 9)
             canvas.drawCentredString(page_width / 2, footer_text_y, self.brand_name)
@@ -778,8 +822,8 @@ class HeaderDocTemplate(BaseDocTemplate):
 
             canvas.restoreState()
         except Exception as e:
-            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
-            current_app.logger.debug(f"Warning: Could not add content footer: {e}")
+            _pdf_debug(f"Warning: Could not add content footer: {e}")
+            _pdf_debug(f"Warning: Could not add content footer: {e}")
     
     def int_to_roman(self, num):
         """Convert integer to roman numerals"""
@@ -796,13 +840,13 @@ class HeaderDocTemplate(BaseDocTemplate):
     
     def add_header(self, canvas, doc):
         """Add header with publication info and horizontal line"""
-        current_app.logger.debug("DEBUG: HeaderDocTemplate add_header called")
+        _pdf_debug("DEBUG: HeaderDocTemplate add_header called")
         if not self.publication:
-            current_app.logger.debug("DEBUG: No publication object")
+            _pdf_debug("DEBUG: No publication object")
             return
-            
+        
         try:
-            current_app.logger.debug(f"DEBUG: Adding header for publication: {self.publication.title}")
+            _pdf_debug(f"DEBUG: Adding header for publication: {self.publication.title}")
             # Save canvas state
             canvas.saveState()
             
@@ -831,10 +875,10 @@ class HeaderDocTemplate(BaseDocTemplate):
             
             # Restore canvas state
             canvas.restoreState()
-            current_app.logger.debug("DEBUG: Header drawing completed successfully")
+            _pdf_debug("DEBUG: Header drawing completed successfully")
             
         except Exception as e:
-            current_app.logger.debug(f"WARNING: Could not add header: {e}")
+            _pdf_debug(f"WARNING: Could not add header: {e}")
             import traceback
             traceback.print_exc()
 

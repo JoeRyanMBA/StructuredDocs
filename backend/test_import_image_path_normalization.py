@@ -1,3 +1,6 @@
+import os
+import sys
+import types
 from pathlib import Path
 
 from flask import Flask
@@ -111,3 +114,80 @@ def test_normalize_stale_temp_image_refs_in_content_keeps_unknown_paths():
 def test_pdf_generator_exposes_datetime_for_footer_logo_rendering():
     assert hasattr(pdf_generator_module, 'datetime')
     assert pdf_generator_module.datetime is not None
+
+
+def test_pdf_uses_png_when_svg_logo_is_uploaded(tmp_path, monkeypatch):
+    svg_path = tmp_path / 'brand_logo.svg'
+    svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+
+    def fake_svg2png(url, write_to, **kwargs):
+        with open(write_to, 'wb') as fh:
+            fh.write(b'fake-png-bytes')
+
+    monkeypatch.setitem(
+        sys.modules,
+        'cairosvg',
+        types.SimpleNamespace(svg2png=fake_svg2png),
+    )
+
+    resolved = pdf_generator_module._resolve_pdf_renderable_image_path(str(svg_path))
+
+    assert resolved.endswith('.png')
+    assert os.path.exists(resolved)
+    assert resolved != str(svg_path)
+
+
+def test_pdf_title_and_footer_templates_use_svg_rasterization(monkeypatch):
+    calls = []
+
+    def fake_rasterize(path):
+        calls.append(path)
+        return '/tmp/converted-brand-logo.png'
+
+    def fake_resolve(value, fallback=''):
+        return '/tmp/original-brand-logo.svg' if value else fallback
+
+    monkeypatch.setattr(pdf_generator_module, '_resolve_pdf_renderable_image_path', fake_rasterize)
+    monkeypatch.setattr(pdf_generator_module, 'resolve_brand_asset_path', fake_resolve)
+    monkeypatch.setattr(pdf_generator_module.os.path, 'exists', lambda *_args, **_kwargs: True)
+
+    class DummyCanvas:
+        def saveState(self):
+            pass
+
+        def restoreState(self):
+            pass
+
+        def setFont(self, *args, **kwargs):
+            pass
+
+        def drawImage(self, path, *args, **kwargs):
+            calls.append(path)
+
+        def drawCentredString(self, *args, **kwargs):
+            pass
+
+        def drawString(self, *args, **kwargs):
+            pass
+
+        def stringWidth(self, *args, **kwargs):
+            return 10
+
+        def line(self, *args, **kwargs):
+            pass
+
+    template = pdf_generator_module.HeaderDocTemplate.__new__(pdf_generator_module.HeaderDocTemplate)
+    template.branding = {'pdf_title_logo': 'brand.svg', 'pdf_footer_logo': 'brand.svg', 'brand_name': 'Acme'}
+    template.publication = types.SimpleNamespace(form_number='FORM-1', id=1)
+    template.pagesize = (612, 792)
+    template.leftMargin = 36
+    template.rightMargin = 36
+    template.bottomMargin = 36
+    template.width = 540
+    template.height = 720
+
+    template.add_title_footer(DummyCanvas(), object())
+    template.add_content_footer(DummyCanvas(), types.SimpleNamespace(page=1))
+
+    assert calls.count('/tmp/converted-brand-logo.png') >= 1
+    assert any(path == '/tmp/converted-brand-logo.png' for path in calls)
