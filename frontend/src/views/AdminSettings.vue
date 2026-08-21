@@ -641,7 +641,7 @@ export default {
 
 .asset-thumb-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
   gap: 8px;
 }
 
@@ -680,6 +680,8 @@ export default {
   display: grid;
   gap: 6px;
   text-align: left;
+  min-width: 0;
+  overflow: hidden;
 }
 
 .asset-thumb-btn.active {
@@ -693,6 +695,7 @@ export default {
   object-fit: contain;
   border-radius: 6px;
   background: #f8fafc;
+  display: block;
 }
 
 .asset-select-btn {
@@ -704,10 +707,17 @@ export default {
   display: grid;
   gap: 6px;
   cursor: pointer;
+  width: 100%;
+  min-width: 0;
+  align-items: start;
 }
 
 .asset-delete-btn {
   width: 100%;
+  min-width: 0 !important;
+  max-width: 100%;
+  white-space: normal !important;
+  overflow-wrap: anywhere;
 }
 
 .asset-thumb-name {
@@ -920,6 +930,10 @@ export default {
 
   .export-test-controls {
     grid-template-columns: 1fr;
+  }
+
+  .asset-thumb-grid {
+    grid-template-columns: repeat(auto-fill, minmax(130px, 1fr));
   }
 }
 </style>
