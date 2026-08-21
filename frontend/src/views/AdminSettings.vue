@@ -91,12 +91,7 @@
                 >
                   <img :src="assetPreviewUrl(asset.name)" :alt="asset.name" class="asset-thumb-image" />
                   <span class="asset-thumb-name">{{ asset.name }}</span>
-                  <div v-if="asset.used_by && asset.used_by.length" class="asset-used-by">
-                    <span class="asset-used-label">Used by:</span>
-                    <span class="asset-used-chip" v-for="usageKey in asset.used_by" :key="`${asset.name}-${usageKey}`">
-                      {{ usageLabelForKey(usageKey) }}
-                    </span>
-                  </div>
+                  <div v-if="assetUsageSummary(asset)" class="asset-used-by">{{ assetUsageSummary(asset) }}</div>
                 </button>
                 <button
                   type="button"
@@ -187,7 +182,7 @@
       </div>
 
       <div class="actions-row">
-        <button class="btn btn-outline-danger" :disabled="saving" @click="resetBrandingDefaults">Reset Branding Defaults</button>
+        <button class="btn btn-secondary reset-branding-btn" :disabled="saving" @click="resetBrandingDefaults">Reset Branding Defaults</button>
         <button class="btn btn-secondary" :disabled="saving" @click="reload">Discard Changes</button>
         <button class="btn btn-primary" :disabled="saving" @click="save">
           <span v-if="saving">Saving...</span>
@@ -486,6 +481,14 @@ export default {
     },
     usageLabelForKey(key) {
       return LABELS[key] || key
+    },
+    assetUsageSummary(asset) {
+      const usedBy = Array.isArray(asset?.used_by) ? asset.used_by : []
+      if (!usedBy.length) return ''
+      if (usedBy.length === 1) {
+        return `Used by: ${this.usageLabelForKey(usedBy[0])}`
+      }
+      return `Used by ${usedBy.length} settings`
     },
     descriptionFor(key) {
       return this.settingsByKey[key]?.description || ''
@@ -792,12 +795,14 @@ export default {
 }
 
 .cover-toggle {
-  display: inline-flex;
+  display: flex;
   align-items: center;
+  justify-content: flex-start;
   flex-wrap: nowrap;
   gap: 6px;
   font-size: 0.82rem;
   color: #374151;
+  width: 100%;
 }
 
 .cover-toggle span {
@@ -845,11 +850,11 @@ export default {
 }
 
 .asset-delete-btn {
-  width: 100%;
-  min-width: 0 !important;
+  align-self: center;
+  width: auto;
+  min-width: 96px;
   max-width: 100%;
-  white-space: normal !important;
-  overflow-wrap: anywhere;
+  white-space: nowrap;
 }
 
 .asset-thumb-name {
@@ -860,24 +865,15 @@ export default {
 }
 
 .asset-used-by {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: center;
-  gap: 4px;
-}
-
-.asset-used-label {
   font-size: 0.68rem;
-  color: #6b7280;
-}
-
-.asset-used-chip {
-  font-size: 0.66rem;
   color: #1d4ed8;
   background: #eff6ff;
   border: 1px solid #bfdbfe;
-  border-radius: 999px;
-  padding: 1px 6px;
+  border-radius: 6px;
+  padding: 3px 6px;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .upload-btn {
@@ -898,6 +894,20 @@ export default {
   justify-content: flex-end;
   flex-wrap: wrap;
   gap: 8px;
+}
+
+.actions-row .btn {
+  min-height: 38px;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.reset-branding-btn:hover:not(:disabled),
+.reset-branding-btn:focus-visible:not(:disabled) {
+  background-color: #dc3545;
+  border-color: #dc3545;
+  color: #ffffff;
 }
 
 .export-test-card {
@@ -934,6 +944,11 @@ export default {
 
 .export-test-actions .btn {
   width: 100%;
+}
+
+.export-test-actions .btn i,
+.export-test-meta-row .btn i {
+  margin-right: 0.4rem;
 }
 
 .export-test-meta-row {

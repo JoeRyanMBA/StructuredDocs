@@ -89,15 +89,21 @@ export async function previewMobileKnowledgeBase(publicationId, tagIds = []) {
   })
 
   const html = typeof response.data === 'string' ? response.data : ''
-  const blob = new Blob([html], { type: 'text/html' })
-  const objectUrl = URL.createObjectURL(blob)
-  const previewWindow = window.open(objectUrl, '_blank', 'width=375,height=812,scrollbars=yes,resizable=yes,toolbar=no,menubar=no')
+  const previewWindow = window.open('', '_blank', 'width=375,height=812,scrollbars=yes,resizable=yes,toolbar=no,menubar=no')
 
   if (previewWindow) {
+    const baseHref = `${window.location.origin}/`
+    const baseTag = `<base href="${baseHref}">`
+    const hasHead = /<head[^>]*>/i.test(html)
+    const htmlWithBase = hasHead
+      ? html.replace(/<head([^>]*)>/i, `<head$1>${baseTag}`)
+      : `<!doctype html><html><head>${baseTag}</head><body>${html}</body></html>`
+
+    previewWindow.document.open()
+    previewWindow.document.write(htmlWithBase)
+    previewWindow.document.close()
     previewWindow.focus()
-    previewWindow.addEventListener('beforeunload', () => URL.revokeObjectURL(objectUrl), { once: true })
   } else {
-    URL.revokeObjectURL(objectUrl)
     throw new Error('Preview window was blocked by the browser')
   }
 }
