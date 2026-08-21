@@ -61,6 +61,24 @@ def _set_hidden_branding_assets(items: set[str]) -> None:
     set_setting(HIDDEN_BRANDING_ASSETS_KEY, json.dumps(clean))
 
 
+def _branding_asset_usage_map() -> dict[str, list[str]]:
+    """Return filename -> setting keys currently pointing at that filename."""
+    rows_by_key = {
+        row.key: row.value
+        for row in SystemSetting.query.filter(SystemSetting.key.in_(list(EXPORT_BRANDING_IMAGE_KEYS))).all()
+    }
+    usage_map: dict[str, list[str]] = {}
+    for key in EXPORT_BRANDING_IMAGE_KEYS:
+        default_val = DEFAULTS.get(key, ('', ''))[0]
+        current_val = (rows_by_key.get(key) or default_val or '').strip()
+        if not current_val or current_val == NO_COVER_BACKGROUND_SENTINEL:
+            continue
+        basename = os.path.basename(current_val)
+        if basename and _allowed_branding_file(basename):
+            usage_map.setdefault(basename, []).append(key)
+    return usage_map
+
+
 def _extract_bearer_or_raw_token() -> str:
     auth = request.headers.get('Authorization', '') or ''
     if auth.startswith('Bearer '):
@@ -711,18 +729,13 @@ def list_export_branding_assets():
     os.makedirs(assets_dir, exist_ok=True)
 
     # Build a reverse map: filename -> [setting keys that currently use it].
-    rows_by_key = {row.key: row.value for row in SystemSetting.query.filter(SystemSetting.key.in_(list(EXPORT_BRANDING_IMAGE_KEYS))).all()}
-    usage_map: dict[str, list[str]] = {}
+    usage_map = _branding_asset_usage_map()
     hidden_assets = _get_hidden_branding_assets()
-    for key in EXPORT_BRANDING_IMAGE_KEYS:
-        default_val = DEFAULTS.get(key, ('', ''))[0]
-        current_val = (rows_by_key.get(key) or default_val or '').strip()
-        if not current_val:
-            continue
-        if current_val == NO_COVER_BACKGROUND_SENTINEL:
-            continue
-        basename = os.path.basename(current_val)
-        usage_map.setdefault(basename, []).append(key)
+
+    # Never hide assets that are actively selected in settings.
+    effective_hidden_assets = {name for name in hidden_assets if name not in usage_map}
+    if effective_hidden_assets != hidden_assets:
+        _set_hidden_branding_assets(effective_hidden_assets)
 
     rows = []
     try:
@@ -732,7 +745,7 @@ def list_export_branding_assets():
                 continue
             if not _allowed_branding_file(name):
                 continue
-            if name in hidden_assets:
+            if name in effective_hidden_assets:
                 continue
             stat = os.stat(path)
             rows.append({
@@ -780,6 +793,10 @@ def upload_export_branding_asset():
 
     try:
         file.save(final_path)
+        hidden_assets = _get_hidden_branding_assets()
+        if final_name in hidden_assets:
+            hidden_assets.remove(final_name)
+            _set_hidden_branding_assets(hidden_assets)
         if target_key:
             set_setting(target_key, final_name)
     except Exception as exc:
@@ -809,7 +826,8 @@ def preview_export_branding_asset(filename):
 
     assets_dir = _branding_backgrounds_dir()
     path = os.path.join(assets_dir, candidate)
-    if candidate in _get_hidden_branding_assets():
+    usage_map = _branding_asset_usage_map()
+    if candidate in _get_hidden_branding_assets() and candidate not in usage_map:
         return jsonify({'error': 'Image not found'}), 404
     if not os.path.exists(path):
         return jsonify({'error': 'Image not found'}), 404
