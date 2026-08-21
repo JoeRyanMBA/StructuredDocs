@@ -8,8 +8,29 @@ from sqlalchemy import func, text
 from datetime import datetime, timedelta
 import os
 from typing import Any
+from werkzeug.utils import secure_filename
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
+
+
+EXPORT_BRANDING_IMAGE_KEYS = {
+    'export_html_logo',
+    'export_pdf_title_logo',
+    'export_pdf_footer_logo',
+    'export_pdf_cover_background',
+}
+
+ALLOWED_BRANDING_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'}
+
+
+def _branding_backgrounds_dir() -> str:
+    backend_dir = os.path.dirname(os.path.dirname(__file__))
+    return os.path.join(backend_dir, 'static', 'backgrounds')
+
+
+def _allowed_branding_file(filename: str) -> bool:
+    ext = os.path.splitext(filename or '')[1].lower()
+    return ext in ALLOWED_BRANDING_EXTENSIONS
 
 
 def _extract_bearer_or_raw_token() -> str:
@@ -647,3 +668,138 @@ def update_settings():
     if errors and not updated:
         return jsonify({'error': '; '.join(errors)}), 400
     return jsonify({'updated': updated, 'errors': errors}), 200
+
+
+@admin_bp.route('/export-branding/assets', methods=['GET'])
+@jwt_required()
+def list_export_branding_assets():
+    """List uploaded branding image assets available for export settings. Admin only."""
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    if err:
+        return err
+
+    assets_dir = _branding_backgrounds_dir()
+    os.makedirs(assets_dir, exist_ok=True)
+
+    # Build a reverse map: filename -> [setting keys that currently use it].
+    rows_by_key = {row.key: row.value for row in SystemSetting.query.filter(SystemSetting.key.in_(list(EXPORT_BRANDING_IMAGE_KEYS))).all()}
+    usage_map: dict[str, list[str]] = {}
+    for key in EXPORT_BRANDING_IMAGE_KEYS:
+        default_val = DEFAULTS.get(key, ('', ''))[0]
+        current_val = (rows_by_key.get(key) or default_val or '').strip()
+        if not current_val:
+            continue
+        basename = os.path.basename(current_val)
+        usage_map.setdefault(basename, []).append(key)
+
+    rows = []
+    try:
+        for name in sorted(os.listdir(assets_dir)):
+            path = os.path.join(assets_dir, name)
+            if not os.path.isfile(path):
+                continue
+            if not _allowed_branding_file(name):
+                continue
+            stat = os.stat(path)
+            rows.append({
+                'name': name,
+                'url': f'/static/backgrounds/{name}',
+                'size': stat.st_size,
+                'modified_at': datetime.utcfromtimestamp(stat.st_mtime).isoformat() + 'Z',
+                'used_by': usage_map.get(name, []),
+            })
+    except Exception as exc:
+        current_app.logger.exception('Failed listing branding assets')
+        return jsonify({'error': str(exc)}), 500
+
+    return jsonify(rows), 200
+
+
+@admin_bp.route('/export-branding/upload', methods=['POST'])
+@jwt_required()
+def upload_export_branding_asset():
+    """Upload a branding image for HTML/PDF export settings. Admin only."""
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    if err:
+        return err
+
+    file = request.files.get('file')
+    target_key = (request.form.get('target_key') or '').strip()
+
+    if not file or not file.filename:
+        return jsonify({'error': 'No file uploaded'}), 400
+    if not _allowed_branding_file(file.filename):
+        return jsonify({'error': 'Unsupported file type'}), 400
+    if target_key and target_key not in EXPORT_BRANDING_IMAGE_KEYS:
+        return jsonify({'error': f'Invalid target_key: {target_key}'}), 400
+
+    assets_dir = _branding_backgrounds_dir()
+    os.makedirs(assets_dir, exist_ok=True)
+
+    original = secure_filename(file.filename)
+    stem, ext = os.path.splitext(original)
+    stem = stem or 'branding'
+    safe_name = secure_filename(f'branding_{datetime.utcnow().strftime("%Y%m%d%H%M%S%f")}_{stem}')
+    final_name = f'{safe_name}{ext.lower()}'
+    final_path = os.path.join(assets_dir, final_name)
+
+    try:
+        file.save(final_path)
+        if target_key:
+            set_setting(target_key, final_name)
+    except Exception as exc:
+        current_app.logger.exception('Failed uploading branding asset')
+        return jsonify({'error': str(exc)}), 500
+
+    return jsonify({
+        'filename': final_name,
+        'url': f'/static/backgrounds/{final_name}',
+        'target_key': target_key or None,
+        'setting_updated': bool(target_key),
+    }), 200
+
+
+@admin_bp.route('/export-branding/assets/<path:filename>', methods=['DELETE'])
+@jwt_required()
+def delete_export_branding_asset(filename):
+    """Delete an uploaded branding image asset. Admin only."""
+    from ..routes.users import _require_admin
+    _, err = _require_admin()
+    if err:
+        return err
+
+    candidate = os.path.basename((filename or '').strip())
+    if not candidate:
+        return jsonify({'error': 'Missing filename'}), 400
+    if candidate != filename:
+        return jsonify({'error': 'Invalid filename'}), 400
+    if not _allowed_branding_file(candidate):
+        return jsonify({'error': 'Unsupported file type'}), 400
+
+    # Prevent deleting assets currently selected in persisted branding settings.
+    image_keys = list(EXPORT_BRANDING_IMAGE_KEYS)
+    in_use_rows = (
+        SystemSetting.query
+        .filter(SystemSetting.key.in_(image_keys), SystemSetting.value == candidate)
+        .all()
+    )
+    if in_use_rows:
+        return jsonify({
+            'error': 'Image is currently used by export branding settings',
+            'in_use_by': [row.key for row in in_use_rows],
+        }), 409
+
+    assets_dir = _branding_backgrounds_dir()
+    target_path = os.path.join(assets_dir, candidate)
+    if not os.path.exists(target_path):
+        return jsonify({'error': 'Image not found'}), 404
+
+    try:
+        os.remove(target_path)
+    except Exception as exc:
+        current_app.logger.exception('Failed deleting branding asset')
+        return jsonify({'error': str(exc)}), 500
+
+    return jsonify({'deleted': candidate}), 200

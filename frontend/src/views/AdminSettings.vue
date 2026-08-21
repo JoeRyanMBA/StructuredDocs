@@ -8,19 +8,92 @@
 
     <div v-else class="settings-card">
       <div class="settings-grid">
-        <label class="setting-row" v-for="key in orderedKeys" :key="key">
+        <div class="setting-row" v-for="key in orderedKeys" :key="key">
           <div class="setting-label">
             <div class="label-title">{{ labelFor(key) }}</div>
             <div class="label-help">{{ descriptionFor(key) }}</div>
           </div>
-          <input
-            v-model="edits[key]"
-            class="setting-input"
-            type="text"
-            :placeholder="placeholderFor(key)"
-          />
-        </label>
+          <div class="setting-input-stack">
+            <input
+              v-model="edits[key]"
+              class="setting-input"
+              type="text"
+              :placeholder="placeholderFor(key)"
+            />
+            <div v-if="isImageSetting(key)" class="image-controls">
+              <select class="setting-input" @change="applyAssetSelection(key, $event.target.value)">
+                <option value="">Select uploaded image...</option>
+                <option v-for="asset in visibleBrandingAssets" :key="asset.name" :value="asset.name">
+                  {{ asset.name }}
+                </option>
+              </select>
+              <label class="btn btn-secondary btn-sm upload-btn">
+                <input
+                  type="file"
+                  class="upload-input"
+                  accept="image/*"
+                  :disabled="isUploadingAsset(key)"
+                  @change="uploadAssetForKey(key, $event)"
+                />
+                <span v-if="isUploadingAsset(key)">Uploading...</span>
+                <span v-else>Upload Image</span>
+              </label>
+              <a
+                v-if="assetUrlForSetting(key)"
+                class="btn btn-secondary btn-sm"
+                :href="assetUrlForSetting(key)"
+                target="_blank"
+                rel="noopener noreferrer"
+              >
+                Preview
+              </a>
+            </div>
+            <div v-if="isImageSetting(key)" class="asset-filter-row">
+              <label class="asset-filter-toggle">
+                <input type="checkbox" v-model="showUnusedOnly" />
+                <span>Show only unused images</span>
+              </label>
+              <span class="asset-filter-meta">{{ visibleBrandingAssets.length }} shown / {{ brandingAssets.length }} total</span>
+            </div>
+            <div v-if="isImageSetting(key) && visibleBrandingAssets.length" class="asset-thumb-grid">
+              <div
+                v-for="asset in visibleBrandingAssets"
+                :key="`${key}-${asset.name}`"
+                class="asset-thumb-btn"
+                :class="{ active: edits[key] === asset.name }"
+              >
+                <button
+                  type="button"
+                  class="asset-select-btn"
+                  :title="asset.name"
+                  @click="applyAssetSelection(key, asset.name)"
+                >
+                  <img :src="assetPreviewUrl(asset.name)" :alt="asset.name" class="asset-thumb-image" />
+                  <span class="asset-thumb-name">{{ asset.name }}</span>
+                  <div v-if="asset.used_by && asset.used_by.length" class="asset-used-by">
+                    <span class="asset-used-label">Used by:</span>
+                    <span class="asset-used-chip" v-for="usageKey in asset.used_by" :key="`${asset.name}-${usageKey}`">
+                      {{ usageLabelForKey(usageKey) }}
+                    </span>
+                  </div>
+                </button>
+                <button
+                  type="button"
+                  class="btn btn-secondary btn-sm asset-delete-btn"
+                  :disabled="isDeletingAsset(asset.name) || (asset.used_by && asset.used_by.length > 0)"
+                  @click="deleteBrandingAsset(asset.name)"
+                >
+                  <span v-if="isDeletingAsset(asset.name)">Deleting...</span>
+                  <span v-else-if="asset.used_by && asset.used_by.length">In Use</span>
+                  <span v-else><i class="bi bi-trash" aria-hidden="true"></i>Delete</span>
+                </button>
+              </div>
+            </div>
+            <div v-else-if="isImageSetting(key)" class="asset-empty-note">No images match this filter.</div>
+          </div>
+        </div>
       </div>
+      <div v-if="brandingAssetsError" class="status error">{{ brandingAssetsError }}</div>
 
       <div class="preview-card" :style="previewCssVars">
         <div class="preview-header">
@@ -64,23 +137,25 @@
               {{ pub.title || `Publication ${pub.id}` }} (ID {{ pub.id }})
             </option>
           </select>
-          <button class="btn btn-outline-primary" :disabled="!canRunExportTest || exporting.pdf" @click="testPdfExport">
-            <span v-if="exporting.pdf">Generating PDF...</span>
-            <span v-else>Test PDF Export</span>
+        </div>
+        <div class="button-group equal-width export-test-actions" role="group" aria-label="Quick export test actions">
+          <button class="btn btn-primary btn-sm" :disabled="!canRunExportTest || exporting.pdf" @click="testPdfExport">
+            <span v-if="exporting.pdf"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Generating PDF...</span>
+            <span v-else><i class="bi bi-file-earmark-pdf" aria-hidden="true"></i>Test PDF Export</span>
           </button>
-          <button class="btn btn-outline-primary" :disabled="!canRunExportTest || exporting.preview" @click="testHtmlPreview">
-            <span v-if="exporting.preview">Opening Preview...</span>
-            <span v-else>Test HTML Preview</span>
+          <button class="btn btn-secondary btn-sm" :disabled="!canRunExportTest || exporting.preview" @click="testHtmlPreview">
+            <span v-if="exporting.preview"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Opening Preview...</span>
+            <span v-else><i class="bi bi-eye" aria-hidden="true"></i>Test HTML Preview</span>
           </button>
-          <button class="btn btn-outline-primary" :disabled="!canRunExportTest || exporting.downloadHtml" @click="testHtmlDownload">
-            <span v-if="exporting.downloadHtml">Downloading...</span>
-            <span v-else>Download HTML Export</span>
+          <button class="btn btn-secondary btn-sm" :disabled="!canRunExportTest || exporting.downloadHtml" @click="testHtmlDownload">
+            <span v-if="exporting.downloadHtml"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Downloading...</span>
+            <span v-else><i class="bi bi-download" aria-hidden="true"></i>Download HTML Export</span>
           </button>
         </div>
         <div class="export-test-meta-row">
-          <button class="btn btn-sm btn-outline-secondary" :disabled="loadingPublications" @click="loadPublications">
-            <span v-if="loadingPublications">Refreshing...</span>
-            <span v-else>Refresh Publications</span>
+          <button class="btn btn-secondary btn-sm" :disabled="loadingPublications" @click="loadPublications">
+            <span v-if="loadingPublications"><i class="bi bi-hourglass-split" aria-hidden="true"></i>Refreshing...</span>
+            <span v-else><i class="bi bi-arrow-repeat" aria-hidden="true"></i>Refresh Publications</span>
           </button>
           <span v-if="publicationsError" class="export-test-meta error-text">{{ publicationsError }}</span>
           <span v-else class="export-test-meta">{{ filteredPublications.length }} shown / {{ publications.length }} total</span>
@@ -105,7 +180,13 @@
 </template>
 
 <script>
-import { getAdminSettings, updateAdminSettings } from '@/api/adminSettings'
+import {
+  getAdminSettings,
+  updateAdminSettings,
+  listExportBrandingAssets,
+  uploadExportBrandingAsset,
+  deleteExportBrandingAsset,
+} from '@/api/adminSettings'
 import { toFriendlyAuthError } from '@/api/base'
 import { downloadPublicationPdf, downloadMobileKnowledgeBase, previewMobileKnowledgeBase, getPublications } from '@/api/publications'
 
@@ -149,6 +230,13 @@ const DEFAULT_VALUES = {
   export_html_accent_color: '#112E51',
 }
 
+const IMAGE_SETTING_KEYS = [
+  'export_html_logo',
+  'export_pdf_title_logo',
+  'export_pdf_footer_logo',
+  'export_pdf_cover_background',
+]
+
 export default {
   name: 'AdminSettings',
   data() {
@@ -161,6 +249,12 @@ export default {
       saveError: null,
       saveSuccess: false,
       logoPreviewErrored: false,
+      brandingAssets: [],
+      brandingAssetsLoading: false,
+      brandingAssetsError: '',
+      uploadingAssetKeys: {},
+      deletingAssetNames: {},
+      showUnusedOnly: false,
       publicationSearch: '',
       selectedPublicationId: '',
       publications: [],
@@ -225,6 +319,12 @@ export default {
         return title.includes(term) || idText.includes(term)
       })
     },
+    visibleBrandingAssets() {
+      if (!this.showUnusedOnly) {
+        return this.brandingAssets
+      }
+      return this.brandingAssets.filter(asset => !asset?.used_by || asset.used_by.length === 0)
+    },
   },
   watch: {
     logoPreviewUrl() {
@@ -233,9 +333,41 @@ export default {
   },
   mounted() {
     this.reload()
+    this.loadBrandingAssets()
     this.loadPublications()
   },
   methods: {
+    isImageSetting(key) {
+      return IMAGE_SETTING_KEYS.includes(key)
+    },
+    isUploadingAsset(key) {
+      return !!this.uploadingAssetKeys[key]
+    },
+    isDeletingAsset(filename) {
+      return !!this.deletingAssetNames[filename]
+    },
+    applyAssetSelection(key, selectedName) {
+      if (!selectedName) return
+      this.edits[key] = selectedName
+    },
+    assetUrlForSetting(key) {
+      const value = (this.edits[key] || '').trim()
+      if (!value) return ''
+      if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
+        return value
+      }
+      const basename = value.split('/').pop()
+      return basename ? `/static/backgrounds/${basename}` : ''
+    },
+    assetPreviewUrl(filename) {
+      const value = (filename || '').trim()
+      if (!value) return ''
+      if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
+        return value
+      }
+      const basename = value.split('/').pop()
+      return basename ? `/static/backgrounds/${basename}` : ''
+    },
     normalizeHexColor(value, fallback) {
       const trimmed = (value || '').trim()
       const valid = /^#?[0-9a-fA-F]{6}$/.test(trimmed)
@@ -243,6 +375,9 @@ export default {
       return trimmed.startsWith('#') ? trimmed : `#${trimmed}`
     },
     labelFor(key) {
+      return LABELS[key] || key
+    },
+    usageLabelForKey(key) {
       return LABELS[key] || key
     },
     descriptionFor(key) {
@@ -265,6 +400,66 @@ export default {
         this.error = toFriendlyAuthError(err, 'Failed to load admin settings.')
       } finally {
         this.loading = false
+      }
+    },
+    async loadBrandingAssets() {
+      this.brandingAssetsLoading = true
+      this.brandingAssetsError = ''
+      try {
+        const assets = await listExportBrandingAssets()
+        this.brandingAssets = Array.isArray(assets) ? assets : []
+      } catch (err) {
+        this.brandingAssetsError = toFriendlyAuthError(err, 'Could not load uploaded branding images.')
+      } finally {
+        this.brandingAssetsLoading = false
+      }
+    },
+    async uploadAssetForKey(key, event) {
+      const input = event?.target
+      const file = input?.files?.[0]
+      if (!file) return
+
+      this.uploadingAssetKeys = { ...this.uploadingAssetKeys, [key]: true }
+      this.saveError = null
+      this.saveSuccess = false
+      try {
+        const result = await uploadExportBrandingAsset(file)
+        if (result?.filename) {
+          this.edits[key] = result.filename
+        }
+        await this.loadBrandingAssets()
+      } catch (err) {
+        this.saveError = toFriendlyAuthError(err, 'Failed to upload branding image.')
+      } finally {
+        if (input) {
+          input.value = ''
+        }
+        const next = { ...this.uploadingAssetKeys }
+        delete next[key]
+        this.uploadingAssetKeys = next
+      }
+    },
+    async deleteBrandingAsset(filename) {
+      if (!filename) return
+      const ok = window.confirm(`Delete image "${filename}"?`)
+      if (!ok) return
+
+      this.deletingAssetNames = { ...this.deletingAssetNames, [filename]: true }
+      this.brandingAssetsError = ''
+      try {
+        await deleteExportBrandingAsset(filename)
+        Object.keys(this.edits).forEach(key => {
+          if (this.isImageSetting(key) && this.edits[key] === filename) {
+            this.edits[key] = ''
+          }
+        })
+        await this.loadBrandingAssets()
+      } catch (err) {
+        this.brandingAssetsError = toFriendlyAuthError(err, 'Failed to delete branding image.')
+      } finally {
+        const next = { ...this.deletingAssetNames }
+        delete next[filename]
+        this.deletingAssetNames = next
       }
     },
     async loadPublications() {
@@ -432,6 +627,129 @@ export default {
   padding: 10px 12px;
 }
 
+.setting-input-stack {
+  display: grid;
+  gap: 8px;
+}
+
+.image-controls {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto;
+  gap: 8px;
+  align-items: center;
+}
+
+.asset-thumb-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: 8px;
+}
+
+.asset-filter-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 8px;
+}
+
+.asset-filter-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 6px;
+  font-size: 0.82rem;
+  color: #374151;
+}
+
+.asset-filter-meta {
+  font-size: 0.75rem;
+  color: #6b7280;
+}
+
+.asset-empty-note {
+  font-size: 0.78rem;
+  color: #6b7280;
+  padding: 4px 0;
+}
+
+.asset-thumb-btn {
+  border: 1px solid #d1d5db;
+  border-radius: 8px;
+  background: #ffffff;
+  padding: 6px;
+  display: grid;
+  gap: 6px;
+  text-align: left;
+}
+
+.asset-thumb-btn.active {
+  border-color: #0d6efd;
+  box-shadow: 0 0 0 2px rgba(13, 110, 253, 0.12);
+}
+
+.asset-thumb-image {
+  width: 100%;
+  height: 64px;
+  object-fit: contain;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.asset-select-btn {
+  border: none;
+  background: transparent;
+  padding: 0;
+  margin: 0;
+  text-align: left;
+  display: grid;
+  gap: 6px;
+  cursor: pointer;
+}
+
+.asset-delete-btn {
+  width: 100%;
+}
+
+.asset-thumb-name {
+  font-size: 0.72rem;
+  line-height: 1.2;
+  color: #4b5563;
+  word-break: break-word;
+}
+
+.asset-used-by {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 4px;
+}
+
+.asset-used-label {
+  font-size: 0.68rem;
+  color: #6b7280;
+}
+
+.asset-used-chip {
+  font-size: 0.66rem;
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  padding: 1px 6px;
+}
+
+.upload-btn {
+  position: relative;
+  overflow: hidden;
+}
+
+.upload-input {
+  position: absolute;
+  inset: 0;
+  opacity: 0;
+  cursor: pointer;
+}
+
 .actions-row {
   margin-top: 18px;
   display: flex;
@@ -462,9 +780,18 @@ export default {
 .export-test-controls {
   margin-top: 12px;
   display: grid;
-  grid-template-columns: minmax(0, 220px) minmax(0, 260px) repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 8px;
   align-items: center;
+}
+
+.export-test-actions {
+  width: 100%;
+  margin-top: 8px;
+}
+
+.export-test-actions .btn {
+  width: 100%;
 }
 
 .export-test-meta-row {
@@ -584,6 +911,10 @@ export default {
 
 @media (max-width: 860px) {
   .setting-row {
+    grid-template-columns: 1fr;
+  }
+
+  .image-controls {
     grid-template-columns: 1fr;
   }
 
