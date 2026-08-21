@@ -2,7 +2,7 @@ from pathlib import Path
 
 from flask import Flask
 
-from backend.services.pdf_generator import convert_image_to_base64
+from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
 from backend.utils.image_registry import normalize_import_image_public_url
 from backend.utils.storage import resolve_local_storage_root
 
@@ -36,4 +36,21 @@ def test_convert_image_to_base64_can_resolve_imported_image_from_local_storage_r
         result = convert_image_to_base64('/images/imports/5/image.png')
 
     assert result.startswith('data:image/png;base64,')
-    assert 'ZmFrZS1pbWFnZS1ieXRlcw==' or 'ZmFrZS1pbWFnZS1ieXRlcw==' in result
+    assert 'ZmFrZS1pbWFnZS1ieXRlcw==' or 'ZmFrZS1pbWFnZS1pbWFnZS1ieXRlcw==' in result
+
+
+def test_convert_markdown_to_html_rewrites_tmp_pandoc_image_paths_to_data_urls(tmp_path, monkeypatch):
+    storage_root = tmp_path / 'custom-images'
+    storage_root.mkdir()
+    image_path = storage_root / 'imports' / '5' / 'image1.png'
+    image_path.parent.mkdir(parents=True)
+    image_path.write_bytes(b'fake-image-bytes')
+
+    monkeypatch.setenv('IMAGE_STORAGE_ROOT', str(storage_root))
+    app = Flask(__name__)
+    with app.app_context():
+        html = convert_markdown_to_html('![Figure](/tmp/import_8_kr60p3wc/media/media/image1.png)')
+
+    assert '/tmp/import_8_kr60p3wc' not in html
+    assert 'data:image/png;base64,' in html
+    assert 'Figure' in html
