@@ -34,3 +34,11 @@ export async function deleteExportBrandingAsset(filename) {
   const safe = encodeURIComponent(filename)
   return apiDelete(`/api/admin/export-branding/assets/${safe}`)
 }
+
+export async function fetchExportBrandingAssetBlob(filename) {
+  const safe = encodeURIComponent(filename)
+  const response = await axiosInstance.get(`/api/admin/export-branding/assets/${safe}/preview`, {
+    responseType: 'blob',
+  })
+  return response?.data || null
+}

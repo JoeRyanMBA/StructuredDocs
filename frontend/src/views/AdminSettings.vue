@@ -200,6 +200,7 @@ import {
   listExportBrandingAssets,
   uploadExportBrandingAsset,
   deleteExportBrandingAsset,
+  fetchExportBrandingAssetBlob,
 } from '@/api/adminSettings'
 import { toFriendlyAuthError } from '@/api/base'
 import { downloadPublicationPdf, downloadMobileKnowledgeBase, previewMobileKnowledgeBase, getPublications } from '@/api/publications'
@@ -269,6 +270,7 @@ export default {
       brandingAssetsError: '',
       uploadingAssetKeys: {},
       deletingAssetNames: {},
+      assetPreviewUrls: {},
       showUnusedOnly: false,
       publicationSearch: '',
       selectedPublicationId: '',
@@ -312,11 +314,8 @@ export default {
       if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('/')) {
         return raw
       }
-      if (raw.startsWith('backend/static/')) {
-        return `/${raw.replace(/^backend\//, '')}`
-      }
-      const basename = raw.split('/').pop()
-      return basename ? `/static/backgrounds/${basename}` : ''
+      const basename = this.normalizeAssetBasename(raw)
+      return basename ? (this.assetPreviewUrls[basename] || '') : ''
     },
     normalizedPublicationId() {
       const parsed = Number.parseInt(this.selectedPublicationId, 10)
@@ -351,7 +350,52 @@ export default {
     this.loadBrandingAssets()
     this.loadPublications()
   },
+  beforeUnmount() {
+    this.revokeAssetPreviewUrls()
+  },
   methods: {
+    normalizeAssetBasename(value) {
+      const cleaned = (value || '').trim()
+      if (!cleaned) return ''
+      const parts = cleaned.split('/')
+      return (parts[parts.length - 1] || '').trim()
+    },
+    revokeAssetPreviewUrls(exceptNames = []) {
+      const keep = new Set(exceptNames)
+      const next = {}
+      Object.entries(this.assetPreviewUrls).forEach(([name, url]) => {
+        if (keep.has(name)) {
+          next[name] = url
+          return
+        }
+        if (url) {
+          URL.revokeObjectURL(url)
+        }
+      })
+      this.assetPreviewUrls = next
+    },
+    async ensureAssetPreviewUrl(filename) {
+      const name = this.normalizeAssetBasename(filename)
+      if (!name || this.assetPreviewUrls[name]) {
+        return
+      }
+      try {
+        const blob = await fetchExportBrandingAssetBlob(name)
+        if (!blob) return
+        const objectUrl = URL.createObjectURL(blob)
+        this.assetPreviewUrls = {
+          ...this.assetPreviewUrls,
+          [name]: objectUrl,
+        }
+      } catch (_) {
+        // Ignore per-file preview failures; list loading remains available.
+      }
+    },
+    async syncAssetPreviewUrls() {
+      const names = (this.brandingAssets || []).map(asset => this.normalizeAssetBasename(asset?.name)).filter(Boolean)
+      this.revokeAssetPreviewUrls(names)
+      await Promise.allSettled(names.map(name => this.ensureAssetPreviewUrl(name)))
+    },
     isImageSetting(key) {
       return IMAGE_SETTING_KEYS.includes(key)
     },
@@ -381,8 +425,8 @@ export default {
       if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
         return value
       }
-      const basename = value.split('/').pop()
-      return basename ? `/api/admin/export-branding/assets/${encodeURIComponent(basename)}/preview` : ''
+      const basename = this.normalizeAssetBasename(value)
+      return basename ? (this.assetPreviewUrls[basename] || '') : ''
     },
     assetPreviewUrl(filename) {
       const value = (filename || '').trim()
@@ -390,8 +434,8 @@ export default {
       if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
         return value
       }
-      const basename = value.split('/').pop()
-      return basename ? `/api/admin/export-branding/assets/${encodeURIComponent(basename)}/preview` : ''
+      const basename = this.normalizeAssetBasename(value)
+      return basename ? (this.assetPreviewUrls[basename] || '') : ''
     },
     normalizeHexColor(value, fallback) {
       const trimmed = (value || '').trim()
@@ -420,6 +464,12 @@ export default {
         const settings = await getAdminSettings()
         this.allSettings = settings
         this.edits = Object.fromEntries(settings.map(s => [s.key, s.value]))
+        await Promise.allSettled(
+          IMAGE_SETTING_KEYS
+            .map(settingKey => this.normalizeAssetBasename(this.edits[settingKey]))
+            .filter(Boolean)
+            .map(name => this.ensureAssetPreviewUrl(name))
+        )
         this.logoPreviewErrored = false
       } catch (err) {
         this.error = toFriendlyAuthError(err, 'Failed to load admin settings.')
@@ -433,6 +483,7 @@ export default {
       try {
         const assets = await listExportBrandingAssets()
         this.brandingAssets = Array.isArray(assets) ? assets : []
+        await this.syncAssetPreviewUrls()
       } catch (err) {
         this.brandingAssetsError = toFriendlyAuthError(err, 'Could not load uploaded branding images.')
       } finally {
@@ -681,9 +732,14 @@ export default {
 .asset-filter-toggle {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 6px;
   font-size: 0.82rem;
   color: #374151;
+}
+
+.asset-filter-toggle span {
+  white-space: nowrap;
 }
 
 .asset-filter-meta {
@@ -700,9 +756,14 @@ export default {
 .cover-toggle {
   display: inline-flex;
   align-items: center;
+  flex-wrap: nowrap;
   gap: 6px;
   font-size: 0.82rem;
   color: #374151;
+}
+
+.cover-toggle span {
+  white-space: nowrap;
 }
 
 .asset-thumb-btn {
