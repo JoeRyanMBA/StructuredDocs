@@ -275,6 +275,7 @@ def generate_mobile_kb_html_inline(publication, tree):
             width: auto;
             height: auto;
             display: block;
+            margin: 0.5rem auto;
             object-fit: contain;
             aspect-ratio: auto;
         }
