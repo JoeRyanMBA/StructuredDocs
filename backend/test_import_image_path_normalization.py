@@ -242,6 +242,7 @@ def test_mobile_kb_header_logo_uses_its_own_row(monkeypatch):
     )
     monkeypatch.setattr(kb_generator_module, 'resolve_brand_asset_path', lambda value: '/tmp/brand.png')
     monkeypatch.setattr(kb_generator_module.os.path, 'exists', lambda *_args, **_kwargs: True)
+    monkeypatch.setattr(kb_generator_module, '_resolve_html_logo_src', lambda value: 'data:image/png;base64,ZmFrZQ==')
 
     html = kb_generator_module.generate_mobile_kb_html_inline(
         types.SimpleNamespace(title='Knowledge Base', id=1),
