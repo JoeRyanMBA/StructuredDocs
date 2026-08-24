@@ -258,6 +258,19 @@ def generate_mobile_kb_html_inline(publication, tree):
             padding: 0;
             margin: 0;
         }
+        .kb-header-logo-row img,
+        .kb-header-logo-row svg,
+        .kb-header-logo-row picture,
+        .kb-header-logo-row video,
+        .kb-header-logo-row canvas {
+            display: block;
+            max-width: 100%;
+            width: auto;
+            height: auto;
+            margin: 0;
+            object-fit: contain;
+            aspect-ratio: auto;
+        }
         .kb-header-inner {
             width: 100%;
             max-width: 900px;
@@ -275,7 +288,7 @@ def generate_mobile_kb_html_inline(publication, tree):
             width: auto;
             height: auto;
             display: block;
-            margin: 0.5rem auto;
+            margin: 0;
             object-fit: contain;
             aspect-ratio: auto;
         }
