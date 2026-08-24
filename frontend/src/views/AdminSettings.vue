@@ -105,11 +105,10 @@
                 <button
                   type="button"
                   class="btn btn-secondary btn-sm asset-delete-btn"
-                  :disabled="isDeletingAsset(asset.name) || (asset.used_by && asset.used_by.length > 0)"
+                  :disabled="isDeletingAsset(asset.name)"
                   @click="deleteBrandingAsset(asset.name)"
                 >
                   <span v-if="isDeletingAsset(asset.name)">Deleting...</span>
-                  <span v-else-if="asset.used_by && asset.used_by.length">In Use</span>
                   <span v-else><i class="bi bi-trash" aria-hidden="true"></i>Delete</span>
                 </button>
               </div>
@@ -669,7 +668,14 @@ export default {
     },
     async deleteBrandingAsset(filename) {
       if (!filename) return
-      const ok = window.confirm(`Delete image "${filename}"?`)
+
+      const targetAsset = (this.brandingAssets || []).find(asset => this.normalizeAssetBasename(asset?.name) === this.normalizeAssetBasename(filename))
+      const usedBy = Array.isArray(targetAsset?.used_by) ? targetAsset.used_by : []
+      const confirmationText = usedBy.length
+        ? `This image is used by ${usedBy.length} setting(s). Deleting it will clear those references. Continue deleting "${filename}"?`
+        : `Delete image "${filename}"?`
+
+      const ok = window.confirm(confirmationText)
       if (!ok) return
 
       this.deletingAssetNames = { ...this.deletingAssetNames, [filename]: true }
