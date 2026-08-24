@@ -255,7 +255,7 @@ def test_mobile_kb_header_logo_uses_its_own_row(monkeypatch):
     assert 'gap: 0;' in html
     assert 'width: auto;' in html
     assert 'display: block;' in html
-    assert 'margin: 0.5rem auto;' in html
+    assert 'margin: 0;' in html
     assert 'object-fit: contain;' in html
     assert html.index('kb-header-logo-row') < html.index('kb-header-inner')
 

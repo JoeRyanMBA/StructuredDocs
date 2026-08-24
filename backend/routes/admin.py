@@ -819,9 +819,9 @@ def preview_export_branding_asset(filename):
 
     assets_dir = _branding_backgrounds_dir()
     path = os.path.join(assets_dir, candidate)
-    usage_map = _branding_asset_usage_map()
-    if candidate in _get_hidden_branding_assets() and candidate not in usage_map:
-        return jsonify({'error': 'Image not found'}), 404
+
+    # Stale hidden metadata is a UI convenience, not a source of truth. If the file still
+    # exists on disk, it should remain previewable even when it was previously marked hidden.
     if not os.path.exists(path):
         return jsonify({'error': 'Image not found'}), 404
 

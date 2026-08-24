@@ -82,6 +82,37 @@ def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path
             assert {'active_logo.png', 'old_logo.png'} <= asset_names
 
 
+def test_hidden_branding_metadata_does_not_hide_existing_file(monkeypatch, tmp_path):
+    app = create_app()
+    with app.app_context():
+        admin = User.query.filter_by(email='admin@example.com').first()
+        assert admin is not None
+        token = create_access_token(identity=str(admin.id))
+
+        assets_dir = tmp_path / 'backgrounds'
+        assets_dir.mkdir()
+        (assets_dir / 'existing_logo.png').write_bytes(b'png-data')
+        monkeypatch.setattr('backend.routes.admin._branding_backgrounds_dir', lambda: str(assets_dir))
+
+        db.session.query(SystemSetting).filter(SystemSetting.key.in_([
+            'export_pdf_footer_logo',
+            'export_html_logo',
+            'export_pdf_title_logo',
+            'export_pdf_cover_background',
+            'export_branding_hidden_assets',
+        ])).delete(synchronize_session=False)
+        db.session.add(SystemSetting(key='export_branding_hidden_assets', value=json.dumps(['existing_logo.png'])))
+        db.session.commit()
+
+        with app.test_client() as client:
+            response = client.get(
+                '/api/admin/export-branding/assets/existing_logo.png/preview',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            assert response.status_code == 200, response.get_data(as_text=True)
+            assert response.data == b'png-data'
+
+
 def test_upload_branding_asset_persists_selected_setting():
     app = create_app()
     with app.app_context():
