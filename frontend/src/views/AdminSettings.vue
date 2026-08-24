@@ -377,6 +377,17 @@ export default {
       const parts = normalized.split('/')
       return (parts[parts.length - 1] || '').trim()
     },
+    canonicalAssetName(value) {
+      const basename = this.normalizeAssetBasename(value)
+      if (!basename) return ''
+      return basename
+        .toLowerCase()
+        .replace(/[_\s]+/g, ' ')
+        .trim()
+    },
+    assetNamesMatch(left, right) {
+      return this.canonicalAssetName(left) === this.canonicalAssetName(right)
+    },
     revokeAssetPreviewUrls(exceptNames = []) {
       const keep = new Set(exceptNames)
       const next = {}
@@ -429,11 +440,11 @@ export default {
       }
     },
     visibleBrandingAssetsForKey(key) {
-      const selected = this.normalizeAssetBasename(this.edits[key])
+      const selected = this.canonicalAssetName(this.edits[key])
       return (this.brandingAssets || []).filter(asset => {
         const name = this.normalizeAssetBasename(asset?.name)
         if (!name) return false
-        if (selected && name === selected) {
+        if (selected && this.assetNamesMatch(name, selected)) {
           return true
         }
         if (!this.isUnusedOnlyEnabled(key)) {
@@ -453,7 +464,7 @@ export default {
       }
       const basename = this.normalizeAssetBasename(raw)
       if (!basename) return false
-      return !this.brandingAssets.some(asset => this.normalizeAssetBasename(asset?.name) === basename)
+      return !this.brandingAssets.some(asset => this.assetNamesMatch(asset?.name, basename))
     },
     isNoCoverBackgroundEnabled() {
       return (this.edits.export_pdf_cover_background || '').trim() === NO_COVER_BACKGROUND_SENTINEL
