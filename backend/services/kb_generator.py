@@ -248,14 +248,15 @@ def generate_mobile_kb_html_inline(publication, tree):
             z-index: 300;
             display: flex;
             flex-direction: column;
-            gap: 0.5rem;
+            gap: 0;
         }
         .kb-header-logo-row {
             width: 100%;
             display: flex;
             justify-content: flex-start;
             align-items: center;
-            padding: 0 0 0.25rem;
+            padding: 0;
+            margin: 0;
         }
         .kb-header-inner {
             width: 100%;
@@ -271,8 +272,11 @@ def generate_mobile_kb_html_inline(publication, tree):
         video,
         canvas {
             max-width: 100%;
+            width: auto;
             height: auto;
             display: block;
+            object-fit: contain;
+            aspect-ratio: auto;
         }
         .hamburger-btn {
             flex-shrink: 0;
