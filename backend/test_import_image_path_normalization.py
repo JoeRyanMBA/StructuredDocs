@@ -137,6 +137,26 @@ def test_export_branding_falls_back_to_default_logos_when_settings_are_blank_or_
     assert branding['pdf_cover_background'] == 'SC Cover Background.png'
 
 
+def test_export_branding_preserves_no_cover_background_sentinel(monkeypatch):
+    settings = {
+        'export_brand_name': 'Acme Docs',
+        'export_pdf_title_logo': 'Example_Logo.svg',
+        'export_pdf_footer_logo': 'Footer_Logo.svg',
+        'export_pdf_cover_background': '__none__',
+        'export_html_logo': '',
+        'export_html_primary_color': '#005a9c',
+        'export_html_accent_color': '#112E51',
+    }
+
+    monkeypatch.setattr('backend.services.export_branding.get_setting', lambda key, default=None: settings.get(key, default or ''))
+
+    branding = pdf_generator_module.get_export_branding_settings()
+
+    assert branding['pdf_title_logo'] == 'Example_Logo.svg'
+    assert branding['pdf_footer_logo'] == 'Footer_Logo.svg'
+    assert branding['pdf_cover_background'] == '__none__'
+
+
 def test_pdf_uses_png_when_svg_logo_is_uploaded(tmp_path, monkeypatch):
     svg_path = tmp_path / 'brand_logo.svg'
     svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')

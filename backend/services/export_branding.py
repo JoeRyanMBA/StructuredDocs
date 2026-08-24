@@ -69,10 +69,16 @@ def resolve_brand_asset_path(value: str, fallback_filename: str = "") -> str:
 
 
 def _validated_brand_asset(value: str, fallback: str) -> str:
-    """Return the configured asset when it resolves to a real file; otherwise use the default."""
+    """Return the configured asset when it resolves to a real file; otherwise use the default.
+
+    Special sentinel values such as NO_COVER_BACKGROUND_SENTINEL are preserved so the
+    PDF cover can be intentionally disabled without falling back to the default cover.
+    """
     candidate = (value or "").strip()
     if not candidate:
         return fallback
+    if candidate == NO_COVER_BACKGROUND_SENTINEL:
+        return NO_COVER_BACKGROUND_SENTINEL
 
     resolved = resolve_brand_asset_path(candidate, fallback)
     if not resolved or not os.path.exists(resolved):
