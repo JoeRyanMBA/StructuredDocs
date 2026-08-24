@@ -6,6 +6,7 @@ from pathlib import Path
 from flask import Flask
 
 from backend.services import pdf_generator as pdf_generator_module
+from backend.services import kb_generator as kb_generator_module
 from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
 from backend.utils.image_registry import normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content
 from backend.utils.storage import resolve_local_storage_root
@@ -225,6 +226,31 @@ def test_pdf_uses_cli_svg_converter_when_cairosvg_is_missing(tmp_path, monkeypat
     assert resolved.endswith('.png')
     assert os.path.exists(resolved)
     assert calls
+
+
+def test_mobile_kb_header_logo_uses_its_own_row(monkeypatch):
+    monkeypatch.setattr(kb_generator_module, 'convert_markdown_to_html', lambda content: f'<p>{content}</p>')
+    monkeypatch.setattr(
+        kb_generator_module,
+        'get_export_branding_settings',
+        lambda: {
+            'brand_name': 'Acme',
+            'html_logo': 'brand.png',
+            'html_primary_color': '#005a9c',
+            'html_accent_color': '#112E51',
+        },
+    )
+    monkeypatch.setattr(kb_generator_module, 'resolve_brand_asset_path', lambda value: '/tmp/brand.png')
+    monkeypatch.setattr(kb_generator_module.os.path, 'exists', lambda *_args, **_kwargs: True)
+
+    html = kb_generator_module.generate_mobile_kb_html_inline(
+        types.SimpleNamespace(title='Knowledge Base', id=1),
+        [{'id': 1, 'title': 'Overview', 'content': 'Hello', 'children': []}],
+    )
+
+    assert 'kb-header-logo-row' in html
+    assert 'kb-header-inner' in html
+    assert html.index('kb-header-logo-row') < html.index('kb-header-inner')
 
 
 def test_pdf_title_and_footer_templates_use_svg_rasterization(monkeypatch):
