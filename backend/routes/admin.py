@@ -728,9 +728,9 @@ def list_export_branding_assets():
     assets_dir = _branding_backgrounds_dir()
     os.makedirs(assets_dir, exist_ok=True)
 
-    # Preserve all uploaded branding assets unless an admin explicitly hid or deleted them.
+    # List the actual files on disk. Stale hidden metadata should not hide a real upload,
+    # because it can make a valid saved branding selection appear missing in the admin UI.
     usage_map = _branding_asset_usage_map()
-    hidden_assets = _get_hidden_branding_assets()
 
     rows = []
     try:
@@ -739,8 +739,6 @@ def list_export_branding_assets():
             if not os.path.isfile(path):
                 continue
             if not _allowed_branding_file(name):
-                continue
-            if name in hidden_assets:
                 continue
             stat = os.stat(path)
             rows.append({
