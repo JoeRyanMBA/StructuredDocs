@@ -279,6 +279,7 @@ export default {
       logoPreviewErrored: false,
       brandingAssets: [],
       brandingAssetsLoading: false,
+      brandingAssetsLoaded: false,
       brandingAssetsError: '',
       uploadingAssetKeys: {},
       deletingAssetNames: {},
@@ -440,6 +441,9 @@ export default {
       if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('/')) {
         return false
       }
+      if (!this.brandingAssetsLoaded || this.brandingAssetsLoading) {
+        return false
+      }
       const basename = this.normalizeAssetBasename(raw)
       if (!basename) return false
       return !this.brandingAssets.some(asset => this.normalizeAssetBasename(asset?.name) === basename)
@@ -484,7 +488,8 @@ export default {
       const basename = this.normalizeAssetBasename(filename)
       if (!basename) return
       delete this.assetPreviewUrls[basename]
-      this.brandingAssets = this.brandingAssets.filter(asset => this.normalizeAssetBasename(asset?.name) !== basename)
+      // A failed preview fetch should not remove a valid uploaded asset from the list.
+      // Keep the asset until the full list refresh confirms the file is actually missing.
     },
     normalizeHexColor(value, fallback) {
       const trimmed = (value || '').trim()
@@ -536,11 +541,13 @@ export default {
     },
     async loadBrandingAssets() {
       this.brandingAssetsLoading = true
+      this.brandingAssetsLoaded = false
       this.brandingAssetsError = ''
       try {
         const assets = await listExportBrandingAssets()
         this.brandingAssets = Array.isArray(assets) ? assets : []
         await this.syncAssetPreviewUrls()
+        this.brandingAssetsLoaded = true
       } catch (err) {
         this.brandingAssetsError = toFriendlyAuthError(err, 'Could not load uploaded branding images.')
       } finally {
