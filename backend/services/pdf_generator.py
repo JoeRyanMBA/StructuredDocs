@@ -444,8 +444,8 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
             
-            # Keep the footer compact: smaller logo, tighter vertical spacing.
-            logo_x = self.leftMargin + 0.12 * inch
+            # Keep the footer compact, but align the logo flush with the left margin.
+            logo_x = self.leftMargin
             logo_y = 0.18 * inch
             logo_width = 1.2 * inch
             logo_height = 0.55 * inch
@@ -505,11 +505,11 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
             
-            # Logo positioning - align with left margin and move down 0.5" to align with top of logo
-            logo_x = self.leftMargin - 0.25 * inch  # Move left 0.25" from margin
-            logo_y = 0.25 * inch - 6  # Position 0.25" from bottom edge, moved down 6pts
-            logo_width = 1.5 * inch  # Footer logo should be 1.5" wide
-            logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
+            # Align the footer logo flush with the left page margin.
+            logo_x = self.leftMargin
+            logo_y = 0.25 * inch - 6
+            logo_width = 1.5 * inch
+            logo_height = logo_width / 1.77
             
             # Footer text positioning - align with top of logo
             footer_text_y = logo_y + logo_height - 24  # Move down 24 pts from original
@@ -747,8 +747,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
 
-            # Keep the footer compact: smaller logo, tighter spacing.
-            logo_x = self.leftMargin + 0.12 * inch
+            # Keep the footer compact while aligning the logo flush with the left margin.
+            logo_x = self.leftMargin
             logo_y = 0.18 * inch
             logo_width = 1.2 * inch
             logo_height = 0.55 * inch
@@ -798,8 +798,8 @@ class HeaderDocTemplate(BaseDocTemplate):
             canvas.saveState()
             page_width, page_height = self.pagesize
 
-            # Keep the footer compact: smaller logo, tighter spacing.
-            logo_x = self.leftMargin + 0.12 * inch
+            # Keep the footer compact while aligning the logo flush with the left margin.
+            logo_x = self.leftMargin
             logo_y = 0.18 * inch
             logo_width = 1.2 * inch
             logo_height = 0.55 * inch
