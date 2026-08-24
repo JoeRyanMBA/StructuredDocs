@@ -240,15 +240,21 @@ def generate_mobile_kb_html_inline(publication, tree):
         .kb-header {
             background: #005a9c;
             color: white;
-            padding: 1rem;
+            padding: 0.75rem 1rem 1rem;
             text-align: center;
             box-shadow: 0 2px 4px rgba(0,0,0,0.1);
             position: sticky;
             top: 0;
             z-index: 300;
             display: flex;
-            align-items: center;
+            flex-direction: column;
+            gap: 0.5rem;
+        }
+        .kb-header-logo-row {
+            width: 100%;
+            display: flex;
             justify-content: center;
+            align-items: center;
         }
         .kb-header-inner {
             width: 100%;
@@ -256,6 +262,7 @@ def generate_mobile_kb_html_inline(publication, tree):
             display: flex;
             align-items: center;
             gap: 0.5rem;
+            margin: 0 auto;
         }
         .hamburger-btn {
             flex-shrink: 0;
@@ -1008,9 +1015,11 @@ def generate_mobile_kb_html_inline(publication, tree):
 <body>
     <div class="kb-container">
         <header class="kb-header">
+            <div class="kb-header-logo-row">
+                {header_logo_html}
+            </div>
             <div class="kb-header-inner">
                 <button id="hamburger-btn" class="hamburger-btn" aria-label="Toggle menu" aria-expanded="false">☰</button>
-                {header_logo_html}
                 <div class="kb-title-group">
                     <h1 class="kb-title">{publication.title}</h1>
                     <p class="kb-subtitle">Mobile Knowledge Base</p>
