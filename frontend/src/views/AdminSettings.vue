@@ -329,7 +329,14 @@ export default {
     logoPreviewUrl() {
       const raw = (this.edits.export_html_logo || '').trim()
       if (!raw) return ''
-      if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('/')) {
+      if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:')) {
+        return raw
+      }
+      if (raw.startsWith('/')) {
+        if (raw.startsWith('/api/admin/export-branding/assets/')) {
+          const basename = this.normalizeAssetBasename(raw)
+          return basename ? (this.assetPreviewUrls[basename] || '') : ''
+        }
         return raw
       }
       const basename = this.normalizeAssetBasename(raw)
@@ -369,9 +376,14 @@ export default {
     normalizeAssetBasename(value) {
       const cleaned = (value || '').trim()
       if (!cleaned) return ''
+
       let normalized = cleaned
+      if (normalized.startsWith('/api/admin/export-branding/assets/')) {
+        normalized = normalized.replace(/^\/api\/admin\/export-branding\/assets\//, '').replace(/\/preview$/, '')
+      }
+
       try {
-        normalized = decodeURIComponent(cleaned)
+        normalized = decodeURIComponent(normalized)
       } catch (_) {
         // Leave the raw value as-is when it is not percent-encoded.
       }
@@ -494,7 +506,14 @@ export default {
       const value = (this.edits[key] || '').trim()
       if (!value) return ''
       if (value === NO_COVER_BACKGROUND_SENTINEL) return ''
-      if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
+      if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:')) {
+        return value
+      }
+      if (value.startsWith('/')) {
+        if (value.startsWith('/api/admin/export-branding/assets/')) {
+          const basename = this.normalizeAssetBasename(value)
+          return basename ? (this.assetPreviewUrls[basename] || '') : ''
+        }
         return value
       }
       const basename = this.normalizeAssetBasename(value)
@@ -503,7 +522,15 @@ export default {
     assetPreviewUrl(filename) {
       const value = (filename || '').trim()
       if (!value) return ''
-      if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:') || value.startsWith('/')) {
+      if (value.startsWith('http://') || value.startsWith('https://') || value.startsWith('data:')) {
+        return value
+      }
+      if (value.startsWith('/')) {
+        if (value.startsWith('/api/admin/export-branding/assets/')) {
+          const basename = this.normalizeAssetBasename(value)
+          if (!basename) return ''
+          return this.assetPreviewUrls[basename] || ''
+        }
         return value
       }
       const basename = this.normalizeAssetBasename(value)
