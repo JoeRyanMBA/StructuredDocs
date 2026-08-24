@@ -92,7 +92,13 @@
                   :title="asset.name"
                   @click="applyAssetSelection(key, asset.name)"
                 >
-                  <img :src="assetPreviewUrl(asset.name)" :alt="asset.name" class="asset-thumb-image" />
+                  <img
+                    v-if="assetPreviewUrl(asset.name)"
+                    :src="assetPreviewUrl(asset.name)"
+                    :alt="asset.name"
+                    class="asset-thumb-image"
+                    @error="handleAssetPreviewError(asset.name)"
+                  />
                   <span class="asset-thumb-name">{{ asset.name }}</span>
                   <div v-if="assetUsageSummary(asset)" class="asset-used-by">{{ assetUsageSummary(asset) }}</div>
                 </button>
@@ -471,7 +477,14 @@ export default {
         return value
       }
       const basename = this.normalizeAssetBasename(value)
-      return basename ? (this.assetPreviewUrls[basename] || '') : ''
+      if (!basename) return ''
+      return this.assetPreviewUrls[basename] || `/api/admin/export-branding/assets/${encodeURIComponent(basename)}/preview`
+    },
+    handleAssetPreviewError(filename) {
+      const basename = this.normalizeAssetBasename(filename)
+      if (!basename) return
+      delete this.assetPreviewUrls[basename]
+      this.brandingAssets = this.brandingAssets.filter(asset => this.normalizeAssetBasename(asset?.name) !== basename)
     },
     normalizeHexColor(value, fallback) {
       const trimmed = (value || '').trim()
@@ -573,6 +586,8 @@ export default {
             this.edits[key] = ''
           }
         })
+        this.brandingAssets = this.brandingAssets.filter(asset => this.normalizeAssetBasename(asset?.name) !== filename)
+        delete this.assetPreviewUrls[this.normalizeAssetBasename(filename)]
         await this.loadBrandingAssets()
       } catch (err) {
         this.brandingAssetsError = toFriendlyAuthError(err, 'Failed to delete branding image.')
