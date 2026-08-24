@@ -281,6 +281,8 @@ export default {
       brandingAssetsLoading: false,
       brandingAssetsLoaded: false,
       brandingAssetsError: '',
+      settingsLoaded: false,
+      lastKnownValidEdits: {},
       uploadingAssetKeys: {},
       deletingAssetNames: {},
       assetPreviewUrls: {},
@@ -459,12 +461,18 @@ export default {
       if (raw.startsWith('http://') || raw.startsWith('https://') || raw.startsWith('data:') || raw.startsWith('/')) {
         return false
       }
-      if (!this.brandingAssetsLoaded || this.brandingAssetsLoading) {
+      if (!this.settingsLoaded || !this.brandingAssetsLoaded || this.brandingAssetsLoading) {
         return false
       }
       const basename = this.normalizeAssetBasename(raw)
       if (!basename) return false
-      return !this.brandingAssets.some(asset => this.assetNamesMatch(asset?.name, basename))
+      const hasMatch = this.brandingAssets.some(asset => this.assetNamesMatch(asset?.name, basename))
+      if (hasMatch) return false
+      const previousValue = this.lastKnownValidEdits[key]
+      if (previousValue && this.assetNamesMatch(previousValue, basename)) {
+        return false
+      }
+      return true
     },
     isNoCoverBackgroundEnabled() {
       return (this.edits.export_pdf_cover_background || '').trim() === NO_COVER_BACKGROUND_SENTINEL
@@ -543,7 +551,10 @@ export default {
       try {
         const settings = await getAdminSettings()
         this.allSettings = settings
-        this.edits = Object.fromEntries(settings.map(s => [s.key, s.value]))
+        const nextEdits = Object.fromEntries(settings.map(s => [s.key, s.value]))
+        this.edits = nextEdits
+        this.lastKnownValidEdits = { ...nextEdits }
+        this.settingsLoaded = true
         await Promise.allSettled(
           IMAGE_SETTING_KEYS
             .map(settingKey => this.normalizeAssetBasename(this.edits[settingKey]))
