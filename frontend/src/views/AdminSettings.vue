@@ -64,6 +64,9 @@
             <div v-if="isImageSetting(key) && selectedAssetMissingForKey(key)" class="asset-empty-note error-text">
               Selected image file was not found in uploaded assets. Re-upload it or choose another image.
             </div>
+            <div v-if="key.startsWith('export_pdf_') && key !== 'export_pdf_cover_background'" class="asset-empty-note">
+              PDF title/footer logos should use JPG or PNG files for reliable rendering. SVG is best reserved for the HTML logo.
+            </div>
             <div v-if="isImageSetting(key)" class="asset-filter-row">
               <label class="asset-filter-toggle">
                 <input
