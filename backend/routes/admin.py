@@ -61,6 +61,24 @@ def _set_hidden_branding_assets(items: set[str]) -> None:
     set_setting(HIDDEN_BRANDING_ASSETS_KEY, json.dumps(clean))
 
 
+def _clear_branding_asset_references(filename: str) -> list[str]:
+    """Clear any persisted export-branding settings pointing at a deleted asset."""
+    candidate = os.path.basename((filename or '').strip())
+    if not candidate:
+        return []
+
+    cleared: list[str] = []
+    for key in EXPORT_BRANDING_IMAGE_KEYS:
+        current = (get_setting(key, '') or '').strip()
+        if not current:
+            continue
+        current_name = os.path.basename(current)
+        if current_name == candidate or current == candidate:
+            set_setting(key, '')
+            cleared.append(key)
+    return cleared
+
+
 def _branding_asset_usage_map() -> dict[str, list[str]]:
     """Return filename -> setting keys currently pointing at that filename."""
     rows_by_key = {
@@ -867,10 +885,11 @@ def delete_export_branding_asset(filename):
     try:
         if os.path.exists(target_path):
             os.remove(target_path)
+        cleared_keys = _clear_branding_asset_references(candidate)
         hidden_assets.add(candidate)
         _set_hidden_branding_assets(hidden_assets)
     except Exception as exc:
         current_app.logger.exception('Failed deleting branding asset')
         return jsonify({'error': str(exc)}), 500
 
-    return jsonify({'deleted': candidate}), 200
+    return jsonify({'deleted': candidate, 'cleared_settings': cleared_keys}), 200
