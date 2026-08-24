@@ -286,6 +286,7 @@ export default {
       uploadingAssetKeys: {},
       deletingAssetNames: {},
       assetPreviewUrls: {},
+      pendingAssetPreviews: {},
       showUnusedOnlyByKey: IMAGE_SETTING_KEYS.reduce((acc, settingKey) => {
         acc[settingKey] = false
         return acc
@@ -416,11 +417,25 @@ export default {
       })
       this.assetPreviewUrls = next
     },
-    async ensureAssetPreviewUrl(filename) {
+    async ensureAssetPreviewUrl(filename, options = {}) {
+      const { delayMs = 0, force = false } = options
       const name = this.normalizeAssetBasename(filename)
-      if (!name || this.assetPreviewUrls[name]) {
+      if (!name || (!force && (this.assetPreviewUrls[name] || this.pendingAssetPreviews[name]))) {
         return
       }
+
+      if (delayMs > 0) {
+        await new Promise(resolve => setTimeout(resolve, delayMs))
+      }
+      if (!force && (this.assetPreviewUrls[name] || this.pendingAssetPreviews[name])) {
+        return
+      }
+
+      this.pendingAssetPreviews = {
+        ...this.pendingAssetPreviews,
+        [name]: true,
+      }
+
       try {
         const blob = await fetchExportBrandingAssetBlob(name)
         if (!blob) return
@@ -431,12 +446,29 @@ export default {
         }
       } catch (_) {
         // Ignore per-file preview failures; list loading remains available.
+      } finally {
+        const next = { ...this.pendingAssetPreviews }
+        delete next[name]
+        this.pendingAssetPreviews = next
       }
     },
     async syncAssetPreviewUrls() {
       const names = (this.brandingAssets || []).map(asset => this.normalizeAssetBasename(asset?.name)).filter(Boolean)
       this.revokeAssetPreviewUrls(names)
-      await Promise.allSettled(names.map(name => this.ensureAssetPreviewUrl(name)))
+
+      const batchSize = 3
+      const initialBatch = names.slice(0, batchSize)
+      const deferredBatch = names.slice(batchSize)
+
+      await Promise.allSettled(
+        initialBatch.map((name, index) => this.ensureAssetPreviewUrl(name, { delayMs: index * 100 }))
+      )
+
+      deferredBatch.forEach((name, index) => {
+        setTimeout(() => {
+          this.ensureAssetPreviewUrl(name)
+        }, 250 + (index * 150))
+      })
     },
     isImageSetting(key) {
       return IMAGE_SETTING_KEYS.includes(key)
