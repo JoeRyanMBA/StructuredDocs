@@ -281,3 +281,56 @@ def test_pdf_title_and_footer_templates_use_svg_rasterization(monkeypatch):
 
     assert calls.count('/tmp/converted-brand-logo.png') >= 1
     assert any(path == '/tmp/converted-brand-logo.png' for path in calls)
+
+
+def test_pdf_footer_logo_starts_at_left_margin(monkeypatch):
+    monkeypatch.setattr(pdf_generator_module, '_resolve_pdf_renderable_image_path', lambda value: '/tmp/footer-logo.png')
+    monkeypatch.setattr(pdf_generator_module.os.path, 'exists', lambda *_args, **_kwargs: True)
+
+    captured = []
+
+    class DummyCanvas:
+        def saveState(self):
+            pass
+
+        def restoreState(self):
+            pass
+
+        def setFont(self, *args, **kwargs):
+            pass
+
+        def setStrokeColor(self, *args, **kwargs):
+            pass
+
+        def setLineWidth(self, *args, **kwargs):
+            pass
+
+        def drawImage(self, path, x, y, width=None, height=None, **kwargs):
+            captured.append((path, x, y, width, height))
+
+        def drawCentredString(self, *args, **kwargs):
+            pass
+
+        def drawString(self, *args, **kwargs):
+            pass
+
+        def stringWidth(self, *args, **kwargs):
+            return 10
+
+        def line(self, *args, **kwargs):
+            pass
+
+    template = pdf_generator_module.HeaderDocTemplate.__new__(pdf_generator_module.HeaderDocTemplate)
+    template.branding = {'pdf_footer_logo': 'brand.png', 'brand_name': 'Acme'}
+    template.publication = types.SimpleNamespace(form_number='FORM-1', id=1)
+    template.pagesize = (612, 792)
+    template.leftMargin = 36
+    template.rightMargin = 36
+    template.bottomMargin = 36
+    template.width = 540
+    template.height = 720
+
+    template.add_content_footer(DummyCanvas(), types.SimpleNamespace(page=1))
+
+    assert captured
+    assert captured[0][1] == 36
