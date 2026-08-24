@@ -367,7 +367,14 @@ export default {
     normalizeAssetBasename(value) {
       const cleaned = (value || '').trim()
       if (!cleaned) return ''
-      const parts = cleaned.split('/')
+      let normalized = cleaned
+      try {
+        normalized = decodeURIComponent(cleaned)
+      } catch (_) {
+        // Leave the raw value as-is when it is not percent-encoded.
+      }
+      normalized = normalized.replace(/\+/g, ' ')
+      const parts = normalized.split('/')
       return (parts[parts.length - 1] || '').trim()
     },
     revokeAssetPreviewUrls(exceptNames = []) {
@@ -482,7 +489,7 @@ export default {
       }
       const basename = this.normalizeAssetBasename(value)
       if (!basename) return ''
-      return this.assetPreviewUrls[basename] || `/api/admin/export-branding/assets/${encodeURIComponent(basename)}/preview`
+      return this.assetPreviewUrls[basename] || ''
     },
     handleAssetPreviewError(filename) {
       const basename = this.normalizeAssetBasename(filename)
