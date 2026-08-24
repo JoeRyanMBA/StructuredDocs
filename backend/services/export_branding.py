@@ -68,6 +68,19 @@ def resolve_brand_asset_path(value: str, fallback_filename: str = "") -> str:
     return ""
 
 
+def _validated_brand_asset(value: str, fallback: str) -> str:
+    """Return the configured asset when it resolves to a real file; otherwise use the default."""
+    candidate = (value or "").strip()
+    if not candidate:
+        return fallback
+
+    resolved = resolve_brand_asset_path(candidate, fallback)
+    if not resolved or not os.path.exists(resolved):
+        return fallback
+
+    return candidate
+
+
 def get_export_branding_settings() -> Dict[str, str]:
     """Return normalized export branding settings from runtime admin settings."""
     brand_name = get_setting("export_brand_name", DEFAULT_BRANDING["brand_name"]).strip()
@@ -83,11 +96,24 @@ def get_export_branding_settings() -> Dict[str, str]:
         DEFAULT_BRANDING["html_accent_color"],
     )
 
+    pdf_title_logo = _validated_brand_asset(
+        get_setting("export_pdf_title_logo", DEFAULT_BRANDING["pdf_title_logo"]),
+        DEFAULT_BRANDING["pdf_title_logo"],
+    )
+    pdf_footer_logo = _validated_brand_asset(
+        get_setting("export_pdf_footer_logo", DEFAULT_BRANDING["pdf_footer_logo"]),
+        DEFAULT_BRANDING["pdf_footer_logo"],
+    )
+    pdf_cover_background = _validated_brand_asset(
+        get_setting("export_pdf_cover_background", DEFAULT_BRANDING["pdf_cover_background"]),
+        DEFAULT_BRANDING["pdf_cover_background"],
+    )
+
     return {
         "brand_name": brand_name,
-        "pdf_title_logo": get_setting("export_pdf_title_logo", DEFAULT_BRANDING["pdf_title_logo"]).strip(),
-        "pdf_footer_logo": get_setting("export_pdf_footer_logo", DEFAULT_BRANDING["pdf_footer_logo"]).strip(),
-        "pdf_cover_background": get_setting("export_pdf_cover_background", DEFAULT_BRANDING["pdf_cover_background"]).strip(),
+        "pdf_title_logo": pdf_title_logo,
+        "pdf_footer_logo": pdf_footer_logo,
+        "pdf_cover_background": pdf_cover_background,
         "html_logo": get_setting("export_html_logo", DEFAULT_BRANDING["html_logo"]).strip(),
         "html_primary_color": html_primary_color,
         "html_accent_color": html_accent_color,
