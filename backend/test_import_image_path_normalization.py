@@ -175,6 +175,36 @@ def test_export_branding_preserves_no_cover_background_sentinel(monkeypatch, tmp
     assert branding['pdf_cover_background'] == '__none__'
 
 
+def test_clear_branding_asset_references_removes_deleted_filename_from_setting_values(monkeypatch):
+    from backend.routes import admin
+
+    settings = {
+        'export_pdf_title_logo': 'old_title.png',
+        'export_pdf_footer_logo': 'keep_footer.png',
+        'export_pdf_cover_background': 'old_cover.png',
+        'export_html_logo': 'old_title.png',
+    }
+    calls = []
+
+    def fake_get_setting(key, default=None):
+        return settings.get(key, default or '')
+
+    def fake_set_setting(key, value):
+        calls.append((key, value))
+        settings[key] = value
+
+    monkeypatch.setattr(admin, 'get_setting', fake_get_setting)
+    monkeypatch.setattr(admin, 'set_setting', fake_set_setting)
+
+    cleared = admin._clear_branding_asset_references('old_title.png')
+
+    assert cleared == ['export_pdf_title_logo', 'export_html_logo']
+    assert settings['export_pdf_title_logo'] == ''
+    assert settings['export_html_logo'] == ''
+    assert settings['export_pdf_footer_logo'] == 'keep_footer.png'
+    assert settings['export_pdf_cover_background'] == 'old_cover.png'
+
+
 def test_pdf_uses_png_when_svg_logo_is_uploaded(tmp_path, monkeypatch):
     svg_path = tmp_path / 'brand_logo.svg'
     svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
