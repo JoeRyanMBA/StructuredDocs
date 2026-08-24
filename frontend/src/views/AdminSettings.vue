@@ -215,6 +215,7 @@ import {
 } from '@/api/adminSettings'
 import { toFriendlyAuthError } from '@/api/base'
 import { downloadPublicationPdf, downloadMobileKnowledgeBase, previewMobileKnowledgeBase, getPublications } from '@/api/publications'
+import { resolveSelectedPublicationId } from '@/utils/publicationSelection'
 
 const BRANDING_KEYS = [
   'export_brand_name',
@@ -362,6 +363,15 @@ export default {
   watch: {
     logoPreviewUrl() {
       this.logoPreviewErrored = false
+    },
+    publicationSearch() {
+      this.syncSelectedPublication()
+    },
+    publications: {
+      handler() {
+        this.syncSelectedPublication()
+      },
+      deep: true,
     },
   },
   async mounted() {
@@ -704,9 +714,7 @@ export default {
       try {
         const rows = await getPublications()
         this.publications = Array.isArray(rows) ? rows : []
-        if (this.selectedPublicationId && !this.publications.some(p => String(p.id) === String(this.selectedPublicationId))) {
-          this.selectedPublicationId = ''
-        }
+        this.selectedPublicationId = resolveSelectedPublicationId(this.selectedPublicationId, this.publications, this.publicationSearch)
       } catch (err) {
         this.publicationsError = toFriendlyAuthError(err, 'Could not load publications for export testing.')
       } finally {
@@ -718,6 +726,9 @@ export default {
         key,
         value: valuesByKey[key] ?? '',
       }))
+    },
+    syncSelectedPublication() {
+      this.selectedPublicationId = resolveSelectedPublicationId(this.selectedPublicationId, this.publications, this.publicationSearch)
     },
     async persistPayload(payload, successMessage) {
       const result = await updateAdminSettings(payload)
