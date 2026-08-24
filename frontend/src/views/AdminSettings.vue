@@ -806,14 +806,23 @@ export default {
   gap: 6px;
   font-size: 0.82rem;
   color: #374151;
-  width: auto;
+  width: fit-content;
+  max-width: 100%;
   margin: 0;
   padding: 0;
+  text-align: left;
+  align-self: start;
+}
+
+.cover-toggle input {
+  margin: 0;
+  flex-shrink: 0;
 }
 
 .cover-toggle span {
   white-space: normal;
   line-height: 1.2;
+  margin-left: 0;
 }
 
 .asset-thumb-btn {
@@ -904,7 +913,10 @@ export default {
 }
 
 .actions-row .btn {
+  height: 38px;
   min-height: 38px;
+  padding: 0.5rem 0.9rem;
+  box-sizing: border-box;
   display: inline-flex;
   align-items: center;
   justify-content: center;

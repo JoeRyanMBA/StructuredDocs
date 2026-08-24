@@ -251,6 +251,8 @@ def test_mobile_kb_header_logo_uses_its_own_row(monkeypatch):
 
     assert 'kb-header-logo-row' in html
     assert 'kb-header-inner' in html
+    assert 'justify-content: flex-start' in html
+    assert 'max-width: 100%' in html
     assert html.index('kb-header-logo-row') < html.index('kb-header-inner')
 
 
