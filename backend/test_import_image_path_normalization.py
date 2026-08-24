@@ -137,7 +137,24 @@ def test_export_branding_falls_back_to_default_logos_when_settings_are_blank_or_
     assert branding['pdf_cover_background'] == 'SC Cover Background.png'
 
 
-def test_export_branding_preserves_no_cover_background_sentinel(monkeypatch):
+def test_export_branding_preserves_no_cover_background_sentinel(monkeypatch, tmp_path):
+    import backend.services.export_branding as export_branding_module
+
+    logo_title = tmp_path / 'Example_Logo.svg'
+    logo_title.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+    logo_footer = tmp_path / 'Footer_Logo.svg'
+    logo_footer.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+
+    monkeypatch.setattr(
+        export_branding_module,
+        'resolve_brand_asset_path',
+        lambda value, fallback='': str(
+            logo_title if value == 'Example_Logo.svg'
+            else logo_footer if value == 'Footer_Logo.svg'
+            else (tmp_path / (value or fallback))
+        ) if value in {'Example_Logo.svg', 'Footer_Logo.svg'} else '',
+    )
+
     settings = {
         'export_brand_name': 'Acme Docs',
         'export_pdf_title_logo': 'Example_Logo.svg',
@@ -150,7 +167,7 @@ def test_export_branding_preserves_no_cover_background_sentinel(monkeypatch):
 
     monkeypatch.setattr('backend.services.export_branding.get_setting', lambda key, default=None: settings.get(key, default or ''))
 
-    branding = pdf_generator_module.get_export_branding_settings()
+    branding = export_branding_module.get_export_branding_settings()
 
     assert branding['pdf_title_logo'] == 'Example_Logo.svg'
     assert branding['pdf_footer_logo'] == 'Footer_Logo.svg'
