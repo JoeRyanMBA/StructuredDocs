@@ -728,14 +728,9 @@ def list_export_branding_assets():
     assets_dir = _branding_backgrounds_dir()
     os.makedirs(assets_dir, exist_ok=True)
 
-    # Build a reverse map: filename -> [setting keys that currently use it].
+    # Preserve all uploaded branding assets unless an admin explicitly hid or deleted them.
     usage_map = _branding_asset_usage_map()
     hidden_assets = _get_hidden_branding_assets()
-
-    # Never hide assets that are actively selected in settings.
-    effective_hidden_assets = {name for name in hidden_assets if name not in usage_map}
-    if effective_hidden_assets != hidden_assets:
-        _set_hidden_branding_assets(effective_hidden_assets)
 
     rows = []
     try:
@@ -745,7 +740,7 @@ def list_export_branding_assets():
                 continue
             if not _allowed_branding_file(name):
                 continue
-            if name in effective_hidden_assets:
+            if name in hidden_assets:
                 continue
             stat = os.stat(path)
             rows.append({

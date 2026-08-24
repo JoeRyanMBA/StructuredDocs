@@ -253,8 +253,9 @@ def generate_mobile_kb_html_inline(publication, tree):
         .kb-header-logo-row {
             width: 100%;
             display: flex;
-            justify-content: center;
+            justify-content: flex-start;
             align-items: center;
+            padding: 0 0 0.25rem;
         }
         .kb-header-inner {
             width: 100%;
@@ -263,6 +264,15 @@ def generate_mobile_kb_html_inline(publication, tree):
             align-items: center;
             gap: 0.5rem;
             margin: 0 auto;
+        }
+        img,
+        svg,
+        picture,
+        video,
+        canvas {
+            max-width: 100%;
+            height: auto;
+            display: block;
         }
         .hamburger-btn {
             flex-shrink: 0;
