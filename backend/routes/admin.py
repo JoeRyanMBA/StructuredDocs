@@ -1,6 +1,7 @@
 from flask import Blueprint, request, jsonify, current_app, send_from_directory
 from flask_jwt_extended import jwt_required, verify_jwt_in_request
 from ..models import db, User, Notification, Topic, Collection, Project, Task, AuditLog, SystemSetting
+from ..extensions import limiter
 from ..utils.email_service import get_email_service
 from ..utils.storage import S3CompatibleStorage, get_storage_backend
 from ..utils.settings import get_setting, set_setting, DEFAULTS
@@ -824,6 +825,7 @@ def upload_export_branding_asset():
 
 
 @admin_bp.route('/export-branding/assets/<path:filename>/preview', methods=['GET'])
+@limiter.exempt
 @jwt_required()
 def preview_export_branding_asset(filename):
     """Serve a branding asset image for admin preview. Admin only."""
