@@ -607,7 +607,9 @@ def generate_mobile_kb_html_inline(publication, tree):
         .content-section img {
             display: block;
             max-width: 100%;
-            height: auto;
+            width: auto;
+            height: auto !important;
+            max-height: none;
             margin: 0;
         }
         
