@@ -3,13 +3,18 @@
 # Usage: ./deploy.sh
 set -euo pipefail
 
-APP_DIR="/opt/structureddocs"
+APP_DIR="${APP_DIR:-/opt/structureddocs}"
 REPO="https://github.com/JoeRyanMBA/StructuredDocs.git"
 BRANCH="main"
 
 echo "=== StructuredDocs Deploy ==="
 
+if [[ ! -f "$APP_DIR/docker-compose.yml" && -d "$APP_DIR/app" ]]; then
+  APP_DIR="$APP_DIR/app"
+fi
+
 cd "$APP_DIR"
+git config --global --add safe.directory "$APP_DIR"
 
 # If not a git repo, initialise it (one-time setup)
 if [ ! -d ".git" ]; then
