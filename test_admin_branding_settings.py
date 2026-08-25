@@ -8,7 +8,7 @@ from backend.models import User, SystemSetting, db
 from backend.utils.settings import _cache
 
 
-def test_hidden_branding_assets_are_excluded_from_listing(monkeypatch, tmp_path):
+def test_existing_branding_assets_are_listed_regardless_of_legacy_metadata(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():
         admin = User.query.filter_by(email='admin@example.com').first()
@@ -40,10 +40,10 @@ def test_hidden_branding_assets_are_excluded_from_listing(monkeypatch, tmp_path)
             )
             assert response.status_code == 200, response.get_data(as_text=True)
             asset_names = {row['name'] for row in response.get_json()}
-            assert asset_names == set()
+            assert asset_names == {'selected_logo.png', 'old_logo.png'}
 
 
-def test_hidden_branding_assets_ignore_stale_settings_cache(monkeypatch, tmp_path):
+def test_legacy_hidden_metadata_does_not_hide_existing_asset(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():
         admin = User.query.filter_by(email='admin@example.com').first()
@@ -70,7 +70,7 @@ def test_hidden_branding_assets_ignore_stale_settings_cache(monkeypatch, tmp_pat
                 headers={'Authorization': f'Bearer {token}'},
             )
             assert response.status_code == 200, response.get_data(as_text=True)
-            assert {row['name'] for row in response.get_json()} == set()
+            assert {row['name'] for row in response.get_json()} == {'cached_logo.png'}
 
 
 def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path):
@@ -115,7 +115,7 @@ def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path
             assert asset_names == {'active_logo.png', 'old_logo.png'}
 
 
-def test_hidden_branding_metadata_blocks_preview_of_existing_file(monkeypatch, tmp_path):
+def test_hidden_branding_metadata_does_not_block_preview_of_existing_file(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():
         admin = User.query.filter_by(email='admin@example.com').first()
@@ -143,7 +143,8 @@ def test_hidden_branding_metadata_blocks_preview_of_existing_file(monkeypatch, t
                 '/api/admin/export-branding/assets/existing_logo.png/preview',
                 headers={'Authorization': f'Bearer {token}'},
             )
-            assert response.status_code == 404, response.get_data(as_text=True)
+            assert response.status_code == 200, response.get_data(as_text=True)
+            assert response.data == b'png-data'
 
 
 def test_delete_removes_legacy_hidden_file(monkeypatch, tmp_path):
@@ -167,6 +168,34 @@ def test_delete_removes_legacy_hidden_file(monkeypatch, tmp_path):
         with app.test_client() as client:
             response = client.delete(
                 '/api/admin/export-branding/assets/legacy_logo.png',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            assert response.status_code == 200, response.get_data(as_text=True)
+            assert not asset_path.exists()
+
+
+def test_delete_does_not_persist_oversized_hidden_asset_list(monkeypatch, tmp_path):
+    app = create_app()
+    with app.app_context():
+        admin = User.query.filter_by(email='admin@example.com').first()
+        assert admin is not None
+        token = create_access_token(identity=str(admin.id))
+
+        assets_dir = tmp_path / 'backgrounds'
+        assets_dir.mkdir()
+        asset_path = assets_dir / 'delete_me.png'
+        asset_path.write_bytes(b'delete-me')
+        monkeypatch.setattr('backend.routes.admin._branding_backgrounds_dir', lambda: str(assets_dir))
+
+        hidden_names = [f'branding_{index:04d}_logo.png' for index in range(100)]
+        SystemSetting.query.filter_by(key='export_branding_hidden_assets').delete()
+        db.session.add(SystemSetting(key='export_branding_hidden_assets', value=json.dumps(hidden_names)))
+        db.session.commit()
+        _cache.clear()
+
+        with app.test_client() as client:
+            response = client.delete(
+                '/api/admin/export-branding/assets/delete_me.png',
                 headers={'Authorization': f'Bearer {token}'},
             )
             assert response.status_code == 200, response.get_data(as_text=True)
