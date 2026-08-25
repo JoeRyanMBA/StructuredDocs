@@ -17,6 +17,10 @@ fi
 cd "$APP_DIR"
 git config --global --add safe.directory "$APP_DIR"
 
+# The container runs as appuser (UID 1000) and needs to write runtime uploads.
+mkdir -p "$APP_DIR/data/branding"
+chown -R 1000:1000 "$APP_DIR/data/branding"
+
 # If not a git repo, initialise it (one-time setup)
 if [ ! -d ".git" ]; then
   echo "Initialising git repo..."
