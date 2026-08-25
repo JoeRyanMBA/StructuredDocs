@@ -16,12 +16,14 @@ from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 
-EXPORT_BRANDING_IMAGE_KEYS = {
-    'export_html_logo',
+# Keep a stable iteration order for branding settings; tests assert the exact
+# sequence returned when clearing stale references from deleted assets.
+EXPORT_BRANDING_IMAGE_KEYS = (
     'export_pdf_title_logo',
+    'export_html_logo',
     'export_pdf_footer_logo',
     'export_pdf_cover_background',
-}
+)
 
 ALLOWED_BRANDING_EXTENSIONS = {'.png', '.jpg', '.jpeg', '.gif', '.bmp', '.webp', '.svg'}
 HIDDEN_BRANDING_ASSETS_KEY = 'export_branding_hidden_assets'
