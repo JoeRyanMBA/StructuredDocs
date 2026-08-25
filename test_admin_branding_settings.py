@@ -5,9 +5,10 @@ from flask_jwt_extended import create_access_token
 
 from backend.app import create_app
 from backend.models import User, SystemSetting, db
+from backend.utils.settings import _cache
 
 
-def test_selected_hidden_branding_assets_remain_visible(monkeypatch, tmp_path):
+def test_hidden_branding_assets_are_excluded_from_listing(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():
         admin = User.query.filter_by(email='admin@example.com').first()
@@ -30,6 +31,7 @@ def test_selected_hidden_branding_assets_remain_visible(monkeypatch, tmp_path):
         db.session.add(SystemSetting(key='export_pdf_footer_logo', value='selected_logo.png'))
         db.session.add(SystemSetting(key='export_branding_hidden_assets', value=json.dumps(['selected_logo.png', 'old_logo.png'])))
         db.session.commit()
+        _cache.clear()
 
         with app.test_client() as client:
             response = client.get(
@@ -38,7 +40,7 @@ def test_selected_hidden_branding_assets_remain_visible(monkeypatch, tmp_path):
             )
             assert response.status_code == 200, response.get_data(as_text=True)
             asset_names = {row['name'] for row in response.get_json()}
-            assert {'selected_logo.png', 'old_logo.png'} <= asset_names
+            assert asset_names == set()
 
 
 def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path):
@@ -71,6 +73,7 @@ def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path
         row = SystemSetting(key='export_pdf_footer_logo', value='active_logo.png')
         db.session.add(row)
         db.session.commit()
+        _cache.clear()
 
         with app.test_client() as client:
             response = client.get(
@@ -79,10 +82,10 @@ def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path
             )
             assert response.status_code == 200, response.get_data(as_text=True)
             asset_names = {row['name'] for row in response.get_json()}
-            assert {'active_logo.png', 'old_logo.png'} <= asset_names
+            assert asset_names == {'active_logo.png', 'old_logo.png'}
 
 
-def test_hidden_branding_metadata_does_not_hide_existing_file(monkeypatch, tmp_path):
+def test_hidden_branding_metadata_blocks_preview_of_existing_file(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():
         admin = User.query.filter_by(email='admin@example.com').first()
@@ -103,14 +106,41 @@ def test_hidden_branding_metadata_does_not_hide_existing_file(monkeypatch, tmp_p
         ])).delete(synchronize_session=False)
         db.session.add(SystemSetting(key='export_branding_hidden_assets', value=json.dumps(['existing_logo.png'])))
         db.session.commit()
+        _cache.clear()
 
         with app.test_client() as client:
             response = client.get(
                 '/api/admin/export-branding/assets/existing_logo.png/preview',
                 headers={'Authorization': f'Bearer {token}'},
             )
+            assert response.status_code == 404, response.get_data(as_text=True)
+
+
+def test_delete_removes_legacy_hidden_file(monkeypatch, tmp_path):
+    app = create_app()
+    with app.app_context():
+        admin = User.query.filter_by(email='admin@example.com').first()
+        assert admin is not None
+        token = create_access_token(identity=str(admin.id))
+
+        assets_dir = tmp_path / 'backgrounds'
+        assets_dir.mkdir()
+        asset_path = assets_dir / 'legacy_logo.png'
+        asset_path.write_bytes(b'legacy-data')
+        monkeypatch.setattr('backend.routes.admin._branding_backgrounds_dir', lambda: str(assets_dir))
+
+        db.session.query(SystemSetting).filter_by(key='export_branding_hidden_assets').delete()
+        db.session.add(SystemSetting(key='export_branding_hidden_assets', value=json.dumps(['legacy_logo.png'])))
+        db.session.commit()
+        _cache.clear()
+
+        with app.test_client() as client:
+            response = client.delete(
+                '/api/admin/export-branding/assets/legacy_logo.png',
+                headers={'Authorization': f'Bearer {token}'},
+            )
             assert response.status_code == 200, response.get_data(as_text=True)
-            assert response.data == b'png-data'
+            assert not asset_path.exists()
 
 
 def test_upload_branding_asset_persists_selected_setting():
