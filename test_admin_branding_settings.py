@@ -43,6 +43,36 @@ def test_hidden_branding_assets_are_excluded_from_listing(monkeypatch, tmp_path)
             assert asset_names == set()
 
 
+def test_hidden_branding_assets_ignore_stale_settings_cache(monkeypatch, tmp_path):
+    app = create_app()
+    with app.app_context():
+        admin = User.query.filter_by(email='admin@example.com').first()
+        assert admin is not None
+        token = create_access_token(identity=str(admin.id))
+
+        assets_dir = tmp_path / 'backgrounds'
+        assets_dir.mkdir()
+        (assets_dir / 'cached_logo.png').write_bytes(b'cached')
+        monkeypatch.setattr('backend.routes.admin._branding_backgrounds_dir', lambda: str(assets_dir))
+
+        db.session.query(SystemSetting).filter_by(key='export_branding_hidden_assets').delete()
+        db.session.commit()
+        _cache.clear()
+        from backend.utils.settings import get_setting
+        assert get_setting('export_branding_hidden_assets', '[]') == '[]'
+
+        db.session.add(SystemSetting(key='export_branding_hidden_assets', value=json.dumps(['cached_logo.png'])))
+        db.session.commit()
+
+        with app.test_client() as client:
+            response = client.get(
+                '/api/admin/export-branding/assets',
+                headers={'Authorization': f'Bearer {token}'},
+            )
+            assert response.status_code == 200, response.get_data(as_text=True)
+            assert {row['name'] for row in response.get_json()} == set()
+
+
 def test_uploaded_branding_assets_stay_visible_when_unused(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():

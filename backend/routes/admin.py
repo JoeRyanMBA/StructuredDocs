@@ -37,7 +37,10 @@ def _allowed_branding_file(filename: str) -> bool:
 
 
 def _get_hidden_branding_assets() -> set[str]:
-    raw = (get_setting(HIDDEN_BRANDING_ASSETS_KEY, '[]') or '').strip()
+    # Read this coordination setting directly so every Gunicorn worker sees deletions.
+    row = SystemSetting.query.filter_by(key=HIDDEN_BRANDING_ASSETS_KEY).first()
+    raw = (row.value if row else '[]') or ''
+    raw = raw.strip()
     if not raw:
         return set()
     try:
