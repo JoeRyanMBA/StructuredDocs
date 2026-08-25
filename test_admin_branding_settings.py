@@ -202,6 +202,27 @@ def test_delete_does_not_persist_oversized_hidden_asset_list(monkeypatch, tmp_pa
             assert not asset_path.exists()
 
 
+def test_branding_preview_is_exempt_from_global_rate_limit(monkeypatch, tmp_path):
+    app = create_app()
+    with app.app_context():
+        admin = User.query.filter_by(email='admin@example.com').first()
+        assert admin is not None
+        token = create_access_token(identity=str(admin.id))
+
+        assets_dir = tmp_path / 'backgrounds'
+        assets_dir.mkdir()
+        (assets_dir / 'preview_logo.png').write_bytes(b'preview-data')
+        monkeypatch.setattr('backend.routes.admin._branding_backgrounds_dir', lambda: str(assets_dir))
+
+        with app.test_client() as client:
+            for _ in range(55):
+                response = client.get(
+                    '/api/admin/export-branding/assets/preview_logo.png/preview',
+                    headers={'Authorization': f'Bearer {token}'},
+                )
+                assert response.status_code == 200, response.get_data(as_text=True)
+
+
 def test_upload_branding_asset_persists_selected_setting():
     app = create_app()
     with app.app_context():

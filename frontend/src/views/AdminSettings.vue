@@ -623,12 +623,6 @@ export default {
         this.edits = nextEdits
         this.lastKnownValidEdits = { ...nextEdits }
         this.settingsLoaded = true
-        await Promise.allSettled(
-          IMAGE_SETTING_KEYS
-            .map(settingKey => this.normalizeAssetBasename(this.edits[settingKey]))
-            .filter(name => name && name !== NO_COVER_BACKGROUND_SENTINEL)
-            .map(name => this.ensureAssetPreviewUrl(name))
-        )
         this.logoPreviewErrored = false
       } catch (err) {
         this.error = toFriendlyAuthError(err, 'Failed to load admin settings.')
