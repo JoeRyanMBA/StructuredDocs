@@ -51,11 +51,18 @@ def resolve_brand_asset_path(value: str, fallback_filename: str = "") -> str:
     service_dir = os.path.dirname(__file__)
     backend_dir = os.path.dirname(service_dir)
     repo_root = os.path.dirname(backend_dir)
-    backgrounds_dir = os.path.join(backend_dir, "static", "backgrounds")
+    configured_branding_dir = (os.environ.get("EXPORT_BRANDING_ASSETS_DIR") or "").strip()
+    branding_dirs = [
+        configured_branding_dir,
+        os.path.join(backend_dir, "static", "backgrounds"),
+    ]
 
-    direct_in_backgrounds = os.path.join(backgrounds_dir, os.path.basename(candidate))
-    if os.path.exists(direct_in_backgrounds):
-        return direct_in_backgrounds
+    for branding_dir in branding_dirs:
+        if not branding_dir:
+            continue
+        asset_path = os.path.join(branding_dir, os.path.basename(candidate))
+        if os.path.exists(asset_path):
+            return asset_path
 
     from_repo = os.path.join(repo_root, candidate)
     if os.path.exists(from_repo):

@@ -191,6 +191,9 @@ def _resolve_local_image_path_for_pdf(src: str) -> str:
     configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
     if configured_root:
         candidate_roots.append(configured_root)
+    configured_branding_root = (os.environ.get('EXPORT_BRANDING_ASSETS_DIR') or '').strip()
+    if configured_branding_root:
+        candidate_roots.append(configured_branding_root)
     candidate_roots.append(resolve_local_storage_root())
     candidate_roots.append('/app/data/images')
 
