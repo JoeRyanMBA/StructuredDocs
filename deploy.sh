@@ -4,6 +4,7 @@
 set -euo pipefail
 
 APP_DIR="${APP_DIR:-/opt/structureddocs}"
+COMPOSE_PROJECT_NAME="${COMPOSE_PROJECT_NAME:-structureddocs}"
 REPO="https://github.com/JoeRyanMBA/StructuredDocs.git"
 BRANCH="main"
 
@@ -35,10 +36,10 @@ export DOCKER_BUILDKIT=1
 export COMPOSE_DOCKER_CLI_BUILD=1
 
 echo "Building Docker image..."
-docker compose build
+docker compose -p "$COMPOSE_PROJECT_NAME" build
 
 echo "Restarting containers..."
-docker compose up -d
+docker compose -p "$COMPOSE_PROJECT_NAME" up -d
 
 echo "Waiting for startup..."
 sleep 5
@@ -48,7 +49,7 @@ docker ps --filter name=structureddocs
 
 echo ""
 echo "Recent logs:"
-docker compose logs --tail 20 2>/dev/null || true
+docker compose -p "$COMPOSE_PROJECT_NAME" logs --tail 20 2>/dev/null || true
 
 echo ""
 echo "=== Deploy complete ==="

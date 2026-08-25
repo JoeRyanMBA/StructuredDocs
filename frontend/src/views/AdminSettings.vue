@@ -626,7 +626,7 @@ export default {
         await Promise.allSettled(
           IMAGE_SETTING_KEYS
             .map(settingKey => this.normalizeAssetBasename(this.edits[settingKey]))
-            .filter(Boolean)
+            .filter(name => name && name !== NO_COVER_BACKGROUND_SENTINEL)
             .map(name => this.ensureAssetPreviewUrl(name))
         )
         this.logoPreviewErrored = false

@@ -749,7 +749,6 @@ def list_export_branding_assets():
     assets_dir = _branding_backgrounds_dir()
     os.makedirs(assets_dir, exist_ok=True)
 
-    hidden_assets = _get_hidden_branding_assets()
     usage_map = _branding_asset_usage_map()
 
     rows = []
@@ -759,8 +758,6 @@ def list_export_branding_assets():
             if not os.path.isfile(path):
                 continue
             if not _allowed_branding_file(name):
-                continue
-            if name in hidden_assets:
                 continue
             stat = os.stat(path)
             rows.append({
@@ -842,9 +839,6 @@ def preview_export_branding_asset(filename):
     assets_dir = _branding_backgrounds_dir()
     path = os.path.join(assets_dir, candidate)
 
-    if candidate in _get_hidden_branding_assets():
-        return jsonify({'error': 'Image not found'}), 404
-
     if not os.path.exists(path):
         return jsonify({'error': 'Image not found'}), 404
 
@@ -883,14 +877,11 @@ def delete_export_branding_asset(filename):
 
     assets_dir = _branding_backgrounds_dir()
     target_path = os.path.join(assets_dir, candidate)
-    hidden_assets = _get_hidden_branding_assets()
 
     try:
         if os.path.exists(target_path):
             os.remove(target_path)
         cleared_keys = _clear_branding_asset_references(candidate)
-        hidden_assets.add(candidate)
-        _set_hidden_branding_assets(hidden_assets)
     except Exception as exc:
         current_app.logger.exception('Failed deleting branding asset')
         return jsonify({'error': str(exc)}), 500
