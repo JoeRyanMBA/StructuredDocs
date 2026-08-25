@@ -28,6 +28,9 @@ HIDDEN_BRANDING_ASSETS_KEY = 'export_branding_hidden_assets'
 
 
 def _branding_backgrounds_dir() -> str:
+    configured_dir = (os.environ.get('EXPORT_BRANDING_ASSETS_DIR') or '').strip()
+    if configured_dir:
+        return configured_dir
     backend_dir = os.path.dirname(os.path.dirname(__file__))
     return os.path.join(backend_dir, 'static', 'backgrounds')
 
