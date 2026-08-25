@@ -8,6 +8,16 @@ from backend.models import User, SystemSetting, db
 from backend.utils.settings import _cache
 
 
+def test_branding_assets_use_configured_runtime_directory(monkeypatch, tmp_path):
+    runtime_dir = tmp_path / 'branding'
+    runtime_dir.mkdir()
+    monkeypatch.setenv('EXPORT_BRANDING_ASSETS_DIR', str(runtime_dir))
+
+    from backend.routes.admin import _branding_backgrounds_dir
+
+    assert _branding_backgrounds_dir() == str(runtime_dir)
+
+
 def test_existing_branding_assets_are_listed_regardless_of_legacy_metadata(monkeypatch, tmp_path):
     app = create_app()
     with app.app_context():

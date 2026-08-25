@@ -11,6 +11,7 @@ services:
       - ENABLE_BLUEPRINTS_FILE=.enable_blueprints
       - STORAGE_BACKEND=${STORAGE_BACKEND:-local}
       - IMAGE_STORAGE_ROOT=/app/data/images
+      - EXPORT_BRANDING_ASSETS_DIR=/app/data/branding
       - EMAIL_PROVIDER=${EMAIL_PROVIDER:-smtp}
       - SMTP_SERVER=${SMTP_SERVER:-smtp.protonmail.ch}
       - SMTP_PORT=${SMTP_PORT:-587}
@@ -29,6 +30,7 @@ services:
       - ./instance:/app/instance
       - ./data/images:/app/data/images
       - ./data/images:/app/backend/static/images
+      - ./data/branding:/app/data/branding
     command: ["./start.sh"]
     restart: unless-stopped
     mem_limit: ${APP_MEM_LIMIT:-1g}
