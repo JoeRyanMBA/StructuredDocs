@@ -290,6 +290,28 @@ def test_mobile_kb_header_logo_uses_its_own_row(monkeypatch):
     assert html.index('kb-header-logo-row') < html.index('kb-header-inner')
 
 
+def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch):
+    monkeypatch.setattr(kb_generator_module, 'get_export_branding_settings', lambda: {
+        'brand_name': 'Acme',
+        'html_logo': '',
+        'html_primary_color': '#005a9c',
+        'html_accent_color': '#112E51',
+    })
+    monkeypatch.setattr(
+        kb_generator_module,
+        'convert_markdown_to_html',
+        lambda content: '<p>Before</p><p><img src="data:image/png;base64,ZmFrZQ=="><br></p><p>After</p>',
+    )
+
+    html = kb_generator_module.generate_mobile_kb_html_inline(
+        types.SimpleNamespace(title='Knowledge Base', id=1),
+        [{'id': 1, 'title': 'Overview', 'content': 'ignored', 'children': []}],
+    )
+
+    assert '.content-section p:has(> img)' in html
+    assert 'p:has(img:only-child)' not in html
+
+
 def test_pdf_title_and_footer_templates_use_svg_rasterization(monkeypatch):
     calls = []
 
