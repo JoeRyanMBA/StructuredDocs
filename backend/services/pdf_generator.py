@@ -1199,9 +1199,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         if para.startswith('__PDF_IMG__:'):
                             try:
                                 _, img_src, img_w, img_h = para.split(':', 3)
-                                story.append(Spacer(1, 4))
                                 story.append(Image(img_src, width=int(img_w), height=int(img_h)))
-                                story.append(Spacer(1, 4))
                             except Exception:
                                 pass  # skip broken image sentinel
                             continue

@@ -594,6 +594,18 @@ def generate_mobile_kb_html_inline(publication, tree):
             margin-bottom: 1rem;
             line-height: 1.7;
         }
+
+        .content-section p:has(> img:only-child) {
+            margin: 0;
+            line-height: 0;
+        }
+
+        .content-section p > img {
+            display: block;
+            max-width: 100%;
+            height: auto;
+            margin: 0;
+        }
         
         .content-section ul,
         .content-section ol {
