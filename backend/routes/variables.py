@@ -1,6 +1,8 @@
 from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from ..models import db, Variable, VariableValue, CollectionVariableSelection, build_variable_mapping_for_collection, substitute_variables_in_text, Collection
+from ..utils.settings import get_setting
+import json
 
 variables_bp = Blueprint('variables', __name__, url_prefix='/api/variables')
 
@@ -311,6 +313,20 @@ def get_collection_publish_setup(collection_id):
                     variable_pattern in (topic.content or '')):
                     found_in_content = True
                     break
+
+            # Branding-only variables may not appear in topic text. Include them
+            # when one of their allowed values is mapped to an export template.
+            if not found_in_content:
+                try:
+                    templates = json.loads(get_setting('export_branding_templates', '[]') or '[]')
+                except (TypeError, ValueError):
+                    templates = []
+                mapped_values = {
+                    template.get('variable_value')
+                    for template in templates
+                    if isinstance(template, dict) and template.get('variable_value')
+                }
+                found_in_content = any(value.value in mapped_values for value in var.values)
 
             if found_in_content:
                 current_selection = selection_map.get(var.id)
