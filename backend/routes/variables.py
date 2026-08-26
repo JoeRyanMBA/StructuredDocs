@@ -290,13 +290,23 @@ def get_collection_publish_setup(collection_id):
         all_variables = Variable.query.all()
         variables_in_content = []
 
+        # Check the complete collection subtree, matching the publish traversal.
+        collection_topics = []
+
+        def gather_collection_topics(current_collection):
+            collection_topics.extend(current_collection.topics)
+            for child_collection in current_collection.children:
+                gather_collection_topics(child_collection)
+
+        gather_collection_topics(collection)
+
         # Check which variables are actually used in this collection's content
         for var in all_variables:
             variable_pattern = f"{{{{{var.slug}}}}}"
             found_in_content = False
 
             # Check in topic titles and content
-            for topic in collection.topics:
+            for topic in collection_topics:
                 if (variable_pattern in (topic.title or '') or
                     variable_pattern in (topic.content or '')):
                     found_in_content = True
