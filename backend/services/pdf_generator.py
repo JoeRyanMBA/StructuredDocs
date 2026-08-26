@@ -914,7 +914,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     if not config_type:
         config_type = 'default'
 
-    branding = get_export_branding_settings()
+    template_name = getattr(publication, 'branding_template_name', '') or ''
+    branding = get_export_branding_settings(template_name) if template_name else get_export_branding_settings()
 
     # Select configuration based on type
     if config_type == 'corporate':
