@@ -1,5 +1,6 @@
 import os
 import re
+import json
 from typing import Dict
 
 from ..utils.settings import get_setting
@@ -94,31 +95,60 @@ def _validated_brand_asset(value: str, fallback: str) -> str:
     return candidate
 
 
-def get_export_branding_settings() -> Dict[str, str]:
+def _load_branding_templates() -> list[dict]:
+    raw = get_setting("export_branding_templates", "[]")
+    try:
+        templates = json.loads(raw or "[]")
+    except (TypeError, ValueError):
+        return []
+    return templates if isinstance(templates, list) else []
+
+
+def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
     """Return normalized export branding settings from runtime admin settings."""
-    brand_name = get_setting("export_brand_name", DEFAULT_BRANDING["brand_name"]).strip()
+    values = {
+        "export_brand_name": get_setting("export_brand_name", DEFAULT_BRANDING["brand_name"]),
+        "export_pdf_title_logo": get_setting("export_pdf_title_logo", DEFAULT_BRANDING["pdf_title_logo"]),
+        "export_pdf_footer_logo": get_setting("export_pdf_footer_logo", DEFAULT_BRANDING["pdf_footer_logo"]),
+        "export_pdf_cover_background": get_setting("export_pdf_cover_background", DEFAULT_BRANDING["pdf_cover_background"]),
+        "export_html_logo": get_setting("export_html_logo", DEFAULT_BRANDING["html_logo"]),
+        "export_html_primary_color": get_setting("export_html_primary_color", DEFAULT_BRANDING["html_primary_color"]),
+        "export_html_accent_color": get_setting("export_html_accent_color", DEFAULT_BRANDING["html_accent_color"]),
+    }
+    selected_template = next(
+        (template for template in _load_branding_templates()
+         if template_name and template.get("name") == template_name),
+        None,
+    )
+    if selected_template:
+        values.update({
+            key: value for key, value in selected_template.get("settings", {}).items()
+            if key in values
+        })
+
+    brand_name = str(values["export_brand_name"] or "").strip()
     if not brand_name:
         brand_name = DEFAULT_BRANDING["brand_name"]
 
     html_primary_color = _normalize_hex_color(
-        get_setting("export_html_primary_color", DEFAULT_BRANDING["html_primary_color"]),
+        values["export_html_primary_color"],
         DEFAULT_BRANDING["html_primary_color"],
     )
     html_accent_color = _normalize_hex_color(
-        get_setting("export_html_accent_color", DEFAULT_BRANDING["html_accent_color"]),
+        values["export_html_accent_color"],
         DEFAULT_BRANDING["html_accent_color"],
     )
 
     pdf_title_logo = _validated_brand_asset(
-        get_setting("export_pdf_title_logo", DEFAULT_BRANDING["pdf_title_logo"]),
+        values["export_pdf_title_logo"],
         DEFAULT_BRANDING["pdf_title_logo"],
     )
     pdf_footer_logo = _validated_brand_asset(
-        get_setting("export_pdf_footer_logo", DEFAULT_BRANDING["pdf_footer_logo"]),
+        values["export_pdf_footer_logo"],
         DEFAULT_BRANDING["pdf_footer_logo"],
     )
     pdf_cover_background = _validated_brand_asset(
-        get_setting("export_pdf_cover_background", DEFAULT_BRANDING["pdf_cover_background"]),
+        values["export_pdf_cover_background"],
         DEFAULT_BRANDING["pdf_cover_background"],
     )
 
@@ -127,7 +157,27 @@ def get_export_branding_settings() -> Dict[str, str]:
         "pdf_title_logo": pdf_title_logo,
         "pdf_footer_logo": pdf_footer_logo,
         "pdf_cover_background": pdf_cover_background,
-        "html_logo": get_setting("export_html_logo", DEFAULT_BRANDING["html_logo"]).strip(),
+        "html_logo": str(values["export_html_logo"] or "").strip(),
         "html_primary_color": html_primary_color,
         "html_accent_color": html_accent_color,
     }
+
+
+def get_export_branding_template_for_collection(collection_id: int) -> str | None:
+    """Return the template mapped to any selected variable value in a collection."""
+    from ..models import CollectionVariableSelection, VariableValue
+
+    selected_value_ids = [
+        row.variable_value_id
+        for row in CollectionVariableSelection.query.filter_by(collection_id=collection_id).all()
+        if row.variable_value_id
+    ]
+    if not selected_value_ids:
+        return None
+
+    selected_values = VariableValue.query.filter(VariableValue.id.in_(selected_value_ids)).all()
+    selected_value_text = {value.value for value in selected_values}
+    for template in _load_branding_templates():
+        if template.get("variable_value") in selected_value_text:
+            return template.get("name") or None
+    return None

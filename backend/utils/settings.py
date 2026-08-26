@@ -31,6 +31,7 @@ DEFAULTS: dict[str, tuple[str, str]] = {
     'export_html_primary_color':  ('#005a9c', 'Primary HTML export brand color (#RRGGBB)'),
     'export_html_accent_color':   ('#112E51', 'Accent HTML export brand color (#RRGGBB)'),
     'export_branding_hidden_assets': ('[]', 'JSON array of branding asset filenames hidden from admin selectors'),
+    'export_branding_templates': ('[]', 'JSON array of export branding templates mapped to selected variable values'),
 }
 
 

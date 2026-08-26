@@ -28,7 +28,8 @@ def _resolve_html_logo_src(raw_value):
 
 def generate_mobile_kb_html(publication, tree):
     """Generate mobile-first HTML for knowledge base using template"""
-    branding = get_export_branding_settings()
+    template_name = getattr(publication, 'branding_template_name', '') or ''
+    branding = get_export_branding_settings(template_name) if template_name else get_export_branding_settings()
     html_logo_src = _resolve_html_logo_src(branding.get('html_logo', ''))
     header_logo_html = (
         f'<img class="kb-brand-logo" src="{html_logo_src}" alt="{branding["brand_name"]} logo" />'
@@ -179,7 +180,8 @@ def generate_mobile_kb_html(publication, tree):
 
 def generate_mobile_kb_html_inline(publication, tree):
     """Generate mobile-first HTML for knowledge base"""
-    branding = get_export_branding_settings()
+    template_name = getattr(publication, 'branding_template_name', '') or ''
+    branding = get_export_branding_settings(template_name) if template_name else get_export_branding_settings()
     html_logo_src = _resolve_html_logo_src(branding.get('html_logo', ''))
     header_logo_html = (
         f'<img class="kb-brand-logo" src="{html_logo_src}" alt="{branding["brand_name"]} logo" />'

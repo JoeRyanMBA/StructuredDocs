@@ -2,6 +2,7 @@ from flask import Blueprint, request, jsonify, current_app
 from flask_jwt_extended import jwt_required
 from datetime import datetime, timezone, timedelta
 from ..models import db, Collection, Topic, collection_topic_tree, Project, Publication, PublicationNode, build_variable_mapping_for_collection, substitute_variables_in_text
+from ..services.export_branding import get_export_branding_template_for_collection
 from ..utils.audit import log_audit
 
 collections_bp = Blueprint('collections', __name__, url_prefix='/api/collections')
@@ -340,6 +341,7 @@ def publish_collection(collection_id):
             existing_pub.description = collection.description or f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics"
             existing_pub.form_number = collection.form_number
             existing_pub.source_collection_id = collection.id
+            existing_pub.branding_template_name = get_export_branding_template_for_collection(collection.id)
             # Use naive UTC to match DB column
             existing_pub.created_at = datetime.utcnow()
             current_app.logger.debug(f"🎯 PUBLISH: Deleting existing publication nodes")
@@ -444,6 +446,7 @@ def publish_collection(collection_id):
             description=collection.description or f"Published from Collection '{collection.name}' containing {len(collection.topics)} topics",
             form_number=collection.form_number,
             source_collection_id=collection.id,
+            branding_template_name=get_export_branding_template_for_collection(collection.id),
         )
         db.session.add(publication)
         db.session.flush()

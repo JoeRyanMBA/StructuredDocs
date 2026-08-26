@@ -118,6 +118,29 @@
           </div>
         </div>
       </div>
+      <div class="template-panel">
+        <div class="template-panel-header">
+          <div>
+            <h2>Variable Branding Templates</h2>
+            <p class="label-help">Save the current branding and apply it when a selected variable value matches.</p>
+          </div>
+        </div>
+        <div class="template-form">
+          <input v-model.trim="templateName" class="setting-input" type="text" placeholder="Template name, e.g. CompanyA" />
+          <input v-model.trim="templateVariableValue" class="setting-input" type="text" placeholder="Selected variable value, e.g. A1" />
+          <button class="btn btn-secondary btn-sm" :disabled="saving || !templateName || !templateVariableValue" @click="saveTemplate">Save Current Branding as Template</button>
+        </div>
+        <div v-if="brandingTemplates.length" class="template-list">
+          <div v-for="template in brandingTemplates" :key="template.name" class="template-row">
+            <div><strong>{{ template.name }}</strong><span class="template-value">{{ template.variable_value }}</span></div>
+            <div class="template-actions">
+              <button class="btn btn-secondary btn-sm" :disabled="saving" @click="applyTemplate(template)">Apply</button>
+              <button class="btn btn-secondary btn-sm" :disabled="saving" @click="deleteTemplate(template.name)">Delete</button>
+            </div>
+          </div>
+        </div>
+        <div v-else class="asset-empty-note">No variable branding templates saved.</div>
+      </div>
       <div v-if="brandingAssetsError" class="status error">{{ brandingAssetsError }}</div>
 
       <div class="preview-card" :style="previewCssVars">
@@ -303,6 +326,8 @@ export default {
       },
       exportMessage: '',
       exportError: '',
+      templateName: '',
+      templateVariableValue: '',
     }
   },
   computed: {
@@ -358,6 +383,14 @@ export default {
         const idText = String(pub?.id ?? '').toLowerCase()
         return title.includes(term) || idText.includes(term)
       })
+    },
+    brandingTemplates() {
+      try {
+        const parsed = JSON.parse(this.edits.export_branding_templates || '[]')
+        return Array.isArray(parsed) ? parsed : []
+      } catch (_) {
+        return []
+      }
     },
   },
   watch: {
@@ -716,10 +749,34 @@ export default {
       }
     },
     buildPayload(valuesByKey) {
-      return this.orderedKeys.map(key => ({
+      const payload = this.orderedKeys.map(key => ({
         key,
         value: valuesByKey[key] ?? '',
       }))
+      payload.push({ key: 'export_branding_templates', value: valuesByKey.export_branding_templates ?? '[]' })
+      return payload
+    },
+    async saveTemplate() {
+      const name = this.templateName.trim()
+      const variableValue = this.templateVariableValue.trim()
+      if (!name || !variableValue) return
+      const settings = Object.fromEntries(this.orderedKeys.map(key => [key, this.edits[key] ?? '']))
+      const templates = this.brandingTemplates.filter(template => template.name !== name)
+      templates.push({ name, variable_value: variableValue, settings })
+      this.edits.export_branding_templates = JSON.stringify(templates)
+      this.templateName = ''
+      this.templateVariableValue = ''
+      await this.save()
+    },
+    applyTemplate(template) {
+      Object.assign(this.edits, template.settings || {})
+      this.saveSuccess = false
+      this.saveError = null
+    },
+    async deleteTemplate(name) {
+      if (!window.confirm(`Delete branding template "${name}"?`)) return
+      this.edits.export_branding_templates = JSON.stringify(this.brandingTemplates.filter(template => template.name !== name))
+      await this.save()
     },
     syncSelectedPublication() {
       this.selectedPublicationId = resolveSelectedPublicationId(this.selectedPublicationId, this.publications, this.publicationSearch)
@@ -842,6 +899,55 @@ export default {
 .settings-grid {
   display: grid;
   gap: 14px;
+}
+
+.template-panel {
+  margin-top: 18px;
+  border: 1px solid #dbe3ef;
+  border-radius: 10px;
+  padding: 14px;
+  background: #f8fafc;
+}
+
+.template-panel h2 {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.template-form {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  gap: 8px;
+  margin-top: 12px;
+}
+
+.template-list {
+  display: grid;
+  gap: 6px;
+  margin-top: 12px;
+}
+
+.template-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+  padding: 8px 10px;
+  border: 1px solid #e5e7eb;
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.template-value {
+  margin-left: 8px;
+  color: #2563eb;
+  font-size: 0.85rem;
+}
+
+.template-actions {
+  display: flex;
+  gap: 6px;
+  flex-shrink: 0;
 }
 
 .setting-row {
