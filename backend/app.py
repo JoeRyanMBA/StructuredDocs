@@ -1053,6 +1053,7 @@ p { color: #666; }
 
         # Static file serving and other routes
         @app.route('/images/<path:filename>')
+        @limiter.exempt
         def serve_image(filename):
             try:
                 print(f"\n🖼️ IMAGE REQUEST: {filename}")
@@ -1125,6 +1126,7 @@ p { color: #666; }
 
         # Simple asset serving route
         @app.route('/assets/<path:filename>')
+        @limiter.exempt
         def serve_assets(filename):
             print(f"🎯 Asset request for: '{filename}'")
             
@@ -1170,6 +1172,7 @@ p { color: #666; }
                 return f"Error: {str(e)}", 500
 
         @app.route('/<path:path>')
+        @limiter.exempt
         def serve_frontend(path):
             print(f"🎯 Frontend request for path: {path}")
             
