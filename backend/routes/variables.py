@@ -302,10 +302,22 @@ def get_collection_publish_setup(collection_id):
 
         gather_collection_topics(collection)
 
+        try:
+            branding_templates = json.loads(get_setting('export_branding_templates', '[]') or '[]')
+        except (TypeError, ValueError):
+            branding_templates = []
+        branding_templates = [template for template in branding_templates if isinstance(template, dict)]
+        mapped_template_values = {}
+        for template in branding_templates:
+            mapped_value = str(template.get('variable_value') or '').strip().casefold()
+            if mapped_value:
+                mapped_template_values[mapped_value] = template
+
         # Check which variables are actually used in this collection's content
         for var in all_variables:
             variable_pattern = f"{{{{{var.slug}}}}}"
             found_in_content = False
+            branding_template = None
 
             # Check in topic titles and content
             for topic in collection_topics:
@@ -317,16 +329,11 @@ def get_collection_publish_setup(collection_id):
             # Branding-only variables may not appear in topic text. Include them
             # when one of their allowed values is mapped to an export template.
             if not found_in_content:
-                try:
-                    templates = json.loads(get_setting('export_branding_templates', '[]') or '[]')
-                except (TypeError, ValueError):
-                    templates = []
-                mapped_values = {
-                    template.get('variable_value')
-                    for template in templates
-                    if isinstance(template, dict) and template.get('variable_value')
-                }
-                found_in_content = any(value.value in mapped_values for value in var.values)
+                for value in var.values:
+                    branding_template = mapped_template_values.get(str(value.value or '').strip().casefold())
+                    if branding_template:
+                        found_in_content = True
+                        break
 
             if found_in_content:
                 current_selection = selection_map.get(var.id)
@@ -344,6 +351,11 @@ def get_collection_publish_setup(collection_id):
                     'current_selection': current_value,
                     'values': [v.to_dict() for v in var.values]
                 })
+                if branding_template:
+                    variables_in_content[-1]['branding_template'] = {
+                        'name': branding_template.get('name'),
+                        'variable_value': branding_template.get('variable_value'),
+                    }
 
         return jsonify({
             'collection_id': collection_id,
