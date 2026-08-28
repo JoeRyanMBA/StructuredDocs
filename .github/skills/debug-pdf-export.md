@@ -14,6 +14,7 @@ This skill guides you through diagnosing and fixing problems in PDF generation, 
 ## Quick Diagnosis
 
 ### Check PDF Service Status
+
 PDF generation is handled by:
 - Route: `backend/routes/publications.py` (likely)
 - Generator: `backend/services/pdf_generator.py`
@@ -28,12 +29,14 @@ print('PDF generator available')
 ```
 
 ### Verify ReportLab Installation
+
 ```bash
 python -c "from reportlab.lib.pagesizes import letter; print('ReportLab OK')"
 # If error: pip install reportlab
 ```
 
 ### Enable Debug Logging
+
 Set environment variable: `FLASK_DEBUG=1`
 Monitor logs for:
 - HTML parsing/sanitization errors
@@ -44,6 +47,7 @@ Monitor logs for:
 ## Diagnosis Workflow
 
 ### 1. Understand Publication vs. Export Flow
+
 **Publication (Snapshots):**
 - Topics ordered and grouped into a Publication
 - Snapshot captured at publication time
@@ -55,6 +59,7 @@ Monitor logs for:
 - Mobile: Optimized for mobile viewers
 
 ### 2. Check HTML Sanitization
+
 Before PDF rendering, HTML is sanitized for ReportLab compatibility:
 - File: `backend/pdf_config.py` (likely contains sanitization rules)
 - Issue: Invalid HTML tags or attributes cause rendering failures
@@ -67,6 +72,7 @@ Common ReportLab limitations:
 - Font embeds must be present
 
 ### 3. Test PDF Generation in Isolation
+
 ```bash
 # From repo root:
 python -c "
@@ -92,6 +98,7 @@ with app.app_context():
 ```
 
 ### 4. Verify Image Handling in Exports
+
 Images in publications must:
 - Be accessible from the backend (S3 or local storage)
 - Have valid URLs in the content
@@ -100,6 +107,7 @@ Images in publications must:
 **Check file:** `backend/services/pdf_generator.py` for image loading logic
 
 ### 5. Check Font Configuration
+
 ReportLab requires fonts to be properly configured:
 - Default fonts (Helvetica, Times, Courier) usually available
 - Custom fonts must be registered in `backend/pdf_config.py`
@@ -108,6 +116,7 @@ ReportLab requires fonts to be properly configured:
 **See:** `backend/pdf_config.py` for font setup
 
 ### 6. Test Export Endpoint
+
 ```bash
 # 1. Create or get a Publication ID
 # 2. Export as PDF
@@ -127,7 +136,7 @@ curl -X GET "http://localhost:8080/api/publications/<id>/export?format=html" \
 ## Common Issues & Fixes
 
 | Symptom | Likely Cause | Fix |
-|---------|--------------|-----|
+| --- |--------------|-----|
 | "ReportLab error" in PDF export | Invalid HTML or unsupported styling | Check HTML sanitization, simplify CSS |
 | PDF truncated or missing pages | Content too large or encoding error | Check page limits, test with smaller publication |
 | Images missing from PDF | Images not accessible or wrong URLs | Verify S3 access, check image URL rewriting |
@@ -139,7 +148,7 @@ curl -X GET "http://localhost:8080/api/publications/<id>/export?format=html" \
 ## Files to Check
 
 | File | Purpose |
-|------|---------|
+| --- |---------|
 | `backend/routes/publications.py` | Publication and export endpoints |
 | `backend/services/pdf_generator.py` | PDF generation logic and ReportLab calls |
 | `backend/pdf_config.py` | ReportLab configuration, font setup, HTML sanitization rules |

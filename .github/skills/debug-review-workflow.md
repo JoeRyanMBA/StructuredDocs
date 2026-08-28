@@ -13,6 +13,7 @@ This skill guides you through diagnosing and fixing problems in the review and a
 ## Quick Diagnosis
 
 ### Is Review Enabled?
+
 Check `backend/app.py` blueprint registration. The review routes should be active:
 ```bash
 python -c "
@@ -26,6 +27,7 @@ for rule in app.url_map.iter_rules():
 ```
 
 ### Check Review Token Validity
+
 All review access goes through `ReviewToken.is_valid()` in `backend/models.py`:
 - Token must not be expired
 - Token must be linked to a valid Topic/Feedback
@@ -35,6 +37,7 @@ All review access goes through `ReviewToken.is_valid()` in `backend/models.py`:
 ## Diagnosis Workflow
 
 ### 1. Understand Review State Flow
+
 Review workflow lifecycle:
 1. Topic created and assigned reviewers
 2. Review tokens generated for external reviewers (no account needed)
@@ -46,6 +49,7 @@ Review workflow lifecycle:
 **Read:** [docs/REVIEW_WORKFLOW_GUIDE.md](../../docs/REVIEW_WORKFLOW_GUIDE.md)
 
 ### 2. Verify Review Token Generation
+
 Tokens are created when:
 - A Topic is put into review
 - External reviewers are assigned
@@ -67,6 +71,7 @@ with app.app_context():
 ```
 
 ### 3. Test Review Access Flow
+
 ```bash
 # 1. Generate a review link for a topic
 # Use the admin UI or API endpoint to create review
@@ -82,6 +87,7 @@ with app.app_context():
 ```
 
 ### 4. Check Email Notifications
+
 Review notifications are sent via:
 - SMTP config (check `.env` and `docs/email-sending.md`)
 - Email queue in `backend/extensions.py` task_queue
@@ -98,6 +104,7 @@ print('Task queue connection:', task_queue.connection.ping())
 ```
 
 ### 5. Check Feedback Persistence
+
 Feedback should be stored in database and linked to:
 - Specific Topic (or Feedback record)
 - Reviewer (via ReviewToken or User account)
@@ -118,6 +125,7 @@ with app.app_context():
 ```
 
 ### 6. Trace Review Status Updates
+
 Review approval status usually flows through:
 - `Topic.review_status` field (enum: pending, in_review, approved, rejected)
 - Approval counts or explicit approvals per reviewer
@@ -128,7 +136,7 @@ Review approval status usually flows through:
 ## Common Issues & Fixes
 
 | Symptom | Likely Cause | Fix |
-|---------|--------------|-----|
+| --- |--------------|-----|
 | "Invalid review token" / 403 on review link | Token expired or not found | Check `ReviewToken.expires_at`, regenerate link |
 | Reviewer can't see feedback | Feedback not linked to token/topic correctly | Check Feedback model relationships and database state |
 | Review email not sent | SMTP config missing or queue failure | Check `.env` for SMTP settings, verify email service |
@@ -139,7 +147,7 @@ Review approval status usually flows through:
 ## Files to Check
 
 | File | Purpose |
-|------|---------|
+| --- |---------|
 | `backend/models.py` | `ReviewToken`, `Feedback`, `Topic` schema and `is_valid()` method |
 | `backend/routes/reviews.py` (or similar) | Review-related API endpoints |
 | `frontend/src/pages/Review.vue` (or similar) | Review access UI for reviewers |
@@ -150,6 +158,7 @@ Review approval status usually flows through:
 ## Test Review E2E
 
 ### Without Authentication (External Reviewer)
+
 ```bash
 # 1. Get a valid review token from admin UI or API
 # 2. Access review page in frontend with token
@@ -159,6 +168,7 @@ http://localhost:3000/review/<token>
 ```
 
 ### With Authentication (Internal Reviewer)
+
 ```bash
 # 1. Login as internal user
 # 2. Check dashboard or review list
@@ -168,6 +178,7 @@ http://localhost:3000/review/<token>
 ```
 
 ### Admin / Supervisor View
+
 - Should see review progress
 - Should see all feedback
 - Should be able to move topic through workflow
