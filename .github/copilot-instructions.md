@@ -1,8 +1,18 @@
 # StructuredDocs Workspace Instructions
 
+## Quick Start for AI Agents
+
+- **Choosing a specialist?** See [AGENTS.md](AGENTS.md) for task-specific guidance
+- **Working on a feature?** Backend = `backend/**/*.py`, Frontend = `frontend/src/**`, Tests = `test_*.py` or `backend/**/test*.py`
+- **Detailed guidance available:**
+  - Backend patterns: [.github/instructions/backend.instructions.md](.github/instructions/backend.instructions.md)
+  - Frontend patterns: [.github/instructions/frontend.instructions.md](.github/instructions/frontend.instructions.md)
+  - Migration safety: [.github/instructions/migrations.instructions.md](.github/instructions/migrations.instructions.md)
+  - Testing: [.github/instructions/testing.instructions.md](.github/instructions/testing.instructions.md)
+
 ## Scope
 
-StructuredDocs is a document management and knowledge-base platform built as a Vue 3 frontend plus a Flask backend. The core content hierarchy is Project -> Collection -> Topic, with document import, review workflows, and publication/export features layered on top.
+StructuredDocs is a document management and knowledge-base platform built as a Vue 3 frontend plus a Flask backend. The core content hierarchy is **Project → Collection → Topic**, with document import, review workflows, and publication/export features layered on top.
 
 ## Build And Test
 
@@ -47,10 +57,11 @@ StructuredDocs is a document management and knowledge-base platform built as a V
 
 ## Reference Docs
 
-- `README.md` for quick start, deployment overview, and environment templates.
-- `docs/import-guide.md` for document import behavior and troubleshooting.
-- `docs/REVIEW_WORKFLOW_GUIDE.md` for the review lifecycle and reviewer UX.
-- `ARCHIVE_SYSTEM.md` for archival behavior.
-- `docs/object-storage-setup.md` for S3-compatible object storage configuration.
-- `docs/email-sending.md` for SMTP configuration.
-- `docs/self-hosting.md` for deployment and hosting details.
+- [README.md](README.md) for quick start, deployment overview, and environment templates.
+- [docs/import-guide.md](docs/import-guide.md) for document import behavior and troubleshooting.
+- [docs/REVIEW_WORKFLOW_GUIDE.md](docs/REVIEW_WORKFLOW_GUIDE.md) for the review lifecycle and reviewer UX.
+- [ARCHIVE_SYSTEM.md](ARCHIVE_SYSTEM.md) for archival behavior.
+- [docs/object-storage-setup.md](docs/object-storage-setup.md) for S3-compatible object storage configuration.
+- [docs/email-sending.md](docs/email-sending.md) for SMTP configuration.
+- [docs/self-hosting.md](docs/self-hosting.md) for deployment and hosting details.
+- [CONTRIBUTING.md](CONTRIBUTING.md) for development workflow.
