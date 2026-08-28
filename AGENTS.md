@@ -86,7 +86,25 @@ Use when:
 | Review links not working | `ReviewToken.is_valid()` in `backend/models.py` | Backend |
 | PDF export cuts off content | HTML sanitization path, ReportLab constraints in `backend/pdf_config.py` | Backend |
 
-## Key Documentation Links
+## Specialized Skills
+
+These skills provide deep guidance for specific workflows and problem domains:
+
+- [.github/skills/add-full-stack-feature.md](.github/skills/add-full-stack-feature.md) – Step-by-step guide for adding a complete feature (backend + frontend + migrations)
+- [.github/skills/debug-import-pipeline.md](.github/skills/debug-import-pipeline.md) – Diagnosing and fixing document import issues
+- [.github/skills/debug-review-workflow.md](.github/skills/debug-review-workflow.md) – Fixing review access, tokens, and approval flows
+- [.github/skills/debug-pdf-export.md](.github/skills/debug-pdf-export.md) – Troubleshooting PDF generation and publication exports
+
+## Detailed Instruction Guides
+
+These augment the core instructions with patterns for specific domains:
+
+- [.github/instructions/validation-error-handling.instructions.md](.github/instructions/validation-error-handling.instructions.md) – Database validation, transaction safety, error responses
+- [.github/instructions/task-queue.instructions.md](.github/instructions/task-queue.instructions.md) – Background jobs, Redis task queue, async patterns
+- [.github/instructions/image-handling.instructions.md](.github/instructions/image-handling.instructions.md) – Image storage, S3/local filesystem, URL rewriting
+- [.github/instructions/frontend-state.instructions.md](.github/instructions/frontend-state.instructions.md) – Vue 3 composables, reactive state, API integration
+
+## Core Documentation Links
 
 - [README.md](README.md) – Quick start and tech stack
 - [docs/README.md](docs/README.md) – Documentation hub (imports, reviews, deployment, etc.)
