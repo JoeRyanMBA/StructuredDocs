@@ -25,3 +25,4 @@ rq==2.7.0
 sentry-sdk[flask]==2.53.0
 boto3==1.42.58
 bleach==6.3.0
+tinycss2>=1.2.0

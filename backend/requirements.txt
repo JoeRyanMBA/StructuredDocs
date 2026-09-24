@@ -12,6 +12,8 @@ psycopg2-binary
 Flask-JWT-Extended
 python-dotenv
 cairosvg
+bleach>=6.0.0
+tinycss2>=1.2.0
 gunicorn
 # Operational enhancements
 Flask-Limiter>=3.8.0
