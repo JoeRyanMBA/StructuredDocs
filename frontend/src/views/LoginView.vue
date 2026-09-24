@@ -307,7 +307,12 @@ export default {
         // Redirect to dashboard
         this.$router.push('/');
       } catch (error) {
-        this.error = error.response?.data?.error || 'Invalid email or password';
+        const responseData = error.response?.data || {}
+        this.error = responseData.error
+          || responseData.msg
+          || (error.response
+            ? `Login failed (${error.response.status})`
+            : 'Unable to reach the login service');
         // Clear stored data on login failure
         localStorage.removeItem('access_token');
         localStorage.removeItem('refresh_token');
