@@ -834,6 +834,7 @@ export default {
       let rendered = marked.parse(content, {
         breaks: false,
         gfm: true,
+        html: true,
         renderer
       })
       
