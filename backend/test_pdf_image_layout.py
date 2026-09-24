@@ -26,16 +26,25 @@ def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
             'float',
             'left',
             'Before after',
+            False,
         ),
         (
             f'<img src="{image_path}" style="position: absolute; z-index: 1" width="120" height="80"> overlay text',
             'overlay',
             'right',
             'overlay text',
+            True,
+        ),
+        (
+            f'<img src="{image_path}" style="position: absolute; z-index: -1" width="120" height="80"> overlay text',
+            'overlay',
+            'right',
+            'overlay text',
+            False,
         ),
     ]
 
-    for content, mode, side, expected_text in cases:
+    for content, mode, side, expected_text, image_on_top in cases:
         paragraphs = convert_markdown_to_pdf_paragraphs(content)
         marker = next(item for item in paragraphs if item.startswith('__PDF_LAYOUT_IMG__:'))
         payload = _decode_pdf_layout_marker(marker)
@@ -43,6 +52,7 @@ def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
         assert payload['mode'] == mode
         assert payload['side'] == side
         assert payload['text'] == expected_text
+        assert payload['image_on_top'] is image_on_top
 
 
 def test_image_layout_flowables_build_pdf(tmp_path):

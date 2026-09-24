@@ -551,7 +551,8 @@
                 <option value="inline">In line</option>
                 <option value="float-left">Wrap text on the right</option>
                 <option value="float-right">Wrap text on the left</option>
-                <option value="overlay">Text over image</option>
+                <option value="overlay-front">Text in front of image</option>
+                <option value="overlay-behind">Text behind image</option>
               </select>
             </div>
             <p v-if="imageLayoutError" class="text-danger image-layout-error">{{ imageLayoutError }}</p>
@@ -1058,7 +1059,9 @@ export default {
     getImageLayout(image) {
       if (image?.style?.float === 'left') return 'float-left'
       if (image?.style?.float === 'right') return 'float-right'
-      if (image?.style?.position === 'absolute' || image?.style?.position === 'fixed') return 'overlay'
+      if (image?.style?.position === 'absolute' || image?.style?.position === 'fixed') {
+        return Number(image.style.zIndex) > 0 ? 'overlay-behind' : 'overlay-front'
+      }
       return 'inline'
     },
     openImageLayoutModal() {
@@ -1090,13 +1093,14 @@ export default {
       } else if (this.imageLayout === 'float-right') {
         image.style.float = 'right'
         image.style.margin = '0 0 8px 12px'
-      } else if (this.imageLayout === 'overlay') {
+      } else if (this.imageLayout === 'overlay-front' || this.imageLayout === 'overlay-behind') {
         image.style.position = 'absolute'
-        image.style.zIndex = '0'
+        image.style.zIndex = this.imageLayout === 'overlay-behind' ? '1' : '-1'
         image.style.top = '0'
         image.style.left = '0'
         if (image.parentElement) {
           image.parentElement.style.position = 'relative'
+          image.parentElement.style.isolation = 'isolate'
         }
       }
 
@@ -1846,7 +1850,7 @@ export default {
       // Unlike renderedMarkdown, does NOT strip snippet wrappers so htmlToMarkdown can round-trip them.
       // Strip Pandoc-style image size attributes so they don't appear as literal text.
       const content = (this.content || '').replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
-      return marked.parse(content, { breaks: false, gfm: true })
+      return marked.parse(content, { breaks: false, gfm: true, html: true })
     },
 
     async _initWysiwygContent() {
