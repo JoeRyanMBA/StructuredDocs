@@ -18,7 +18,7 @@ import mistune
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
-from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, NextPageTemplate, Flowable
+from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, ImageAndFlowables, NextPageTemplate, Flowable
 from reportlab.platypus.flowables import AnchorFlowable
 from reportlab.lib import colors
 from reportlab.lib.enums import TA_LEFT, TA_CENTER, TA_JUSTIFY, TA_RIGHT
@@ -97,6 +97,46 @@ def _pdf_debug(message: str) -> None:
         current_app.logger.debug(message)
         return
     logging.getLogger(__name__).debug(message)
+
+
+class _OverlayImageFlowable(Flowable):
+    """Draw an image first and a paragraph over it at the same coordinates."""
+
+    def __init__(self, image, paragraph, width, height, padding=8):
+        super().__init__()
+        self.image = image
+        self.paragraph = paragraph
+        self.image_width = width
+        self.image_height = height
+        self.padding = padding
+
+    def wrap(self, available_width, available_height):
+        self.width = min(self.image_width, available_width)
+        self.height = self.image_height
+        text_width = max(1, self.width - (self.padding * 2))
+        self.text_width_used, self.text_height = self.paragraph.wrap(
+            text_width, self.height - (self.padding * 2)
+        )
+        return self.width, self.height
+
+    def draw(self):
+        self.image.drawOn(self.canv, 0, 0)
+        text_y = max(self.padding, (self.height - self.text_height) / 2)
+        self.paragraph.drawOn(self.canv, self.padding, text_y)
+
+
+def _encode_pdf_layout_marker(payload):
+    return '__PDF_LAYOUT_IMG__:' + base64.urlsafe_b64encode(
+        json.dumps(payload, separators=(',', ':')).encode('utf-8')
+    ).decode('ascii')
+
+
+def _decode_pdf_layout_marker(marker):
+    try:
+        encoded = marker.split(':', 1)[1]
+        return json.loads(base64.urlsafe_b64decode(encoded).decode('utf-8'))
+    except (IndexError, ValueError, TypeError, json.JSONDecodeError):
+        return None
 
 
 def _resolve_pdf_renderable_image_path(image_path: str) -> str:
@@ -1191,8 +1231,65 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 if node['content']:
                     # Convert markdown-like content to paragraphs
                     content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
-                    for para in content_paragraphs:
+                    paragraph_index = 0
+                    while paragraph_index < len(content_paragraphs):
+                        para = content_paragraphs[paragraph_index]
+                        paragraph_index += 1
                         if not para or not para.strip():
+                            continue
+                        if para.startswith('__PDF_LAYOUT_IMG__:'):
+                            layout = _decode_pdf_layout_marker(para)
+                            if not layout:
+                                continue
+                            if layout.get('mode') in ('float', 'overlay') and not layout.get('text', '').strip():
+                                if paragraph_index < len(content_paragraphs):
+                                    following = content_paragraphs[paragraph_index]
+                                    if following and not following.startswith('__'):
+                                        layout['text'] = following.strip()
+                                        paragraph_index += 1
+                            try:
+                                image = Image(
+                                    layout['src'],
+                                    width=int(layout['width']),
+                                    height=int(layout['height'])
+                                )
+                                layout_text = _pdf_sanitize_text(layout.get('text', '').strip())
+                                if layout_text and layout.get('mode') == 'overlay':
+                                    overlay_style = ParagraphStyle(
+                                        f'OverlayContent{level}',
+                                        parent=config.create_content_style(base_styles, level),
+                                        alignment=TA_LEFT,
+                                        leftIndent=0,
+                                        rightIndent=0,
+                                        spaceAfter=0,
+                                        textColor=colors.white,
+                                    )
+                                    story.append(_OverlayImageFlowable(
+                                        image,
+                                        Paragraph(layout_text, overlay_style),
+                                        int(layout['width']),
+                                        int(layout['height'])
+                                    ))
+                                elif layout_text and layout.get('mode') == 'float':
+                                    float_style = ParagraphStyle(
+                                        f'FloatContent{level}',
+                                        parent=config.create_content_style(base_styles, level),
+                                        alignment=TA_LEFT,
+                                        leftIndent=0,
+                                        rightIndent=0,
+                                        spaceAfter=0,
+                                    )
+                                    story.append(ImageAndFlowables(
+                                        image,
+                                        [Paragraph(layout_text, float_style)],
+                                        imageRightPadding=6,
+                                        imageBottomPadding=3,
+                                        imageSide=layout.get('side', 'right')
+                                    ))
+                                else:
+                                    story.append(image)
+                            except Exception:
+                                current_app.logger.debug('PDF: failed to render positioned image')
                             continue
                         # Standalone image sentinel — emit as a proper Image flowable so
                         # ReportLab can handle page breaks correctly (inline img in Paragraph
@@ -1598,8 +1695,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             
             # Handle images - ReportLab only supports specific img attributes
             if '<img' in formatted_line:
-                # Remove unsupported attributes like 'alt', 'style', 'class'
-                # Keep only 'src', 'width', 'height', 'valign'
+                # Preserve the small CSS subset that ReportLab can reproduce with
+                # flowables; other image attributes remain intentionally ignored.
                 def clean_img_tag(match):
                     img_tag = match.group(0)
                     # Extract src attribute
@@ -1633,6 +1730,15 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     # Extract width and height if present
                     width_match = re.search(r'width="([^"]*)"', img_tag)
                     height_match = re.search(r'height="([^"]*)"', img_tag)
+                    style_match = re.search(r'style=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
+                    class_match = re.search(r'class=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
+                    style = style_match.group(1).lower() if style_match else ''
+                    image_class = class_match.group(1).lower() if class_match else ''
+                    float_match = re.search(r'\bfloat\s*:\s*(left|right)', style)
+                    is_overlay = bool(
+                        re.search(r'\bposition\s*:\s*(absolute|fixed)', style)
+                        or re.search(r'\b(z-index|overlay)\b', image_class)
+                    )
                     
                     # Build clean img tag with only supported attributes
                     clean_attrs = []
@@ -1668,11 +1774,36 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         clean_attrs.append(f'height="{h}"')
                     if not clean_attrs:
                         return ''
+                    if is_overlay or float_match:
+                        return _encode_pdf_layout_marker({
+                            'src': src,
+                            'width': w,
+                            'height': h,
+                            'mode': 'overlay' if is_overlay else 'float',
+                            'side': float_match.group(1) if float_match else 'right',
+                            'text': '',
+                        })
                     # Return a sentinel so the caller can emit a standalone Image flowable
                     # instead of embedding inside a Paragraph (which causes overflow issues).
                     return f'__PDF_IMG__:{src}:{w}:{h}'
                 
                 formatted_line = re.sub(r'<img[^>]*>', clean_img_tag, formatted_line)
+                layout_marker_re = re.compile(r'__PDF_LAYOUT_IMG__:[A-Za-z0-9_-]+=*')
+                layout_match = layout_marker_re.search(formatted_line)
+                if layout_match:
+                    layout = _decode_pdf_layout_marker(layout_match.group(0))
+                    if layout:
+                        surrounding_text = (
+                            formatted_line[:layout_match.start()].strip()
+                            + ' '
+                            + formatted_line[layout_match.end():].strip()
+                        ).strip()
+                        layout['text'] = surrounding_text
+                        if current_paragraph:
+                            paragraphs.append(' '.join(current_paragraph))
+                            current_paragraph = []
+                        paragraphs.append(_encode_pdf_layout_marker(layout))
+                    formatted_line = ''
                 # If this line contains an image sentinel, flush surrounding text and
                 # emit the image as its own paragraph entry so generate_pdf can use
                 # a proper Image flowable (not a Paragraph).
