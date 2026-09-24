@@ -5,6 +5,30 @@
 export function htmlToMarkdown(html) {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html || '', 'text/html')
+  const escapeAttribute = (value) => String(value || '')
+    .replace(/&/g, '&amp;')
+    .replace(/"/g, '&quot;')
+    .replace(/</g, '&lt;')
+    .replace(/>/g, '&gt;')
+
+  const getImageLayoutStyle = (node) => {
+    const allowedProperties = new Set(['float', 'position', 'z-index', 'top', 'left'])
+    return (node.getAttribute('style') || '')
+      .split(';')
+      .map(declaration => declaration.trim())
+      .filter(declaration => {
+        const separator = declaration.indexOf(':')
+        if (separator < 0) return false
+        const property = declaration.slice(0, separator).trim().toLowerCase()
+        const value = declaration.slice(separator + 1).trim().toLowerCase()
+        if (!allowedProperties.has(property)) return false
+        if (property === 'float') return value === 'left' || value === 'right'
+        if (property === 'position') return value === 'absolute' || value === 'fixed'
+        if (property === 'z-index') return /^-?\d+$/.test(value)
+        return /^-?\d+(\.\d+)?(px|pt|em|rem|%)?$/.test(value)
+      })
+      .join('; ')
+  }
   const inferListLevelFromMargin = (marginValue) => {
     const raw = String(marginValue || '').trim()
     if (!raw) return null
@@ -553,6 +577,10 @@ export function htmlToMarkdown(html) {
     if (tag === 'img') {
       const src = node.getAttribute('src') || ''
       const alt = node.getAttribute('alt') || 'Image'
+      const layoutStyle = getImageLayoutStyle(node)
+      if (layoutStyle) {
+        return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}" style="${escapeAttribute(layoutStyle)}">`
+      }
       return src ? `![${alt}](${src})` : ''
     }
     if (tag === 'table') return renderTable(node)
