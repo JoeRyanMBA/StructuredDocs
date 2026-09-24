@@ -102,13 +102,14 @@ def _pdf_debug(message: str) -> None:
 class _OverlayImageFlowable(Flowable):
     """Draw an image first and a paragraph over it at the same coordinates."""
 
-    def __init__(self, image, paragraph, width, height, padding=8):
+    def __init__(self, image, paragraph, width, height, padding=8, image_on_top=False):
         super().__init__()
         self.image = image
         self.paragraph = paragraph
         self.image_width = width
         self.image_height = height
         self.padding = padding
+        self.image_on_top = image_on_top
 
     def wrap(self, available_width, available_height):
         self.width = min(self.image_width, available_width)
@@ -120,9 +121,13 @@ class _OverlayImageFlowable(Flowable):
         return self.width, self.height
 
     def draw(self):
-        self.image.drawOn(self.canv, 0, 0)
         text_y = max(self.padding, (self.height - self.text_height) / 2)
-        self.paragraph.drawOn(self.canv, self.padding, text_y)
+        if not self.image_on_top:
+            self.image.drawOn(self.canv, 0, 0)
+            self.paragraph.drawOn(self.canv, self.padding, text_y)
+        else:
+            self.paragraph.drawOn(self.canv, self.padding, text_y)
+            self.image.drawOn(self.canv, 0, 0)
 
 
 def _encode_pdf_layout_marker(payload):
@@ -1268,7 +1273,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                         image,
                                         Paragraph(layout_text, overlay_style),
                                         int(layout['width']),
-                                        int(layout['height'])
+                                        int(layout['height']),
+                                        image_on_top=bool(layout.get('image_on_top'))
                                     ))
                                 elif layout_text and layout.get('mode') == 'float':
                                     float_style = ParagraphStyle(
@@ -1735,6 +1741,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     style = style_match.group(1).lower() if style_match else ''
                     image_class = class_match.group(1).lower() if class_match else ''
                     float_match = re.search(r'\bfloat\s*:\s*(left|right)', style)
+                    z_index_match = re.search(r'\bz-index\s*:\s*(-?\d+)', style)
                     is_overlay = bool(
                         re.search(r'\bposition\s*:\s*(absolute|fixed)', style)
                         or re.search(r'\b(z-index|overlay)\b', image_class)
@@ -1781,6 +1788,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                             'height': h,
                             'mode': 'overlay' if is_overlay else 'float',
                             'side': float_match.group(1) if float_match else 'right',
+                            'image_on_top': bool(z_index_match and int(z_index_match.group(1)) > 0),
                             'text': '',
                         })
                     # Return a sentinel so the caller can emit a standalone Image flowable
