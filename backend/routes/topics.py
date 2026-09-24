@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from ..utils.email_service import email_service
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import bleach
+from bleach.css_sanitizer import CSSSanitizer
 from ..utils.audit import log_audit
 
 topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
@@ -20,6 +21,12 @@ _SAFE_TAGS = list(bleach.ALLOWED_TAGS) + [
     'pre', 'code', 'blockquote', 'sub', 'sup',
     'u', 's', 'strike', 'del', 'ins', 'dl', 'dt', 'dd',
 ]
+_TOPIC_CSS_SANITIZER = CSSSanitizer(
+    allowed_css_properties={
+        'float', 'position', 'z-index', 'top', 'left', 'margin',
+        'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+    }
+)
 
 
 def _allow_attrs(tag, name, value):
@@ -47,7 +54,13 @@ def _sanitize_content(html):
     """Strip dangerous tags/attributes from TinyMCE HTML while preserving formatting."""
     if not html:
         return html
-    return bleach.clean(html, tags=_SAFE_TAGS, attributes=_allow_attrs, strip=True)
+    return bleach.clean(
+        html,
+        tags=_SAFE_TAGS,
+        attributes=_allow_attrs,
+        css_sanitizer=_TOPIC_CSS_SANITIZER,
+        strip=True,
+    )
 
 # GET /api/topics → List all topics (supports ?page=&limit=&status= filtering)
 @topics_bp.route('', methods=['GET'])
