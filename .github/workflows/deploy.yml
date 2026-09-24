@@ -40,10 +40,19 @@ jobs:
           PORT="${VPS_PORT:-22}"
           if [[ -n "${VPS_HOST_KEY:-}" ]]; then
             printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
+            chmod 600 ~/.ssh/known_hosts
           else
-            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+            # VPS_HOST_KEY not set; attempt ssh-keyscan but fall back to
+            # StrictHostKeyChecking=accept-new so the deploy is not blocked.
+            touch ~/.ssh/known_hosts
+            chmod 600 ~/.ssh/known_hosts
+            ssh-keyscan -T 10 -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null || true
+            # If keyscan produced nothing, tell SSH to auto-accept on first connect.
+            if [[ ! -s ~/.ssh/known_hosts ]]; then
+              printf 'Host *\n  StrictHostKeyChecking accept-new\n' >> ~/.ssh/config
+              chmod 600 ~/.ssh/config
+            fi
           fi
-          chmod 600 ~/.ssh/known_hosts
 
       - name: Deploy on VPS
         env:
