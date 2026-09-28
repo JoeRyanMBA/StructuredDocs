@@ -1,6 +1,8 @@
 import os
 import sys
 import types
+import io
+import zipfile
 from pathlib import Path
 
 from flask import Flask
@@ -8,6 +10,7 @@ from flask import Flask
 from backend.services import pdf_generator as pdf_generator_module
 from backend.services import kb_generator as kb_generator_module
 from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
+from backend.routes.import_handler import _preserve_docx_image_wrapping
 from backend.utils.image_registry import normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content
 from backend.utils.storage import resolve_local_storage_root
 
@@ -21,6 +24,44 @@ def test_normalize_import_image_public_url_keeps_canonical_relative_path():
 def test_normalize_import_image_public_url_preserves_remote_urls():
     url = 'https://cdn.example.com/images/imports/5/image.png'
     assert normalize_import_image_public_url(url, document_id=5, filename='image.png') == url
+
+
+def test_word_image_wrapping_is_preserved_in_html_for_square_and_tight_wraps():
+        document_xml = '''<w:document xmlns:w="http://schemas.openxmlformats.org/wordprocessingml/2006/main"
+                xmlns:wp="http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing"
+                xmlns:a="http://schemas.openxmlformats.org/drawingml/2006/main"
+                xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships">
+            <w:body>
+                <wp:anchor><wp:positionH><wp:align>right</wp:align></wp:positionH>
+                    <wp:wrapSquare wrapText="bothSides"/><a:blip r:embed="rId1"/>
+                </wp:anchor>
+                <wp:anchor><wp:positionH><wp:align>left</wp:align></wp:positionH>
+                    <wp:wrapTight wrapText="bothSides"><wp:wrapPolygon>
+                        <wp:start x="0" y="0"/><wp:lineTo x="21600" y="0"/>
+                        <wp:lineTo x="21600" y="21600"/><wp:lineTo x="0" y="21600"/>
+                    </wp:wrapPolygon></wp:wrapTight><a:blip r:embed="rId2"/>
+                </wp:anchor>
+            </w:body>
+        </w:document>'''
+        relationships_xml = '''<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">
+            <Relationship Id="rId1" Target="media/square.png"/>
+            <Relationship Id="rId2" Target="media/tight.png"/>
+        </Relationships>'''
+        docx_bytes = io.BytesIO()
+        with zipfile.ZipFile(docx_bytes, 'w') as docx:
+                docx.writestr('word/document.xml', document_xml)
+                docx.writestr('word/_rels/document.xml.rels', relationships_xml)
+
+        markdown = '![square](media/square.png)\n![tight](media/tight.png)'
+        wrapped = _preserve_docx_image_wrapping(docx_bytes.getvalue(), markdown)
+
+        assert '<img src="media/square.png" alt="square" style="float: right">' in wrapped
+        assert 'style="float: left; shape-outside: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)"' in wrapped
+
+        with Flask(__name__).app_context():
+            exported = convert_markdown_to_html(wrapped)
+        assert 'float: right' in exported
+        assert 'shape-outside: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' in exported
 
 
 def test_resolve_local_storage_root_uses_repo_local_data_directory_when_env_unset():

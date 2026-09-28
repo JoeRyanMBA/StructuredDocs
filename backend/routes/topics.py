@@ -7,6 +7,7 @@ from datetime import datetime, timedelta
 from ..utils.email_service import email_service
 from flask_jwt_extended import jwt_required, get_jwt_identity
 import bleach
+import re
 from bleach.css_sanitizer import CSSSanitizer
 from ..utils.audit import log_audit
 
@@ -24,8 +25,13 @@ _SAFE_TAGS = list(bleach.ALLOWED_TAGS) + [
 _TOPIC_CSS_SANITIZER = CSSSanitizer(
     allowed_css_properties={
         'float', 'position', 'z-index', 'top', 'left', 'margin',
-        'margin-top', 'margin-right', 'margin-bottom', 'margin-left',
+        'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'shape-outside',
     }
+)
+_SAFE_SHAPE_OUTSIDE_VALUE = re.compile(
+    r'polygon\(\s*-?\d+(?:\.\d+)?%\s+-?\d+(?:\.\d+)?%'
+    r'(?:\s*,\s*-?\d+(?:\.\d+)?%\s+-?\d+(?:\.\d+)?%){2,}\s*\)',
+    re.IGNORECASE,
 )
 
 
@@ -34,6 +40,10 @@ def _allow_attrs(tag, name, value):
     if name.startswith('on'):  # onclick, onload, etc.
         return False
     if name in ('class', 'id', 'style', 'title', 'lang', 'dir'):
+        if name == 'style':
+            shape_values = re.findall(r'(?:^|;)\s*shape-outside\s*:\s*([^;]+)', value, re.IGNORECASE)
+            if shape_values and not all(_SAFE_SHAPE_OUTSIDE_VALUE.fullmatch(item.strip()) for item in shape_values):
+                return False
         return True
     if name.startswith('data-') or name.startswith('aria-'):
         return True
