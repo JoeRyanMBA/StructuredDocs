@@ -1293,7 +1293,6 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                         leftIndent=0,
                                         rightIndent=0,
                                         spaceAfter=0,
-                                        textColor=colors.white,
                                     )
                                     story.append(_OverlayImageFlowable(
                                         image,
