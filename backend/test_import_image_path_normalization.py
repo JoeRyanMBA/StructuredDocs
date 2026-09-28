@@ -301,7 +301,7 @@ def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch)
     monkeypatch.setattr(
         kb_generator_module,
         'convert_markdown_to_html',
-        lambda content: '<p>Before</p><p><img src="data:image/png;base64,ZmFrZQ=="><br></p><p>After</p>',
+        lambda content: '<p>Before</p><p><img src="data:image/png;base64,ZmFrZQ==" style="float: right"><br></p><p>After</p>',
     )
 
     html = kb_generator_module.generate_mobile_kb_html_inline(
@@ -311,6 +311,7 @@ def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch)
 
     assert '.content-section p:has(> img)' in html
     assert 'p:has(img:only-child)' not in html
+    assert '.content-section img[style*="float"] {\n            max-width: min(45%, 320px);' in html
     assert '.content-section {\n            display: none;\n            position: relative;\n            isolation: isolate;' in html
     assert 'height: auto !important;' in html
     assert 'max-height: none;' in html
