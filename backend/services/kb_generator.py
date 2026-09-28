@@ -623,6 +623,10 @@ def generate_mobile_kb_html_inline(publication, tree):
             max-height: none;
             margin: 0;
         }
+
+        .content-section img[style*="float"] {
+            max-width: min(45%, 320px);
+        }
         
         .content-section ul,
         .content-section ol {
