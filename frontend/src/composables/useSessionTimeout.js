@@ -4,7 +4,7 @@
  * - Shows a warning after INACTIVITY_TIMEOUT_MS of no user activity.
  * - Auto-logs out WARNING_BEFORE_MS after the warning if no action is taken.
  * - Any user activity (mouse, keyboard, touch, scroll) resets the inactivity timer.
- * - Also enforces a hard logout when the JWT token itself expires (shows warning first).
+ * - Access tokens are refreshed by the API layer; refresh failures surface through auth:logout.
  * - extendSession() refreshes the token and resets all timers.
  * - Listens for the global 'auth:logout' event dispatched by API interceptors so
  *   token-refresh failures also surface as the modal rather than a raw page redirect.
@@ -27,7 +27,6 @@ const sessionExpired = ref(false); // true when triggered by token expiry / API 
 
 let warningTimer        = null;
 let expiryTimer         = null;
-let tokenExpiryTimer    = null;
 let countdownInterval   = null;
 let activityAttached    = false;
 let expiredListenerAdded = false; // guard against double-registration
@@ -46,9 +45,8 @@ function getTokenExpiry(token) {
 function clearTimers() {
   clearTimeout(warningTimer);
   clearTimeout(expiryTimer);
-  clearTimeout(tokenExpiryTimer);
   clearInterval(countdownInterval);
-  warningTimer = expiryTimer = tokenExpiryTimer = countdownInterval = null;
+  warningTimer = expiryTimer = countdownInterval = null;
 }
 
 function startCountdown(ms) {
@@ -125,17 +123,6 @@ function startWatcher() {
 
   const token = localStorage.getItem('access_token');
   if (!token) return;
-
-  // Show warning (then hard-logout) at JWT expiry instead of silently logging out
-  const expiry = getTokenExpiry(token);
-  if (expiry) {
-    const msUntilExpiry = expiry - Date.now();
-    if (msUntilExpiry <= 0) {
-      showWarningThenLogout(EXPIRED_GRACE_MS, true);
-      return;
-    }
-    tokenExpiryTimer = setTimeout(() => showWarningThenLogout(EXPIRED_GRACE_MS, true), msUntilExpiry);
-  }
 
   // Register global event listener for API-interceptor-triggered logouts (once only)
   if (!expiredListenerAdded) {
