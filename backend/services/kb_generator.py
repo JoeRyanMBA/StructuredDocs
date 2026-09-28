@@ -556,6 +556,8 @@ def generate_mobile_kb_html_inline(publication, tree):
         
         .content-section {
             display: none;
+            position: relative;
+            isolation: isolate;
             padding: 1.5rem;
             animation: fadeIn 0.3s ease-in;
         }
