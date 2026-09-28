@@ -1099,10 +1099,6 @@ export default {
         image.style.zIndex = this.imageLayout === 'overlay-behind' ? '1' : '-1'
         image.style.top = '0'
         image.style.left = '0'
-        if (image.parentElement) {
-          image.parentElement.style.position = 'relative'
-          image.parentElement.style.isolation = 'isolate'
-        }
       }
 
       this.updateContentFromWysiwyg()
