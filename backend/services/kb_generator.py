@@ -611,6 +611,10 @@ def generate_mobile_kb_html_inline(publication, tree):
             line-height: 0;
         }
 
+        .content-section p:has(> img[style*="float"]) {
+            display: contents;
+        }
+
         .content-section figure {
             margin: 0;
         }

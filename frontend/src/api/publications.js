@@ -89,7 +89,7 @@ export async function previewMobileKnowledgeBase(publicationId, tagIds = []) {
   })
 
   const html = typeof response.data === 'string' ? response.data : ''
-  const previewWindow = window.open('', '_blank', 'width=375,height=812,scrollbars=yes,resizable=yes,toolbar=no,menubar=no')
+  const previewWindow = window.open('', '_blank')
 
   if (previewWindow) {
     const baseHref = `${window.location.origin}/`
