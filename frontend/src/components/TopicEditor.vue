@@ -2403,6 +2403,13 @@ export default {
 /* Preview area (when user selects Preview mode) */
 .preview-mode .preview-content p { margin: 0 0 1rem 0; line-height: 1.7; }
 .preview-mode .preview-content p:last-child { margin-bottom: 0; }
+.preview-content p:has(> img[style*="float"]) { display: contents; }
+.preview-content p:has(> img[style*="float"]) > br { display: none; }
+.preview-content img[style*="float"] {
+  max-width: min(45%, 320px);
+  height: auto;
+  margin: 0 12px 8px;
+}
 
 .preview-content {
   position: relative;
