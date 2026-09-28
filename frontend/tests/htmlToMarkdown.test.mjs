@@ -41,3 +41,12 @@ test('htmlToMarkdown preserves table structure and alignment markers', () => {
   assert.match(markdown, /\| :---: \| :---: \| :---: \|/)
   assert.match(markdown, /\| Annual Leave \| 20 days \| Accrues from Day 1 \|/)
 })
+
+test('htmlToMarkdown preserves tight image wrapping styles', () => {
+  const markdown = htmlToMarkdown(
+    '<img src="/images/tight.png" alt="Diagram" '
+    + 'style="float: left; shape-outside: polygon(0% 0%, 100% 0%, 100% 100%)">'
+  )
+
+  assert.match(markdown, /style="float: left; shape-outside: polygon\(0% 0%, 100% 0%, 100% 100%\)"/)
+})

@@ -11,6 +11,7 @@ from ..utils.settings import get_setting
 def _import_rate_limit():
     return get_setting('import_rate_limit', '20 per hour')
 import re
+import html
 from docx import Document
 import io
 import subprocess
@@ -19,7 +20,8 @@ import os
 import shutil
 import uuid
 import zipfile
-from urllib.parse import urlparse
+from urllib.parse import unquote, urlparse
+import xml.etree.ElementTree as ET
 
 import_bp = Blueprint('import_handler', __name__, url_prefix='/api/import')
 SOURCES = ('word', 'markdown')
@@ -251,6 +253,86 @@ def _convert_docx_to_markdown_fallback(file_content):
     return '\n\n'.join(blocks).strip()
 
 
+def _docx_image_wrap_styles(file_content):
+    """Return float and contour styles for anchored Word images with text wrapping."""
+    word_ns = 'http://schemas.openxmlformats.org/drawingml/2006/wordprocessingDrawing'
+    drawing_ns = 'http://schemas.openxmlformats.org/drawingml/2006/main'
+    office_rel_ns = 'http://schemas.openxmlformats.org/officeDocument/2006/relationships'
+    package_rel_ns = 'http://schemas.openxmlformats.org/package/2006/relationships'
+
+    try:
+        with zipfile.ZipFile(io.BytesIO(file_content)) as docx_zip:
+            document_root = ET.fromstring(docx_zip.read('word/document.xml'))
+            relationships_root = ET.fromstring(docx_zip.read('word/_rels/document.xml.rels'))
+    except (KeyError, ET.ParseError, zipfile.BadZipFile):
+        return {}
+
+    targets = {
+        relation.get('Id'): os.path.basename(unquote(relation.get('Target', '').replace('\\', '/')))
+        for relation in relationships_root.findall(f'{{{package_rel_ns}}}Relationship')
+    }
+    wrapped_images = {}
+    for anchor in document_root.iter(f'{{{word_ns}}}anchor'):
+        wrap = next((
+            anchor.find(f'{{{word_ns}}}{wrap_name}')
+            for wrap_name in ('wrapSquare', 'wrapTight')
+            if anchor.find(f'{{{word_ns}}}{wrap_name}') is not None
+        ), None)
+        if wrap is None:
+            continue
+
+        image = anchor.find(f'.//{{{drawing_ns}}}blip')
+        if image is None:
+            continue
+        image_name = targets.get(image.get(f'{{{office_rel_ns}}}embed'))
+        if not image_name:
+            continue
+
+        alignment = anchor.find(f'{{{word_ns}}}positionH/{{{word_ns}}}align')
+        float_side = 'right' if alignment is not None and alignment.text == 'right' else 'left'
+        style = [f'float: {float_side}']
+
+        if wrap.tag == f'{{{word_ns}}}wrapTight':
+            polygon = wrap.find(f'{{{word_ns}}}wrapPolygon')
+            points = []
+            if polygon is not None:
+                for point in polygon:
+                    try:
+                        x = max(0, min(21600, int(point.get('x'))))
+                        y = max(0, min(21600, int(point.get('y'))))
+                    except (TypeError, ValueError):
+                        points = []
+                        break
+                    points.append(f'{x / 216:g}% {y / 216:g}%')
+            if len(points) >= 3:
+                style.append(f'shape-outside: polygon({", ".join(points)})')
+
+        wrapped_images[image_name] = '; '.join(style)
+
+    return wrapped_images
+
+
+def _preserve_docx_image_wrapping(file_content, markdown_content):
+    """Translate Word image wrapping metadata into HTML retained by topic content."""
+    wrapped_images = _docx_image_wrap_styles(file_content)
+    if not wrapped_images:
+        return markdown_content
+
+    def replace_image(match):
+        alt_text, raw_image_ref = match.groups()
+        image_ref = raw_image_ref.strip().split(maxsplit=1)[0].strip('<>')
+        image_path = urlparse(image_ref).path
+        if os.path.basename(unquote(image_path)) not in wrapped_images:
+            return match.group(0)
+        return (
+            f'<img src="{html.escape(image_ref, quote=True)}" '
+            f'alt="{html.escape(alt_text, quote=True)}" '
+            f'style="{wrapped_images[os.path.basename(unquote(image_path))]}">'
+        )
+
+    return re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_image, markdown_content)
+
+
 def _convert_word_to_markdown(file_content, import_doc_id):
     """Convert Word document to Markdown using pandoc with proper image handling"""
     try:
@@ -307,6 +389,8 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             # Read the converted Markdown
             with open(temp_output_path, 'r', encoding='utf-8') as f:
                 markdown_content = f.read()
+
+            markdown_content = _preserve_docx_image_wrapping(file_content, markdown_content)
             
             current_app.logger.debug(f"PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")
             current_app.logger.info(f"✅ PANDOC SUCCESS: Converted {len(file_content)} bytes to {len(markdown_content)} chars of Markdown")

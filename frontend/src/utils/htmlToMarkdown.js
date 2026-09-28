@@ -12,7 +12,7 @@ export function htmlToMarkdown(html) {
     .replace(/>/g, '&gt;')
 
   const getImageLayoutStyle = (node) => {
-    const allowedProperties = new Set(['float', 'position', 'z-index', 'top', 'left'])
+    const allowedProperties = new Set(['float', 'position', 'z-index', 'top', 'left', 'shape-outside'])
     return (node.getAttribute('style') || '')
       .split(';')
       .map(declaration => declaration.trim())
@@ -25,6 +25,9 @@ export function htmlToMarkdown(html) {
         if (property === 'float') return value === 'left' || value === 'right'
         if (property === 'position') return value === 'absolute' || value === 'fixed'
         if (property === 'z-index') return /^-?\d+$/.test(value)
+        if (property === 'shape-outside') {
+          return /^polygon\(\s*-?\d+(?:\.\d+)?%\s+-?\d+(?:\.\d+)?%(?:\s*,\s*-?\d+(?:\.\d+)?%\s+-?\d+(?:\.\d+)?%){2,}\s*\)$/.test(value)
+        }
         return /^-?\d+(\.\d+)?(px|pt|em|rem|%)?$/.test(value)
       })
       .join('; ')

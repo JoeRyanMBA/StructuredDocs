@@ -14,3 +14,13 @@ def test_topic_sanitizer_preserves_image_layout_styles():
     assert 'top:0' in sanitized
     assert 'left:0' in sanitized
     assert 'background' not in sanitized
+
+
+def test_topic_sanitizer_preserves_safe_tight_wrap_polygon_only():
+    safe_content = '<img src="/images/example.png" style="float:left;shape-outside:polygon(0% 0%, 100% 0%, 100% 100%)">'
+    unsafe_content = '<img src="/images/example.png" style="float:left;shape-outside:url(https://example.com/shape.png)">'
+    mixed_content = '<img src="/images/example.png" style="shape-outside:url(https://example.com/shape.png);shape-outside:polygon(0% 0%, 100% 0%, 100% 100%)">'
+
+    assert 'shape-outside:polygon' in _sanitize_content(safe_content)
+    assert 'shape-outside' not in _sanitize_content(unsafe_content)
+    assert 'shape-outside' not in _sanitize_content(mixed_content)
