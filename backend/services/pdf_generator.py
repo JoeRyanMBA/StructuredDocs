@@ -144,6 +144,22 @@ def _decode_pdf_layout_marker(marker):
         return None
 
 
+def _collect_overlay_paragraphs(paragraphs, start_index):
+    overlay_paragraphs = []
+    while start_index < len(paragraphs):
+        paragraph = paragraphs[start_index].strip()
+        if (
+            not paragraph
+            or paragraph.startswith('__')
+            or paragraph.startswith('<font face="Helvetica-Bold"')
+        ):
+            break
+        overlay_paragraphs.append(paragraph)
+        start_index += 1
+
+    return '<br/><br/>'.join(overlay_paragraphs), start_index
+
+
 def _resolve_pdf_renderable_image_path(image_path: str) -> str:
     """Return a filesystem path that ReportLab can draw for PDF exports.
 
@@ -1246,7 +1262,17 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                             layout = _decode_pdf_layout_marker(para)
                             if not layout:
                                 continue
-                            if layout.get('mode') in ('float', 'overlay') and not layout.get('text', '').strip():
+                            if layout.get('mode') == 'overlay':
+                                following_text, paragraph_index = _collect_overlay_paragraphs(
+                                    content_paragraphs,
+                                    paragraph_index
+                                )
+                                if following_text:
+                                    layout['text'] = '<br/><br/>'.join(
+                                        part for part in (layout.get('text', '').strip(), following_text)
+                                        if part
+                                    )
+                            elif layout.get('mode') == 'float' and not layout.get('text', '').strip():
                                 if paragraph_index < len(content_paragraphs):
                                     following = content_paragraphs[paragraph_index]
                                     if following and not following.startswith('__'):

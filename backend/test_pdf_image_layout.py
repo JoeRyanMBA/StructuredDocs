@@ -7,6 +7,7 @@ from reportlab.platypus import Image, ImageAndFlowables, Paragraph, SimpleDocTem
 
 from backend.services.pdf_generator import (
     _OverlayImageFlowable,
+    _collect_overlay_paragraphs,
     _decode_pdf_layout_marker,
     convert_markdown_to_pdf_paragraphs,
 )
@@ -78,3 +79,24 @@ def test_image_layout_flowables_build_pdf(tmp_path):
 
     assert output_path.exists()
     assert os.path.getsize(output_path) > 0
+
+
+def test_overlay_paragraphs_collect_until_structural_content(tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        f'<img src="{image_path}" style="position: absolute; z-index: -1" width="120" height="80">'
+        '\n\nFirst paragraph with **inline formatting**.\n\n'
+        'Second paragraph.\n\n## Next heading\n\n- list content'
+    )
+    paragraphs = convert_markdown_to_pdf_paragraphs(content)
+    marker_index = next(
+        index for index, item in enumerate(paragraphs)
+        if item.startswith('__PDF_LAYOUT_IMG__:')
+    )
+    payload = _decode_pdf_layout_marker(paragraphs[marker_index])
+
+    text, next_index = _collect_overlay_paragraphs(paragraphs, marker_index + 1)
+
+    assert payload['mode'] == 'overlay'
+    assert text == 'First paragraph with <b>inline formatting</b>.<br/><br/>Second paragraph.'
+    assert paragraphs[next_index].startswith('<font face="Helvetica-Bold"')
