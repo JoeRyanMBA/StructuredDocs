@@ -2029,6 +2029,19 @@ def convert_markdown_to_html(markdown_text):
     
     html = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_markdown_image, html)
     html = re.sub(r'<img([^>]*?)src="([^"]*)"([^>]*?)>', replace_html_image, html)
+
+    def unwrap_floated_image_paragraph(match):
+        image_html = match.group(1)
+        if re.search(r'\bfloat\s*:\s*(?:left|right)\b', image_html, re.IGNORECASE):
+            return image_html
+        return match.group(0)
+
+    html = re.sub(
+        r'<p\b[^>]*>\s*(<img\b[^>]*>)\s*(?:<br\s*/?>)?\s*</p>',
+        unwrap_floated_image_paragraph,
+        html,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
     
     # Links
     html = re.sub(r'\[([^\]]+)\]\(([^)]+)\)', r'<a href="\2" target="_blank">\1</a>', html)
