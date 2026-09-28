@@ -2333,6 +2333,8 @@ export default {
 
 .wysiwyg-content {
   width: 100%;
+  position: relative;
+  isolation: isolate;
   min-height: 0;
   height: 100%;
   padding: 1.25rem;
@@ -2407,6 +2409,8 @@ export default {
 .preview-mode .preview-content p:last-child { margin-bottom: 0; }
 
 .preview-content {
+  position: relative;
+  isolation: isolate;
   height: 100%;
   min-height: 0;
   overflow: auto;
