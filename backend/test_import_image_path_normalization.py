@@ -288,6 +288,7 @@ def test_mobile_kb_header_logo_uses_its_own_row(monkeypatch):
     assert 'margin: 0;' in html
     assert 'object-fit: contain;' in html
     assert html.index('kb-header-logo-row') < html.index('kb-header-inner')
+    assert '.kb-header-logo-row .kb-brand-logo {\n            width: auto;\n            max-width: 120px;\n            height: 36px;\n            max-height: 36px;\n            object-fit: contain;' in html
 
 
 def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch):

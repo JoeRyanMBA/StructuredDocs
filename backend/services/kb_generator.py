@@ -201,6 +201,13 @@ def generate_mobile_kb_html_inline(publication, tree):
             background: rgba(255, 255, 255, 0.16);
             padding: 2px 6px;
         }}
+        .kb-header-logo-row .kb-brand-logo {{
+            width: auto;
+            max-width: 120px;
+            height: 36px;
+            max-height: 36px;
+            object-fit: contain;
+        }}
         .kb-header {{ background: var(--sd-primary) !important; }}
         .nav-link {{ color: var(--sd-primary) !important; }}
         .nav-link.sub-item {{ border-left-color: var(--sd-primary) !important; }}
