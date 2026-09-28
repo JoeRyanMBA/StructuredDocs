@@ -310,12 +310,25 @@ def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch)
     )
 
     assert '.content-section p:has(> img)' in html
-    assert '.content-section p:has(> img[style*="float"]) {\n            display: contents;' in html
+    assert '.content-section p:has(> img[style*="float"])' not in html
     assert 'p:has(img:only-child)' not in html
     assert '.content-section img[style*="float"] {\n            max-width: min(45%, 320px);' in html
     assert '.content-section {\n            display: none;\n            position: relative;\n            isolation: isolate;' in html
     assert 'height: auto !important;' in html
     assert 'max-height: none;' in html
+
+
+def test_mobile_kb_floated_image_is_unwrapped_for_text_flow():
+    html = convert_markdown_to_html(
+        '<p><img src="data:image/png;base64,ZmFrZQ==" '
+        'style="float: right; margin: 0 0 8px 12px"><br></p>\n'
+        '<p>Text should flow beside the image.</p>'
+    )
+
+    image_html, following_paragraph = html.split('\n', maxsplit=1)
+    assert image_html.startswith('<img src="data:image/png;base64,ZmFrZQ=="')
+    assert 'float: right' in image_html
+    assert following_paragraph == '<p>Text should flow beside the image.</p>'
 
 
 def test_pdf_title_and_footer_templates_use_svg_rasterization(monkeypatch):
