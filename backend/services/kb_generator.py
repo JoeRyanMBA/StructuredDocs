@@ -611,6 +611,14 @@ def generate_mobile_kb_html_inline(publication, tree):
             line-height: 0;
         }
 
+        .content-section p:has(> img[style*="float"]) {
+            display: contents;
+        }
+
+        .content-section p:has(> img[style*="float"]) > br {
+            display: none;
+        }
+
         .content-section figure {
             margin: 0;
         }
@@ -626,6 +634,7 @@ def generate_mobile_kb_html_inline(publication, tree):
 
         .content-section img[style*="float"] {
             max-width: min(45%, 320px);
+            margin: 0 12px 8px;
         }
         
         .content-section ul,
