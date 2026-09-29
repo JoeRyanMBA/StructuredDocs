@@ -210,6 +210,8 @@ export default {
 
 /* Body content */
 .topic-body {
+  position: relative;
+  isolation: isolate;
   line-height: 1.75;
   color: var(--text-primary-charcoal, #2d2d2d);
 }

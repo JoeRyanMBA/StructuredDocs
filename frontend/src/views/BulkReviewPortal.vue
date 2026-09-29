@@ -588,7 +588,7 @@ export default {
   padding: 10px 14px; margin-bottom: 16px; border-radius: 4px; font-size: 14px; color: #856404;
 }
 
-.topic-content { line-height: 1.7; color: #343a40; }
+.topic-content { position: relative; isolation: isolate; line-height: 1.7; color: #343a40; }
 .topic-content :deep(h1), .topic-content :deep(h2), .topic-content :deep(h3) { color: #212529; margin-top: 1.2em; }
 .topic-content :deep(img) { max-width: 100%; border-radius: 4px; }
 .topic-content :deep(table) { border-collapse: collapse; width: 100%; }

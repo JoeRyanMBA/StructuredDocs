@@ -25,7 +25,7 @@ _SAFE_TAGS = list(bleach.ALLOWED_TAGS) + [
 _TOPIC_CSS_SANITIZER = CSSSanitizer(
     allowed_css_properties={
         'float', 'position', 'z-index', 'top', 'left', 'margin',
-        'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'shape-outside',
+        'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'opacity', 'shape-outside',
     }
 )
 _SAFE_SHAPE_OUTSIDE_VALUE = re.compile(

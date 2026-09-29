@@ -241,6 +241,8 @@ export default {
 }
 
 .content-body {
+  position: relative;
+  isolation: isolate;
   font-size: 0.95rem;
   line-height: 1.7;
   color: var(--text-primary-charcoal, #2d3748);
