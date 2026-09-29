@@ -1,10 +1,12 @@
 import os
+from types import SimpleNamespace
 
 from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Image, ImageAndFlowables, Paragraph, SimpleDocTemplate
 
+import backend.services.pdf_generator as pdf_generator
 from backend.services.pdf_generator import (
     _OverlayImageFlowable,
     _collect_overlay_paragraphs,
@@ -56,6 +58,21 @@ def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
         assert payload['image_on_top'] is image_on_top
 
 
+def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeypatch):
+    image_path = _image_path(tmp_path)
+    public_url = '/images/imports/9/image3_511f306e.png'
+    image_record = SimpleNamespace(
+        backend_path='',
+        frontend_path='https://cdn.example.com/images/imports/9/image3_511f306e.png',
+        public_url=public_url,
+    )
+    monkeypatch.setattr(pdf_generator, '_resolve_local_image_path_for_pdf', lambda _src: '')
+    monkeypatch.setattr(pdf_generator, '_get_import_image_for_pdf', lambda _src: image_record)
+    monkeypatch.setattr(pdf_generator, '_download_image_for_pdf', lambda _url, _temp_dir: image_path)
+
+    assert pdf_generator._resolve_pdf_image_source(public_url, str(tmp_path)) == image_path
+
+
 def test_image_layout_flowables_build_pdf(tmp_path):
     image_path = _image_path(tmp_path)
     output_path = tmp_path / 'layout.pdf'
@@ -63,6 +80,11 @@ def test_image_layout_flowables_build_pdf(tmp_path):
     image = Image(image_path, width=120, height=80)
 
     story = [
+        ImageAndFlowables(
+            image,
+            [Paragraph('Text on the right.', styles['BodyText'])],
+            imageSide='left',
+        ),
         ImageAndFlowables(
             image,
             [Paragraph('Text wraps around the image.', styles['BodyText'])],
