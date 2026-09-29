@@ -4,7 +4,7 @@ StructuredDocs is a workspace for organizing, writing, reviewing, and publishing
 
 ## Start Here
 
-Sign in with the accountMy signed form is attached.  provided by your administrator. Use the navigation menu to move between sections; on smaller screens, open the menu from the header. The Home page summarizes projects, collections, topics, reviews, pending actions, recent import activity, and calendar events. Select a metric or quick action to open the corresponding area.
+Sign in with the account provided by your administrator. Use the navigation menu to move between sections; on smaller screens, open the menu from the header. The Home page summarizes projects, collections, topics, reviews, pending actions, recent import activity, and calendar events. Select a metric or quick action to open the corresponding area.
 
 Use **Profile** to manage your account details and follow any password setup or reset link sent to you. Sign out when you finish on a shared device. If your session expires, sign in again.
 
