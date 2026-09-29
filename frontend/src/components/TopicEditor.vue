@@ -150,7 +150,6 @@
               </div>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
-              <button type="button" @click="openImageLayoutModal" class="toolbar-btn" title="Set layout for the selected image">▧ Image Layout</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
@@ -185,7 +184,6 @@
             <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
-              <button type="button" @click="openImageLayoutModal" class="toolbar-btn" title="Set layout for the selected image">▧ Image Layout</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
@@ -538,31 +536,7 @@
         </div>
       </div>
 
-      <div v-if="showImageLayoutModal" class="modal-overlay" @click.self="showImageLayoutModal = false">
-        <div class="modal-content image-layout-modal" @click.stop>
-          <div class="modal-header-row modal-header">
-            <h3>Image Layout</h3>
-            <button @click="showImageLayoutModal = false" class="plain-close close-btn">&times;</button>
-          </div>
-          <div class="modal-body">
-            <div class="form-group">
-              <label for="image-layout-select">Layout</label>
-              <select id="image-layout-select" v-model="imageLayout" class="form-input">
-                <option value="inline">In line</option>
-                <option value="float-left">Wrap text on the right</option>
-                <option value="float-right">Wrap text on the left</option>
-                <option value="overlay-front">Text in front of image</option>
-                <option value="overlay-behind">Text behind image</option>
-              </select>
-            </div>
-            <p v-if="imageLayoutError" class="text-danger image-layout-error">{{ imageLayoutError }}</p>
-          </div>
-          <div class="modal-footer">
-            <button type="button" @click="applyImageLayout" class="btn btn-primary">Apply Layout</button>
-            <button type="button" @click="showImageLayoutModal = false" class="btn btn-secondary">Cancel</button>
-          </div>
-        </div>
-      </div>
+
     </template>
 
     <!-- Snippet Selector Modal -->
@@ -687,7 +661,6 @@ export default {
       saveSuccess: null,
       showMarkdownCheatsheet: false,
       showImageModal: false,
-      showImageLayoutModal: false,
       showLinkModal: false,
       showTableModal: false,
       editorMode: 'wysiwyg',
@@ -706,9 +679,6 @@ export default {
       imageUrl: '',
       imageAlt: '',
       imageCaption: '',
-      imageLayout: 'inline',
-      imageLayoutTarget: null,
-      imageLayoutError: '',
       availableImages: [],
   filteredImages: [],
   imageSearch: '',
@@ -1042,97 +1012,13 @@ export default {
       }
       this.showImageModal = true
     },
-    getSelectedWysiwygImage() {
-      const editor = this.$refs.richEditor?.getEditorEl()
-      const selection = window.getSelection()
-      if (!editor || !selection || selection.rangeCount === 0) return null
-
-      const range = selection.getRangeAt(0)
-      const selectedImages = Array.from(editor.querySelectorAll('img'))
-      return selectedImages.find(image => {
-        try {
-          return range.intersectsNode(image)
-        } catch (_error) {
-          return false
-        }
-      }) || null
-    },
-    getImageLayout(image) {
-      if (image?.style?.float === 'left') return 'float-left'
-      if (image?.style?.float === 'right') return 'float-right'
-      if (image?.style?.position === 'absolute' || image?.style?.position === 'fixed') {
-        return Number(image.style.zIndex) > 0 ? 'overlay-behind' : 'overlay-front'
-      }
-      return 'inline'
-    },
-    openImageLayoutModal() {
-      if (this.editorMode !== 'wysiwyg') return
-      this.captureWysiwygSelection()
-      const image = this.getSelectedWysiwygImage()
-      this.imageLayoutTarget = image
-      this.imageLayoutError = image ? '' : 'Select an image in the editor first.'
-      this.imageLayout = image ? this.getImageLayout(image) : 'inline'
-      this.showImageLayoutModal = true
-    },
-    applyImageLayout() {
-      const image = this.imageLayoutTarget || this.getSelectedWysiwygImage()
-      if (!image) {
-        this.imageLayoutError = 'Select an image in the editor first.'
+    filterVariables() {
+      const query = this.variableSearch.trim().toLowerCase()
+      if (!query) {
+        this.filteredVariables = this.variableSlugs.slice()
         return
       }
-
-      image.style.removeProperty('float')
-      image.style.removeProperty('position')
-      image.style.removeProperty('z-index')
-      image.style.removeProperty('top')
-      image.style.removeProperty('left')
-      image.style.removeProperty('margin')
-
-      if (this.imageLayout === 'float-left') {
-        image.style.float = 'left'
-        image.style.margin = '0 12px 8px 0'
-      } else if (this.imageLayout === 'float-right') {
-        image.style.float = 'right'
-        image.style.margin = '0 0 8px 12px'
-      } else if (this.imageLayout === 'overlay-front' || this.imageLayout === 'overlay-behind') {
-        image.style.position = 'absolute'
-        image.style.zIndex = this.imageLayout === 'overlay-behind' ? '1' : '-1'
-        image.style.top = '0'
-        image.style.left = '0'
-      }
-
-      this.updateContentFromWysiwyg()
-      this.imageLayoutTarget = null
-      this.imageLayoutError = ''
-      this.showImageLayoutModal = false
-    },
-    captureWysiwygSelection() {
-      this.$refs.richEditor?.saveSelection()
-    },
-    restoreWysiwygSelection() {
-      return this.$refs.richEditor?.restoreSelection() || false
-    },
-    async loadTags() {
-      try {
-        const data = await apiGet('/api/tags/')
-        this.allTags = Array.isArray(data) ? data : (data.tags || [])
-      } catch (e) {
-        console.warn('Failed to load tags for preview', e)
-      }
-    },
-
-    async loadVariables(){      try {
-        const arr = await apiGet('/api/variables')
-        if(Array.isArray(arr)) {
-          this.variableSlugs = arr.map(v=>v.slug).sort()
-          this.filteredVariables = this.variableSlugs.slice()
-        }
-      } catch(e){ /* silent */ }
-    },
-    filterVariables(){
-      const q = this.variableSearch.trim().toLowerCase()
-      if(!q){ this.filteredVariables = this.variableSlugs.slice(); return }
-      this.filteredVariables = this.variableSlugs.filter(s=>s.toLowerCase().includes(q))
+      this.filteredVariables = this.variableSlugs.filter(slug => slug.toLowerCase().includes(query))
     },
     tokenPreview(slug){
       return `Inserts {{${slug}}}`
@@ -2405,6 +2291,10 @@ export default {
 .preview-mode .preview-content p:last-child { margin-bottom: 0; }
 .preview-content p:has(> img[style*="float"]) { display: contents; }
 .preview-content p:has(> img[style*="float"]) > br { display: none; }
+.preview-content img {
+  max-width: 100%;
+  height: auto;
+}
 .preview-content img[style*="float"] {
   max-width: min(45%, 320px);
   height: auto;

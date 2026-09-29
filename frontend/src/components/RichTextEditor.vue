@@ -68,6 +68,54 @@
           <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="toggleTableHeaderRow">Toggle Header Row</button>
         </div>
       </div>
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'size' }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          :disabled="!imageContext.selected"
+          aria-haspopup="true"
+          :aria-expanded="(activeImageMenu === 'size').toString()"
+          @click.stop="toggleImageMenu('size')"
+        >
+          Image size: {{ imageContext.size === 'full' ? 'Full width' : 'Original size' }} <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div v-show="activeImageMenu === 'size'" class="dropdown-content" @click.stop>
+          <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'original').toString()" @click="applyImageOption('size', 'original')">Original size</button>
+          <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'full').toString()" @click="applyImageOption('size', 'full')">Full width</button>
+        </div>
+      </div>
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'alignment' }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          :disabled="!imageContext.selected"
+          aria-haspopup="true"
+          :aria-expanded="(activeImageMenu === 'alignment').toString()"
+          @click.stop="toggleImageMenu('alignment')"
+        >
+          Align: {{ imageContext.alignment }} <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div v-show="activeImageMenu === 'alignment'" class="dropdown-content" @click.stop>
+          <button v-for="alignment in ['left', 'center', 'right']" :key="alignment" type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.wrapping !== 'none'" :aria-pressed="(imageContext.alignment === alignment).toString()" @click="applyImageOption('alignment', alignment)">{{ alignment }}</button>
+        </div>
+      </div>
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'wrapping' }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          :disabled="!imageContext.selected"
+          aria-haspopup="true"
+          :aria-expanded="(activeImageMenu === 'wrapping').toString()"
+          @click.stop="toggleImageMenu('wrapping')"
+        >
+          Wrapping: {{ imageWrappingLabel(imageContext.wrapping) }} <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div v-show="activeImageMenu === 'wrapping'" class="dropdown-content" @click.stop>
+          <button type="button" class="dropdown-item" :disabled="!imageContext.selected" :aria-pressed="(imageContext.wrapping === 'none').toString()" @click="applyImageOption('wrapping', 'none')">Above and below</button>
+          <button type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.size === 'full'" :aria-pressed="(imageContext.wrapping === 'text-left').toString()" @click="applyImageOption('wrapping', 'text-left')">Text left of image</button>
+          <button type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.size === 'full'" :aria-pressed="(imageContext.wrapping === 'text-right').toString()" @click="applyImageOption('wrapping', 'text-right')">Text right of image</button>
+        </div>
+      </div>
       <slot name="toolbar-extra" />
     </div>
     <div
@@ -81,6 +129,7 @@
       @keydown="onKeydown"
       @mouseup="saveSelection"
       @keyup="saveSelection"
+      @click="onEditorClick"
       @blur="saveSelection"
     ></div>
   </div>
@@ -101,6 +150,13 @@ export default {
       _savedRange: null,
       activeListMenu: null,
       activeTableMenu: false,
+      activeImageMenu: null,
+      imageContext: {
+        selected: false,
+        size: 'original',
+        alignment: 'left',
+        wrapping: 'none',
+      },
       tableContext: {
         inTable: false,
         canDeleteRow: false,
@@ -113,6 +169,8 @@ export default {
       const el = this.$refs.editorEl
       if (el && el.innerHTML !== newVal) {
         el.innerHTML = newVal || ''
+        this._savedRange = null
+        this.refreshImageContext()
       }
     },
     spellcheck(newVal) {
@@ -129,6 +187,7 @@ export default {
       this.$refs.editorEl.innerHTML = this.modelValue || ''
       this.setSpellcheck(this.spellcheck)
       this.$refs.editorEl.setAttribute('lang', this.spellcheckLang || 'en-US')
+      this.refreshImageContext()
     }
     document.addEventListener('mousedown', this.onDocumentMouseDown)
   },
@@ -141,6 +200,7 @@ export default {
   methods: {
     toggleListMenu(menu) {
       this.activeTableMenu = false
+      this.activeImageMenu = null
       this.activeListMenu = this.activeListMenu === menu ? null : menu
       this.saveSelection()
     },
@@ -149,6 +209,7 @@ export default {
     },
     toggleTableMenu() {
       this.activeListMenu = null
+      this.activeImageMenu = null
       this.activeTableMenu = !this.activeTableMenu
       this.refreshTableContext()
       this.saveSelection()
@@ -156,14 +217,123 @@ export default {
     closeTableMenu() {
       this.activeTableMenu = false
     },
+    toggleImageMenu(menu) {
+      this.activeListMenu = null
+      this.activeTableMenu = false
+      this.activeImageMenu = this.activeImageMenu === menu ? null : menu
+      this.saveSelection()
+    },
+    closeImageMenu() {
+      this.activeImageMenu = null
+    },
     closeToolbarMenus() {
       this.closeListMenu()
       this.closeTableMenu()
+      this.closeImageMenu()
     },
     onDocumentMouseDown(event) {
       if (!this.$el?.contains(event.target)) {
         this.closeToolbarMenus()
+        this.imageContext.selected = false
       }
+    },
+    imageWrappingLabel(wrapping) {
+      if (wrapping === 'text-left') return 'Text left'
+      if (wrapping === 'text-right') return 'Text right'
+      return 'Above and below'
+    },
+    getSelectedImage() {
+      const editor = this.$refs.editorEl
+      const range = this.getSelectedRange()
+      if (!editor || !range) return null
+
+      return Array.from(editor.querySelectorAll('img')).find(image => {
+        try {
+          return range.intersectsNode(image)
+        } catch (_error) {
+          return false
+        }
+      }) || null
+    },
+    refreshImageContext() {
+      const image = this.getSelectedImage()
+      if (!image) {
+        this.imageContext.selected = false
+        return
+      }
+
+      const float = image.style.float
+      this.imageContext = {
+        selected: true,
+        size: image.dataset.sdImageSize || (image.style.width === '100%' ? 'full' : 'original'),
+        alignment: image.dataset.sdImageAlignment || (image.style.marginLeft === 'auto' && image.style.marginRight === 'auto'
+          ? 'center'
+          : image.style.marginLeft === 'auto' ? 'right' : 'left'),
+        wrapping: image.dataset.sdImageWrapping || (float === 'left' ? 'text-right' : float === 'right' ? 'text-left' : 'none'),
+      }
+    },
+    onEditorClick(event) {
+      const image = event.target instanceof Element ? event.target.closest('img') : null
+      if (image && this.$refs.editorEl?.contains(image)) {
+        const range = document.createRange()
+        range.selectNode(image)
+        const selection = window.getSelection()
+        selection?.removeAllRanges()
+        selection?.addRange(range)
+      }
+      this.saveSelection()
+    },
+    applyImageOption(option, value) {
+      const image = this.getSelectedImage()
+      if (!image) {
+        this.imageContext.selected = false
+        return
+      }
+
+      const size = option === 'size' ? value : this.imageContext.size
+      const alignment = option === 'alignment' ? value : this.imageContext.alignment
+      let wrapping = option === 'wrapping' ? value : this.imageContext.wrapping
+      if (option === 'size' && value === 'full') wrapping = 'none'
+      if (size === 'full' && wrapping !== 'none') return
+
+      image.dataset.sdImageSize = size
+      image.dataset.sdImageAlignment = alignment
+      image.dataset.sdImageWrapping = wrapping
+      image.style.removeProperty('position')
+      image.style.removeProperty('z-index')
+      image.style.removeProperty('top')
+      image.style.removeProperty('left')
+
+      if (option === 'size') {
+        image.removeAttribute('width')
+        image.removeAttribute('height')
+        image.style.height = 'auto'
+        if (size === 'full') {
+          image.style.width = '100%'
+        } else {
+          image.style.removeProperty('width')
+        }
+      }
+      image.style.maxWidth = wrapping === 'none' ? '100%' : 'min(45%, 320px)'
+
+      if (wrapping === 'none') {
+        image.style.removeProperty('float')
+        image.style.display = 'block'
+        image.style.clear = 'both'
+        image.style.marginTop = '0.5rem'
+        image.style.marginBottom = '0.5rem'
+        image.style.marginLeft = alignment === 'left' ? '0' : 'auto'
+        image.style.marginRight = alignment === 'right' ? '0' : 'auto'
+      } else {
+        image.style.float = wrapping === 'text-right' ? 'left' : 'right'
+        image.style.removeProperty('display')
+        image.style.removeProperty('clear')
+        image.style.margin = wrapping === 'text-right' ? '0 12px 8px 0' : '0 0 8px 12px'
+      }
+
+      this.imageContext = { selected: true, size, alignment, wrapping }
+      this.closeImageMenu()
+      this.emitUpdate()
     },
     applyListLevel(type, level) {
       this.insertList(type, level)
@@ -1177,10 +1347,12 @@ export default {
         if (el.contains(range.startContainer)) {
           this._savedRange = range.cloneRange()
           this.refreshTableContext()
+          this.refreshImageContext()
           return true
         }
       }
       this.refreshTableContext()
+      this.refreshImageContext()
       return false
     },
     restoreSelection() {
@@ -1252,6 +1424,10 @@ export default {
 .wysiwyg-content p:last-child { margin-bottom: 0; }
 .wysiwyg-content p:has(> img[style*="float"]) { display: contents; }
 .wysiwyg-content p:has(> img[style*="float"]) > br { display: none; }
+.wysiwyg-content img {
+  max-width: 100%;
+  height: auto;
+}
 .wysiwyg-content img[style*="float"] {
   max-width: min(45%, 320px);
   height: auto;
