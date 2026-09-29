@@ -183,7 +183,6 @@
           >
             <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
-              <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
               <button
@@ -193,6 +192,9 @@
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
                 :aria-pressed="spellcheckEnabled ? 'true' : 'false'"
               >🔤 Spell Check</button>
+            </template>
+            <template #toolbar-image-extra>
+              <button @click="openImageModal" class="toolbar-btn">🖼️ Insert Image</button>
             </template>
           </RichTextEditor>
 
