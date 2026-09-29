@@ -25,7 +25,7 @@ _SAFE_TAGS = list(bleach.ALLOWED_TAGS) + [
 _TOPIC_CSS_SANITIZER = CSSSanitizer(
     allowed_css_properties={
         'float', 'position', 'z-index', 'top', 'left', 'margin',
-        'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'opacity', 'shape-outside',
+        'margin-top', 'margin-right', 'margin-bottom', 'margin-left', 'opacity', 'transform', 'shape-outside',
     }
 )
 _SAFE_SHAPE_OUTSIDE_VALUE = re.compile(
@@ -43,6 +43,10 @@ def _allow_attrs(tag, name, value):
         if name == 'style':
             shape_values = re.findall(r'(?:^|;)\s*shape-outside\s*:\s*([^;]+)', value, re.IGNORECASE)
             if shape_values and not all(_SAFE_SHAPE_OUTSIDE_VALUE.fullmatch(item.strip()) for item in shape_values):
+                return False
+            transform_values = re.findall(r'(?:^|;)\s*transform\s*:\s*([^;]+)', value, re.IGNORECASE)
+            safe_transforms = {'translatex(-50%)', 'translatex(-100%)'}
+            if transform_values and not all(item.strip().lower() in safe_transforms for item in transform_values):
                 return False
         return True
     if name.startswith('data-') or name.startswith('aria-'):

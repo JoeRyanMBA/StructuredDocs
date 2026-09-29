@@ -56,11 +56,11 @@ test('htmlToMarkdown preserves image presentation settings including watermark m
     '<img src="/images/watermark.png" alt="Watermark" '
     + 'data-sd-image-size="full" data-sd-image-alignment="center" '
     + 'data-sd-image-wrapping="watermark" '
-    + 'style="position: absolute; z-index: -1; top: 0; left: 0; opacity: 0.18; width: 100%">'
+    + 'style="position: absolute; z-index: -1; top: 0; left: 50%; transform: translateX(-50%); opacity: 0.18; width: 100%">'
   )
 
   assert.match(markdown, /data-sd-image-size="full"/)
   assert.match(markdown, /data-sd-image-alignment="center"/)
   assert.match(markdown, /data-sd-image-wrapping="watermark"/)
-  assert.match(markdown, /style="position: absolute; z-index: -1; top: 0; left: 0; opacity: 0.18"/)
+  assert.match(markdown, /style="position: absolute; z-index: -1; top: 0; left: 50%; transform: translateX\(-50%\); opacity: 0.18"/)
 })

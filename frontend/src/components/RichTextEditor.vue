@@ -97,6 +97,7 @@
         </button>
         <div v-show="activeImageMenu === 'alignment'" class="dropdown-content" @click.stop>
           <button v-for="alignment in ['left', 'center', 'right']" :key="alignment" type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.wrapping !== 'none'" :aria-pressed="(imageContext.alignment === alignment).toString()" @click="applyImageOption('alignment', alignment)">{{ alignment }}</button>
+                  <button v-for="alignment in ['left', 'center', 'right']" :key="alignment" type="button" class="dropdown-item" :disabled="!imageContext.selected || (imageContext.wrapping !== 'none' && imageContext.wrapping !== 'watermark')" :aria-pressed="(imageContext.alignment === alignment).toString()" @click="applyImageOption('alignment', alignment)">{{ alignment }}</button>
         </div>
       </div>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'wrapping' }]">
@@ -305,6 +306,7 @@ export default {
       image.style.removeProperty('z-index')
       image.style.removeProperty('top')
       image.style.removeProperty('left')
+      image.style.removeProperty('transform')
       image.style.removeProperty('opacity')
 
       if (option === 'size') {
@@ -331,7 +333,12 @@ export default {
         image.style.position = 'absolute'
         image.style.zIndex = '-1'
         image.style.top = '0'
-        image.style.left = '0'
+        image.style.left = alignment === 'left' ? '0' : alignment === 'center' ? '50%' : '100%'
+        if (alignment === 'center') {
+          image.style.transform = 'translateX(-50%)'
+        } else if (alignment === 'right') {
+          image.style.transform = 'translateX(-100%)'
+        }
         image.style.opacity = '0.18'
         image.style.removeProperty('float')
         image.style.removeProperty('display')
