@@ -1,136 +1,119 @@
-# StructuredDocs — New User Guide
+# StructuredDocs User Guide
 
-Welcome to StructuredDocs! This guide gives you a quick, practical overview of the core features and where to find them so you can be productive in minutes.
+StructuredDocs is a workspace for organizing, writing, reviewing, and publishing documentation. This guide covers the features available in the application. Your role and your organization's configuration may affect which pages and actions you can access.
 
-## Getting Started
+## Start Here
 
-- Login with the credentials provided by your admin.
+Sign in with the account provided by your administrator. Use the navigation menu to move between sections; on smaller screens, open the menu from the header. The Home page summarizes projects, collections, topics, reviews, pending actions, recent import activity, and calendar events. Select a metric or quick action to open the corresponding area.
 
-- You’ll land on the Start Page (Dashboard) with key metrics, quick links, and recent activity.
+Use **Profile** to manage your account details and follow any password setup or reset link sent to you. Sign out when you finish on a shared device. If your session expires, sign in again.
 
-- Use the left navigation or the Quick Actions cards to jump to Projects, Collections, Topics, Reviews, and Tasks.
+## How Content Is Organized
 
-## Core Concepts
+StructuredDocs uses a three-level content hierarchy:
 
-- **Projects**: Top-level initiatives that group collections and topics.
+- **Projects** group work around an initiative, product, or program. A project can have collections, stakeholders, milestones, and tasks.
+- **Collections** group related topics, often for a document set, audience, or release. A collection belongs to a project and has a unique collection ID or form number.
+- **Topics** are the individual articles or content units. A topic can be included in collections and publications and can move through review and approval.
 
-- **Collections**: Organized sets of topics for a specific product, audience, or release.
+Some resources, such as tags, snippets, images, and links, can be reused across topics.
 
-- **Topics**: Individual pieces of content (articles) edited in a structured editor.
+## Projects and Collections
 
-- **Reviews**: Workflows to request, track, and resolve feedback on topics.
+### Projects
 
-- **Tasks**: Lightweight task tracking for content work (To Do → In Progress → Review → Completed).
+Open **Projects** to search and filter projects by status, review project summaries, and create or edit projects. Project status options include Planning, Active, On Hold, and Completed. Open a project's timeline to review its scheduled work. The project area also links to tasks, milestones, stakeholders, and tags.
 
-- **Tags & Stakeholders**: Rich metadata and people management to organize and route work.
+### Collections
 
-## Start Page (Dashboard)
+Open **Collections** to browse, create, edit, or open collections. Creating a collection requires a parent project, a name, and a unique collection ID/form number; a description and status can also be set. Open a collection's organize view to work with its topic membership and ordering. Collections are also a common destination for document imports and a source for publications.
 
-- **Key Metrics**: Click any metric card (Projects, Collections, Topics, Reviews) to navigate directly.
+Administrators may archive or restore projects and collections. Archiving removes an item from normal active work without treating it as a permanent deletion. Administrators can review archived items from the Admin area.
 
-- **Quick Actions**: Cards linking to Tasks, Tags, Stakeholders, Milestones, Topics, Projects.
+## Writing and Managing Topics
 
-- **Pending Actions & Recent Activity**: See what needs attention and the latest imports or changes.
+Open **Author** for writing progress, topic counts, search and status filters, and quick links to create content or browse reusable images and links. Open **Topics** to browse the broader topic list. Select a topic to read it or open it in the editor.
 
-- **Calendar**: View important dates/milestones at a glance.
+When creating or editing a topic, add its title and content, then save your changes. The editor supports rich-text authoring; available formatting controls depend on the editor configuration. You can organize topics with project/collection associations and tags. Topic content can include links, images, reusable snippets, and configured variables. Use preview or the read view to check the result before sending it for review or including it in a publication.
 
-## Projects & Collections
+Topic status indicates where the content is in its lifecycle. Draft topics are still being prepared; submitted topics may be pending or in review; reviewers can approve content or request revisions. The exact status labels shown depend on the workflow.
 
-- Navigate to `Projects` to view, create, and manage projects.
+## Importing Documents
 
-- Open `Collections` for an overview of all collections.
+Open **Collections > Import** (or choose Import from the authoring area) and select the import mode that matches your files:
 
-  - Card actions include View and Edit for consistency.
-  - Collection dashboards show metrics, buttons, and quick navigation.
+1. **Import Topic** creates one topic from one Markdown (`.md`/`.markdown`) or Word (`.docx`) file. Review and edit its content before saving it.
+2. **Collection** imports one document as a collection, turning its headings into topics. Choose the destination project and provide the collection name and ID/form number.
+3. **Create Collection** imports multiple files as individual topics in a new collection. Choose the destination project and provide the collection details.
 
-## Topics
+After submission, use the Import Dashboard to see recent imports and imports awaiting review. Open an import to review the staged content, then use Import History to find earlier import activity. For the best results with Word documents, use Word heading styles to express section hierarchy and embed images in the document rather than linking to them.
 
-- Go to `Topics` to browse, search, and filter.
+For supported formats, image handling, hierarchy, and troubleshooting, see the [Import Guide](docs/import-guide.md).
 
-- Use the editor to create or update content with rich formatting.
+## Reviews and Feedback
 
-- Apply tags and associate topics with collections or projects.
+Authors can submit a draft topic for review from the Author area or the review workflow. Select one or more reviewers, set a due date (and priority where offered), and add optional instructions. For reviewers who should act in a specific order, use sequential review setup and arrange the steps before starting the sequence.
 
-- Submit for review and track status via badges.
+Open **Reviews** to see review activity and metrics. **Tasks** lists review work; **History** shows completed work. Search by topic or reviewer and filter by status or urgent/overdue items. Depending on the review's status, available actions may include viewing details, following up, reassigning, cancelling, or incorporating feedback.
 
-## Reviews
+Reviewers can inspect the topic, compare revisions where available, leave feedback, and submit a recommendation. Authors use **Incorporate Feedback** to address requested changes and can then submit the revised topic again. External reviewers may receive a time-limited review link that does not require a StructuredDocs account; treat the link as private and use it only for the intended review.
 
-- The `Reviews` area centralizes review requests.
+See the [Review Workflow Guide](docs/REVIEW_WORKFLOW_GUIDE.md) for status details and sequential review steps.
 
-- Use small icon buttons for common actions (preview, send for review, sequential review, publish, archive).
+## Tasks, Milestones, Stakeholders, and Tags
 
-- The Review Portal supports side-by-side comparisons and feedback incorporation.
+- **Tasks** track work associated with a project, collection, or topic. Create a task with a title and optional details, assignee, priority, and due date. Search and filter tasks by status, priority, and association. Move tasks through To Do, In Progress, Review, and Completed; cancelled tasks may also appear. Overdue tasks are highlighted.
+- **Milestones** record significant dates and progress for project work. Use the milestone list and project calendar/timeline to keep upcoming dates visible.
+- **Stakeholders** are people involved in project work, reviews, or approvals. Manage stakeholder details and use the appropriate reviewer configuration when assigning reviews.
+- **Tags** label and group content. Tags can also identify audiences for snippets and publication exports.
 
-## Tasks
+The available edit and delete actions can differ by role. Check with an administrator if a resource or action is unavailable.
 
-- Visit `Tasks` to view all tasks across projects/collections/topics.
+## Snippets and Reusable Resources
 
-- Filter by status/priority/association and search.
+### Snippets
 
-- Use actions per row: Edit, Advance Status, Delete.
+Open **Snippets** to create and maintain reusable content blocks. A snippet has a title, content, and optional audience tags. Edit its content in Markdown or WYSIWYG mode, or use Preview to check it. The library shows where a snippet is used; snippets already used by topics cannot be deleted from the library. Insert snippets into topic content using the editor's snippet controls. When exporting a publication, audience-tag selection determines which tagged snippets are included.
 
-- Overdue tasks are highlighted; due dates are visually distinct.
+### Images and Links
 
-## Tags, Stakeholders, Milestones
-
-- `Tags`: Create and manage labels to organize content and tasks.
-
-- `Stakeholders`: Manage people and roles involved in reviews and approvals.
-
-- `Milestones`: Track key dates and progress at a glance.
+The Author area links to image and link libraries. Browse or search existing resources while editing; where offered, you can upload an image or insert an image/link by URL. Add descriptive alternative text to images where possible. Imported images and uploaded assets may be subject to your organization's storage configuration.
 
 ## Publishing
 
-- `Publish` area supports generating outputs:
+Open **Collections > Publish** to manage publications. Create or edit a publication, arrange the content it includes, and preview it before release. A saved publication snapshot captures the selected content at that point in time. If source topics change, use **Refresh Publication** to update the publication from its sources before exporting.
 
-  - HTML, PDF, Mobile KB (where configured)
-  - Export actions include Download, Copy, and Share where applicable.
+Available outputs depend on your deployment and publication setup. The app supports PDF and mobile knowledge base exports; HTML publication output may also be enabled. Select audience tags when prompted to control which audience-specific snippets are included. Use the publication dashboard to view, preview, edit, refresh, and export publications.
 
-## Imports
+## Notifications and Account Help
 
-- Use `Import` flows to bring content in (Word/Markdown).
+Application notifications appear in the interface when enabled. Open a notification to review it and mark it read where that option is provided. Administrators manage system notifications. Use the in-app help icons for page-specific guidance where available; contact your administrator for access, account, or configuration problems.
 
-- Review and resolve during Import Review, with history stored for traceability.
+## Administrator Features
 
-## Notifications
+Administrators see additional options in **Admin**. Depending on the installation, these can include:
 
-- Admins can create and manage notifications.
+- Managing users and account access.
+- Application settings, shared variables, and notification management.
+- System logs, audit history, and performance metrics.
+- Reviewing submitted feedback and bug reports.
+- Maintaining help links and using administrative find/replace tools.
+- Restoring archived projects, collections, feedback, or bug reports.
 
-- Users see notifications on the dashboard and can mark them read.
+Admin pages and actions are restricted to administrator accounts. UI catalogs, if present, are design references rather than normal content workflows.
 
-## Admin
+## Tips and Troubleshooting
 
-- `Admin Dashboard`: Access user management, system logs, variables, and notifications.
+- Use search and filters on list pages to narrow down results; clear filters if an expected item is missing.
+- Check the item's status and its project or collection association when locating content.
+- If an import is still being processed, check the Import Dashboard or History before uploading the same file again.
+- If a publication does not contain the latest topic edits, refresh its snapshot and preview it again.
+- If images are missing after a Word import, confirm they were embedded in the source file and consult the [Import Guide](docs/import-guide.md).
+- If a page fails to load, refresh it once. If the problem continues, note the page and any displayed error and contact your administrator.
+- If a menu, reviewer, or action is missing, it may require a different role or additional administrator configuration.
 
-- `User Management`: Standardized styling of status and dates for clarity.
+## Related Documentation
 
-## UI Conventions
-
-- Consistent button system (Primary, Secondary, Danger, Info, Success, Outline, Small variants, Icon-only) defined in `frontend/src/assets/style.css`.
-
-- Button Catalog at `/design/buttons` shows live examples and where they’re used.
-
-- Global styles ensure consistent spacing, alignment, and accessible contrast.
-
-## Tips
-
-- Use filters and search inputs at the top of list pages.
-
-- Hover over badges and icons for quick tooltips where present.
-
-- Look for modal dialogs when creating or editing items; Save/Cancel buttons follow consistent placement.
-
-## Troubleshooting
-
-- If a page appears to hang, look for the spinner and try refreshing.
-
-- For permission issues or missing options, contact an admin.
-
-## Where to Get Help
-
-- Internal docs or onboarding videos (if provided by your team)
-
-- Contact the system administrator for access or configuration issues
-
----
-If you have suggestions for improving this guide, open an issue or leave feedback in the app.
+- [Import Guide](docs/import-guide.md)
+- [Review Workflow Guide](docs/REVIEW_WORKFLOW_GUIDE.md)
+- [Documentation Hub](docs/README.md)
