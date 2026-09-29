@@ -65,8 +65,23 @@ test('selected images retain size, alignment, and wrapping choices in emitted HT
   assert.equal(image.style.float, 'left')
   assert.equal(image.dataset.sdImageWrapping, 'text-right')
 
+  instance.applyImageOption('wrapping', 'watermark')
+  assert.equal(image.style.position, 'absolute')
+  assert.equal(image.style.zIndex, '-1')
+  assert.equal(image.style.opacity, '0.18')
+  assert.equal(image.dataset.sdImageWrapping, 'watermark')
+
+  instance.applyImageOption('size', 'full')
+  assert.equal(instance.imageContext.wrapping, 'watermark')
+  assert.equal(image.style.width, '100%')
+
+  instance.applyImageOption('size', 'original')
+  assert.equal(instance.imageContext.wrapping, 'watermark')
+  assert.equal(image.style.width, '')
+
   instance.applyImageOption('wrapping', 'none')
   assert.equal(image.style.float, '')
+  assert.equal(image.style.position, '')
   assert.doesNotMatch(image.getAttribute('style'), /float/)
   assert.equal(image.dataset.sdImageWrapping, 'none')
   assert.match(updates.at(-1), /data-sd-image-size="original"/)

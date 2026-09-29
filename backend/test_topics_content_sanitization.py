@@ -16,6 +16,14 @@ def test_topic_sanitizer_preserves_image_layout_styles():
     assert 'background' not in sanitized
 
 
+def test_topic_sanitizer_preserves_watermark_opacity():
+    content = '<img src="/images/example.png" style="position:absolute;z-index:-1;opacity:0.18">'
+
+    sanitized = _sanitize_content(content)
+
+    assert 'opacity:0.18' in sanitized
+
+
 def test_topic_sanitizer_preserves_safe_tight_wrap_polygon_only():
     safe_content = '<img src="/images/example.png" style="float:left;shape-outside:polygon(0% 0%, 100% 0%, 100% 100%)">'
     unsafe_content = '<img src="/images/example.png" style="float:left;shape-outside:url(https://example.com/shape.png)">'

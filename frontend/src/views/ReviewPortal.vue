@@ -800,6 +800,8 @@ export default {
 }
 
 .content-text {
+  position: relative;
+  isolation: isolate;
   line-height: 1.6;
   color: var(--text-dark-gray);
 }

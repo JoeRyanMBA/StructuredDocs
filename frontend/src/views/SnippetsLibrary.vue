@@ -743,6 +743,8 @@ export default {
 }
 .markdown-textarea:focus { outline: none; border-color: #205493; }
 .preview-content {
+  position: relative;
+  isolation: isolate;
   border: 1px solid #dee2e6;
   border-radius: 6px;
   padding: 0.75rem 1rem;

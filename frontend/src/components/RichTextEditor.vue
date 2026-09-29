@@ -114,6 +114,7 @@
           <button type="button" class="dropdown-item" :disabled="!imageContext.selected" :aria-pressed="(imageContext.wrapping === 'none').toString()" @click="applyImageOption('wrapping', 'none')">Above and below</button>
           <button type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.size === 'full'" :aria-pressed="(imageContext.wrapping === 'text-left').toString()" @click="applyImageOption('wrapping', 'text-left')">Text left of image</button>
           <button type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.size === 'full'" :aria-pressed="(imageContext.wrapping === 'text-right').toString()" @click="applyImageOption('wrapping', 'text-right')">Text right of image</button>
+          <button type="button" class="dropdown-item" :disabled="!imageContext.selected" :aria-pressed="(imageContext.wrapping === 'watermark').toString()" @click="applyImageOption('wrapping', 'watermark')">Watermark (behind text)</button>
         </div>
       </div>
       <slot name="toolbar-extra" />
@@ -240,6 +241,7 @@ export default {
     imageWrappingLabel(wrapping) {
       if (wrapping === 'text-left') return 'Text left'
       if (wrapping === 'text-right') return 'Text right'
+      if (wrapping === 'watermark') return 'Watermark'
       return 'Above and below'
     },
     getSelectedImage() {
@@ -293,8 +295,8 @@ export default {
       const size = option === 'size' ? value : this.imageContext.size
       const alignment = option === 'alignment' ? value : this.imageContext.alignment
       let wrapping = option === 'wrapping' ? value : this.imageContext.wrapping
-      if (option === 'size' && value === 'full') wrapping = 'none'
-      if (size === 'full' && wrapping !== 'none') return
+      if (option === 'size' && value === 'full' && ['text-left', 'text-right'].includes(wrapping)) wrapping = 'none'
+      if (size === 'full' && ['text-left', 'text-right'].includes(wrapping)) return
 
       image.dataset.sdImageSize = size
       image.dataset.sdImageAlignment = alignment
@@ -303,6 +305,7 @@ export default {
       image.style.removeProperty('z-index')
       image.style.removeProperty('top')
       image.style.removeProperty('left')
+      image.style.removeProperty('opacity')
 
       if (option === 'size') {
         image.removeAttribute('width')
@@ -314,7 +317,7 @@ export default {
           image.style.removeProperty('width')
         }
       }
-      image.style.maxWidth = wrapping === 'none' ? '100%' : 'min(45%, 320px)'
+      image.style.maxWidth = ['text-left', 'text-right'].includes(wrapping) ? 'min(45%, 320px)' : '100%'
 
       if (wrapping === 'none') {
         image.style.removeProperty('float')
@@ -324,6 +327,16 @@ export default {
         image.style.marginBottom = '0.5rem'
         image.style.marginLeft = alignment === 'left' ? '0' : 'auto'
         image.style.marginRight = alignment === 'right' ? '0' : 'auto'
+      } else if (wrapping === 'watermark') {
+        image.style.position = 'absolute'
+        image.style.zIndex = '-1'
+        image.style.top = '0'
+        image.style.left = '0'
+        image.style.opacity = '0.18'
+        image.style.removeProperty('float')
+        image.style.removeProperty('display')
+        image.style.removeProperty('clear')
+        image.style.removeProperty('margin')
       } else {
         image.style.float = wrapping === 'text-right' ? 'left' : 'right'
         image.style.removeProperty('display')
@@ -1416,6 +1429,8 @@ export default {
 /* wysiwyg-content styles (mirrors TopicEditor for standalone use) */
 .wysiwyg-content {
   width: 100%;
+  position: relative;
+  isolation: isolate;
   min-height: 0;
   height: 100%;
   padding: 1.25rem;

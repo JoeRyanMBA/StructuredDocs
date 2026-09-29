@@ -12,7 +12,7 @@ export function htmlToMarkdown(html) {
     .replace(/>/g, '&gt;')
 
   const getImageLayoutStyle = (node) => {
-    const allowedProperties = new Set(['float', 'position', 'z-index', 'top', 'left', 'shape-outside'])
+    const allowedProperties = new Set(['float', 'position', 'z-index', 'top', 'left', 'opacity', 'shape-outside'])
     return (node.getAttribute('style') || '')
       .split(';')
       .map(declaration => declaration.trim())
@@ -25,6 +25,7 @@ export function htmlToMarkdown(html) {
         if (property === 'float') return value === 'left' || value === 'right'
         if (property === 'position') return value === 'absolute' || value === 'fixed'
         if (property === 'z-index') return /^-?\d+$/.test(value)
+        if (property === 'opacity') return /^(?:0(?:\.\d+)?|1(?:\.0+)?)$/.test(value)
         if (property === 'shape-outside') {
           return /^polygon\(\s*-?\d+(?:\.\d+)?%\s+-?\d+(?:\.\d+)?%(?:\s*,\s*-?\d+(?:\.\d+)?%\s+-?\d+(?:\.\d+)?%){2,}\s*\)$/.test(value)
         }
@@ -581,8 +582,22 @@ export function htmlToMarkdown(html) {
       const src = node.getAttribute('src') || ''
       const alt = node.getAttribute('alt') || 'Image'
       const layoutStyle = getImageLayoutStyle(node)
-      if (layoutStyle) {
-        return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}" style="${escapeAttribute(layoutStyle)}">`
+      const presentationAttributes = ['size', 'alignment', 'wrapping']
+        .map(name => {
+          const value = node.getAttribute(`data-sd-image-${name}`)
+          const allowedValues = {
+            size: ['original', 'full'],
+            alignment: ['left', 'center', 'right'],
+            wrapping: ['none', 'text-left', 'text-right', 'watermark'],
+          }
+          return allowedValues[name].includes(value)
+            ? ` data-sd-image-${name}="${escapeAttribute(value)}"`
+            : ''
+        })
+        .join('')
+      if (layoutStyle || presentationAttributes) {
+        const styleAttribute = layoutStyle ? ` style="${escapeAttribute(layoutStyle)}"` : ''
+        return `<img src="${escapeAttribute(src)}" alt="${escapeAttribute(alt)}"${styleAttribute}${presentationAttributes}>`
       }
       return src ? `![${alt}](${src})` : ''
     }
