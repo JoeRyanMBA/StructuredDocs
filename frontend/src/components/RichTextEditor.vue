@@ -96,7 +96,6 @@
           Align: {{ imageContext.alignment }} <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeImageMenu === 'alignment'" class="dropdown-content" @click.stop>
-          <button v-for="alignment in ['left', 'center', 'right']" :key="alignment" type="button" class="dropdown-item" :disabled="!imageContext.selected || imageContext.wrapping !== 'none'" :aria-pressed="(imageContext.alignment === alignment).toString()" @click="applyImageOption('alignment', alignment)">{{ alignment }}</button>
                   <button v-for="alignment in ['left', 'center', 'right']" :key="alignment" type="button" class="dropdown-item" :disabled="!imageContext.selected || (imageContext.wrapping !== 'none' && imageContext.wrapping !== 'watermark')" :aria-pressed="(imageContext.alignment === alignment).toString()" @click="applyImageOption('alignment', alignment)">{{ alignment }}</button>
         </div>
       </div>
