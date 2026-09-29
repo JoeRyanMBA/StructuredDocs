@@ -288,6 +288,76 @@ def _resolve_local_image_path_for_pdf(src: str) -> str:
     return ''
 
 
+def _get_import_image_for_pdf(src: str):
+    match = re.match(r'^/images/imports/(\d+)/([^/?#]+)(?:[?#].*)?$', (src or '').strip())
+    if not match:
+        return None
+
+    try:
+        from backend.models import ImportImage
+        return ImportImage.query.filter_by(
+            document_id=int(match.group(1)),
+            filename=match.group(2),
+        ).first()
+    except Exception as exc:
+        _pdf_debug(f"Could not look up imported PDF image {src}: {exc}")
+        return None
+
+
+def _resolve_registered_import_image_for_pdf(image_record, temp_dir: str | None) -> str:
+    configured_root = (os.environ.get('IMAGE_STORAGE_ROOT') or '').strip()
+    roots = [root for root in (
+        configured_root,
+        resolve_local_storage_root(),
+        '/app/data/images',
+    ) if root]
+    if has_app_context():
+        roots.append(os.path.join(current_app.root_path, 'static', 'images'))
+
+    remote_urls = []
+    for value in (image_record.backend_path, image_record.frontend_path, image_record.public_url):
+        path = (value or '').strip()
+        if not path:
+            continue
+        if path.startswith(('http://', 'https://')):
+            remote_urls.append(path)
+            continue
+        if os.path.isabs(path) and os.path.isfile(path):
+            return path
+
+        normalized = path.replace('\\', '/').lstrip('/')
+        relative_paths = [normalized]
+        if normalized.startswith('images/'):
+            relative_paths.append(normalized[len('images/'):])
+        for root in roots:
+            for relative_path in relative_paths:
+                candidate = os.path.join(root, relative_path)
+                if os.path.isfile(candidate):
+                    return candidate
+
+    if temp_dir:
+        for url in remote_urls:
+            downloaded = _download_image_for_pdf(url, temp_dir)
+            if downloaded:
+                return downloaded
+    return ''
+
+
+def _resolve_pdf_image_source(src: str, temp_dir: str | None) -> str:
+    source = (src or '').strip()
+    if source.startswith(('http://', 'https://')):
+        return _download_image_for_pdf(source, temp_dir) if temp_dir else ''
+
+    local_path = _resolve_local_image_path_for_pdf(source)
+    if local_path:
+        return local_path
+
+    image_record = _get_import_image_for_pdf(source)
+    if image_record:
+        return _resolve_registered_import_image_for_pdf(image_record, temp_dir)
+    return ''
+
+
 def _is_markdown_table_separator(line: str) -> bool:
     """Return True when *line* looks like a markdown table separator row."""
     if not line:
@@ -1733,29 +1803,11 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     # Extract src attribute
                     src_match = re.search(r'src="([^"]*)"', img_tag)
                     src = src_match.group(1) if src_match else ""
-                    
-                    # Convert relative image paths to absolute paths
-                    if src:
-                        if src.startswith('http://') or src.startswith('https://'):
-                            # Download an external image from remote object storage to a temp dir
-                            if temp_dir:
-                                src = _download_image_for_pdf(src, temp_dir)
-                                if not src:
-                                    return ''
-                                # src is now an absolute local temp path; skip path conversion
-                            else:
-                                return ''
-                        elif src.startswith('data:'):
-                            # Skip data URIs as reportlab Paragraph img doesn't handle them
-                            return ''
-                        else:
-                            resolved = _resolve_local_image_path_for_pdf(src)
-                            if resolved:
-                                src = resolved
-                            else:
-                                # If file doesn't exist in known roots, drop the image
-                                return ''
-                    else:
+
+                    if not src:
+                        return ''
+                    src = _resolve_pdf_image_source(src, temp_dir)
+                    if not src:
                         return ''
                     
                     # Extract width and height if present
