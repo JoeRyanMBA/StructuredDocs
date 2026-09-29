@@ -71,6 +71,20 @@ test('selected images retain size, alignment, and wrapping choices in emitted HT
   assert.equal(image.style.opacity, '0.18')
   assert.equal(image.dataset.sdImageWrapping, 'watermark')
 
+  instance.applyImageOption('alignment', 'center')
+  assert.equal(instance.imageContext.alignment, 'center')
+  assert.equal(image.style.left, '50%')
+  assert.equal(image.style.transform, 'translateX(-50%)')
+
+  instance.applyImageOption('alignment', 'right')
+  assert.equal(instance.imageContext.alignment, 'right')
+  assert.equal(image.style.left, '100%')
+  assert.equal(image.style.transform, 'translateX(-100%)')
+
+  instance.applyImageOption('alignment', 'left')
+  assert.equal(image.style.left, '0px')
+  assert.equal(image.style.transform, '')
+
   instance.applyImageOption('size', 'full')
   assert.equal(instance.imageContext.wrapping, 'watermark')
   assert.equal(image.style.width, '100%')
@@ -85,7 +99,7 @@ test('selected images retain size, alignment, and wrapping choices in emitted HT
   assert.doesNotMatch(image.getAttribute('style'), /float/)
   assert.equal(image.dataset.sdImageWrapping, 'none')
   assert.match(updates.at(-1), /data-sd-image-size="original"/)
-  assert.match(updates.at(-1), /data-sd-image-alignment="center"/)
+  assert.match(updates.at(-1), /data-sd-image-alignment="left"/)
   assert.match(updates.at(-1), /data-sd-image-wrapping="none"/)
   assert.equal(editor.querySelector('img'), image)
 })

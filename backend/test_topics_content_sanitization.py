@@ -24,6 +24,14 @@ def test_topic_sanitizer_preserves_watermark_opacity():
     assert 'opacity:0.18' in sanitized
 
 
+def test_topic_sanitizer_allows_only_watermark_alignment_transforms():
+    safe = '<img src="/images/example.png" style="transform:translateX(-50%)">'
+    unsafe = '<img src="/images/example.png" style="transform:rotate(45deg)">'
+
+    assert 'transform:translateX(-50%)' in _sanitize_content(safe)
+    assert 'transform' not in _sanitize_content(unsafe)
+
+
 def test_topic_sanitizer_preserves_safe_tight_wrap_polygon_only():
     safe_content = '<img src="/images/example.png" style="float:left;shape-outside:polygon(0% 0%, 100% 0%, 100% 100%)">'
     unsafe_content = '<img src="/images/example.png" style="float:left;shape-outside:url(https://example.com/shape.png)">'
