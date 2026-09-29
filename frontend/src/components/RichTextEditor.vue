@@ -1392,6 +1392,16 @@ export default {
   flex-direction: column;
 }
 
+.rte-wysiwyg-editor > .rte-toolbar {
+  flex: 0 0 auto;
+}
+
+.rte-wysiwyg-editor > .wysiwyg-content {
+  flex: 1 1 0;
+  height: auto;
+  min-height: 0;
+}
+
 .rte-toolbar {
   display: flex;
   flex-wrap: wrap;
