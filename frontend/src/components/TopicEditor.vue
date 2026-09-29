@@ -1012,6 +1012,31 @@ export default {
       }
       this.showImageModal = true
     },
+    captureWysiwygSelection() {
+      this.$refs.richEditor?.saveSelection()
+    },
+    restoreWysiwygSelection() {
+      return this.$refs.richEditor?.restoreSelection() || false
+    },
+    async loadTags() {
+      try {
+        const data = await apiGet('/api/tags/')
+        this.allTags = Array.isArray(data) ? data : (data.tags || [])
+      } catch (error) {
+        console.warn('Failed to load tags for preview', error)
+      }
+    },
+    async loadVariables() {
+      try {
+        const variables = await apiGet('/api/variables')
+        if (Array.isArray(variables)) {
+          this.variableSlugs = variables.map(variable => variable.slug).sort()
+          this.filteredVariables = this.variableSlugs.slice()
+        }
+      } catch (_error) {
+        // Variable loading is optional; keep the editor usable if the request fails.
+      }
+    },
     filterVariables() {
       const query = this.variableSearch.trim().toLowerCase()
       if (!query) {
