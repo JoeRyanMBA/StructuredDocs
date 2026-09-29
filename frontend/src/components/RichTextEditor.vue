@@ -1,6 +1,9 @@
 <template>
   <div class="rte-wysiwyg-editor">
     <div class="rte-toolbar" @mousedown.prevent>
+      <div class="rte-toolbar-group" role="group" aria-label="Text formatting">
+        <span class="rte-toolbar-group-label">Text</span>
+        <div class="rte-toolbar-group-controls">
       <button type="button" @click="exec('bold')" class="toolbar-btn">𝐁 Bold</button>
       <button type="button" @click="exec('italic')" class="toolbar-btn">𝐼 Italic</button>
       <button type="button" @click="applyInlineCode" class="toolbar-btn">⟨⟩ Code</button>
@@ -68,6 +71,12 @@
           <button type="button" class="dropdown-item" :disabled="!tableContext.inTable" @click="toggleTableHeaderRow">Toggle Header Row</button>
         </div>
       </div>
+        </div>
+      </div>
+      <div class="rte-toolbar-group" role="group" aria-label="Image settings">
+        <span class="rte-toolbar-group-label">Image</span>
+        <div class="rte-toolbar-group-controls">
+          <slot name="toolbar-image-extra" />
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'size' }]">
         <button
           type="button"
@@ -117,7 +126,14 @@
           <button type="button" class="dropdown-item" :disabled="!imageContext.selected" :aria-pressed="(imageContext.wrapping === 'watermark').toString()" @click="applyImageOption('wrapping', 'watermark')">Watermark (behind text)</button>
         </div>
       </div>
-      <slot name="toolbar-extra" />
+        </div>
+      </div>
+      <div v-if="$slots['toolbar-extra']" class="rte-toolbar-group" role="group" aria-label="Editor tools">
+        <span class="rte-toolbar-group-label">Tools</span>
+        <div class="rte-toolbar-group-controls">
+          <slot name="toolbar-extra" />
+        </div>
+      </div>
     </div>
     <div
       ref="editorEl"
@@ -1424,12 +1440,43 @@ export default {
 .rte-toolbar {
   display: flex;
   flex-wrap: wrap;
-  gap: 0.25rem;
+  align-items: flex-start;
+  gap: 0.65rem;
   padding: 0.5rem;
   background: #f8f9fa;
   border: 1px solid #dee2e6;
   border-bottom: none;
   border-radius: 4px 4px 0 0;
+}
+
+.rte-toolbar-group {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 0.3rem;
+  min-width: 0;
+  padding-right: 0.65rem;
+  border-right: 1px solid #d7dce1;
+}
+
+.rte-toolbar-group:last-child {
+  padding-right: 0;
+  border-right: 0;
+}
+
+.rte-toolbar-group-label {
+  color: #667085;
+  font-size: 0.68rem;
+  font-weight: 700;
+  line-height: 1;
+  text-transform: uppercase;
+}
+
+.rte-toolbar-group-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.25rem;
 }
 
 /* wysiwyg-content styles (mirrors TopicEditor for standalone use) */
