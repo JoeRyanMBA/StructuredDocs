@@ -103,3 +103,34 @@ test('selected images retain size, alignment, and wrapping choices in emitted HT
   assert.match(updates.at(-1), /data-sd-image-wrapping="none"/)
   assert.equal(editor.querySelector('img'), image)
 })
+
+test('image size presets persist percentage widths in emitted HTML', () => {
+  const { image, instance, updates } = createEditorHarness()
+
+  instance.onEditorClick({ target: image })
+  for (const size of ['25%', '50%', '75%']) {
+    instance.applyImageOption('size', size)
+    assert.equal(image.style.width, size)
+    assert.equal(image.style.height, 'auto')
+    assert.equal(image.dataset.sdImageSize, size)
+    assert.match(updates.at(-1), new RegExp(`data-sd-image-size="${size}"`))
+  }
+})
+
+test('drag resizing stores a custom width and maintains image aspect ratio', () => {
+  const { image, instance, updates } = createEditorHarness()
+  const parent = image.parentElement
+  Object.defineProperty(parent, 'clientWidth', { configurable: true, value: 400 })
+  image.getBoundingClientRect = () => ({ width: 200, height: 100, right: 200, bottom: 100 })
+
+  instance.onEditorClick({ target: image })
+  instance.startImageResize({ clientX: 200, clientY: 100 })
+  instance.onImageResizeMove({ clientX: 240, clientY: 120 })
+
+  assert.equal(image.style.width, '240px')
+  assert.equal(image.style.height, 'auto')
+  assert.equal(image.dataset.sdImageSize, 'custom')
+  instance.finishImageResize()
+  assert.match(updates.at(-1), /data-sd-image-size="custom"/)
+  assert.match(updates.at(-1), /width: 240px/)
+})

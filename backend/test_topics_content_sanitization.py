@@ -24,6 +24,15 @@ def test_topic_sanitizer_preserves_watermark_opacity():
     assert 'opacity:0.18' in sanitized
 
 
+def test_topic_sanitizer_preserves_resized_image_dimensions():
+    content = '<img src="/images/example.png" style="width:50%;height:auto">'
+
+    sanitized = _sanitize_content(content)
+
+    assert 'width:50%' in sanitized
+    assert 'height:auto' in sanitized
+
+
 def test_topic_sanitizer_allows_only_watermark_alignment_transforms():
     safe = '<img src="/images/example.png" style="transform:translateX(-50%)">'
     unsafe = '<img src="/images/example.png" style="transform:rotate(45deg)">'

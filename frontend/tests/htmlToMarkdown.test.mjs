@@ -62,5 +62,19 @@ test('htmlToMarkdown preserves image presentation settings including watermark m
   assert.match(markdown, /data-sd-image-size="full"/)
   assert.match(markdown, /data-sd-image-alignment="center"/)
   assert.match(markdown, /data-sd-image-wrapping="watermark"/)
-  assert.match(markdown, /style="position: absolute; z-index: -1; top: 0; left: 50%; transform: translateX\(-50%\); opacity: 0.18"/)
+  assert.match(markdown, /style="position: absolute; z-index: -1; top: 0; left: 50%; transform: translateX\(-50%\); opacity: 0.18; width: 100%"/)
+})
+
+test('htmlToMarkdown preserves image preset and custom resize dimensions', () => {
+  const preset = htmlToMarkdown(
+    '<img src="/image.png" style="width:50%;height:auto" data-sd-image-size="50%">'
+  )
+  const custom = htmlToMarkdown(
+    '<img src="/image.png" style="width:240px;height:auto" data-sd-image-size="custom">'
+  )
+
+  assert.match(preset, /style="width:50%; height:auto"/)
+  assert.match(preset, /data-sd-image-size="50%"/)
+  assert.match(custom, /style="width:240px; height:auto"/)
+  assert.match(custom, /data-sd-image-size="custom"/)
 })
