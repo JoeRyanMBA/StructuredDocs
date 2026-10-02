@@ -59,18 +59,36 @@ def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
         assert payload['image_on_top'] is image_on_top
 
 
-def test_pdf_image_flowable_uses_css_percentage_and_pixel_widths(tmp_path):
+def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
     image_path = _image_path(tmp_path)
 
-    for css_width, expected_width in [('25%', 100), ('50%', 200), ('180px', 180)]:
+    for css_width, expected_width in [('25%', 100), ('50%', 200), ('75%', 300), ('180px', 135)]:
         paragraphs = convert_markdown_to_pdf_paragraphs(
-            f'<img src="{image_path}" style="width:{css_width};height:auto">'
+            f'<img src="{image_path}" width="600" height="400" style="width:{css_width};height:auto">'
         )
         marker = next(item for item in paragraphs if item.startswith('__PDF_IMG__:'))
         _, _src, width, height = marker.split(':', 3)
 
         assert int(width) == expected_width
         assert int(height) == int(80 * expected_width / 120)
+
+
+def test_absolute_app_image_url_resolves_from_local_storage(tmp_path, monkeypatch):
+    image_path = tmp_path / 'inserted-image.png'
+    PILImage.new('RGB', (120, 80), 'blue').save(image_path)
+    monkeypatch.setenv('IMAGE_STORAGE_ROOT', str(tmp_path))
+    monkeypatch.setattr(
+        pdf_generator,
+        '_download_image_for_pdf',
+        lambda *_args, **_kwargs: (_ for _ in ()).throw(AssertionError('should resolve locally')),
+    )
+
+    resolved = pdf_generator._resolve_pdf_image_source(
+        'https://app.example.test/images/inserted-image.png?cache=1',
+        str(tmp_path),
+    )
+
+    assert resolved == str(image_path)
 
 
 def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeypatch):
