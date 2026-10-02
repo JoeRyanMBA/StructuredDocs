@@ -86,10 +86,11 @@
           :aria-expanded="(activeImageMenu === 'size').toString()"
           @click.stop="toggleImageMenu('size')"
         >
-          Image size: {{ imageContext.size === 'full' ? 'Full width' : 'Original size' }} <span class="toolbar-dropdown__caret">▾</span>
+          Image size: {{ imageSizeLabel(imageContext.size) }} <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeImageMenu === 'size'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'original').toString()" @click="applyImageOption('size', 'original')">Original size</button>
+          <button v-for="size in ['25%', '50%', '75%']" :key="size" type="button" class="dropdown-item" :aria-pressed="(imageContext.size === size).toString()" @click="applyImageOption('size', size)">{{ size }}</button>
           <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'full').toString()" @click="applyImageOption('size', 'full')">Full width</button>
         </div>
       </div>
@@ -149,6 +150,16 @@
       @click="onEditorClick"
       @blur="saveSelection"
     ></div>
+    <button
+      v-if="imageResizeHandleStyle"
+      type="button"
+      class="rte-image-resize-handle"
+      :style="imageResizeHandleStyle"
+      aria-label="Resize selected image"
+      title="Drag to resize image"
+      @pointerdown.stop.prevent="startImageResize"
+      @keydown.stop.prevent="onImageResizeKeydown"
+    ></button>
   </div>
 </template>
 
@@ -168,6 +179,13 @@ export default {
       activeListMenu: null,
       activeTableMenu: false,
       activeImageMenu: null,
+      imageResizeHandleStyle: null,
+      _resizingImage: null,
+      _resizeStartX: 0,
+      _resizeStartY: 0,
+      _resizeStartWidth: 0,
+      _resizeAspectRatio: 1,
+      _resizeMaxWidth: 0,
       imageContext: {
         selected: false,
         size: 'original',
@@ -207,12 +225,17 @@ export default {
       this.refreshImageContext()
     }
     document.addEventListener('mousedown', this.onDocumentMouseDown)
+    window.addEventListener('resize', this.updateImageResizeHandle)
+    window.addEventListener('scroll', this.updateImageResizeHandle, true)
   },
   beforeUnmount() {
     if (this._inputTimer) {
       clearTimeout(this._inputTimer)
     }
     document.removeEventListener('mousedown', this.onDocumentMouseDown)
+    window.removeEventListener('resize', this.updateImageResizeHandle)
+    window.removeEventListener('scroll', this.updateImageResizeHandle, true)
+    this.stopImageResize()
   },
   methods: {
     toggleListMenu(menu) {
@@ -252,7 +275,14 @@ export default {
       if (!this.$el?.contains(event.target)) {
         this.closeToolbarMenus()
         this.imageContext.selected = false
+        this.imageResizeHandleStyle = null
       }
+    },
+    imageSizeLabel(size) {
+      if (size === 'full') return 'Full width'
+      if (size === 'original') return 'Original size'
+      if (size === 'custom') return 'Custom size'
+      return size
     },
     imageWrappingLabel(wrapping) {
       if (wrapping === 'text-left') return 'Text left'
@@ -277,18 +307,101 @@ export default {
       const image = this.getSelectedImage()
       if (!image) {
         this.imageContext.selected = false
+        this.imageResizeHandleStyle = null
         return
       }
 
       const float = image.style.float
       this.imageContext = {
         selected: true,
-        size: image.dataset.sdImageSize || (image.style.width === '100%' ? 'full' : 'original'),
+        size: image.dataset.sdImageSize || (image.style.width === '100%'
+          ? 'full'
+          : image.style.width ? 'custom' : 'original'),
         alignment: image.dataset.sdImageAlignment || (image.style.marginLeft === 'auto' && image.style.marginRight === 'auto'
           ? 'center'
           : image.style.marginLeft === 'auto' ? 'right' : 'left'),
         wrapping: image.dataset.sdImageWrapping || (float === 'left' ? 'text-right' : float === 'right' ? 'text-left' : 'none'),
       }
+      this.updateImageResizeHandle(image)
+    },
+    updateImageResizeHandle(image = this.getSelectedImage()) {
+      if (!image || !image.isConnected) {
+        this.imageResizeHandleStyle = null
+        return
+      }
+      const rect = image.getBoundingClientRect()
+      if (!rect.width || !rect.height) {
+        this.imageResizeHandleStyle = null
+        return
+      }
+      this.imageResizeHandleStyle = {
+        left: `${Math.round(rect.right - 6)}px`,
+        top: `${Math.round(rect.bottom - 6)}px`,
+      }
+    },
+    startImageResize(event) {
+      const image = this.getSelectedImage()
+      if (!image) return
+
+      const rect = image.getBoundingClientRect()
+      const editor = this.$refs.editorEl
+      const parent = image.parentElement
+      const parentStyle = parent ? window.getComputedStyle(parent) : null
+      const parentPadding = parentStyle
+        ? (Number.parseFloat(parentStyle.paddingLeft) || 0) + (Number.parseFloat(parentStyle.paddingRight) || 0)
+        : 0
+      const editorStyle = editor ? window.getComputedStyle(editor) : null
+      const editorPadding = editorStyle
+        ? (Number.parseFloat(editorStyle.paddingLeft) || 0) + (Number.parseFloat(editorStyle.paddingRight) || 0)
+        : 0
+      const parentWidth = (parent?.clientWidth || 0) - parentPadding
+
+      this._resizingImage = image
+      this._resizeStartX = event.clientX
+      this._resizeStartY = event.clientY
+      this._resizeStartWidth = rect.width || image.naturalWidth || 1
+      this._resizeAspectRatio = rect.width && rect.height
+        ? rect.width / rect.height
+        : (image.naturalWidth && image.naturalHeight ? image.naturalWidth / image.naturalHeight : 1)
+      this._resizeMaxWidth = Math.max(24, parentWidth || (editor?.clientWidth || rect.width) - editorPadding)
+      window.addEventListener('pointermove', this.onImageResizeMove)
+      window.addEventListener('pointerup', this.finishImageResize)
+      window.addEventListener('pointercancel', this.finishImageResize)
+    },
+    onImageResizeMove(event) {
+      if (!this._resizingImage) return
+      const deltaX = event.clientX - this._resizeStartX
+      const deltaY = event.clientY - this._resizeStartY
+      const widthDelta = (deltaX + (deltaY * this._resizeAspectRatio)) / 2
+      this.setImagePixelWidth(this._resizingImage, this._resizeStartWidth + widthDelta)
+    },
+    onImageResizeKeydown(event) {
+      if (event.key !== 'ArrowLeft' && event.key !== 'ArrowRight') return
+      const image = this.getSelectedImage()
+      if (!image) return
+      const rect = image.getBoundingClientRect()
+      this.setImagePixelWidth(image, rect.width + (event.key === 'ArrowRight' ? 10 : -10))
+      this.emitUpdate()
+    },
+    setImagePixelWidth(image, width) {
+      const clampedWidth = Math.min(this._resizeMaxWidth || Number.POSITIVE_INFINITY, Math.max(24, width))
+      image.style.width = `${Math.round(clampedWidth)}px`
+      image.style.height = 'auto'
+      image.dataset.sdImageSize = 'custom'
+      this.imageContext = { ...this.imageContext, selected: true, size: 'custom' }
+      this.updateImageResizeHandle(image)
+    },
+    finishImageResize() {
+      if (!this._resizingImage) return
+      this.stopImageResize()
+      this.refreshImageContext()
+      this.emitUpdate()
+    },
+    stopImageResize() {
+      window.removeEventListener('pointermove', this.onImageResizeMove)
+      window.removeEventListener('pointerup', this.finishImageResize)
+      window.removeEventListener('pointercancel', this.finishImageResize)
+      this._resizingImage = null
     },
     onEditorClick(event) {
       const image = event.target instanceof Element ? event.target.closest('img') : null
@@ -330,11 +443,14 @@ export default {
         image.style.height = 'auto'
         if (size === 'full') {
           image.style.width = '100%'
+        } else if (['25%', '50%', '75%'].includes(size)) {
+          image.style.width = size
         } else {
           image.style.removeProperty('width')
         }
       }
-      image.style.maxWidth = ['text-left', 'text-right'].includes(wrapping) ? 'min(45%, 320px)' : '100%'
+      image.style.maxWidth = ['text-left', 'text-right'].includes(wrapping) && size === 'original'
+        ? 'min(45%, 320px)' : '100%'
 
       if (wrapping === 'none') {
         image.style.removeProperty('float')
@@ -367,6 +483,7 @@ export default {
       }
 
       this.imageContext = { selected: true, size, alignment, wrapping }
+      this.updateImageResizeHandle(image)
       this.closeImageMenu()
       this.emitUpdate()
     },
@@ -1435,6 +1552,21 @@ export default {
   flex: 1 1 0;
   height: auto;
   min-height: 0;
+}
+
+.rte-image-resize-handle {
+  position: fixed;
+  z-index: 200;
+  width: 14px;
+  height: 14px;
+  padding: 0;
+  transform: translate(-50%, -50%);
+  border: 2px solid #fff;
+  border-radius: 2px;
+  background: #205493;
+  box-shadow: 0 0 0 1px #173f6f;
+  cursor: nwse-resize;
+  touch-action: none;
 }
 
 .rte-toolbar {

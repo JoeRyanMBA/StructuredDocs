@@ -59,6 +59,20 @@ def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
         assert payload['image_on_top'] is image_on_top
 
 
+def test_pdf_image_flowable_uses_css_percentage_and_pixel_widths(tmp_path):
+    image_path = _image_path(tmp_path)
+
+    for css_width, expected_width in [('25%', 100), ('50%', 200), ('180px', 180)]:
+        paragraphs = convert_markdown_to_pdf_paragraphs(
+            f'<img src="{image_path}" style="width:{css_width};height:auto">'
+        )
+        marker = next(item for item in paragraphs if item.startswith('__PDF_IMG__:'))
+        _, _src, width, height = marker.split(':', 3)
+
+        assert int(width) == expected_width
+        assert int(height) == int(80 * expected_width / 120)
+
+
 def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeypatch):
     image_path = _image_path(tmp_path)
     public_url = '/images/imports/9/image3_511f306e.png'
