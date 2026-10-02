@@ -350,6 +350,32 @@ def _resolve_registered_import_image_for_pdf(image_record, temp_dir: str | None)
 
 def _resolve_pdf_image_source(src: str, temp_dir: str | None) -> str:
     source = (src or '').strip()
+    if source.lower().startswith('data:image/'):
+        if not temp_dir:
+            return ''
+        try:
+            header, payload = source[5:].split(',', 1)
+            mime_type, *parameters = header.split(';')
+            if not mime_type.lower().startswith('image/'):
+                return ''
+            if any(parameter.lower() == 'base64' for parameter in parameters):
+                image_bytes = base64.b64decode(payload, validate=True)
+            else:
+                from urllib.parse import unquote_to_bytes
+                image_bytes = unquote_to_bytes(payload)
+            extension = {
+                'image/jpeg': '.jpg',
+                'image/svg+xml': '.svg',
+            }.get(mime_type.lower(), mimetypes.guess_extension(mime_type) or '.img')
+            file_descriptor, image_path = tempfile.mkstemp(
+                prefix='sd_pdf_embedded_', suffix=extension, dir=temp_dir
+            )
+            with os.fdopen(file_descriptor, 'wb') as image_file:
+                image_file.write(image_bytes)
+            return image_path
+        except (ValueError, OSError):
+            return ''
+
     if source.startswith(('http://', 'https://')):
         parsed_source = urlsplit(source)
         if parsed_source.path.startswith(('/images/', '/static/images/')):

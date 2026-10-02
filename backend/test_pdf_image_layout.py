@@ -1,3 +1,4 @@
+import base64
 import os
 import sys
 from types import SimpleNamespace
@@ -89,6 +90,29 @@ def test_absolute_app_image_url_resolves_from_local_storage(tmp_path, monkeypatc
     )
 
     assert resolved == str(image_path)
+
+
+def test_embedded_data_image_is_decoded_and_rendered_in_pdf(tmp_path):
+    source_path = _image_path(tmp_path)
+    with open(source_path, 'rb') as source_file:
+        image_data = base64.b64encode(source_file.read()).decode('ascii')
+    data_url = f'data:image/png;base64,{image_data}'
+    paragraphs = convert_markdown_to_pdf_paragraphs(
+        f'<img src="{data_url}" style="width:50%;height:auto">',
+        temp_dir=str(tmp_path),
+    )
+
+    marker = next(item for item in paragraphs if item.startswith('__PDF_IMG__:'))
+    _, image_path, width, height = marker.split(':', 3)
+    assert int(width) == 200
+    assert int(height) == 133
+
+    output_path = tmp_path / 'embedded-image.pdf'
+    SimpleDocTemplate(str(output_path), pagesize=letter).build([
+        Image(image_path, width=int(width), height=int(height)),
+    ])
+    assert output_path.exists()
+    assert os.path.getsize(output_path) > 0
 
 
 def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeypatch):
