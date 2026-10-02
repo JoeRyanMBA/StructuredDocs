@@ -1,4 +1,5 @@
 import os
+import sys
 from types import SimpleNamespace
 
 from PIL import Image as PILImage
@@ -71,6 +72,53 @@ def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeyp
     monkeypatch.setattr(pdf_generator, '_download_image_for_pdf', lambda _url, _temp_dir: image_path)
 
     assert pdf_generator._resolve_pdf_image_source(public_url, str(tmp_path)) == image_path
+
+
+def test_svg_content_image_is_rasterized_for_pdf(tmp_path, monkeypatch):
+    svg_path = tmp_path / 'topic-image.svg'
+    svg_path.write_text('<svg xmlns="http://www.w3.org/2000/svg"></svg>')
+
+    def fake_svg2png(url, write_to, **kwargs):
+        PILImage.new('RGB', (120, 80), 'blue').save(write_to, format='PNG')
+
+    monkeypatch.setitem(
+        sys.modules,
+        'cairosvg',
+        SimpleNamespace(svg2png=fake_svg2png),
+    )
+
+    paragraphs = convert_markdown_to_pdf_paragraphs(
+        f'<img src="{svg_path}" width="120" height="80">',
+        temp_dir=str(tmp_path),
+    )
+
+    image_marker = next(item for item in paragraphs if item.startswith('__PDF_IMG__:'))
+    image_path = image_marker.split(':', 3)[1]
+    assert image_path.endswith('.png')
+    assert os.path.exists(image_path)
+
+    output_path = tmp_path / 'svg-content.pdf'
+    SimpleDocTemplate(str(output_path), pagesize=letter).build([
+        Image(image_path, width=120, height=80),
+    ])
+    assert output_path.exists()
+    assert os.path.getsize(output_path) > 0
+
+
+def test_downloaded_svg_keeps_its_format_for_pdf_rasterization(tmp_path, monkeypatch):
+    response = SimpleNamespace(
+        status_code=200,
+        headers={'content-type': 'image/svg+xml'},
+        iter_content=lambda _chunk_size: [b'<svg></svg>'],
+    )
+    monkeypatch.setattr(pdf_generator._http, 'get', lambda *_args, **_kwargs: response)
+
+    downloaded_path = pdf_generator._download_image_for_pdf(
+        'https://cdn.example.com/topic-image.svg', str(tmp_path)
+    )
+
+    assert downloaded_path.endswith('.svg')
+    assert open(downloaded_path, 'rb').read() == b'<svg></svg>'
 
 
 def test_image_layout_flowables_build_pdf(tmp_path):
