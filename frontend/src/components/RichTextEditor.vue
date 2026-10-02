@@ -385,6 +385,8 @@ export default {
     },
     setImagePixelWidth(image, width) {
       const clampedWidth = Math.min(this._resizeMaxWidth || Number.POSITIVE_INFINITY, Math.max(24, width))
+      image.removeAttribute('width')
+      image.removeAttribute('height')
       image.style.width = `${Math.round(clampedWidth)}px`
       image.style.height = 'auto'
       image.dataset.sdImageSize = 'custom'

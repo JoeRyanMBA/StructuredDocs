@@ -10,6 +10,7 @@ import traceback
 import tempfile
 import shutil
 import subprocess
+from urllib.parse import urlsplit
 from datetime import datetime
 from pathlib import Path
 import requests as _http
@@ -350,6 +351,17 @@ def _resolve_registered_import_image_for_pdf(image_record, temp_dir: str | None)
 def _resolve_pdf_image_source(src: str, temp_dir: str | None) -> str:
     source = (src or '').strip()
     if source.startswith(('http://', 'https://')):
+        parsed_source = urlsplit(source)
+        if parsed_source.path.startswith(('/images/', '/static/images/')):
+            local_path = _resolve_local_image_path_for_pdf(parsed_source.path)
+            if local_path:
+                return local_path
+
+            image_record = _get_import_image_for_pdf(parsed_source.path)
+            if image_record:
+                registered_path = _resolve_registered_import_image_for_pdf(image_record, temp_dir)
+                if registered_path:
+                    return registered_path
         return _download_image_for_pdf(source, temp_dir) if temp_dir else ''
 
     local_path = _resolve_local_image_path_for_pdf(source)
@@ -1855,20 +1867,26 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         # otherwise scale the natural image size down as needed.
                         MAX_WIDTH = 400
                         style_width_match = re.search(
-                            r'(?:^|;)\s*width\s*:\s*(\d+(?:\.\d+)?)\s*(px|%)?',
+                            r'(?:^|;)\s*width\s*:\s*(\d+(?:\.\d+)?)\s*(px|pt|%)?',
                             style,
                             re.IGNORECASE,
                         )
-                        if width_match:
+                        if style_width_match:
+                            css_width = float(style_width_match.group(1))
+                            unit = (style_width_match.group(2) or 'px').lower()
+                            if unit == '%':
+                                w = int(MAX_WIDTH * css_width / 100)
+                            elif unit == 'px':
+                                w = int(css_width * 0.75)
+                            else:
+                                w = int(css_width)
+                            h = int(natural_h * w / natural_w)
+                        elif width_match:
                             try:
                                 w = int(width_match.group(1))
                                 h = int(height_match.group(1)) if height_match else int(natural_h * w / natural_w)
                             except (ValueError, ZeroDivisionError):
                                 w, h = natural_w, natural_h
-                        elif style_width_match:
-                            css_width = float(style_width_match.group(1))
-                            w = int(MAX_WIDTH * css_width / 100) if style_width_match.group(2) == '%' else int(css_width)
-                            h = int(natural_h * w / natural_w)
                         else:
                             w, h = natural_w, natural_h
                         if w > MAX_WIDTH and w > 0:
