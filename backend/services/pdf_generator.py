@@ -160,7 +160,7 @@ def _collect_overlay_paragraphs(paragraphs, start_index):
     return '<br/><br/>'.join(overlay_paragraphs), start_index
 
 
-def _resolve_pdf_renderable_image_path(image_path: str) -> str:
+def _resolve_pdf_renderable_image_path(image_path: str, temp_dir: str | None = None) -> str:
     """Return a filesystem path that ReportLab can draw for PDF exports.
 
     Uploads may be SVGs, but ReportLab cannot render SVG directly. Convert SVGs
@@ -183,8 +183,12 @@ def _resolve_pdf_renderable_image_path(image_path: str) -> str:
         return candidate
 
     base_name = os.path.splitext(os.path.basename(candidate))[0] or 'brand_logo'
-    temp_dir = tempfile.mkdtemp(prefix='sd_svg_pdf_')
-    png_path = os.path.join(temp_dir, f'{base_name}.png')
+    conversion_dir = temp_dir or tempfile.mkdtemp(prefix='sd_svg_pdf_')
+    os.makedirs(conversion_dir, exist_ok=True)
+    png_fd, png_path = tempfile.mkstemp(
+        prefix=f'{base_name}_', suffix='.png', dir=conversion_dir
+    )
+    os.close(png_fd)
 
     try:
         import cairosvg
@@ -1557,6 +1561,8 @@ def _download_image_for_pdf(url: str, temp_dir: str) -> str:
             ext = '.gif'
         elif 'webp' in content_type:
             ext = '.webp'
+        elif 'svg' in content_type:
+            ext = '.svg'
         else:
             # Try to guess from URL, default to jpg
             url_lower = url.lower().split('?')[0]
@@ -1566,6 +1572,8 @@ def _download_image_for_pdf(url: str, temp_dir: str) -> str:
                 ext = '.gif'
             elif url_lower.endswith('.webp'):
                 ext = '.webp'
+            elif url_lower.endswith('.svg'):
+                ext = '.svg'
             else:
                 ext = '.jpg'
         tmp_path = os.path.join(temp_dir, f'img_{abs(hash(url)) % 10**9}{ext}')
@@ -1807,6 +1815,9 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     if not src:
                         return ''
                     src = _resolve_pdf_image_source(src, temp_dir)
+                    if not src:
+                        return ''
+                    src = _resolve_pdf_renderable_image_path(src, temp_dir)
                     if not src:
                         return ''
                     
