@@ -2,6 +2,7 @@ import base64
 import os
 import sys
 from types import SimpleNamespace
+from unittest.mock import Mock
 
 from flask import Flask
 from PIL import Image as PILImage
@@ -128,6 +129,41 @@ def test_layout_image_marker_survives_long_trailing_text(tmp_path):
 
         assert payload['mode'] == 'float'
         assert payload['text'] == trailing_text
+
+
+def test_watermark_text_is_top_aligned_over_image():
+    image = Mock()
+    paragraph = Mock()
+    paragraph.wrap.return_value = (84, 30)
+    flowable = _OverlayImageFlowable(image, paragraph, 100, 200, padding=8)
+    flowable.wrap(100, 200)
+    canvas = object()
+    flowable.canv = canvas
+
+    flowable.draw()
+
+    paragraph.drawOn.assert_called_once_with(canvas, 8, 162)
+
+
+def test_wrapped_editor_image_respects_saved_size_option(tmp_path):
+    image_path = tmp_path / 'large-layout-image.png'
+    PILImage.new('RGB', (1200, 800), 'blue').save(image_path)
+
+    cases = [
+        ('original', 180),
+        ('25%', 100),
+        ('50%', 200),
+        ('75%', 300),
+    ]
+    for size, expected_width in cases:
+        paragraphs = convert_markdown_to_pdf_paragraphs(
+            f'<img src="{image_path}" data-sd-image-size="{size}" style="float:left">'
+        )
+        marker = next(item for item in paragraphs if item.startswith('__PDF_LAYOUT_IMG__:'))
+        payload = _decode_pdf_layout_marker(marker)
+
+        assert payload['width'] == expected_width
+        assert payload['height'] == int(800 * expected_width / 1200)
 
 
 def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
