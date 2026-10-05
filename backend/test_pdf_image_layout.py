@@ -61,6 +61,25 @@ def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
         assert payload['image_on_top'] is image_on_top
 
 
+def test_uppercase_single_quoted_image_attributes_are_parsed(tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        f"<IMG SRC='{image_path}' STYLE='float: left' WIDTH='60' HEIGHT='40'> "
+        'Text beside the image.'
+    )
+
+    paragraphs = convert_markdown_to_pdf_paragraphs(content)
+    marker = next(item for item in paragraphs if item.startswith('__PDF_LAYOUT_IMG__:'))
+    payload = _decode_pdf_layout_marker(marker)
+
+    assert payload['src'] == image_path
+    assert payload['mode'] == 'float'
+    assert payload['side'] == 'left'
+    assert payload['text'] == 'Text beside the image.'
+    assert payload['width'] == 60
+    assert payload['height'] == 40
+
+
 def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
     image_path = _image_path(tmp_path)
 
