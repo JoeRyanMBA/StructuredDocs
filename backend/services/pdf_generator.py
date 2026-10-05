@@ -100,6 +100,20 @@ def _pdf_debug(message: str) -> None:
     logging.getLogger(__name__).debug(message)
 
 
+def _describe_pdf_image_source(src: str) -> str:
+    """Describe an image source without logging URL secrets or data payloads."""
+    source = (src or '').strip()
+    if source.lower().startswith('data:'):
+        media_type = source[5:].split(';', 1)[0].split(',', 1)[0]
+        return f'{media_type} data URL ({len(source)} chars)'
+
+    parsed = urlsplit(source)
+    if parsed.scheme in ('http', 'https'):
+        host = parsed.netloc.rsplit('@', 1)[-1]
+        return f'{parsed.scheme}://{host}{parsed.path}'[:300]
+    return parsed.path[:300]
+
+
 class _OverlayImageFlowable(Flowable):
     """Draw an image first and a paragraph over it at the same coordinates."""
 
