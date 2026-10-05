@@ -1396,7 +1396,27 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                 # Add content with proper indentation for hierarchy
                 if node['content']:
                     # Convert markdown-like content to paragraphs
-                    content_paragraphs = convert_markdown_to_pdf_paragraphs(_pdf_sanitize_text(node['content']), temp_dir=_pdf_temp_dir)
+                    sanitized_content = _pdf_sanitize_text(node['content'])
+                    html_image_count = len(re.findall(r'<img\b', sanitized_content, re.IGNORECASE))
+                    markdown_image_count = len(re.findall(r'!\[[^\]]*\]\([^)]+\)', sanitized_content))
+                    content_paragraphs = convert_markdown_to_pdf_paragraphs(
+                        sanitized_content,
+                        temp_dir=_pdf_temp_dir,
+                    )
+                    layout_image_count = sum(
+                        item.startswith('__PDF_LAYOUT_IMG__:') for item in content_paragraphs
+                    )
+                    standalone_image_count = sum(
+                        item.startswith('__PDF_IMG__:') for item in content_paragraphs
+                    )
+                    current_app.logger.info(
+                        'PDF topic %s image references: html=%d markdown=%d; parsed: layout=%d standalone=%d',
+                        node.get('topic_id', node.get('id')),
+                        html_image_count,
+                        markdown_image_count,
+                        layout_image_count,
+                        standalone_image_count,
+                    )
                     paragraph_index = 0
                     while paragraph_index < len(content_paragraphs):
                         para = content_paragraphs[paragraph_index]
