@@ -146,7 +146,7 @@ class _OverlayImageFlowable(Flowable):
         return self.width, self.height
 
     def draw(self):
-        text_y = max(self.padding, (self.height - self.text_height) / 2)
+        text_y = max(self.padding, self.height - self.padding - self.text_height)
         if not self.image_on_top:
             self.image.drawOn(self.canv, 0, 0)
             self.paragraph.drawOn(self.canv, self.padding, text_y)
@@ -1985,8 +1985,14 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     )
                     style_match = re.search(r'style=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
                     class_match = re.search(r'class=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
+                    image_size_match = re.search(
+                        r'\bdata-sd-image-size\s*=\s*(["\'])(.*?)\1',
+                        img_tag,
+                        re.IGNORECASE | re.DOTALL,
+                    )
                     style = style_match.group(1).lower() if style_match else ''
                     image_class = class_match.group(1).lower() if class_match else ''
+                    image_size = image_size_match.group(2).lower() if image_size_match else ''
                     float_match = re.search(r'\bfloat\s*:\s*(left|right)', style)
                     z_index_match = re.search(r'\bz-index\s*:\s*(-?\d+)', style)
                     is_overlay = bool(
@@ -2030,6 +2036,14 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                                 w = int(css_width * 0.75)
                             else:
                                 w = int(css_width)
+                            h = int(natural_h * w / natural_w)
+                        elif image_size in ('25%', '50%', '75%'):
+                            w = int(MAX_WIDTH * float(image_size.rstrip('%')) / 100)
+                            h = int(natural_h * w / natural_w)
+                        elif float_match and image_size == 'original':
+                            # The editor's original-size float uses max-width: min(45%, 320px).
+                            max_float_width = min(int(MAX_WIDTH * 0.45), int(320 * 0.75))
+                            w = min(natural_w, max_float_width)
                             h = int(natural_h * w / natural_w)
                         elif width_match:
                             try:
