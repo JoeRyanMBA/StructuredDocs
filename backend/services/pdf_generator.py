@@ -1903,14 +1903,18 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             formatted_line = re.sub(r'</?a[^>]*>', '', formatted_line)
             
             # Handle images - ReportLab only supports specific img attributes
-            if '<img' in formatted_line:
+            if re.search(r'<img\b', formatted_line, re.IGNORECASE):
                 # Preserve the small CSS subset that ReportLab can reproduce with
                 # flowables; other image attributes remain intentionally ignored.
                 def clean_img_tag(match):
                     img_tag = match.group(0)
                     # Extract src attribute
-                    src_match = re.search(r'src="([^"]*)"', img_tag)
-                    src = src_match.group(1) if src_match else ""
+                    src_match = re.search(
+                        r'\bsrc\s*=\s*(["\'])(.*?)\1',
+                        img_tag,
+                        re.IGNORECASE | re.DOTALL,
+                    )
+                    src = src_match.group(2) if src_match else ""
 
                     if not src:
                         _pdf_warning('PDF skipped image tag with no src attribute')
@@ -1926,8 +1930,16 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         return ''
                     
                     # Extract width and height if present
-                    width_match = re.search(r'width="([^"]*)"', img_tag)
-                    height_match = re.search(r'height="([^"]*)"', img_tag)
+                    width_match = re.search(
+                        r'\bwidth\s*=\s*(["\'])(.*?)\1',
+                        img_tag,
+                        re.IGNORECASE | re.DOTALL,
+                    )
+                    height_match = re.search(
+                        r'\bheight\s*=\s*(["\'])(.*?)\1',
+                        img_tag,
+                        re.IGNORECASE | re.DOTALL,
+                    )
                     style_match = re.search(r'style=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
                     class_match = re.search(r'class=["\']([^"\']*)["\']', img_tag, re.IGNORECASE)
                     style = style_match.group(1).lower() if style_match else ''
@@ -1978,8 +1990,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                             h = int(natural_h * w / natural_w)
                         elif width_match:
                             try:
-                                w = int(width_match.group(1))
-                                h = int(height_match.group(1)) if height_match else int(natural_h * w / natural_w)
+                                w = int(width_match.group(2))
+                                h = int(height_match.group(2)) if height_match else int(natural_h * w / natural_w)
                             except (ValueError, ZeroDivisionError):
                                 w, h = natural_w, natural_h
                         else:
@@ -2006,7 +2018,12 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     # instead of embedding inside a Paragraph (which causes overflow issues).
                     return f'__PDF_IMG__:{src}:{w}:{h}'
                 
-                formatted_line = re.sub(r'<img[^>]*>', clean_img_tag, formatted_line)
+                formatted_line = re.sub(
+                    r'<img\b[^>]*>',
+                    clean_img_tag,
+                    formatted_line,
+                    flags=re.IGNORECASE | re.DOTALL,
+                )
                 layout_marker_re = re.compile(r'__PDF_LAYOUT_IMG__:[A-Za-z0-9_-]+=*')
                 layout_match = layout_marker_re.search(formatted_line)
                 if layout_match:
