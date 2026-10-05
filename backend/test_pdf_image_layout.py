@@ -108,6 +108,28 @@ def test_image_inside_markdown_list_is_parsed(tmp_path):
     assert any(item.startswith('__PDF_LAYOUT_IMG__:') for item in paragraphs)
 
 
+def test_layout_image_marker_survives_long_trailing_text(tmp_path):
+    trailing_text = 'x' * 285
+    for extra_path_length in range(3):
+        image_path = tmp_path / (
+            f'layout-{extra_path_length}' + ('x' * extra_path_length) + '.png'
+        )
+        PILImage.new('RGB', (120, 80), 'blue').save(image_path)
+        content = (
+            f'<img src="{image_path}" style="width:25%;height:auto;float:left">'
+            f'{trailing_text}'
+        )
+
+        paragraphs = convert_markdown_to_pdf_paragraphs(content)
+        marker = next(
+            item for item in paragraphs if item.startswith('__PDF_LAYOUT_IMG__:')
+        )
+        payload = _decode_pdf_layout_marker(marker)
+
+        assert payload['mode'] == 'float'
+        assert payload['text'] == trailing_text
+
+
 def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
     image_path = _image_path(tmp_path)
 
