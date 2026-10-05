@@ -1730,6 +1730,30 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
     safe_text = re.sub(r'<p[^>]*>', '', safe_text, flags=re.IGNORECASE)
     safe_text = re.sub(r'</p>', '\n', safe_text, flags=re.IGNORECASE)
 
+    def flatten_image_tag(match):
+        image_tag = match.group(0)
+        source_match = re.search(
+            r'\bsrc\s*=\s*(["\'])(.*?)\1',
+            image_tag,
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not source_match:
+            return re.sub(r'\s+', ' ', image_tag)
+
+        source = source_match.group(2)
+        if source.lstrip().lower().startswith('data:'):
+            source = re.sub(r'\s+', '', source)
+        prefix = re.sub(r'\s+', ' ', image_tag[:source_match.start(2)])
+        suffix = re.sub(r'\s+', ' ', image_tag[source_match.end(2):])
+        return prefix + source + suffix
+
+    safe_text = re.sub(
+        r'<img\b[^>]*>',
+        flatten_image_tag,
+        safe_text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
     lines = safe_text.split('\n')
     paragraphs = []
     current_paragraph = []

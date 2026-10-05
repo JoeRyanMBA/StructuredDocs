@@ -80,6 +80,25 @@ def test_uppercase_single_quoted_image_attributes_are_parsed(tmp_path):
     assert payload['height'] == 40
 
 
+def test_multiline_image_tag_is_parsed_as_one_image(tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        f"<img\n src='{image_path}'\n style='float: left'\n"
+        " width='60' height='40'> Text beside the image."
+    )
+
+    paragraphs = convert_markdown_to_pdf_paragraphs(content)
+    marker = next(item for item in paragraphs if item.startswith('__PDF_LAYOUT_IMG__:'))
+    payload = _decode_pdf_layout_marker(marker)
+
+    assert payload['src'] == image_path
+    assert payload['mode'] == 'float'
+    assert payload['side'] == 'left'
+    assert payload['text'] == 'Text beside the image.'
+    assert payload['width'] == 60
+    assert payload['height'] == 40
+
+
 def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
     image_path = _image_path(tmp_path)
 
