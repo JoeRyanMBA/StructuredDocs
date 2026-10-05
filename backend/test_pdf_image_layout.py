@@ -99,6 +99,15 @@ def test_multiline_image_tag_is_parsed_as_one_image(tmp_path):
     assert payload['height'] == 40
 
 
+def test_image_inside_markdown_list_is_parsed(tmp_path):
+    image_path = _image_path(tmp_path)
+    content = f"- Text before <img src='{image_path}' style='float: left'> text after"
+
+    paragraphs = convert_markdown_to_pdf_paragraphs(content)
+
+    assert any(item.startswith('__PDF_LAYOUT_IMG__:') for item in paragraphs)
+
+
 def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
     image_path = _image_path(tmp_path)
 

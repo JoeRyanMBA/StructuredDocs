@@ -1753,6 +1753,25 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
         safe_text,
         flags=re.IGNORECASE | re.DOTALL,
     )
+    def isolate_structural_image_tags(line):
+        stripped_line = line.lstrip()
+        is_structural_line = (
+            stripped_line.startswith(('#', '|'))
+            or bool(re.match(r'^[-*]\s+', stripped_line))
+            or bool(re.match(r'^\d+\.\s+', stripped_line))
+        )
+        if not is_structural_line:
+            return line
+        return re.sub(
+            r'<img\b[^>]*>',
+            lambda match: f'\n{match.group(0)}\n',
+            line,
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+
+    safe_text = '\n'.join(
+        isolate_structural_image_tags(line) for line in safe_text.split('\n')
+    )
 
     lines = safe_text.split('\n')
     paragraphs = []
