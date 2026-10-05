@@ -2056,7 +2056,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                             'side': float_match.group(1) if float_match else 'right',
                             'image_on_top': bool(z_index_match and int(z_index_match.group(1)) > 0),
                             'text': '',
-                        })
+                        }) + ' '
                     # Return a sentinel so the caller can emit a standalone Image flowable
                     # instead of embedding inside a Paragraph (which causes overflow issues).
                     return f'__PDF_IMG__:{src}:{w}:{h}'
