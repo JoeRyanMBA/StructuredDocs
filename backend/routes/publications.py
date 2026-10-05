@@ -79,6 +79,12 @@ def resolve_snippets(content, selected_tag_ids):
 
     return str(soup)
 
+
+def _select_publication_content(content_snapshot, topic_content):
+    """Use a non-empty snapshot, falling back to the latest topic content."""
+    return content_snapshot or topic_content or ''
+
+
 pubs_bp = Blueprint(
     'publications',
     __name__,
@@ -135,7 +141,10 @@ def get_pub(pub_id):
     def serialize(node):
         # Prefer snapshots so the preview matches what would actually be exported
         title   = node.title_snapshot   or (node.topic.title   if node.topic else 'Untitled')
-        content = node.content_snapshot or (node.topic.content if node.topic else '')
+        content = _select_publication_content(
+            node.content_snapshot,
+            node.topic.content if node.topic else '',
+        )
         return {
             'id': node.id,
             'title': title,
@@ -295,20 +304,19 @@ def export_pdf(pub_id):
                 title = None
                 content = None
 
-            if (title is None or title == '') or (content is None):
+            if (title is None or title == '') or not content:
                 topic = node.topic if hasattr(node, 'topic') else None
                 if topic:
                     try:
                         td = topic.to_dict()
                         title = title if title not in (None, '') else td.get('title', 'Untitled')
-                        # If snapshot missing, use topic content
-                        content = content if content is not None else td.get('content', '')
+                        content = _select_publication_content(content, td.get('content', ''))
                     except Exception:
                         title = title if title not in (None, '') else 'Untitled'
-                        content = content if content is not None else ''
+                        content = content or ''
                 else:
                     title = title if title not in (None, '') else 'Unknown'
-                    content = content if content is not None else ''
+                    content = content or ''
 
             content = resolve_snippets(content, tag_ids)
 
