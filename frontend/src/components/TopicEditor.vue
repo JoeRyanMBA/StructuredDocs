@@ -882,6 +882,8 @@ export default {
         })
       } else if (newMode === 'preview') {
         this._renderPreview()
+      } else if (newMode === 'markdown') {
+        this.$nextTick(() => this.resizeMarkdownEditor())
       }
     },
     selectedTagIds() {
@@ -899,6 +901,11 @@ export default {
     // Remove content->HTML sync in wysiwyg to avoid caret jumping.
     initialContent(newValue) {
       this.content = newValue
+    },
+    content() {
+      if (this.editorMode === 'markdown') {
+        this.$nextTick(() => this.resizeMarkdownEditor())
+      }
     },
     initialTitle(newValue) {
       this.title = newValue
@@ -1001,6 +1008,12 @@ export default {
         const cursor = start + normalized.length
         textarea.setSelectionRange(cursor, cursor)
       })
+    },
+    resizeMarkdownEditor() {
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+      textarea.style.height = 'auto'
+      textarea.style.height = `${Math.max(textarea.scrollHeight, window.innerHeight * 0.58)}px`
     },
     openLinkModal() {
       if (this.editorMode === 'wysiwyg') {
@@ -2104,31 +2117,44 @@ export default {
 .topic-editor {
   --topic-editor-offset: calc(var(--header-height, 0px) + var(--ticker-height, 0px));
   padding: 1rem;
-  height: calc(100dvh - var(--topic-editor-offset));
-  overflow: hidden;
+  min-height: calc(100dvh - var(--topic-editor-offset));
+  height: auto;
+  overflow: visible;
   box-sizing: border-box;
 }
 
 .editor-container {
-  height: 100%;
-  min-height: 0;
+  min-height: calc(100dvh - var(--topic-editor-offset) - 2rem);
+  height: auto;
   display: flex;
   flex-direction: column;
 }
 
 .editor-content {
-  flex: 1;
-  min-height: 0;
-  overflow: auto;
+  flex: 1 0 auto;
+  min-height: 58vh;
+  overflow: visible;
 }
 
 .markdown-editor,
 .wysiwyg-editor,
 .preview-mode {
-  height: 100%;
-  min-height: 0;
+  height: auto;
+  min-height: 58vh;
   display: flex;
   flex-direction: column;
+}
+
+.topic-editor .rte-wysiwyg-editor {
+  height: auto;
+  min-height: 0;
+}
+
+.topic-editor .rte-wysiwyg-editor > .wysiwyg-content {
+  flex: 0 0 auto;
+  height: auto;
+  min-height: 58vh;
+  overflow: visible;
 }
 
 .preview-audience-bar {
@@ -2219,8 +2245,8 @@ export default {
 /* Editor content styling */
 .markdown-textarea {
   width: 100%;
-  min-height: 0;
-  height: 100%;
+  min-height: 58vh;
+  height: auto;
   padding: 1.25rem;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -2229,7 +2255,7 @@ export default {
   line-height: 1.6;
   background: white;
   resize: none;
-  overflow: auto;
+  overflow-y: hidden;
   box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
 }
