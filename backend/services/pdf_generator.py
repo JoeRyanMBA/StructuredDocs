@@ -396,7 +396,16 @@ def _resolve_pdf_image_source(src: str, temp_dir: str | None) -> str:
 
     image_record = _get_import_image_for_pdf(source)
     if image_record:
-        return _resolve_registered_import_image_for_pdf(image_record, temp_dir)
+        registered_path = _resolve_registered_import_image_for_pdf(image_record, temp_dir)
+        if registered_path:
+            return registered_path
+
+    # Match the KB export fallback for legacy Pandoc media paths that only
+    # resolve by basename in the stored image directories.
+    embedded_source = convert_image_to_base64(source)
+    if embedded_source.startswith('data:image/') and embedded_source != source:
+        return _resolve_pdf_image_source(embedded_source, temp_dir)
+
     return ''
 
 

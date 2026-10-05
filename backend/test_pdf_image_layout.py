@@ -3,6 +3,7 @@ import os
 import sys
 from types import SimpleNamespace
 
+from flask import Flask
 from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
@@ -128,6 +129,22 @@ def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeyp
     monkeypatch.setattr(pdf_generator, '_download_image_for_pdf', lambda _url, _temp_dir: image_path)
 
     assert pdf_generator._resolve_pdf_image_source(public_url, str(tmp_path)) == image_path
+
+
+def test_legacy_pandoc_image_path_resolves_by_basename(tmp_path):
+    image_path = tmp_path / 'imports' / '42' / 'pdf_legacy_basename_image.png'
+    image_path.parent.mkdir(parents=True)
+    PILImage.new('RGB', (120, 80), 'blue').save(image_path)
+
+    with Flask(__name__).app_context():
+        resolved = pdf_generator._resolve_pdf_image_source(
+            'media/pdf_legacy_basename_image.png',
+            str(tmp_path),
+        )
+
+    assert resolved
+    with PILImage.open(resolved) as resolved_image:
+        assert resolved_image.size == (120, 80)
 
 
 def test_svg_content_image_is_rasterized_for_pdf(tmp_path, monkeypatch):
