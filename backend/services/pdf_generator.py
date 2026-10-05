@@ -100,9 +100,19 @@ def _pdf_debug(message: str) -> None:
     logging.getLogger(__name__).debug(message)
 
 
+def _pdf_warning(message: str) -> None:
+    """Log actionable PDF failures at the application's normal production level."""
+    if has_app_context():
+        current_app.logger.warning(message)
+        return
+    logging.getLogger(__name__).warning(message)
+
+
 def _describe_pdf_image_source(src: str) -> str:
     """Describe an image source without logging URL secrets or data payloads."""
     source = (src or '').strip()
+    if not source:
+        return '<empty>'
     if source.lower().startswith('data:'):
         media_type = source[5:].split(';', 1)[0].split(',', 1)[0]
         return f'{media_type} data URL ({len(source)} chars)'
@@ -110,9 +120,9 @@ def _describe_pdf_image_source(src: str) -> str:
     parsed = urlsplit(source)
     if parsed.scheme in ('http', 'https'):
         host = parsed.netloc.rsplit('@', 1)[-1]
-        return f'{parsed.scheme}://{host}{parsed.path}'[:300]
-    return parsed.path[:300]
-
+        return f'{parsed.scheme}://{host}/{Path(parsed.path).name}'[:300]
+    path = parsed.path or source.split('?', 1)[0].split('#', 1)[0]
+    return Path(path).name[:200] or '<unknown>'
 
 class _OverlayImageFlowable(Flowable):
     """Draw an image first and a paragraph over it at the same coordinates."""
@@ -1454,18 +1464,27 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                     ))
                                 else:
                                     story.append(image)
-                            except Exception:
-                                current_app.logger.debug('PDF: failed to render positioned image')
+                            except Exception as exc:
+                                _pdf_warning(
+                                    'PDF failed to create positioned image flowable '
+                                    f'for {_describe_pdf_image_source(layout.get("src", ""))}: '
+                                    f'{type(exc).__name__}'
+                                )
                             continue
                         # Standalone image sentinel — emit as a proper Image flowable so
                         # ReportLab can handle page breaks correctly (inline img in Paragraph
                         # causes overflow/overlap).
                         if para.startswith('__PDF_IMG__:'):
+                            img_src = ''
                             try:
                                 _, img_src, img_w, img_h = para.split(':', 3)
                                 story.append(Image(img_src, width=int(img_w), height=int(img_h)))
-                            except Exception:
-                                pass  # skip broken image sentinel
+                            except Exception as exc:
+                                _pdf_warning(
+                                    'PDF failed to create standalone image flowable '
+                                    f'for {_describe_pdf_image_source(img_src)}: '
+                                    f'{type(exc).__name__}'
+                                )
                             continue
                         # Table sentinel — render a ReportLab Table flowable.
                         if para.startswith('__TABLE__:'):
@@ -1874,12 +1893,16 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                     src = src_match.group(1) if src_match else ""
 
                     if not src:
+                        _pdf_warning('PDF skipped image tag with no src attribute')
                         return ''
+                    source_label = _describe_pdf_image_source(src)
                     src = _resolve_pdf_image_source(src, temp_dir)
                     if not src:
+                        _pdf_warning(f'PDF could not resolve image source {source_label}')
                         return ''
                     src = _resolve_pdf_renderable_image_path(src, temp_dir)
-                    if not src:
+                    if not src or not os.path.isfile(src):
+                        _pdf_warning(f'PDF image file unavailable after resolution: {source_label}')
                         return ''
                     
                     # Extract width and height if present
@@ -1908,7 +1931,10 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                             with open(src, 'rb') as _f:
                                 pil_img = PILImage.open(_f)
                                 natural_w, natural_h = pil_img.size
-                        except Exception:
+                        except Exception as exc:
+                            _pdf_warning(
+                                f'PDF image validation failed for {source_label}: {type(exc).__name__}'
+                            )
                             return ''
                         clean_attrs.append(f'src="{src}"')
                         # Constrain to fit within the content column (~400pt ≈ 5.5 inches).
@@ -1944,6 +1970,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         clean_attrs.append(f'width="{w}"')
                         clean_attrs.append(f'height="{h}"')
                     if not clean_attrs:
+                        _pdf_warning(f'PDF image produced no renderable attributes: {source_label}')
                         return ''
                     if is_overlay or float_match:
                         return _encode_pdf_layout_marker({
