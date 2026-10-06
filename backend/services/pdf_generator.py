@@ -366,6 +366,28 @@ def _resolve_registered_import_image_for_pdf(image_record, temp_dir: str | None)
                     return candidate
 
     if temp_dir:
+        backend_path = (getattr(image_record, 'backend_path', '') or '').strip()
+        if backend_path:
+            try:
+                from backend.utils.storage import get_storage_backend
+                image_data = get_storage_backend().read_file(backend_path)
+                if image_data:
+                    filename = getattr(image_record, 'filename', '') or backend_path
+                    extension = os.path.splitext(filename)[1]
+                    if not extension:
+                        extension = mimetypes.guess_extension(
+                            getattr(image_record, 'mime_type', '') or ''
+                        ) or '.img'
+                    os.makedirs(temp_dir, exist_ok=True)
+                    file_descriptor, image_path = tempfile.mkstemp(
+                        prefix='sd_import_pdf_', suffix=extension, dir=temp_dir
+                    )
+                    with os.fdopen(file_descriptor, 'wb') as image_file:
+                        image_file.write(image_data)
+                    return image_path
+            except Exception as exc:
+                _pdf_debug(f"Could not read registered image from storage: {exc}")
+
         for url in remote_urls:
             downloaded = _download_image_for_pdf(url, temp_dir)
             if downloaded:

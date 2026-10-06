@@ -207,6 +207,32 @@ def test_absolute_app_image_url_resolves_from_local_storage(tmp_path, monkeypatc
     assert resolved == str(image_path)
 
 
+def test_canonical_import_image_with_word_dimensions_is_embedded_in_pdf(tmp_path, monkeypatch):
+    storage_root = tmp_path / 'images'
+    image_path = storage_root / 'imports' / '12' / 'image1_7e7394d5.png'
+    image_path.parent.mkdir(parents=True)
+    PILImage.new('RGB', (512, 512), 'blue').save(image_path)
+    monkeypatch.setenv('IMAGE_STORAGE_ROOT', str(storage_root))
+
+    with Flask(__name__).app_context():
+        paragraphs = convert_markdown_to_pdf_paragraphs(
+            '<img src="/images/imports/12/image1_7e7394d5.png" '
+            'style="width:2.08333in;height:2.08333in">',
+            temp_dir=str(tmp_path),
+        )
+
+    marker = next(item for item in paragraphs if item.startswith('__PDF_IMG__:'))
+    _, resolved_path, width, height = marker.split(':', 3)
+    assert resolved_path == str(image_path)
+
+    output_path = tmp_path / 'canonical-import-image.pdf'
+    SimpleDocTemplate(str(output_path), pagesize=letter).build([
+        Image(resolved_path, width=int(width), height=int(height)),
+    ])
+
+    assert b'/Subtype /Image' in output_path.read_bytes()
+
+
 def test_embedded_data_image_is_decoded_and_rendered_in_pdf(tmp_path):
     source_path = _image_path(tmp_path)
     with open(source_path, 'rb') as source_file:
@@ -243,6 +269,32 @@ def test_imported_remote_image_url_resolves_to_downloaded_file(tmp_path, monkeyp
     monkeypatch.setattr(pdf_generator, '_download_image_for_pdf', lambda _url, _temp_dir: image_path)
 
     assert pdf_generator._resolve_pdf_image_source(public_url, str(tmp_path)) == image_path
+
+
+def test_imported_image_resolves_through_configured_storage_backend(tmp_path, monkeypatch):
+    image_bytes = base64.b64decode(
+        'iVBORw0KGgoAAAANSUhEUgAAAAEAAAABCAQAAAC1HAwCAAAAC0lEQVR42mP8/x8AAwMCAO+j'
+        'mZkAAAAASUVORK5CYII='
+    )
+    image_record = SimpleNamespace(
+        backend_path='images/imports/12/image1_7e7394d5.png',
+        frontend_path='',
+        public_url='/images/imports/12/image1_7e7394d5.png',
+        filename='image1_7e7394d5.png',
+        mime_type='image/png',
+    )
+    storage = SimpleNamespace(read_file=lambda path: image_bytes)
+    monkeypatch.setattr(pdf_generator, '_resolve_local_image_path_for_pdf', lambda _src: '')
+    monkeypatch.setattr(pdf_generator, '_get_import_image_for_pdf', lambda _src: image_record)
+    monkeypatch.setattr('backend.utils.storage.get_storage_backend', lambda: storage)
+
+    resolved = pdf_generator._resolve_pdf_image_source(
+        image_record.public_url, str(tmp_path)
+    )
+
+    assert resolved.endswith('.png')
+    with PILImage.open(resolved) as image:
+        assert image.size == (1, 1)
 
 
 def test_legacy_pandoc_image_path_resolves_by_basename(tmp_path):
