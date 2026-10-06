@@ -69,9 +69,15 @@ def build_import_image_basename_map(images=None):
         )
         if not normalized:
             continue
-        basename = os.path.basename(normalized.replace('\\', '/'))
-        if basename:
+        basenames = {
+            os.path.basename(normalized.replace('\\', '/')),
+            os.path.basename((getattr(image, 'original_name', '') or '').replace('\\', '/')),
+        }
+        for basename in basenames - {''}:
             mapping[basename] = normalized
+            document_id = getattr(image, 'document_id', None)
+            if document_id is not None:
+                mapping[f'{document_id}/{basename}'] = normalized
     return mapping
 
 
@@ -90,7 +96,12 @@ def normalize_stale_temp_image_refs_in_content(content: str | None, *, basename_
         basename = os.path.basename(cleaned)
         if not basename or '/tmp/' not in cleaned.lower():
             return None
-        canonical = basename_map.get(basename)
+        import_match = re.search(r'/tmp/import_(\d+)(?:_[^/]*)?/', cleaned, re.IGNORECASE)
+        canonical = (
+            basename_map.get(f'{import_match.group(1)}/{basename}')
+            if import_match else None
+        )
+        canonical = canonical or basename_map.get(basename)
         return canonical if canonical else None
 
     def replace_markdown(match):
@@ -113,6 +124,24 @@ def normalize_stale_temp_image_refs_in_content(content: str | None, *, basename_
     rewritten = re.sub(r'!\[([^\]]*)\]\(([^)]+)\)', replace_markdown, content)
     rewritten = re.sub(r'(<img\b[^>]*\bsrc=["\'])([^"\']+)(["\'][^>]*>)', replace_html, rewritten)
     return rewritten
+
+
+def normalize_stale_temp_image_refs_in_tree(tree, *, basename_map: dict[str, str] | None = None):
+    """Normalize stale Pandoc image paths in an export tree in place."""
+    if not tree:
+        return tree
+    if basename_map is None:
+        basename_map = build_import_image_basename_map()
+
+    for node in tree:
+        if node.get('content'):
+            node['content'] = normalize_stale_temp_image_refs_in_content(
+                node['content'], basename_map=basename_map
+            )
+        children = node.get('children')
+        if children:
+            normalize_stale_temp_image_refs_in_tree(children, basename_map=basename_map)
+    return tree
 
 
 def normalize_stale_temp_image_refs_in_database(db_session, *, include_topics=True, include_publications=True):

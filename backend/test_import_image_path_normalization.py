@@ -12,7 +12,7 @@ from backend.services import kb_generator as kb_generator_module
 from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
 from backend.routes.import_handler import _extract_docx_media_fallback, _preserve_docx_image_wrapping
 from backend.utils.image_handler import ImageHandler
-from backend.utils.image_registry import normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content
+from backend.utils.image_registry import build_import_image_basename_map, normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content, normalize_stale_temp_image_refs_in_tree
 from backend.utils.storage import LocalStorage, resolve_local_storage_root
 
 
@@ -132,6 +132,13 @@ def test_convert_markdown_to_html_rewrites_tmp_pandoc_image_paths_to_data_urls(t
     assert 'Figure' in html
 
 
+def test_convert_markdown_to_html_unescapes_escaped_dollar_signs():
+    html = convert_markdown_to_html(r'Price: \$5 and $6')
+
+    assert r'\$' not in html
+    assert '$5 and $6' in html
+
+
 def test_convert_markdown_to_html_resolves_canonical_import_paths_without_leading_slash(tmp_path, monkeypatch):
     storage_root = tmp_path / 'custom-images'
     storage_root.mkdir()
@@ -177,10 +184,78 @@ def test_normalize_stale_temp_image_refs_in_content_rewrites_pandoc_tmp_urls():
     assert '/images/imports/5/image2.png' in rewritten
 
 
+def test_import_image_basename_map_matches_original_name_and_document_id():
+    images = [
+        types.SimpleNamespace(
+            document_id=document_id,
+            filename=f'image1_{document_id}.png',
+            original_name='image1.undefined',
+            public_url=f'/images/imports/{document_id}/image1_{document_id}.png',
+        )
+        for document_id in (5, 11)
+    ]
+
+    mapping = build_import_image_basename_map(images)
+
+    assert mapping['5/image1.undefined'] == images[0].public_url
+    assert mapping['11/image1.undefined'] == images[1].public_url
+
+
+def test_mobile_kb_export_embeds_stale_docx_image_urls(monkeypatch, tmp_path):
+    storage_root = tmp_path / 'images'
+    image_path = storage_root / 'imports' / '11' / 'image1_11.png'
+    image_path.parent.mkdir(parents=True)
+    image_path.write_bytes(b'fake-image-bytes')
+    monkeypatch.setenv('IMAGE_STORAGE_ROOT', str(storage_root))
+    monkeypatch.setattr(
+        kb_generator_module,
+        'normalize_stale_temp_image_refs_in_tree',
+        lambda tree: normalize_stale_temp_image_refs_in_tree(
+            tree, basename_map={'11/image1.undefined': '/images/imports/11/image1_11.png'}
+        ),
+    )
+    monkeypatch.setattr(kb_generator_module, 'get_export_branding_settings', lambda *_args: {
+        'brand_name': 'Acme',
+        'html_logo': '',
+        'html_primary_color': '#005a9c',
+        'html_accent_color': '#112E51',
+    })
+
+    html = kb_generator_module.generate_mobile_kb_html(
+        types.SimpleNamespace(title='Knowledge Base', id=1),
+        [{
+            'id': 1,
+            'title': 'Visual Content',
+            'content': '<img src="/tmp/import_11_g4y44p3u/media/media/image1.undefined" alt="Figure">',
+            'children': [],
+        }],
+    )
+
+    assert '/tmp/import_11_g4y44p3u/' not in html
+    assert 'data:image/png;base64,ZmFrZS1pbWFnZS1ieXRlcw==' in html
+
+
 def test_normalize_stale_temp_image_refs_in_content_keeps_unknown_paths():
     content = '![Figure](/tmp/unknown/media/ghost.png)'
     rewritten = normalize_stale_temp_image_refs_in_content(content, basename_map={})
     assert rewritten == content
+
+
+def test_normalize_stale_temp_image_refs_in_tree_handles_nested_export_nodes():
+    tree = [{
+        'content': '<img src="/tmp/import_11_g4y44p3u/media/image1.undefined">',
+        'children': [{'content': '![Figure](/tmp/import_11_g4y44p3u/media/image2.undefined)', 'children': []}],
+    }]
+    basename_map = {
+        '11/image1.undefined': '/images/imports/11/image1_abc.png',
+        '11/image2.undefined': '/images/imports/11/image2_def.png',
+    }
+
+    normalized = normalize_stale_temp_image_refs_in_tree(tree, basename_map=basename_map)
+
+    assert '/tmp/import_11_' not in str(normalized)
+    assert '/images/imports/11/image1_abc.png' in normalized[0]['content']
+    assert '/images/imports/11/image2_def.png' in normalized[0]['children'][0]['content']
 
 
 def test_pdf_generator_exposes_datetime_for_footer_logo_rendering():
