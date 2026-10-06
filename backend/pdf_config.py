@@ -40,29 +40,28 @@ class PDFConfig:
         'right': 72    # 1 inch
     }
     
-    # Corporate Colors (customize these with your organization's palette)
+    # Neutral defaults that remain compatible with arbitrary logos and content.
     COLORS = {
-        # Replace these hex values with your brand colors
-        'primary': hex_to_color('#112e51'),      # e.g., '#1E3A8A'
-        'secondary': hex_to_color('#FF5622'),  # e.g., '#059669'
-        'accent': hex_to_color('#008392'),        # e.g., '#DC2626'
+        'primary': hex_to_color('#222222'),
+        'secondary': hex_to_color('#4A4A4A'),
+        'accent': hex_to_color('#5A5A5A'),
         
         # Functional colors
-        'text': hex_to_color('#000000'),                     # Dark gray for readability
-        'heading': hex_to_color('#112e51'),                  # Nearly black for headings
-        'subheading': hex_to_color('#444444'),               # Medium gray
+        'text': hex_to_color('#1A1A1A'),
+        'heading': hex_to_color('#222222'),
+        'subheading': hex_to_color('#4A4A4A'),
 
-        # Heading level colors (customize these for different heading levels)
-        'h1_color': hex_to_color('#112e51'),     # H1 color - dark blue
-        'h2_color': hex_to_color('#9B2743'),     # H2 color - orange/red
-        'h3_color': hex_to_color('#000000'),     # H3 color - teal
-        'h4_color': hex_to_color('#205493'),     # H4 color - dark gray
-        'h5_color': hex_to_color('#666666'),     # H5+ color - medium gray
+        # Heading levels use grayscale to preserve hierarchy without a brand hue.
+        'h1_color': hex_to_color('#222222'),
+        'h2_color': hex_to_color('#333333'),
+        'h3_color': hex_to_color('#444444'),
+        'h4_color': hex_to_color('#555555'),
+        'h5_color': hex_to_color('#666666'),
 
         # Background colors
-        'light_bg': hex_to_color('#F9FAFB'),                 # Very light gray
+        'light_bg': hex_to_color('#F5F5F5'),
         'highlight': hex_to_color('#FEF3C7'),                # Yellow highlight
-        'border': hex_to_color('#D1D5DB'),                   # Border gray
+        'border': hex_to_color('#D0D0D0'),
     }
     
     # Typography
