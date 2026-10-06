@@ -10,9 +10,10 @@ from flask import Flask
 from backend.services import pdf_generator as pdf_generator_module
 from backend.services import kb_generator as kb_generator_module
 from backend.services.pdf_generator import convert_image_to_base64, convert_markdown_to_html
-from backend.routes.import_handler import _preserve_docx_image_wrapping
+from backend.routes.import_handler import _extract_docx_media_fallback, _preserve_docx_image_wrapping
+from backend.utils.image_handler import ImageHandler
 from backend.utils.image_registry import normalize_import_image_public_url, normalize_stale_temp_image_refs_in_content
-from backend.utils.storage import resolve_local_storage_root
+from backend.utils.storage import LocalStorage, resolve_local_storage_root
 
 
 def test_normalize_import_image_public_url_keeps_canonical_relative_path():
@@ -62,6 +63,35 @@ def test_word_image_wrapping_is_preserved_in_html_for_square_and_tight_wraps():
             exported = convert_markdown_to_html(wrapped)
         assert 'float: right' in exported
         assert 'shape-outside: polygon(0% 0%, 100% 0%, 100% 100%, 0% 100%)' in exported
+
+
+def test_docx_image_with_undefined_extension_is_stored_as_png(tmp_path):
+    from PIL import Image
+
+    png_bytes = io.BytesIO()
+    Image.new('RGBA', (2, 2), (255, 0, 0, 255)).save(png_bytes, format='PNG')
+    docx_bytes = io.BytesIO()
+    with zipfile.ZipFile(docx_bytes, 'w') as docx:
+        docx.writestr('word/media/image1.undefined', png_bytes.getvalue())
+
+    media_dir = tmp_path / 'media'
+    assert _extract_docx_media_fallback(docx_bytes.getvalue(), str(media_dir)) == 1
+
+    handler = ImageHandler.__new__(ImageHandler)
+    handler.import_doc_id = 5
+    handler.backend_images_dir = tmp_path / 'stored' / 'imports' / '5'
+    handler.storage = LocalStorage(str(tmp_path / 'stored'))
+
+    with Flask(__name__).app_context():
+        updated, stored_images = handler.extract_and_store_images(
+            str(media_dir), '![Figure](/tmp/import_5/media/media/image1.undefined)'
+        )
+
+    assert len(stored_images) == 1
+    assert stored_images[0]['filename'].endswith('.png')
+    assert stored_images[0]['mime_type'] == 'image/png'
+    assert '/tmp/import_5/' not in updated
+    assert updated.startswith('![Figure](/images/imports/5/')
 
 
 def test_resolve_local_storage_root_uses_repo_local_data_directory_when_env_unset():

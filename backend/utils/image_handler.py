@@ -13,6 +13,14 @@ class ImageHandler:
     """Handles image extraction, storage, and path management for imports"""
     
     SUPPORTED_FORMATS = {'.jpg', '.jpeg', '.png', '.gif', '.bmp', '.tiff', '.webp'}
+    FORMAT_EXTENSIONS = {
+        'JPEG': '.jpg',
+        'PNG': '.png',
+        'GIF': '.gif',
+        'BMP': '.bmp',
+        'TIFF': '.tiff',
+        'WEBP': '.webp',
+    }
     VECTOR_FORMATS = {'.emf', '.wmf'}
     MAX_IMAGE_SIZE = (1920, 1080)  # Max dimensions for optimization
     
@@ -151,6 +159,16 @@ class ImageHandler:
                     vector_files.append(file_path)
                     current_app.logger.info(f"🔄 Found vector image (will convert): {file}")
                 else:
+                    try:
+                        with Image.open(file_path) as image:
+                            if image.format in self.FORMAT_EXTENSIONS:
+                                image_files.append(file_path)
+                                current_app.logger.info(
+                                    f"✅ Found raster image by content: {file} ({image.format})"
+                                )
+                                continue
+                    except Exception:
+                        pass
                     current_app.logger.info(f"⚠️  Found unsupported file: {file} (type: {file_path.suffix})")
         
         if not image_files and not vector_files:
@@ -261,17 +279,7 @@ class ImageHandler:
         try:
             # Generate unique filename
             original_name = temp_image_path.stem
-            extension = temp_image_path.suffix.lower()
             unique_id = str(uuid.uuid4())[:8]
-            new_filename = f"{original_name}_{unique_id}{extension}"
-            
-            current_app.logger.info(f"💾 Storing image: {temp_image_path.name} -> {new_filename}")
-            
-            # Storage path for remote object storage or local disk.
-            # For remote storage: full path "images/imports/{doc_id}/{filename}"
-            # For Local: relative to IMAGE_STORAGE_ROOT which is already .../images, so use "imports/{doc_id}/{filename}"
-            is_local_storage = type(self.storage).__name__ == 'LocalStorage'
-            storage_path = f"imports/{self.import_doc_id}/{new_filename}" if is_local_storage else f"images/imports/{self.import_doc_id}/{new_filename}"
             
             # Optimize image in-memory
             try:
@@ -308,6 +316,15 @@ class ImageHandler:
                 with Image.open(temp_image_path) as img:
                     width, height = img.size
                     format_type = img.format
+                save_format = format_type
+
+            extension = self.FORMAT_EXTENSIONS.get(save_format, '.png')
+            new_filename = f"{original_name}_{unique_id}{extension}"
+            current_app.logger.info(f"💾 Storing image: {temp_image_path.name} -> {new_filename}")
+
+            # Local storage paths are relative to IMAGE_STORAGE_ROOT, which is already .../images.
+            is_local_storage = type(self.storage).__name__ == 'LocalStorage'
+            storage_path = f"imports/{self.import_doc_id}/{new_filename}" if is_local_storage else f"images/imports/{self.import_doc_id}/{new_filename}"
             
             # Determine content type
             content_type = mimetypes.guess_type(new_filename)[0] or 'image/jpeg'
