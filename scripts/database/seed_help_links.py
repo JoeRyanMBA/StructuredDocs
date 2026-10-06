@@ -6,7 +6,7 @@ only the locations they want. Running this script again is safe: existing entrie
 with descriptions are skipped; entries with empty descriptions are backfilled.
 
 Usage:
-    python seed_help_links.py
+    python -m scripts.database.seed_help_links
 """
 
 import sys, os

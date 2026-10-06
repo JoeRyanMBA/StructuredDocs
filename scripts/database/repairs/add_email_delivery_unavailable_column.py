@@ -4,9 +4,11 @@ Run this script to update your production PostgreSQL database
 """
 import os
 import sys
+from pathlib import Path
 
 # Add backend to path
-sys.path.insert(0, os.path.join(os.path.dirname(__file__), 'backend'))
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT))
 
 def run_migration():
     """Add email_delivery_unavailable column to reviews table"""

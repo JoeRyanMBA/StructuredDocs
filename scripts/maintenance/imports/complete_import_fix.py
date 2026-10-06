@@ -8,10 +8,11 @@ hierarchical structure and image processing work correctly.
 
 import sys
 import os
+from pathlib import Path
 
-# Add backend to path
-sys.path.insert(0, '/workspaces/StructuredDocs')
-sys.path.insert(0, '/workspaces/StructuredDocs/backend')
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / 'backend'))
 
 def clean_existing_problematic_topics():
     """Clean up existing topics with media/ path issues"""
@@ -214,7 +215,7 @@ def create_import_guide():
 ### **What Happens During Import:**
 1. Pandoc extracts embedded images to temporary directory
 2. ImageHandler processes and optimizes images
-3. Images stored in `/workspaces/StructuredDocs/frontend/public/images/imports/{id}/`
+3. Images stored in `frontend/public/images/imports/{id}/`
 4. Markdown updated with proper `/images/imports/{id}/filename.png` paths
 5. EMF files automatically converted to PNG format
 
@@ -234,7 +235,7 @@ def create_import_guide():
 
 ### **Images Don't Appear:**
 1. ❌ **Wrong Paths**: If you see `![](media/image1.png)` 
-   - **Fix**: Run `python fix_image_display_tool.py`
+   - **Fix**: Run `python -m scripts.maintenance.imports.fix_image_display_tool`
 2. ❌ **Wrong Import Method**: Used Topics import instead of Collection
    - **Fix**: Delete topics and re-import as Collection
 3. ❌ **Linked Images**: Images were linked, not embedded in Word
@@ -264,7 +265,7 @@ After importing, verify:
 
 ## 🆘 If Problems Persist
 
-1. **Clean Existing Content**: `python fix_image_display_tool.py`
+1. **Clean Existing Content**: `python -m scripts.maintenance.imports.fix_image_display_tool`
 2. **Verify System**: `python -m scripts.diagnostics.diagnose_import_issues`
 3. **Check Document**: Ensure images are embedded, not linked
 4. **Use Collection Import**: Don't use Topics import for complex documents
@@ -276,7 +277,7 @@ After importing, verify:
 """
     
     try:
-        with open('/workspaces/StructuredDocs/docs/import-guide.md', 'w') as f:
+        with open(REPO_ROOT / 'docs' / 'import-guide.md', 'w') as f:
             f.write(guide_content)
         print(f"\n📖 Created docs/import-guide.md")
         return True

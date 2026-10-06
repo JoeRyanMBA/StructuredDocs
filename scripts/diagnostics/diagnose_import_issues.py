@@ -206,7 +206,7 @@ def provide_import_recommendations():
         "",
         "\n🔧 **Immediate Action Items:**",
         "1. Run the fix tool to clean up existing problematic topics:",
-        "   python fix_image_display_tool.py",
+        "   python -m scripts.maintenance.imports.fix_image_display_tool",
         "",
         "2. Re-import your document using Collection import:",
         "   - Go to Collections page",

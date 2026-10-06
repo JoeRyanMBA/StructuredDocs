@@ -131,11 +131,11 @@ def trace_image(filename_pattern):
                 elif backend_path.exists() or frontend_path.exists():
                     print(f"   ❌ Files exist but are zero-sized")
                     print(f"      Cannot be displayed")
-                    print(f"      SOLUTION: Run cleanup_broken_images.py and re-import")
+                    print("      SOLUTION: Run python -m scripts.maintenance.imports.cleanup_broken_images and re-import")
                 else:
                     print(f"   ❌ Files are completely missing")
                     print(f"      Database record exists but files were never created")
-                    print(f"      SOLUTION: Run cleanup_broken_images.py and re-import")
+                    print("      SOLUTION: Run python -m scripts.maintenance.imports.cleanup_broken_images and re-import")
                 
                 print()
     

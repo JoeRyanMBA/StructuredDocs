@@ -5,10 +5,12 @@ This script is safe to run multiple times.
 
 Usage:
 1. Set your Digital Ocean DATABASE_URL environment variable
-2. Run: python fix_collections_archived_column.py
+2. Run from the repository root with:
+
+   python -m scripts.database.repairs.fix_collections_archived_column
 
 Or pass the database URL directly:
-python fix_collections_archived_column.py --database-url "postgresql://user:pass@host:port/dbname"
+python -m scripts.database.repairs.fix_collections_archived_column --database-url "postgresql://user:pass@host:port/dbname"
 """
 
 import os
@@ -108,7 +110,7 @@ def main():
     if not args.database_url:
         print("❌ ERROR: DATABASE_URL is required")
         print("Set it as an environment variable or pass --database-url")
-        print("Example: python fix_collections_archived_column.py --database-url 'postgresql://user:pass@host:port/dbname'")
+        print("Example: python -m scripts.database.repairs.fix_collections_archived_column --database-url 'postgresql://user:pass@host:port/dbname'")
         sys.exit(1)
     
     print("🚀 Starting collections table migration...")

@@ -5,10 +5,12 @@ Export SQLite data to CSV files for manual PostgreSQL import
 import sqlite3
 import csv
 import os
+from pathlib import Path
 
 # SQLite database path
-SQLITE_DB = '/workspaces/StructuredDocs/instance/structured_docs.db'
-EXPORT_DIR = '/workspaces/StructuredDocs/csv_export'
+REPO_ROOT = Path(__file__).resolve().parents[3]
+SQLITE_DB = REPO_ROOT / 'instance' / 'structured_docs.db'
+EXPORT_DIR = REPO_ROOT / 'csv_export'
 
 def export_table_to_csv(conn, table_name, export_dir):
     """Export a single table to CSV"""

@@ -4,8 +4,10 @@
 
 echo "🔧 Fixing publication_nodes schema in production database..."
 
-# Run the schema fix using the Python script
-python3 fix_publication_nodes_schema.py
+REPO_ROOT="$(cd "$(dirname "${BASH_SOURCE[0]}")/../../.." && pwd)"
+cd "$REPO_ROOT"
+
+python3 -m scripts.database.repairs.fix_publication_nodes_schema
 
 if [ $? -eq 0 ]; then
     echo "✅ Schema fix completed successfully"
