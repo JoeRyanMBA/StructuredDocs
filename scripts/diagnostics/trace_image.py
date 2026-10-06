@@ -147,11 +147,11 @@ def trace_image(filename_pattern):
 if __name__ == '__main__':
     import sys
     if len(sys.argv) < 2:
-        print("\nUsage: python3 trace_image.py <filename_or_pattern>")
+        print("\nUsage: python -m scripts.diagnostics.trace_image <filename_or_pattern>")
         print("\nExamples:")
-        print("  python3 trace_image.py image1_63017649.png")
-        print("  python3 trace_image.py image1")
-        print("  python3 trace_image.py .jpeg")
+        print("  python -m scripts.diagnostics.trace_image image1_63017649.png")
+        print("  python -m scripts.diagnostics.trace_image image1")
+        print("  python -m scripts.diagnostics.trace_image .jpeg")
         sys.exit(1)
     
     pattern = sys.argv[1]

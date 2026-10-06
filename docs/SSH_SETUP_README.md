@@ -6,7 +6,7 @@ StructuredDocs now deploys to a VPS backend and Vercel frontend. When you need d
 
 ## Quick Setup
 
-Run the helper script (it’s idempotent and safe to re-run):
+From the repository root, run the helper script (it’s idempotent and safe to re-run):
 
 ```bash
 
@@ -98,4 +98,4 @@ ssh root@203.0.113.10 "echo 'SSH connection successful'"
 
 - **Key generation errors**: make sure `~/.ssh` exists and has permissions `700`.
 
-Once SSH works, use Ansible, rsync, or manual commands to manage the server. Frontend deployments should continue through Vercel; backend updates can be shipped via Docker/Compose as described in `README.md`.
+Once SSH works, use Ansible, rsync, or manual commands to manage the server. Frontend deployments should continue through Vercel; backend updates can be shipped via Docker/Compose as described in [the README](../README.md).

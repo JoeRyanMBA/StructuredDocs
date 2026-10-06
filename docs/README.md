@@ -8,14 +8,14 @@ If you are new to the project, start in the first section and continue downward.
 
 - Repository overview and quick start: [../README.md](../README.md)
 - Self-hosting from zero: [self-hosting.md](self-hosting.md)
-- User-facing guidance: [../USER_GUIDE.md](../USER_GUIDE.md)
+- User-facing guidance: [USER_GUIDE.md](USER_GUIDE.md)
 
 ## Environment and Infrastructure
 
 - Deployment strategy and alternatives: [deployment-strategy.md](deployment-strategy.md)
 - Multi-environment strategy: [multi-environment.md](multi-environment.md)
 - Single VPS with isolated dev/staging/prod stacks: [single-vps-three-stacks.md](single-vps-three-stacks.md)
-- SSH access and key setup: [../SSH_SETUP_README.md](../SSH_SETUP_README.md)
+- SSH access and key setup: [SSH_SETUP_README.md](SSH_SETUP_README.md)
 
 ## Deployment and Operations
 
@@ -26,8 +26,8 @@ If you are new to the project, start in the first section and continue downward.
 
 ## Database and Data Management
 
-- Archive behavior and expectations: [../ARCHIVE_SYSTEM.md](../ARCHIVE_SYSTEM.md)
-- Lifecycle and status model reference: [../LIFECYCLE_DOCUMENTATION.md](../LIFECYCLE_DOCUMENTATION.md)
+- Archive behavior and expectations: [ARCHIVE_SYSTEM.md](ARCHIVE_SYSTEM.md)
+- Lifecycle and status model reference: [LIFECYCLE_DOCUMENTATION.md](LIFECYCLE_DOCUMENTATION.md)
 
 ## Storage and Media
 
@@ -37,8 +37,8 @@ If you are new to the project, start in the first section and continue downward.
 
 ## Review Workflow
 
-- Review documentation index and deep references: [../REVIEW_DOCS_INDEX.md](../REVIEW_DOCS_INDEX.md)
-- Review quick reference: [../REVIEW_QUICK_REFERENCE.md](../REVIEW_QUICK_REFERENCE.md)
+- Review documentation index and deep references: [REVIEW_DOCS_INDEX.md](REVIEW_DOCS_INDEX.md)
+- Review quick reference: [REVIEW_QUICK_REFERENCE.md](REVIEW_QUICK_REFERENCE.md)
 - Review workflow guide: [REVIEW_WORKFLOW_GUIDE.md](REVIEW_WORKFLOW_GUIDE.md)
 
 ## Import and Content Authoring

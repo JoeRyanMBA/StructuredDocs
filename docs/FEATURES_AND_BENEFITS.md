@@ -425,4 +425,4 @@ Ready to transform your documentation workflow? StructuredDocs provides the tool
 
 ---
 
-*For technical implementation details, see the README.md and USER_GUIDE.md files in the project repository.*
+*For technical implementation details, see the [README](../README.md) and [User Guide](USER_GUIDE.md).*

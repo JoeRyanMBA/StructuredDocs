@@ -128,4 +128,4 @@ These augment the core instructions with patterns for specific domains:
 - [CONTRIBUTING.md](CONTRIBUTING.md) – Development workflow and code style
 - [docs/import-guide.md](docs/import-guide.md) – Document import behavior
 - [docs/REVIEW_WORKFLOW_GUIDE.md](docs/REVIEW_WORKFLOW_GUIDE.md) – Review lifecycle
-- [ARCHIVE_SYSTEM.md](ARCHIVE_SYSTEM.md) – Archival design
+- [ARCHIVE_SYSTEM.md](docs/ARCHIVE_SYSTEM.md) – Archival design

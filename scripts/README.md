@@ -29,3 +29,12 @@ Safety
 - The delete action requires --yes to run. Without it, the script will refuse to delete.
 
 - This script imports your app factory and runs with your app's configuration.
+
+## Diagnostics
+
+Standalone repository diagnostics live in `scripts/diagnostics/`. Run them from
+the repository root as Python modules, for example:
+
+```bash
+python -m scripts.diagnostics.diagnose_import_issues
+```

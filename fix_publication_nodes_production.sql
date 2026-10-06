@@ -1,4 +1,0 @@
--- Migration: Add snapshot columns to publication_nodes
--- Neutral stub to avoid SQL lint errors in editors that assume T-SQL.
--- Use Alembic/ORM migrations or see scripts/sql/README.md for snippets.
--- No executable statements in this file.
