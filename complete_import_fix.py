@@ -265,7 +265,7 @@ After importing, verify:
 ## 🆘 If Problems Persist
 
 1. **Clean Existing Content**: `python fix_image_display_tool.py`
-2. **Verify System**: `python diagnose_import_issues.py`
+2. **Verify System**: `python -m scripts.diagnostics.diagnose_import_issues`
 3. **Check Document**: Ensure images are embedded, not linked
 4. **Use Collection Import**: Don't use Topics import for complex documents
 5. **Start Fresh**: Delete problematic content and re-import correctly

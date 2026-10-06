@@ -6,7 +6,7 @@ This script helps diagnose why images aren't appearing after Word document impor
 Run this AFTER importing a document and its collection appears but images don't show.
 
 Usage:
-  python3 verify_import_images.py
+  python -m scripts.diagnostics.verify_import_images
 """
 
 import sys

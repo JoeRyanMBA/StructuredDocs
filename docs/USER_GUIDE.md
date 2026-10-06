@@ -48,7 +48,7 @@ Open **Collections > Import** (or choose Import from the authoring area) and sel
 
 After submission, use the Import Dashboard to see recent imports and imports awaiting review. Open an import to review the staged content, then use Import History to find earlier import activity. For the best results with Word documents, use Word heading styles to express section hierarchy and embed images in the document rather than linking to them.
 
-For supported formats, image handling, hierarchy, and troubleshooting, see the [Import Guide](docs/import-guide.md).
+For supported formats, image handling, hierarchy, and troubleshooting, see the [Import Guide](import-guide.md).
 
 ## Reviews and Feedback
 
@@ -58,7 +58,7 @@ Open **Reviews** to see review activity and metrics. **Tasks** lists review work
 
 Reviewers can inspect the topic, compare revisions where available, leave feedback, and submit a recommendation. Authors use **Incorporate Feedback** to address requested changes and can then submit the revised topic again. External reviewers may receive a time-limited review link that does not require a StructuredDocs account; treat the link as private and use it only for the intended review.
 
-See the [Review Workflow Guide](docs/REVIEW_WORKFLOW_GUIDE.md) for status details and sequential review steps.
+See the [Review Workflow Guide](REVIEW_WORKFLOW_GUIDE.md) for status details and sequential review steps.
 
 ## Tasks, Milestones, Stakeholders, and Tags
 
@@ -108,12 +108,12 @@ Admin pages and actions are restricted to administrator accounts. UI catalogs, i
 - Check the item's status and its project or collection association when locating content.
 - If an import is still being processed, check the Import Dashboard or History before uploading the same file again.
 - If a publication does not contain the latest topic edits, refresh its snapshot and preview it again.
-- If images are missing after a Word import, confirm they were embedded in the source file and consult the [Import Guide](docs/import-guide.md).
+- If images are missing after a Word import, confirm they were embedded in the source file and consult the [Import Guide](import-guide.md).
 - If a page fails to load, refresh it once. If the problem continues, note the page and any displayed error and contact your administrator.
 - If a menu, reviewer, or action is missing, it may require a different role or additional administrator configuration.
 
 ## Related Documentation
 
-- [Import Guide](docs/import-guide.md)
-- [Review Workflow Guide](docs/REVIEW_WORKFLOW_GUIDE.md)
-- [Documentation Hub](docs/README.md)
+- [Import Guide](import-guide.md)
+- [Review Workflow Guide](REVIEW_WORKFLOW_GUIDE.md)
+- [Documentation Hub](README.md)

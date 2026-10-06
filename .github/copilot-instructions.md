@@ -65,7 +65,7 @@ StructuredDocs is a document management and knowledge-base platform built as a V
 - [README.md](../../README.md) for quick start, deployment overview, and environment templates.
 - [docs/import-guide.md](../../docs/import-guide.md) for document import behavior and troubleshooting.
 - [docs/REVIEW_WORKFLOW_GUIDE.md](../../docs/REVIEW_WORKFLOW_GUIDE.md) for the review lifecycle and reviewer UX.
-- [ARCHIVE_SYSTEM.md](../../ARCHIVE_SYSTEM.md) for archival behavior.
+- [ARCHIVE_SYSTEM.md](../docs/ARCHIVE_SYSTEM.md) for archival behavior.
 - [docs/object-storage-setup.md](../../docs/object-storage-setup.md) for S3-compatible object storage configuration.
 - [docs/email-sending.md](../../docs/email-sending.md) for SMTP configuration.
 - [docs/self-hosting.md](../../docs/self-hosting.md) for deployment and hosting details.

@@ -6,8 +6,8 @@ import os
 import sys
 from pathlib import Path
 
-# Add backend to path
-sys.path.insert(0, '/root/StructuredDocs/backend')
+repo_root = Path(__file__).resolve().parents[2]
+sys.path.insert(0, str(repo_root / 'backend'))
 
 from app import app, db
 from models import ImportImage
@@ -26,8 +26,8 @@ def check_import_images(doc_id=64):
         print(f"📊 Database Records: {len(db_images)} images")
         
         # Check both storage locations
-        backend_dir = Path(f'/root/StructuredDocs/backend/static/images/imports/{doc_id}')
-        frontend_dir = Path(f'/root/StructuredDocs/frontend/public/images/imports/{doc_id}')
+        backend_dir = repo_root / 'backend' / 'static' / 'images' / 'imports' / str(doc_id)
+        frontend_dir = repo_root / 'frontend' / 'public' / 'images' / 'imports' / str(doc_id)
         
         backend_exists = backend_dir.exists()
         frontend_exists = frontend_dir.exists()
