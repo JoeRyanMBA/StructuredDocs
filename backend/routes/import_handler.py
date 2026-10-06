@@ -25,6 +25,7 @@ import xml.etree.ElementTree as ET
 
 import_bp = Blueprint('import_handler', __name__, url_prefix='/api/import')
 SOURCES = ('word', 'markdown')
+PANDOC_TIMEOUT_SECONDS = int(os.environ.get('PANDOC_TIMEOUT_SECONDS', '900'))
 
 def detect_heading_level_from_style(style_name: str):
     """Extract heading level (1-6) from a Word style name.
@@ -365,7 +366,7 @@ def _convert_word_to_markdown(file_content, import_doc_id):
             
             current_app.logger.debug(f"PANDOC: Running command: {' '.join(cmd)}")
             current_app.logger.info(f"🔄 PANDOC: Converting Word document to Markdown (import {import_doc_id})")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=PANDOC_TIMEOUT_SECONDS)
             
             if result.returncode != 0:
                 current_app.logger.debug(f"PANDOC ERROR: {result.stderr}")
@@ -555,7 +556,7 @@ def _convert_word_to_markdown_no_images(file_content):
             ]
             
             current_app.logger.debug(f"PANDOC (NO IMAGES): Running command: {' '.join(cmd)}")
-            result = subprocess.run(cmd, capture_output=True, text=True, timeout=30)
+            result = subprocess.run(cmd, capture_output=True, text=True, timeout=PANDOC_TIMEOUT_SECONDS)
             
             if result.returncode != 0:
                 current_app.logger.debug(f"PANDOC ERROR: {result.stderr}")
