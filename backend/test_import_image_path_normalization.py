@@ -465,6 +465,76 @@ def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch)
     assert 'max-height: none;' in html
 
 
+def test_mobile_kb_has_previous_and_next_topic_navigation(monkeypatch):
+    monkeypatch.setattr(kb_generator_module, 'get_export_branding_settings', lambda: {
+        'brand_name': 'Acme',
+        'html_logo': '',
+        'html_primary_color': '#005a9c',
+        'html_accent_color': '#112E51',
+    })
+    monkeypatch.setattr(kb_generator_module, 'convert_markdown_to_html', lambda content: content)
+    tree = [{
+        'id': 1,
+        'title': 'First',
+        'content': 'First topic',
+        'children': [{
+            'id': 2,
+            'title': 'Nested',
+            'content': 'Nested topic',
+            'children': [],
+        }],
+    }, {
+        'id': 3,
+        'title': 'Last',
+        'content': 'Last topic',
+        'children': [],
+    }]
+
+    html = kb_generator_module.generate_mobile_kb_html_inline(
+        types.SimpleNamespace(title='Knowledge Base', id=1), tree
+    )
+
+    assert 'Topic 1 of 3' in html
+    assert 'Topic 2 of 3' in html
+    assert 'Topic 3 of 3' in html
+    assert 'disabled>Previous topic</button>' in html
+    assert 'onclick="showSection(\'section-2\')">Next topic</button>' in html
+    assert 'onclick="showSection(\'section-1\')">Previous topic</button>' in html
+    assert 'onclick="showSection(\'section-3\')">Next topic</button>' in html
+    assert 'disabled>Next topic</button>' in html
+
+
+def test_clicking_parent_topic_opens_content_and_expands_nested_menu(monkeypatch):
+    monkeypatch.setattr(kb_generator_module, 'get_export_branding_settings', lambda: {
+        'brand_name': 'Acme',
+        'html_logo': '',
+        'html_primary_color': '#005a9c',
+        'html_accent_color': '#112E51',
+    })
+    monkeypatch.setattr(kb_generator_module, 'convert_markdown_to_html', lambda content: content)
+    tree = [{
+        'id': 1,
+        'title': 'Parent',
+        'content': 'Parent content',
+        'children': [{
+            'id': 2,
+            'title': 'Nested parent',
+            'content': 'Nested content',
+            'children': [{'id': 3, 'title': 'Child', 'content': 'Child content', 'children': []}],
+        }],
+    }]
+
+    html = kb_generator_module.generate_mobile_kb_html_inline(
+        types.SimpleNamespace(title='Knowledge Base', id=1), tree
+    )
+
+    assert "showSection('section-1'); expandParent('1'); return false;" in html
+    assert "showSection('section-2'); expandParent('2'); return false;" in html
+    assert 'data-parent="1"' in html
+    assert 'data-parent="2"' in html
+    assert 'onclick="function expandParent' not in html
+
+
 def test_mobile_kb_floated_image_is_unwrapped_for_text_flow():
     html = convert_markdown_to_html(
         '<p><img src="data:image/png;base64,ZmFrZQ==" '

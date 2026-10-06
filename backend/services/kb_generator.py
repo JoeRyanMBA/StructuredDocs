@@ -9,6 +9,69 @@ from .export_branding import get_export_branding_settings, resolve_brand_asset_p
 from backend.utils.image_registry import normalize_stale_temp_image_refs_in_tree
 
 
+TOPIC_NAV_CSS = """
+.topic-pagination {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.75rem;
+    margin-top: 2rem;
+    padding-top: 1rem;
+    border-top: 1px solid #d5dce2;
+}
+.topic-pagination-button {
+    min-height: 44px;
+    padding: 0.55rem 0.85rem;
+    border: 1px solid #005a9c;
+    border-radius: 4px;
+    background: #fff;
+    color: #005a9c;
+    font: inherit;
+    font-weight: 600;
+    cursor: pointer;
+}
+.topic-pagination-button:disabled {
+    border-color: #c6cdd3;
+    color: #727b83;
+    cursor: not-allowed;
+}
+.topic-pagination-count {
+    color: #626b73;
+    font-size: 0.875rem;
+    text-align: center;
+}
+"""
+
+
+def _flatten_topic_ids(nodes):
+    topic_ids = []
+    for node in nodes:
+        topic_ids.append(node['id'])
+        topic_ids.extend(_flatten_topic_ids(node.get('children', [])))
+    return topic_ids
+
+
+def _topic_pagination_html(topic_ids, position):
+    previous_button = (
+        f'<button type="button" class="topic-pagination-button" '
+        f'onclick="showSection(\'section-{topic_ids[position - 1]}\')">Previous topic</button>'
+        if position > 0 else
+        '<button type="button" class="topic-pagination-button" disabled>Previous topic</button>'
+    )
+    next_button = (
+        f'<button type="button" class="topic-pagination-button" '
+        f'onclick="showSection(\'section-{topic_ids[position + 1]}\')">Next topic</button>'
+        if position + 1 < len(topic_ids) else
+        '<button type="button" class="topic-pagination-button" disabled>Next topic</button>'
+    )
+    return (
+        '<nav class="topic-pagination" aria-label="Topic navigation">'
+        f'{previous_button}'
+        f'<span class="topic-pagination-count">Topic {position + 1} of {len(topic_ids)}</span>'
+        f'{next_button}</nav>'
+    )
+
+
 def _resolve_html_logo_src(raw_value):
     """Resolve an admin-provided logo setting to a usable HTML img src."""
     candidate = (raw_value or '').strip()
@@ -70,7 +133,7 @@ def generate_mobile_kb_html(publication, tree):
                 
             if node.get('children') and len(node.get('children', [])) > 0:
                 # Has children - clicking shows content and expands subtopics
-                html_content += f'{indent}            <button class="nav-link nav-expandable" onclick="expandTopic(\'{node["id"]}\', this)">{icon} {node["title"]}<span class="nav-expand-icon">▶</span></button>\n'
+                html_content += f'{indent}            <button class="nav-link nav-expandable" onclick="showSection(\'section-{node["id"]}\'); expandTopic(\'{node["id"]}\', this)">{icon} {node["title"]}<span class="nav-expand-icon">▶</span></button>\n'
                 # Add hidden subtopics container
                 html_content += f'{indent}            <div class="nav-subtopics" id="subtopics-{node["id"]}" style="display: none;">\n'
                 # Recursively add children with indentation
@@ -91,6 +154,9 @@ def generate_mobile_kb_html(publication, tree):
 {nav_html}        </div>'''
     
     # Build content sections HTML
+    topic_ids = _flatten_topic_ids(tree)
+    topic_positions = {topic_id: position for position, topic_id in enumerate(topic_ids)}
+
     def build_content_html(nodes, parent=None):
         html = ""
         for idx, node in enumerate(nodes):
@@ -148,6 +214,7 @@ def generate_mobile_kb_html(publication, tree):
         <div id="section-{node["id"]}" class="content-section">
             <h1>{node["title"]}</h1>
             {content}
+            {_topic_pagination_html(topic_ids, topic_positions[node["id"]])}
         </div>
 '''
             if node.get('children'):
@@ -170,6 +237,7 @@ def generate_mobile_kb_html(publication, tree):
     result = result.replace('{{ html_primary_color }}', branding['html_primary_color'])
     result = result.replace('{{ html_accent_color }}', branding['html_accent_color'])
     result = result.replace('{{ header_logo_html }}', header_logo_html)
+    result = result.replace('</head>', f'<style>{TOPIC_NAV_CSS}</style>\n</head>', 1)
     
     # Add tree data for breadcrumb navigation
     import json
@@ -860,6 +928,7 @@ def generate_mobile_kb_html_inline(publication, tree):
         }
     </style>
     """
+    mobile_css = mobile_css.replace('</style>', f'{TOPIC_NAV_CSS}</style>', 1)
     
     # JavaScript for navigation
     first_section = f"section-{tree[0]['id']}" if tree else ''
@@ -897,6 +966,13 @@ def generate_mobile_kb_html_inline(publication, tree):
                     toggle.classList.add('expanded');
                     toggle.textContent = '▼';
                 }
+            }
+        }
+
+        function expandParent(parentId) {
+            const children = document.querySelector(`[data-parent="${parentId}"]`);
+            if (children && !children.classList.contains('expanded')) {
+                toggleParent(parentId);
             }
         }
         
@@ -1035,10 +1111,10 @@ def generate_mobile_kb_html_inline(publication, tree):
     def build_nav_html(nodes, level=0):
         html = ""
         for node in nodes:
-            if node["children"] and level == 0:  # Parent topic with children
+            if node["children"]:  # Parent topic with children
                 html += f'''
                 <div class="nav-parent">
-                    <a href="#" class="nav-link" onclick="showSection('section-{node["id"]}')">{node["title"]}</a>
+                    <a href="#" class="nav-link" onclick="showSection('section-{node["id"]}'); expandParent('{node["id"]}'); return false;">{node["title"]}</a>
                     <button class="nav-parent-toggle" data-toggle="{node["id"]}" onclick="toggleParent('{node["id"]}')" title="Toggle subtopics">▶</button>
                 </div>
                 <div class="nav-children" data-parent="{node["id"]}">
@@ -1053,6 +1129,9 @@ def generate_mobile_kb_html_inline(publication, tree):
         return html
     
     # Build content HTML
+    topic_ids = _flatten_topic_ids(tree)
+    topic_positions = {topic_id: position for position, topic_id in enumerate(topic_ids)}
+
     def build_content_html(nodes):
         html = ""
         for node in nodes:
@@ -1062,6 +1141,7 @@ def generate_mobile_kb_html_inline(publication, tree):
             <div id="section-{node["id"]}" class="content-section">
                 <h1>{node["title"]}</h1>
                 {content_html}
+                {_topic_pagination_html(topic_ids, topic_positions[node["id"]])}
             </div>
             '''
             if node["children"]:
