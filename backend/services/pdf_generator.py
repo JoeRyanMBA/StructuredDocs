@@ -2047,7 +2047,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                         # otherwise scale the natural image size down as needed.
                         MAX_WIDTH = 400
                         style_width_match = re.search(
-                            r'(?:^|;)\s*width\s*:\s*(\d+(?:\.\d+)?)\s*(px|pt|%)?',
+                            r'(?:^|;)\s*width\s*:\s*(\d+(?:\.\d+)?)\s*(px|pt|in|cm|mm|%)?(?=\s*(?:;|$))',
                             style,
                             re.IGNORECASE,
                         )
@@ -2058,6 +2058,12 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
                                 w = int(MAX_WIDTH * css_width / 100)
                             elif unit == 'px':
                                 w = int(css_width * 0.75)
+                            elif unit == 'in':
+                                w = int(css_width * inch)
+                            elif unit == 'cm':
+                                w = int(css_width * inch / 2.54)
+                            elif unit == 'mm':
+                                w = int(css_width * inch / 25.4)
                             else:
                                 w = int(css_width)
                             h = int(natural_h * w / natural_w)
