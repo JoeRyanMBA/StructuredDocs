@@ -28,6 +28,7 @@ from reportlab.platypus.frames import Frame
 from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
 from backend.utils.storage import resolve_local_storage_root
+from backend.utils.image_registry import normalize_stale_temp_image_refs_in_tree
 from .export_branding import get_export_branding_settings, resolve_brand_asset_path, NO_COVER_BACKGROUND_SENTINEL
 
 
@@ -1114,6 +1115,7 @@ class HeaderDocTemplate(BaseDocTemplate):
 
 def generate_pdf(publication, tree, config_type='default', background_image_path=None):
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
+    normalize_stale_temp_image_refs_in_tree(tree)
     _pdf_temp_dir = tempfile.mkdtemp(prefix='sd_pdf_imgs_')
 
     # Ensure config_type is always defined
@@ -2259,7 +2261,7 @@ def convert_markdown_to_html(markdown_text):
     if not markdown_text:
         return "<p>No content available.</p>"
     
-    html = markdown_text
+    html = re.sub(r'\\\$', '$', markdown_text)
     
     # Headers
     html = re.sub(r'^### (.*$)', r'<h3>\1</h3>', html, flags=re.MULTILINE)

@@ -6,6 +6,7 @@ import mimetypes
 from datetime import datetime
 from .pdf_generator import convert_markdown_to_html
 from .export_branding import get_export_branding_settings, resolve_brand_asset_path
+from backend.utils.image_registry import normalize_stale_temp_image_refs_in_tree
 
 
 def _resolve_html_logo_src(raw_value):
@@ -48,6 +49,8 @@ def generate_mobile_kb_html(publication, tree):
     except FileNotFoundError:
         # Fallback to old inline generation if template not found
         return generate_mobile_kb_html_inline(publication, tree)
+
+    normalize_stale_temp_image_refs_in_tree(tree)
     
     # Build navigation HTML for the sidebar
     def build_nav_html(nodes, level=0, parent_path=""):
@@ -180,6 +183,7 @@ def generate_mobile_kb_html(publication, tree):
 
 def generate_mobile_kb_html_inline(publication, tree):
     """Generate mobile-first HTML for knowledge base"""
+    normalize_stale_temp_image_refs_in_tree(tree)
     template_name = getattr(publication, 'branding_template_name', '') or ''
     branding = get_export_branding_settings(template_name) if template_name else get_export_branding_settings()
     html_logo_src = _resolve_html_logo_src(branding.get('html_logo', ''))
