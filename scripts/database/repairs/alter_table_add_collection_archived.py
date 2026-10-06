@@ -1,6 +1,6 @@
 """One-off helper to add 'archived' column to collections if missing.
 
-Usage: python alter_table_add_collection_archived.py
+Usage: python -m scripts.database.repairs.alter_table_add_collection_archived
 Safe to run multiple times.
 """
 from backend.app import create_app

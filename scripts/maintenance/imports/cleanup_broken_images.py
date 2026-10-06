@@ -7,7 +7,8 @@ Run this to fix existing broken image imports
 import sys
 from pathlib import Path
 
-sys.path.insert(0, '/workspaces/StructuredDocs')
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT))
 
 def cleanup_broken_images():
     """Remove zero-size and missing image records from database"""

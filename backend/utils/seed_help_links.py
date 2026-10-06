@@ -1,6 +1,6 @@
 """Seed data and upsert logic for the help_links table.
 
-Imported by backend/app.py at startup and by the root seed_help_links.py CLI script.
+Imported by backend/app.py at startup and by the scripts/database/seed_help_links.py CLI.
 """
 
 ENTRIES = [

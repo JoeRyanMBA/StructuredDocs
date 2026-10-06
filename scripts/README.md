@@ -38,3 +38,7 @@ the repository root as Python modules, for example:
 ```bash
 python -m scripts.diagnostics.diagnose_import_issues
 ```
+
+Database utilities and import repair tools are indexed in
+[`database/README.md`](database/README.md) and
+[`maintenance/imports/README.md`](maintenance/imports/README.md).

@@ -6,8 +6,10 @@ This script will add title_snapshot and content_snapshot columns to publication_
 
 import os
 import sys
-sys.path.append('/workspaces/StructuredDocs')
-sys.path.append('/workspaces/StructuredDocs/backend')
+from pathlib import Path
+
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT))
 
 from backend.models import db, Publication, PublicationNode, Topic
 from backend.app import create_app

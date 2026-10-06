@@ -7,13 +7,15 @@ import psycopg2
 import os
 import sys
 from datetime import datetime
+from pathlib import Path
 
 from urllib.parse import parse_qs, urlparse
 
 # Database locations (override via env vars when running in production)
+REPO_ROOT = Path(__file__).resolve().parents[3]
 SQLITE_DB = os.environ.get(
     'SQLITE_DB',
-    os.path.join(os.path.dirname(__file__), 'instance', 'structured_docs.db')
+    str(REPO_ROOT / 'instance' / 'structured_docs.db')
 )
 
 DATABASE_URL = os.environ.get('DATABASE_URL', 'postgresql://user:password@host:5432/structured_docs')

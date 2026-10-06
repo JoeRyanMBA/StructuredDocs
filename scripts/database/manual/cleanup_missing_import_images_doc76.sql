@@ -2,7 +2,7 @@
 -- Based on 404 log evidence from /images/imports/76/* requests.
 --
 -- Usage (preview + optional delete):
---   docker compose exec -T postgres psql -U postgres -d structureddocs -f cleanup_missing_import_images_doc76.sql
+--   docker compose exec -T postgres psql -U postgres -d structureddocs -f scripts/database/manual/cleanup_missing_import_images_doc76.sql
 --
 -- Safety:
 -- - Runs in a transaction

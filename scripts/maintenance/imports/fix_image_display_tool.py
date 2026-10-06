@@ -13,9 +13,9 @@ import os
 import re
 from pathlib import Path
 
-# Add backend to path
-sys.path.insert(0, '/workspaces/StructuredDocs')
-sys.path.insert(0, '/workspaces/StructuredDocs/backend')
+REPO_ROOT = Path(__file__).resolve().parents[3]
+sys.path.insert(0, str(REPO_ROOT))
+sys.path.insert(0, str(REPO_ROOT / 'backend'))
 
 def find_and_fix_image_issues():
     """Find topics with image display issues and fix them"""
@@ -257,7 +257,7 @@ def create_image_upload_guide():
 """
     
     try:
-        with open('/workspaces/StructuredDocs/IMAGE_UPLOAD_GUIDE.md', 'w') as f:
+        with open(REPO_ROOT / 'IMAGE_UPLOAD_GUIDE.md', 'w') as f:
             f.write(guide_content)
         print(f"\n📖 Created IMAGE_UPLOAD_GUIDE.md for reference")
     except Exception as e:

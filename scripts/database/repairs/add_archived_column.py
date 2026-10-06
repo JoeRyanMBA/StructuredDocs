@@ -7,7 +7,7 @@ Safe to run in a hosted or VPS environment.
 Usage on Digital Ocean:
 1. Go to your App in Digital Ocean Dashboard
 2. Click "Console" tab
-3. Run: python add_archived_column.py
+3. Run: python -m scripts.database.repairs.add_archived_column
 """
 
 import os

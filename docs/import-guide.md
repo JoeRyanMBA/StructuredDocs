@@ -42,7 +42,7 @@
 ### **What Happens During Import:**
 1. Pandoc extracts embedded images to temporary directory
 2. ImageHandler processes and optimizes images
-3. Images stored in `/workspaces/StructuredDocs/frontend/public/images/imports/{id}/`
+3. Images stored under `frontend/public/images/imports/{id}/`
 4. Markdown updated with proper `/images/imports/{id}/filename.png` paths
 5. EMF files automatically converted to PNG format
 
@@ -62,7 +62,7 @@
 
 ### **Images Don't Appear:**
 1. ❌ **Wrong Paths**: If you see `![](media/image1.png)` 
-   - **Fix**: Run `python fix_image_display_tool.py`
+   - **Fix**: Run `python -m scripts.maintenance.imports.fix_image_display_tool`
 2. ❌ **Wrong Import Method**: Used Topics import instead of Collection
    - **Fix**: Delete topics and re-import as Collection
 3. ❌ **Linked Images**: Images were linked, not embedded in Word
@@ -92,7 +92,7 @@ After importing, verify:
 
 ## 🆘 If Problems Persist
 
-1. **Clean Existing Content**: `python fix_image_display_tool.py`
+1. **Clean Existing Content**: `python -m scripts.maintenance.imports.fix_image_display_tool`
 2. **Verify System**: `python -m scripts.diagnostics.diagnose_import_issues`
 3. **Check Document**: Ensure images are embedded, not linked
 4. **Use Collection Import**: Don't use Topics import for complex documents
