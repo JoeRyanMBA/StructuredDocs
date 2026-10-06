@@ -224,6 +224,8 @@ def test_canonical_import_image_with_word_dimensions_is_embedded_in_pdf(tmp_path
     marker = next(item for item in paragraphs if item.startswith('__PDF_IMG__:'))
     _, resolved_path, width, height = marker.split(':', 3)
     assert resolved_path == str(image_path)
+    assert int(width) == 149
+    assert int(height) == 149
 
     output_path = tmp_path / 'canonical-import-image.pdf'
     SimpleDocTemplate(str(output_path), pagesize=letter).build([
