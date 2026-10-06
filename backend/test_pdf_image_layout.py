@@ -11,6 +11,7 @@ from reportlab.lib.styles import getSampleStyleSheet
 from reportlab.platypus import Image, ImageAndFlowables, Paragraph, SimpleDocTemplate
 
 import backend.services.pdf_generator as pdf_generator
+from backend.pdf_config import PDFConfig
 from backend.services.pdf_generator import (
     _OverlayImageFlowable,
     _collect_overlay_paragraphs,
@@ -23,6 +24,14 @@ def _image_path(tmp_path):
     path = tmp_path / 'layout-sample.png'
     PILImage.new('RGB', (120, 80), 'blue').save(path)
     return str(path)
+
+
+def test_default_pdf_palette_uses_neutral_heading_colors():
+    heading_keys = ('h1_color', 'h2_color', 'h3_color', 'h4_color', 'h5_color')
+
+    for key in heading_keys:
+        heading_color = PDFConfig.COLORS[key]
+        assert heading_color.red == heading_color.green == heading_color.blue
 
 
 def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
