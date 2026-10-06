@@ -1237,7 +1237,10 @@ p { color: #666; }
                 index_path = os.path.join(app.config['FRONTEND_FOLDER'], 'index.html')
                 if os.path.exists(index_path):
                     print(f"✅ Serving index.html for SPA route: {path}")
-                    return send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
+                    resp = send_from_directory(app.config['FRONTEND_FOLDER'], 'index.html')
+                    # Stale cached index.html references hashed assets that no longer exist after a deploy
+                    resp.headers['Cache-Control'] = 'no-cache'
+                    return resp
                 else:
                     print(f"❌ index.html not found")
                     return "Frontend not found", 404
