@@ -41,7 +41,17 @@ jobs:
           if [[ -n "${VPS_HOST_KEY:-}" ]]; then
             printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
           else
-            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+            for attempt in 1 2 3; do
+              if ssh-keyscan -T 15 -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+                break
+              fi
+              if [[ "$attempt" -eq 3 ]]; then
+                echo "ssh-keyscan failed after 3 attempts for ${VPS_HOST}:${PORT}" >&2
+                exit 1
+              fi
+              echo "ssh-keyscan attempt $attempt failed, retrying in 5s..." >&2
+              sleep 5
+            done
           fi
           chmod 600 ~/.ssh/known_hosts
 
