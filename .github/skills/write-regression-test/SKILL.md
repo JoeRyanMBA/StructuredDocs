@@ -1,8 +1,8 @@
 ---
-description: "Create or update a focused StructuredDocs regression test from a bug report, failing behavior, or route-level defect. Use when converting reproducible bugs into pytest coverage with minimal setup."
-name: "Write Regression Test"
+name: write-regression-test
+description: Create or update a focused StructuredDocs regression test from a bug report, failing behavior, or route-level defect. Use when converting reproducible bugs into pytest coverage with minimal setup.
+disable-model-invocation: true
 argument-hint: "Describe the bug, expected behavior, endpoints/models touched, and preferred test file"
-agent: "backend-specialist"
 ---
 Write or update a focused regression test for the bug described in this chat input.
 

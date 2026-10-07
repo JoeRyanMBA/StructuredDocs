@@ -1,8 +1,8 @@
 ---
-description: "Debug the StructuredDocs import pipeline. Use when Word, HTML, or Markdown imports fail, staging data is wrong, images are missing, pandoc conversion breaks, or imported hierarchy parsing needs investigation."
-name: "Debug Import Flow"
+name: debug-import-flow
+description: Debug the StructuredDocs import pipeline. Use when Word, HTML, or Markdown imports fail, staging data is wrong, images are missing, pandoc conversion breaks, or imported hierarchy parsing needs investigation.
+disable-model-invocation: true
 argument-hint: "Describe the import failure, symptoms, file type, and any logs or endpoints involved"
-agent: "backend-specialist"
 ---
 Debug the StructuredDocs import problem described in this chat input.
 
