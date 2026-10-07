@@ -1,8 +1,8 @@
 ---
-description: "Create an Alembic migration for a StructuredDocs schema change. Use when adding or altering models, introducing new columns or tables, or adjusting enum and data shape with reversible upgrade and downgrade steps."
-name: "Create Alembic Migration"
+name: create-alembic-migration
+description: Create an Alembic migration for a StructuredDocs schema change. Use when adding or altering models, introducing new columns or tables, or adjusting enum and data shape with reversible upgrade and downgrade steps.
+disable-model-invocation: true
 argument-hint: "Describe the model/schema change, existing-row constraints, and expected upgrade/downgrade behavior"
-agent: "backend-specialist"
 ---
 Create or update an Alembic migration for the schema change described in this chat input.
 

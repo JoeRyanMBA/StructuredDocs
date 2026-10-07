@@ -1,8 +1,8 @@
 ---
-description: "Add or extend a StructuredDocs Flask backend endpoint. Use when creating a new backend route, changing request or response payloads, updating serializers, wiring blueprint registration, or adding a focused backend test."
-name: "Add Backend Endpoint"
+name: add-backend-endpoint
+description: Add or extend a StructuredDocs Flask backend endpoint. Use when creating a new backend route, changing request or response payloads, updating serializers, wiring blueprint registration, or adding a focused backend test.
+disable-model-invocation: true
 argument-hint: "Describe the endpoint, auth, payload, response, and any model changes"
-agent: "backend-specialist"
 ---
 Implement the StructuredDocs backend endpoint described in this chat input.
 

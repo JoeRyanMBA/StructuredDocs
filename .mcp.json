@@ -1,0 +1,14 @@
+{
+	"mcpServers": {
+		"microsoft/markitdown": {
+			"type": "local",
+			"command": "uvx",
+			"args": [
+				"markitdown-mcp==0.0.1a4"
+			],
+			"tools": [
+				"*"
+			]
+		}
+	}
+}
