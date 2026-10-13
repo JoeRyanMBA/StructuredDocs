@@ -34,10 +34,12 @@ Then, in each environment folder (`/opt/structureddocs/dev`, `/opt/structureddoc
 docker compose -f docker-compose.single.yml --env-file .env up -d --build
 ```
 
-For routing, copy and adapt the template:
+The scaffold script installs the Caddy template at `/etc/caddy/Caddyfile` if that file does not already exist. It preserves an existing Caddy config. Edit the example hostnames in the installed file, then validate and reload the host Caddy service:
 
 ```bash
-cp Caddyfile.single-vps.template /etc/caddy/Caddyfile
+sudo caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+sudo systemctl enable --now caddy
+sudo systemctl reload caddy
 ```
 
 Deploy all three stacks in promotion order with stop-on-failure:
