@@ -1,10 +1,9 @@
 # StructuredDocs Caddy reverse proxy with auto HTTPS.
 # Only request public certificates for user-facing hostnames.
 
-structureddocs.online, dev.structureddocs.online, staging.structureddocs.online {
+structureddocs.online {
     @app_requests not path /.well-known/acme-challenge/*
 
-    # Proxy all traffic directly to the app container, which serves both the SPA and API.
     reverse_proxy @app_requests app:8080 {
         header_down -X-Content-Type-Options
         header_down -X-Frame-Options
@@ -15,6 +14,44 @@ structureddocs.online, dev.structureddocs.online, staging.structureddocs.online 
     encode gzip
 
     # Security headers
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+dev.structureddocs.online {
+    @app_requests not path /.well-known/acme-challenge/*
+
+    reverse_proxy @app_requests host.docker.internal:18080 {
+        header_down -X-Content-Type-Options
+        header_down -X-Frame-Options
+        header_down -Referrer-Policy
+    }
+
+    encode gzip
+
+    header {
+        Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
+        X-Content-Type-Options "nosniff"
+        X-Frame-Options "SAMEORIGIN"
+        Referrer-Policy "strict-origin-when-cross-origin"
+    }
+}
+
+staging.structureddocs.online {
+    @app_requests not path /.well-known/acme-challenge/*
+
+    reverse_proxy @app_requests host.docker.internal:28080 {
+        header_down -X-Content-Type-Options
+        header_down -X-Frame-Options
+        header_down -Referrer-Policy
+    }
+
+    encode gzip
+
     header {
         Strict-Transport-Security "max-age=31536000; includeSubDomains; preload"
         X-Content-Type-Options "nosniff"
