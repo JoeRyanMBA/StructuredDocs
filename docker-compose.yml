@@ -14,6 +14,8 @@ services:
       - "443:443/udp"  # HTTP/3 support
     environment:
       - DOMAIN=${DOMAIN:-localhost}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     volumes:
       - ./Caddyfile:/etc/caddy/Caddyfile:ro
       - caddy_data:/data      # stores SSL certs (must persist across restarts)
