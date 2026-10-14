@@ -3,6 +3,8 @@ name: Frontend Build (Vite)
 on:
   push:
     branches: [ main ]
+  pull_request:
+    branches: [ dev, staging, main ]
   workflow_dispatch:
 
 env:
