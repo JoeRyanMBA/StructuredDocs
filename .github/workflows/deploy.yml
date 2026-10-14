@@ -38,12 +38,15 @@ jobs:
           set -euo pipefail
           : "${VPS_HOST:?VPS_HOST secret is required}"
           PORT="${VPS_PORT:-22}"
+          touch ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
           if [[ -n "${VPS_HOST_KEY:-}" ]]; then
             printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
           else
-            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+            if ! ssh-keyscan -T 10 -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts 2>/dev/null; then
+              echo "::warning::ssh-keyscan could not reach $VPS_HOST:$PORT – known_hosts will be empty. Set the VPS_HOST_KEY secret for strict host verification."
+            fi
           fi
-          chmod 600 ~/.ssh/known_hosts
 
       - name: Deploy on VPS
         env:
@@ -58,6 +61,7 @@ jobs:
           SSH_OPTS=(
             -i ~/.ssh/id_ed25519
             -p "$PORT"
+            -o StrictHostKeyChecking=accept-new
             -o ServerAliveInterval=30
             -o ServerAliveCountMax=10
           )
@@ -70,7 +74,7 @@ jobs:
           EOF
 
           rsync -az --delete --omit-dir-times --no-perms \
-            -e "ssh -i ~/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
+            -e "ssh -i ~/.ssh/id_ed25519 -p $PORT -o StrictHostKeyChecking=accept-new -o ServerAliveInterval=30 -o ServerAliveCountMax=10" \
             --exclude '.git' \
             --exclude '.github' \
             --exclude '.venv' \
