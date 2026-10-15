@@ -1465,6 +1465,28 @@ export default {
       if (this.handleTableShortcut(event)) return
       if (this.handleTableTab(event)) return
 
+      if (event.key === 'Tab' && !event.shiftKey) {
+        if (this.getCurrentTableCell() instanceof HTMLTableCellElement) return
+
+        event.preventDefault()
+        const editor = this.$refs.editorEl
+        const selection = window.getSelection()
+        if (!editor || !selection) return
+
+        let range
+        if (selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+          range = selection.getRangeAt(0)
+        } else {
+          range = document.createRange()
+          range.selectNodeContents(editor)
+          range.collapse(false)
+        }
+        this.insertPlainText(range, '\t')
+        this.saveSelection()
+        this.emitUpdate()
+        return
+      }
+
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'b') { event.preventDefault(); this.exec('bold') }
         else if (event.key === 'i') { event.preventDefault(); this.exec('italic') }
@@ -1618,6 +1640,8 @@ export default {
   width: 100%;
   position: relative;
   isolation: isolate;
+  white-space: pre-wrap;
+  tab-size: 4;
   min-height: 0;
   height: 100%;
   padding: 1.25rem;

@@ -175,6 +175,7 @@
             <span class="status-badge" :class="project.status">
               {{ formatStatus(project.status) }}
             </span>
+            <span v-if="project.archived" class="archived-badge">Archived</span>
           </div>
           <p class="project-description">{{ project.description }}</p>
           
@@ -214,6 +215,7 @@
               <ArchiveToggleButton
                 v-if="isAdmin"
                 :archived="!!project.archived"
+                :loading="archivingProjectIds.includes(project.id)"
                 entity-label="project"
                 @toggle="state => toggleArchiveProject(project, state)"
               />
@@ -626,6 +628,7 @@ export default {
       loading: false,
       error: null,
   isAdmin: false,
+      archivingProjectIds: [],
       showEditModal: false,
       statusFilter: '',
       searchQuery: '',
@@ -785,14 +788,26 @@ export default {
       return map[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     },
     async toggleArchiveProject(project, newState) {
+      if (this.archivingProjectIds.includes(project.id)) return
+      this.archivingProjectIds.push(project.id)
+
       try {
         const data = await apiRequest(`/api/projects/${project.id}/archive`, {
           method: 'POST',
           body: JSON.stringify({ archived: newState })
         });
-        project.archived = data.project?.archived ?? newState;
+        if (typeof data.project?.archived !== 'boolean') {
+          throw new Error('The server did not confirm the project archive status.')
+        }
+        project.archived = data.project.archived
+        toast.success(project.archived
+          ? `Project "${project.name}" archived.`
+          : `Project "${project.name}" restored.`)
       } catch (e) {
         console.error('Failed to toggle archive', e);
+        toast.error(`Failed to ${newState ? 'archive' : 'restore'} project: ${e.message}`)
+      } finally {
+        this.archivingProjectIds = this.archivingProjectIds.filter(id => id !== project.id)
       }
     },
     proceedToStakeholders() {
@@ -1606,7 +1621,16 @@ export default {
   font-weight: 600;
   color: var(--text-primary-charcoal);
 }
-
+.archived-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--extended-warm-taupe);
+  color: var(--text-primary-charcoal);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
 .project-description {
   color: var(--text-secondary-cool-gray);
   font-size: 0.95rem;

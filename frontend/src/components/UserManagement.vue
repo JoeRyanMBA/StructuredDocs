@@ -698,8 +698,19 @@ td:nth-child(5) {
   font-style: italic;
 }
 
-.form-actions button {
-  min-width: 100px;
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.form-actions .btn {
+  width: 120px;
+  min-width: 120px;
+  height: 40px;
+  min-height: 40px;
+  padding: 8px 16px;
   text-align: center;
 }
 
