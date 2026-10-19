@@ -1,0 +1,157 @@
+name: Deploy Production Stack
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  PRODUCTION_DIR: /opt/structureddocs/production
+  PRODUCTION_PORT: 38080
+
+concurrency:
+  group: deploy-vps-production
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/main'
+    environment: production
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?VPS_HOST secret is required}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          PORT="${VPS_PORT:-22}"
+          if [[ -n "${VPS_HOST_KEY:-}" ]]; then
+            printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Check production stack configuration
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          : "${VPS_USER:?VPS_USER secret is required}"
+          PORT="${VPS_PORT:-22}"
+          SSH_OPTS=(
+            -i ~/.ssh/id_ed25519
+            -p "$PORT"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
+
+          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
+            "PRODUCTION_DIR='${PRODUCTION_DIR}' bash -s" <<'EOF'
+            set -euo pipefail
+            [[ -d "$PRODUCTION_DIR" ]] || { echo "Missing $PRODUCTION_DIR."; exit 1; }
+            [[ -w "$PRODUCTION_DIR" ]] || { echo "Cannot write to $PRODUCTION_DIR."; exit 1; }
+            for file in .env docker-compose.single.yml .enable_blueprints; do
+              [[ -r "$PRODUCTION_DIR/$file" ]] || {
+                echo "Missing or unreadable $PRODUCTION_DIR/$file."
+                exit 1
+              }
+            done
+            grep -Eq '^DATABASE_URL=.+$' "$PRODUCTION_DIR/.env" || {
+              echo "DATABASE_URL is missing or blank in $PRODUCTION_DIR/.env."
+              exit 1
+            }
+          EOF
+
+      - name: Sync source and deploy production stack
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          PORT="${VPS_PORT:-22}"
+          SSH_OPTS=(
+            -i ~/.ssh/id_ed25519
+            -p "$PORT"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
+          SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+
+          rsync -az --delete --omit-dir-times --no-perms -e "$SSH_COMMAND" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.venv' \
+            --exclude '.runtime-secrets' \
+            --exclude '__pycache__' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/node_modules' \
+            --exclude 'frontend/dist' \
+            --exclude '.env*' \
+            --exclude '.enable_blueprints' \
+            --exclude 'docker-compose.single.yml' \
+            --exclude '/backups/' \
+            --exclude '/instance/' \
+            --exclude '/data/' \
+            --exclude 'structured_docs.db' \
+            ./ "${VPS_USER}@${VPS_HOST}:${PRODUCTION_DIR}/"
+
+          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
+            "PRODUCTION_DIR='${PRODUCTION_DIR}' PRODUCTION_PORT='${PRODUCTION_PORT}' bash -s" <<'EOF'
+            set -euo pipefail
+            cd "$PRODUCTION_DIR"
+            [[ -f Dockerfile ]] || { echo "Missing $PRODUCTION_DIR/Dockerfile after source sync."; exit 1; }
+
+            if docker compose version >/dev/null 2>&1; then
+              DC=(docker compose)
+            elif sudo -n docker compose version >/dev/null 2>&1; then
+              DC=(sudo -n docker compose)
+            else
+              echo "Docker Compose requires direct access or passwordless sudo."
+              exit 1
+            fi
+
+            compose() {
+              "${DC[@]}" -p structureddocs_production \
+                -f docker-compose.single.yml --env-file .env "$@"
+            }
+
+            compose config -q
+            if ! compose port app 8080 | grep -Eq ":${PRODUCTION_PORT}$"; then
+              echo "Production app is not published on port ${PRODUCTION_PORT}."
+              exit 1
+            fi
+            compose up -d --build --force-recreate --remove-orphans
+
+            for i in $(seq 1 36); do
+              if curl -fsS --max-time 5 \
+                "http://127.0.0.1:${PRODUCTION_PORT}/api/health" >/dev/null 2>&1; then
+                echo "Production health check passed."
+                exit 0
+              fi
+              echo "Waiting for production health ($i/36)..."
+              sleep 5
+            done
+
+            echo "Production health check failed. Recent app logs:"
+            compose logs --tail 120 app
+            exit 1
+          EOF
