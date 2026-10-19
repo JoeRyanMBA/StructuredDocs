@@ -54,8 +54,8 @@ Three supported deployment styles (choose one):
 
    - Build & run locally first: `docker compose -f docker-compose.app.yml up --build`.
 
-   - Use the SSH-based deployment scripts or the GitHub Actions VPS workflow to update the container and restart services.
-   - Provide a `backend.env` file on the server (never commit) with real secrets.
+   - The GitHub Actions `Deploy Production Stack` workflow deploys `main` to `/opt/structureddocs/production`; keep its `.env` on the VPS and configure the GitHub `production` environment approval.
+   - Follow the [single-VPS production cutover runbook](docs/single-vps-three-stacks.md) when migrating a live site from the legacy app path.
 
 2. VPS + systemd (no containers)
 
