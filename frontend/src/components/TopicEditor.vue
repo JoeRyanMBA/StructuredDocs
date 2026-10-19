@@ -164,6 +164,7 @@
               ref="markdownEditor"
               v-model="content" 
               @paste="handleMarkdownPaste"
+              @keydown="handleMarkdownEditorKeydown"
               :spellcheck="spellcheckEnabled"
               lang="en-US"
               class="markdown-textarea"
@@ -1008,6 +1009,16 @@ export default {
         const cursor = start + normalized.length
         textarea.setSelectionRange(cursor, cursor)
       })
+    },
+    handleMarkdownEditorKeydown(event) {
+      if (event.key !== 'Tab' || event.shiftKey) return
+
+      const textarea = this.$refs.markdownEditor
+      if (!textarea) return
+
+      event.preventDefault()
+      textarea.setRangeText('\t', textarea.selectionStart, textarea.selectionEnd, 'end')
+      this.content = textarea.value
     },
     resizeMarkdownEditor() {
       const textarea = this.$refs.markdownEditor

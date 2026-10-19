@@ -22,11 +22,7 @@ After experiencing issues with earlier infrastructure setups, this guide outline
 
 - ✅ Non-root user for security
 
-### Option 2 · Vercel + Railway (preferred alternative)
-
-**Pros:** Extremely reliable, fast deployments, great DX
-
-**Cons:** More complex setup, separate services
+### Optional Vercel frontend deployment
 
 #### Frontend on Vercel
 
@@ -40,19 +36,7 @@ npx vercel --prod
 
 ```
 
-#### Backend on Railway
-
-```bash
-
-# Deploy backend as separate service
-
-railway login
-railway init
-railway up
-
-```
-
-### Step 3 · Trigger the backup plan
+### Vercel frontend backup deployment
 
 ```bash
 
@@ -168,7 +152,6 @@ This app now serves images predictably in production and during local dev. Keep 
 |--------------|-------------|-------------|------|------------------|
 | VPS + Docker | ⭐⭐⭐⭐        | ⭐⭐⭐         | $$   | Full control     |
 | Vercel       | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐      | $    | Frontend / SPA   |
-| Railway      | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐       | $$   | Backend / API    |
 | Render       | ⭐⭐⭐⭐⭐       | ⭐⭐⭐⭐⭐      | $$   | Simple full apps |
 
 ## Troubleshooting checklist
@@ -201,13 +184,11 @@ This app now serves images predictably in production and during local dev. Keep 
 
 1. **Use Vercel for the frontend** — most reliable for SPAs
 
-2. **Use Railway for the backend** — excellent for Python APIs
+2. **Use a managed PostgreSQL provider** — managed database with backups
 
-3. **Use a managed PostgreSQL provider** — managed database with backups
+3. **Implement CI/CD** — automate testing and deployment gates
 
-4. **Implement CI/CD** — automate testing and deployment gates
-
-5. **Add monitoring** — Sentry, DataDog, or similar tools
+4. **Add monitoring** — Sentry, DataDog, or similar tools
 
 ## Support and monitoring
 
@@ -218,19 +199,3 @@ This app now serves images predictably in production and during local dev. Keep 
 - **Metrics:** Monitor response times and error rates
 
 - **Backup:** Maintain a ready-to-ship Vercel deployment
-
-## Migration plan
-
-If you want to transition platforms, follow this phased approach:
-
-1. **Week 1:** Set up Vercel and Railway accounts
-
-2. **Week 2:** Deploy the frontend to Vercel
-
-3. **Week 3:** Deploy the backend to Railway
-
-4. **Week 4:** Test end-to-end functionality and migrate data
-
-5. **Week 5:** Switch DNS and announce the go-live
-
-This sequence provides multiple reliable options and removes single points of failure.
