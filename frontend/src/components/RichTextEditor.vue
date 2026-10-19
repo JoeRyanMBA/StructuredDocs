@@ -794,11 +794,16 @@ export default {
       const lastRow = this.getLastBodyRow(table)
       const isLastRow = row === lastRow
       const isLastCell = cell.cellIndex === row.cells.length - 1
+      event.preventDefault()
+
       if (!isLastRow || !isLastCell) {
-        return false
+        const cells = Array.from(table.querySelectorAll('th, td'))
+        const next = cells[cells.indexOf(cell) + 1]
+        if (next) this.placeCaretInCell(next)
+        this.saveSelection()
+        return true
       }
 
-      event.preventDefault()
       const columnCount = Math.max(1, row.cells.length)
       const targetBody = row.parentElement?.tagName === 'TBODY'
         ? row.parentElement
