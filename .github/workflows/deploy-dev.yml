@@ -64,9 +64,9 @@ jobs:
             --exclude 'frontend/dist' \
             --exclude '.env' \
             --exclude 'docker-compose.single.yml' \
-            --exclude 'backups/' \
-            --exclude 'instance/' \
-            --exclude 'data/' \
+            --exclude '/backups/' \
+            --exclude '/instance/' \
+            --exclude '/data/' \
             ./ "${VPS_USER}@${VPS_HOST}:${DEV_DIR}/"
 
           $SSH_CMD "${VPS_USER}@${VPS_HOST}" "DEV_DIR='${DEV_DIR}' DEV_PORT='${DEV_PORT}' bash -s" <<'EOF'
