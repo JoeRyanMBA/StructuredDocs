@@ -280,7 +280,14 @@ def update_user(user_id):
                 return jsonify({"error": f"Invalid role. Must be one of: {', '.join(sorted(VALID_ROLES))}"}), 400
             user.role = data['role']
         if 'active' in data:
-            user.active = data['active']
+            new_active = bool(data['active'])
+            if user.active and not new_active:
+                if user.role == 'admin' and User.query.filter_by(role='admin', active=True).count() <= 1:
+                    return jsonify({"error": "Cannot deactivate the last admin user"}), 409
+            if user.active != new_active:
+                log_audit('deactivate' if not new_active else 'reactivate', 'user', user.id,
+                          details={'name': user.name, 'email': user.email})
+            user.active = new_active
         
         db.session.commit()
         

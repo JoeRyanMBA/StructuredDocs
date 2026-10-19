@@ -62,12 +62,22 @@
                   <i class="bi bi-envelope"></i>
                 </button>
                 <button 
+                  v-if="user.active"
                   @click="deleteUser(user)" 
                   class="btn-icon btn-danger"
                   :disabled="user.role === 'admin' && adminCount <= 1"
-                  title="Delete user"
+                  title="Deactivate user"
                 >
                   <i class="bi bi-trash"></i>
+                </button>
+                <button 
+                  v-else
+                  @click="reactivateUser(user)" 
+                  class="btn-icon btn-success"
+                  :disabled="loading"
+                  title="Reactivate user"
+                >
+                  <i class="bi bi-person-check"></i>
                 </button>
               </div>
             </td>
@@ -341,6 +351,23 @@ export default {
         } else {
           this.error = 'Failed to delete user'
         }
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async reactivateUser(user) {
+      this.loading = true
+      this.error = ''
+      try {
+        await axios.put(`/api/users/${user.id}`, { active: true })
+        this.success = 'User reactivated successfully'
+        await this.loadUsers()
+        setTimeout(() => {
+          this.success = ''
+        }, 3000)
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Failed to reactivate user'
       } finally {
         this.loading = false
       }
@@ -832,6 +859,15 @@ td:nth-child(5) {
 
 .btn-icon.btn-info:hover:not(:disabled) {
   background-color: #138496;
+}
+
+.btn-icon.btn-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-icon.btn-success:hover:not(:disabled) {
+  background-color: #218838;
 }
 
 .btn-icon.btn-danger {
