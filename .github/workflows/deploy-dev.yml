@@ -82,7 +82,7 @@ jobs:
               DC="sudo -n docker compose"
             fi
 
-            $DC -p structureddocs_dev -f docker-compose.single.yml --env-file .env up -d --build
+            $DC -p dev -f docker-compose.single.yml --env-file .env up -d --build
 
             for i in $(seq 1 36); do
               if curl -fsS "http://127.0.0.1:${DEV_PORT}/api/health" >/dev/null 2>&1; then
@@ -93,6 +93,6 @@ jobs:
               sleep 5
             done
             echo "Dev health check failed. Recent logs:"
-            $DC -p structureddocs_dev -f docker-compose.single.yml --env-file .env logs --tail 120
+            $DC -p dev -f docker-compose.single.yml --env-file .env logs --tail 120
             exit 1
           EOF
