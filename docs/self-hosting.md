@@ -72,7 +72,6 @@ A managed PostgreSQL service handles backups, updates, and high availability for
 - **[Supabase](https://supabase.com)** — free tier, generous limits
 - **[Neon](https://neon.tech)** — free tier, serverless Postgres
 - **[Aiven PostgreSQL](https://aiven.io/postgresql)** — managed PostgreSQL with backups
-- **[Railway](https://railway.app)** — free tier with Postgres included
 
 After creating a database, you will receive a connection string that looks like:
 

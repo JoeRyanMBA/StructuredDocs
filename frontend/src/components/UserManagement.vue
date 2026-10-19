@@ -62,12 +62,22 @@
                   <i class="bi bi-envelope"></i>
                 </button>
                 <button 
+                  v-if="user.active"
                   @click="deleteUser(user)" 
                   class="btn-icon btn-danger"
                   :disabled="user.role === 'admin' && adminCount <= 1"
-                  title="Delete user"
+                  title="Deactivate user"
                 >
                   <i class="bi bi-trash"></i>
+                </button>
+                <button 
+                  v-else
+                  @click="reactivateUser(user)" 
+                  class="btn-icon btn-success"
+                  :disabled="loading"
+                  title="Reactivate user"
+                >
+                  <i class="bi bi-person-check"></i>
                 </button>
               </div>
             </td>
@@ -317,7 +327,7 @@ export default {
     },
     
     async deleteUser(user) {
-      if (!confirm(`Are you sure you want to delete ${user.name}?`)) {
+      if (!confirm(`Deactivate ${user.name}? They will no longer be able to sign in, and their history is kept.`)) {
         return
       }
       
@@ -326,7 +336,7 @@ export default {
       
       try {
         await axios.delete(`/api/users/${user.id}`)
-        this.success = 'User deleted successfully'
+        this.success = 'User deactivated successfully'
         await this.loadUsers()
         
         // Clear success message after 3 seconds
@@ -341,6 +351,23 @@ export default {
         } else {
           this.error = 'Failed to delete user'
         }
+      } finally {
+        this.loading = false
+      }
+    },
+    
+    async reactivateUser(user) {
+      this.loading = true
+      this.error = ''
+      try {
+        await axios.put(`/api/users/${user.id}`, { active: true })
+        this.success = 'User reactivated successfully'
+        await this.loadUsers()
+        setTimeout(() => {
+          this.success = ''
+        }, 3000)
+      } catch (error) {
+        this.error = error.response?.data?.error || 'Failed to reactivate user'
       } finally {
         this.loading = false
       }
@@ -698,8 +725,19 @@ td:nth-child(5) {
   font-style: italic;
 }
 
-.form-actions button {
-  min-width: 100px;
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.75rem;
+  margin-top: 1.5rem;
+}
+
+.form-actions .btn {
+  width: 120px;
+  min-width: 120px;
+  height: 40px;
+  min-height: 40px;
+  padding: 8px 16px;
   text-align: center;
 }
 
@@ -821,6 +859,15 @@ td:nth-child(5) {
 
 .btn-icon.btn-info:hover:not(:disabled) {
   background-color: #138496;
+}
+
+.btn-icon.btn-success {
+  background-color: #28a745;
+  color: white;
+}
+
+.btn-icon.btn-success:hover:not(:disabled) {
+  background-color: #218838;
 }
 
 .btn-icon.btn-danger {

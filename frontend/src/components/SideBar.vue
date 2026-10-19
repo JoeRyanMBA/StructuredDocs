@@ -46,12 +46,6 @@ export default {
           route: 'Dashboard'
         },
         {
-          key: 'author',
-          label: 'Author',
-          icon: '✍️',
-          route: 'AuthorHome'
-        },
-        {
           key: 'projects',
           label: 'Projects',
           icon: '🎯',
@@ -75,16 +69,14 @@ export default {
           ]
         },
         {
-          key: 'topics',
-          label: 'Topics',
-          icon: '📝',
-          route: 'TopicsList'
-        },
-        {
-          key: 'snippets',
-          label: 'Snippets',
-          icon: '📑',
-          route: 'SnippetsLibrary'
+          key: 'author',
+          label: 'Author',
+          icon: '✍️',
+          route: 'AuthorHome',
+          children: [
+            { key: 'topics', label: 'Topics', route: 'TopicsList', icon: '📝' },
+            { key: 'snippets', label: 'Snippets', route: 'SnippetsLibrary', icon: '📑' }
+          ]
         },
         {
           key: 'reviews',

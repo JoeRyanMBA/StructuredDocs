@@ -164,9 +164,14 @@
         </div>
       </div>
       <!-- Projects List -->
-      <div v-else class="projects-grid">
+      <template v-else>
+      <section v-for="section in projectSections" :key="section.key" class="project-section">
+        <h2 v-if="section.key === 'archived'" class="archived-section-title">
+          Archived Projects ({{ section.projects.length }})
+        </h2>
+      <div class="projects-grid">
         <div
-          v-for="project in filteredProjects"
+          v-for="project in section.projects"
           :key="project.id"
           class="project-card"
         >
@@ -175,6 +180,7 @@
             <span class="status-badge" :class="project.status">
               {{ formatStatus(project.status) }}
             </span>
+            <span v-if="project.archived" class="archived-badge">Archived</span>
           </div>
           <p class="project-description">{{ project.description }}</p>
           
@@ -214,6 +220,7 @@
               <ArchiveToggleButton
                 v-if="isAdmin"
                 :archived="!!project.archived"
+                :loading="archivingProjectIds.includes(project.id)"
                 entity-label="project"
                 @toggle="state => toggleArchiveProject(project, state)"
               />
@@ -221,6 +228,8 @@
           </div>
         </div>
       </div>
+      </section>
+      </template>
     </div>
 
     <!-- Create Project Modal -->
@@ -626,6 +635,7 @@ export default {
       loading: false,
       error: null,
   isAdmin: false,
+      archivingProjectIds: [],
       showEditModal: false,
       statusFilter: '',
       searchQuery: '',
@@ -731,6 +741,14 @@ export default {
       }
       return filtered
     },
+    projectSections() {
+      const active = this.filteredProjects.filter(p => !p.archived)
+      const archived = this.filteredProjects.filter(p => p.archived)
+      return [
+        { key: 'active', projects: active },
+        { key: 'archived', projects: archived }
+      ].filter(section => section.projects.length > 0)
+    },
   calendarEvents() {
       const events = []
       this.projects.forEach(project => {
@@ -785,14 +803,26 @@ export default {
       return map[role] || role.replace(/_/g, ' ').replace(/\b\w/g, c => c.toUpperCase())
     },
     async toggleArchiveProject(project, newState) {
+      if (this.archivingProjectIds.includes(project.id)) return
+      this.archivingProjectIds.push(project.id)
+
       try {
         const data = await apiRequest(`/api/projects/${project.id}/archive`, {
           method: 'POST',
           body: JSON.stringify({ archived: newState })
         });
-        project.archived = data.project?.archived ?? newState;
+        if (typeof data.project?.archived !== 'boolean') {
+          throw new Error('The server did not confirm the project archive status.')
+        }
+        project.archived = data.project.archived
+        toast.success(project.archived
+          ? `Project "${project.name}" archived.`
+          : `Project "${project.name}" restored.`)
       } catch (e) {
         console.error('Failed to toggle archive', e);
+        toast.error(`Failed to ${newState ? 'archive' : 'restore'} project: ${e.message}`)
+      } finally {
+        this.archivingProjectIds = this.archivingProjectIds.filter(id => id !== project.id)
       }
     },
     proceedToStakeholders() {
@@ -1606,7 +1636,24 @@ export default {
   font-weight: 600;
   color: var(--text-primary-charcoal);
 }
+.archived-section-title {
+  margin: 2rem 0 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+  font-size: 1.25rem;
+  color: #666;
+}
 
+.archived-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  background: var(--extended-warm-taupe);
+  color: var(--text-primary-charcoal);
+  font-size: 0.75rem;
+  font-weight: 600;
+}
 .project-description {
   color: var(--text-secondary-cool-gray);
   font-size: 0.95rem;
