@@ -164,9 +164,14 @@
         </div>
       </div>
       <!-- Projects List -->
-      <div v-else class="projects-grid">
+      <template v-else>
+      <section v-for="section in projectSections" :key="section.key" class="project-section">
+        <h2 v-if="section.key === 'archived'" class="archived-section-title">
+          Archived Projects ({{ section.projects.length }})
+        </h2>
+      <div class="projects-grid">
         <div
-          v-for="project in filteredProjects"
+          v-for="project in section.projects"
           :key="project.id"
           class="project-card"
         >
@@ -223,6 +228,8 @@
           </div>
         </div>
       </div>
+      </section>
+      </template>
     </div>
 
     <!-- Create Project Modal -->
@@ -733,6 +740,14 @@ export default {
         filtered = filtered.filter(project => project.status === this.statusFilter)
       }
       return filtered
+    },
+    projectSections() {
+      const active = this.filteredProjects.filter(p => !p.archived)
+      const archived = this.filteredProjects.filter(p => p.archived)
+      return [
+        { key: 'active', projects: active },
+        { key: 'archived', projects: archived }
+      ].filter(section => section.projects.length > 0)
     },
   calendarEvents() {
       const events = []
@@ -1621,6 +1636,14 @@ export default {
   font-weight: 600;
   color: var(--text-primary-charcoal);
 }
+.archived-section-title {
+  margin: 2rem 0 1rem;
+  padding-top: 1rem;
+  border-top: 1px solid #e0e0e0;
+  font-size: 1.25rem;
+  color: #666;
+}
+
 .archived-badge {
   display: inline-flex;
   align-items: center;
