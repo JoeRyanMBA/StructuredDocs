@@ -83,6 +83,12 @@ jobs:
                 echo "Production Compose must build from the environment directory (build: .)."
                 exit 1
               }
+            if grep -q 'host.docker.internal' "$PRODUCTION_DIR/.env" &&
+              ! grep -q 'host.docker.internal:host-gateway' \
+                "$PRODUCTION_DIR/docker-compose.single.yml"; then
+              echo "Production Compose must map host.docker.internal when DATABASE_URL uses it."
+              exit 1
+            fi
           EOF
 
       - name: Sync source and deploy production stack
