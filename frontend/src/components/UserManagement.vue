@@ -317,7 +317,7 @@ export default {
     },
     
     async deleteUser(user) {
-      if (!confirm(`Are you sure you want to delete ${user.name}?`)) {
+      if (!confirm(`Deactivate ${user.name}? They will no longer be able to sign in, and their history is kept.`)) {
         return
       }
       
@@ -326,7 +326,7 @@ export default {
       
       try {
         await axios.delete(`/api/users/${user.id}`)
-        this.success = 'User deleted successfully'
+        this.success = 'User deactivated successfully'
         await this.loadUsers()
         
         // Clear success message after 3 seconds

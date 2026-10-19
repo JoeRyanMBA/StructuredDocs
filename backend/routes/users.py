@@ -4,6 +4,7 @@ from ..extensions import limiter
 from sqlalchemy.exc import IntegrityError
 from werkzeug.security import generate_password_hash, check_password_hash
 from ..utils.email_service import email_service
+from ..utils.audit import log_audit
 import secrets
 import os
 from datetime import datetime, timedelta
@@ -58,6 +59,8 @@ def login():
 
         try:
             if check_password_hash(user.password_hash, password):
+                if not user.active:
+                    return jsonify({"msg": "This account has been deactivated"}), 403
                 # Use string identity to avoid 422 "Subject must be a string" issues in some environments
                 access_token = create_access_token(identity=str(user.id))
                 refresh_token = create_refresh_token(identity=str(user.id))
@@ -98,6 +101,12 @@ def get_me():
 def refresh_token():
     """Issue a new short-lived access token using a valid refresh token."""
     identity = get_jwt_identity()
+    try:
+        user = User.query.get(int(identity))
+    except (TypeError, ValueError):
+        user = None
+    if not user or not user.active:
+        return jsonify({"msg": "Account is deactivated"}), 401
     new_access = create_access_token(identity=identity)
     resp = make_response(jsonify(access_token=new_access))
     set_access_cookies(resp, new_access)
@@ -289,7 +298,7 @@ def update_user(user_id):
 @users_bp.route('/<int:user_id>', methods=['DELETE'])
 @jwt_required()
 def delete_user(user_id):
-    """Delete a user (admin only)"""
+    """Deactivate a user (admin only); the row is kept so history stays attributable."""
     current_app.logger.debug(f" Delete user {user_id} DELETE request received")
     try:
         caller, err = _require_admin()
@@ -298,17 +307,18 @@ def delete_user(user_id):
 
         user = User.query.get_or_404(user_id)
         
-        # Don't allow deleting the last admin
-        if user.role == 'admin':
+        # Don't allow deactivating the last admin
+        if user.role == 'admin' and user.active:
             admin_count = User.query.filter_by(role='admin', active=True).count()
             if admin_count <= 1:
                 return jsonify({"error": "Cannot delete the last admin user"}), 409
         
-        db.session.delete(user)
+        user.active = False
+        log_audit('deactivate', 'user', user.id, details={'name': user.name, 'email': user.email})
         db.session.commit()
         
-        current_app.logger.info(f" Deleted user: {user.name} ({user.email})")
-        return jsonify({"message": "User deleted successfully"}), 200
+        current_app.logger.info(f" Deactivated user: {user.name} ({user.email})")
+        return jsonify({"message": "User deactivated successfully"}), 200
         
     except Exception as e:
         db.session.rollback()
