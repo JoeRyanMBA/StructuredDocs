@@ -78,6 +78,10 @@ jobs:
               echo "DATABASE_URL is missing or blank in $PRODUCTION_DIR/.env."
               exit 1
             }
+            grep -Eq '^ADMIN_API_KEY=.+$' "$PRODUCTION_DIR/.env" || {
+              echo "ADMIN_API_KEY is missing or blank in $PRODUCTION_DIR/.env."
+              exit 1
+            }
             grep -Eq '^[[:space:]]+build:[[:space:]]*\.[[:space:]]*$' \
               "$PRODUCTION_DIR/docker-compose.single.yml" || {
                 echo "Production Compose must build from the environment directory (build: .)."
@@ -147,7 +151,7 @@ jobs:
             }
 
             compose config -q
-            if ! compose port app 8080 | grep -Eq ":${PRODUCTION_PORT}$"; then
+            if ! grep -Fq "${PRODUCTION_PORT}:8080" docker-compose.single.yml; then
               echo "Production app is not published on port ${PRODUCTION_PORT}."
               exit 1
             fi
