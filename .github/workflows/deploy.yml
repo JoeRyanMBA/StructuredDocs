@@ -79,10 +79,9 @@ jobs:
             --exclude 'frontend/node_modules' \
             --exclude 'frontend/dist' \
             --exclude '.env' \
-            --exclude 'instance/' \
+            --exclude '/instance/' \
             --exclude 'structured_docs.db' \
-            --exclude 'data/' \
-            --exclude 'data/images/' \
+            --exclude '/data/' \
             ./ "${VPS_USER}@${VPS_HOST}:/opt/structureddocs/app/"
 
           ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" <<'EOF'
