@@ -1,0 +1,98 @@
+name: Deploy Dev To VPS
+
+on:
+  push:
+    branches: [ dev ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  DEV_DIR: /opt/structureddocs/dev
+  DEV_PORT: 18080
+
+concurrency:
+  group: deploy-vps-dev
+  cancel-in-progress: true
+
+jobs:
+  deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?VPS_HOST secret is required}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          PORT="${VPS_PORT:-22}"
+          if [[ -n "${VPS_HOST_KEY:-}" ]]; then
+            printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
+          else
+            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
+          fi
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Sync source and rebuild dev stack
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          : "${VPS_USER:?VPS_USER secret is required}"
+          PORT="${VPS_PORT:-22}"
+          SSH_CMD="ssh -i $HOME/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+
+          # Server-local files (.env, compose file, data) must survive --delete.
+          rsync -az --delete --omit-dir-times --no-perms -e "$SSH_CMD" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.venv' \
+            --exclude '__pycache__' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/node_modules' \
+            --exclude 'frontend/dist' \
+            --exclude '.env' \
+            --exclude 'docker-compose.single.yml' \
+            --exclude 'backups/' \
+            --exclude 'instance/' \
+            --exclude 'data/' \
+            ./ "${VPS_USER}@${VPS_HOST}:${DEV_DIR}/"
+
+          $SSH_CMD "${VPS_USER}@${VPS_HOST}" "DEV_DIR='${DEV_DIR}' DEV_PORT='${DEV_PORT}' bash -s" <<'EOF'
+            set -euo pipefail
+            cd "$DEV_DIR"
+            for f in .env docker-compose.single.yml; do
+              [[ -f "$f" ]] || { echo "Missing $DEV_DIR/$f on the server."; exit 1; }
+            done
+
+            if docker compose version >/dev/null 2>&1; then
+              DC="docker compose"
+            else
+              DC="sudo -n docker compose"
+            fi
+
+            $DC -p structureddocs_dev -f docker-compose.single.yml --env-file .env up -d --build
+
+            for i in $(seq 1 36); do
+              if curl -fsS "http://127.0.0.1:${DEV_PORT}/api/health" >/dev/null 2>&1; then
+                echo "Dev health check passed"
+                exit 0
+              fi
+              echo "Waiting for dev health ($i/36)..."
+              sleep 5
+            done
+            echo "Dev health check failed. Recent logs:"
+            $DC -p structureddocs_dev -f docker-compose.single.yml --env-file .env logs --tail 120
+            exit 1
+          EOF
