@@ -6,7 +6,7 @@
 #   staging -> 28080
 #   production -> 38080
 
-dev.yourdomain.com {
+dev.structureddocs.online {
     reverse_proxy 127.0.0.1:18080
     encode gzip
 
@@ -18,7 +18,7 @@ dev.yourdomain.com {
     }
 }
 
-staging.yourdomain.com {
+staging.structureddocs.online {
     reverse_proxy 127.0.0.1:28080
     encode gzip
 
@@ -30,7 +30,7 @@ staging.yourdomain.com {
     }
 }
 
-app.yourdomain.com {
+structureddocs.online {
     reverse_proxy 127.0.0.1:38080
     encode gzip
 
