@@ -34,6 +34,13 @@ Then, in each environment folder (`/opt/structureddocs/dev`, `/opt/structureddoc
 docker compose -f docker-compose.single.yml --env-file .env up -d --build
 ```
 
+For production, use the `structureddocs_production` Compose project name so it remains isolated from the legacy app and the other stacks:
+
+```bash
+docker compose -p structureddocs_production \
+  -f docker-compose.single.yml --env-file .env up -d --build
+```
+
 The scaffold script installs the Caddy template at `/etc/caddy/Caddyfile` if that file does not already exist. It preserves an existing Caddy config. Edit the example hostnames in the installed file, then validate and reload the host Caddy service:
 
 ```bash
@@ -88,15 +95,15 @@ Useful variants:
 
 For the final working setup on this VPS, PostgreSQL runs on the host rather than in a container, and each app container connects back to it through `host.docker.internal:5432`.
 
-Example domain and port map:
+Domain and port map:
 
-- dev.yourdomain.com -> 127.0.0.1:18080
-- staging.yourdomain.com -> 127.0.0.1:28080
-- app.yourdomain.com -> 127.0.0.1:38080
+- dev.structureddocs.online -> 127.0.0.1:18080
+- staging.structureddocs.online -> 127.0.0.1:28080
+- structureddocs.online -> 127.0.0.1:38080
 
 ## 2. Important constraints in this repo
 
-Current production compose files include fixed container names and shared defaults.
+Legacy production compose files may include fixed container names and shared defaults.
 On one VPS, fixed names and shared paths cause collisions.
 
 For single-VPS multi-stack deployments:
@@ -263,17 +270,55 @@ app.yourdomain.com {
 Repeat per environment folder:
 
 1. Copy env template to `.env` and fill secrets.
+   For this VPS migration, production can reuse the existing production database by setting the valid production `DATABASE_URL` in `/opt/structureddocs/production/.env`. Do not copy Dev or Staging database settings into it.
 2. Create data dirs.
 3. Ensure writable paths:
    `chmod 777 data/images instance`
-4. If PostgreSQL is on the host, add the Docker bridge subnet used by the stack to `/etc/postgresql/16/main/pg_hba.conf`.
-  Example working subnets on this VPS: `172.23.0.0/16` for dev and `172.24.0.0/16` for staging.
+4. If PostgreSQL is on the host, add the production Docker bridge subnet to `/etc/postgresql/16/main/pg_hba.conf`. Find the subnet with `docker network inspect structureddocs_production_default`; permit only the required database/user and that subnet, never the public IP or all IPs.
 5. Start stack:
-   `docker compose -f docker-compose.single.yml --env-file .env up -d --build`
+   `docker compose -p structureddocs_production -f docker-compose.single.yml --env-file .env up -d --build`
 6. Verify health:
-   `curl -sS http://127.0.0.1:<env-port>/api/health`
+   `curl -fsS http://127.0.0.1:38080/api/health`
 
-## 8. Deploy and promote
+## 8. Migrate production from the legacy app
+
+The live site currently uses the legacy app under `/opt/structureddocs/app`, with Caddy proxying `structureddocs.online` to `app:8080`. The isolated production stack is deployed separately to `/opt/structureddocs/production` on port `38080`. Keep the old app running until the new stack and proxy cutover are verified.
+
+The `Deploy Production Stack` GitHub Actions workflow syncs `main` into `/opt/structureddocs/production` and builds that stack. It preserves server-local `.env` files, Compose configuration, blueprint selection, uploads, instance files, and backups. It does not change Caddy.
+
+Before merging the workflow change to `main`:
+
+1. Disable the legacy `Deploy To VPS` workflow in GitHub Actions so it cannot deploy to `/opt/structureddocs/app` or interfere with Caddy.
+2. Ensure `/opt/structureddocs/production/.env`, `docker-compose.single.yml`, and `.enable_blueprints` exist and are readable by the deploy user.
+3. Configure production `.env` with the current production database connection and production secrets. Do not overwrite an existing production `.env` without backing it up and reviewing it privately.
+4. Ensure the production Compose file builds from `.` and maps `38080:8080`. It must include `extra_hosts: ["host.docker.internal:host-gateway"]` when its database URL uses `host.docker.internal`.
+5. Ensure the PostgreSQL `pg_hba.conf` permits the production Docker network subnet. A successful login from the legacy stack’s network does not prove the production stack’s subnet is allowed.
+6. Configure the GitHub `production` environment with a required reviewer before enabling automatic production deployment.
+
+After the updated workflow is merged to `main`, wait for the production deployment to pass its health check at `http://127.0.0.1:38080/api/health`. Confirm the new app responds before changing the public route.
+
+For the current containerized Caddy setup, back up `/opt/structureddocs/app/Caddyfile`, then change only the `structureddocs.online` upstream from `app:8080` to `host.docker.internal:38080`. Validate and reload Caddy:
+
+```bash
+docker exec structureddocs-caddy-1 \
+  caddy validate --config /etc/caddy/Caddyfile --adapter caddyfile
+docker exec structureddocs-caddy-1 \
+  caddy reload --config /etc/caddy/Caddyfile
+curl --resolve structureddocs.online:443:127.0.0.1 \
+  -fsS https://structureddocs.online/api/health
+```
+
+If the public health check fails, restore the Caddyfile backup and reload Caddy; leave the old app available for rollback. Once production is verified, stop only the legacy app service, not its Caddy service:
+
+```bash
+docker compose -p structureddocs \
+  --env-file /opt/structureddocs/.env \
+  -f /opt/structureddocs/app/docker-compose.yml stop app
+```
+
+The migration reuses the existing production database; it does not drop or recreate it.
+
+## 9. Deploy and promote
 
 Promotion path:
 
@@ -292,7 +337,7 @@ If using local source checkout instead of image pull:
 2. `git checkout <target-branch-or-tag>`
 3. run compose up command above
 
-## 9. Rollback plan
+## 10. Rollback plan
 
 Before each deploy:
 
@@ -319,7 +364,7 @@ Restore one environment database:
 ./scripts/restore_env_db.sh --env dev --base-dir /opt/structureddocs --file /opt/structureddocs/dev/backups/dev_YYYYMMDDTHHMMSSZ.dump
 ```
 
-## 10. Operational checks (every release)
+## 11. Operational checks (every release)
 
 - DB URL points to correct environment DB
 - Storage prefix matches environment
@@ -327,7 +372,7 @@ Restore one environment database:
 - Health endpoint returns OK
 - Login, create topic, request review, and image upload smoke tests pass
 
-## 11. Known trade-offs of single VPS
+## 12. Known trade-offs of single VPS
 
 Pros:
 
@@ -340,7 +385,7 @@ Cons:
 - resource contention between environments
 - stricter need for CPU/memory monitoring and limits
 
-## 12. Recommended hardening
+## 13. Recommended hardening
 
 - Add container resource limits per environment
 - Add nightly DB backups per environment

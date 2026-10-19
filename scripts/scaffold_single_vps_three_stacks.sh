@@ -124,6 +124,8 @@ services:
   app:
     build: .
     image: \${IMAGE_REPO:-structureddocs-backend}:\${IMAGE_TAG:-latest}
+    extra_hosts:
+      - "host.docker.internal:host-gateway"
     environment:
       - PORT=8080
       - DATABASE_URL=\${DATABASE_URL}
@@ -262,4 +264,3 @@ Next steps per environment:
      curl -sS http://127.0.0.1:<port>/api/health
 
 EOF
-
