@@ -373,7 +373,7 @@ export default {
     
     async submitPasswordReset() {
       try {
-        await axios.post('/api/users/reset-password', { email: this.passwordReset.email });
+        await axios.post('/api/users/request-password-reset', { email: this.passwordReset.email });
         toast.success(`Password reset link sent to ${this.passwordReset.email}`);
         this.passwordReset.email = '';
         this.showForgotPassword = false;
@@ -751,4 +751,3 @@ export default {
   isolation: isolate;
 }
 </style>
-

@@ -26,7 +26,7 @@ def log_audit(action: str, resource_type: str, resource_id=None, details: dict |
     """
     try:
         from ..extensions import db
-        from ..models import AuditLog
+        from ..models import AuditLog, User
         from flask_jwt_extended import get_jwt_identity
 
         if user_id is None:
@@ -37,6 +37,12 @@ def log_audit(action: str, resource_type: str, resource_id=None, details: dict |
                 user_id = None
 
         ip = (request.headers.get('X-Forwarded-For') or request.remote_addr or '')[:45]
+
+        # Snapshot the actor so attribution survives user deletion (user_id is SET NULL).
+        if user_id is not None:
+            actor = db.session.get(User, user_id)
+            if actor:
+                details = {**(details or {}), 'actor': {'name': actor.name, 'email': actor.email}}
 
         entry = AuditLog(
             user_id=user_id,

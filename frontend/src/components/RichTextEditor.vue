@@ -794,11 +794,16 @@ export default {
       const lastRow = this.getLastBodyRow(table)
       const isLastRow = row === lastRow
       const isLastCell = cell.cellIndex === row.cells.length - 1
+      event.preventDefault()
+
       if (!isLastRow || !isLastCell) {
-        return false
+        const cells = Array.from(table.querySelectorAll('th, td'))
+        const next = cells[cells.indexOf(cell) + 1]
+        if (next) this.placeCaretInCell(next)
+        this.saveSelection()
+        return true
       }
 
-      event.preventDefault()
       const columnCount = Math.max(1, row.cells.length)
       const targetBody = row.parentElement?.tagName === 'TBODY'
         ? row.parentElement
@@ -1465,6 +1470,28 @@ export default {
       if (this.handleTableShortcut(event)) return
       if (this.handleTableTab(event)) return
 
+      if (event.key === 'Tab' && !event.shiftKey) {
+        if (this.getCurrentTableCell() instanceof HTMLTableCellElement) return
+
+        event.preventDefault()
+        const editor = this.$refs.editorEl
+        const selection = window.getSelection()
+        if (!editor || !selection) return
+
+        let range
+        if (selection.rangeCount > 0 && editor.contains(selection.anchorNode)) {
+          range = selection.getRangeAt(0)
+        } else {
+          range = document.createRange()
+          range.selectNodeContents(editor)
+          range.collapse(false)
+        }
+        this.insertPlainText(range, '\t')
+        this.saveSelection()
+        this.emitUpdate()
+        return
+      }
+
       if (event.ctrlKey || event.metaKey) {
         if (event.key === 'b') { event.preventDefault(); this.exec('bold') }
         else if (event.key === 'i') { event.preventDefault(); this.exec('italic') }
@@ -1618,6 +1645,8 @@ export default {
   width: 100%;
   position: relative;
   isolation: isolate;
+  white-space: pre-wrap;
+  tab-size: 4;
   min-height: 0;
   height: 100%;
   padding: 1.25rem;
