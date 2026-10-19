@@ -291,6 +291,7 @@ Before merging the workflow change to `main`:
 1. Disable the legacy `Deploy To VPS` workflow in GitHub Actions so it cannot deploy to `/opt/structureddocs/app` or interfere with Caddy.
 2. Ensure `/opt/structureddocs/production/.env`, `docker-compose.single.yml`, and `.enable_blueprints` exist and are readable by the deploy user.
 3. Configure production `.env` with the current production database connection and production secrets. Do not overwrite an existing production `.env` without backing it up and reviewing it privately.
+   Include a non-empty `ADMIN_API_KEY`; the production deployment workflow checks for it before syncing or building.
 4. Ensure the production Compose file builds from `.` and maps `38080:8080`. It must include `extra_hosts: ["host.docker.internal:host-gateway"]` when its database URL uses `host.docker.internal`.
 5. Ensure the PostgreSQL `pg_hba.conf` permits the production Docker network subnet. A successful login from the legacy stack’s network does not prove the production stack’s subnet is allowed.
 6. Configure the GitHub `production` environment with a required reviewer before enabling automatic production deployment.
