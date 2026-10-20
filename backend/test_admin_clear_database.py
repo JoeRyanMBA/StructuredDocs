@@ -3,7 +3,7 @@ from flask import Flask
 from flask_jwt_extended import create_access_token
 
 from backend.extensions import db, jwt
-from backend.models import User
+from backend.models import Collection, Project, Topic, User
 from backend.routes.admin import admin_bp
 
 
@@ -43,6 +43,11 @@ def test_clear_database_preserves_configured_admin(app):
         preserved_admin = _create_user('joe@joe-ryan.mba', 'admin')
         _create_user('admin@example.com', 'admin')
         _create_user('author@example.com', 'author')
+        db.session.add_all([
+            Project(id=23, name='Old project'),
+            Collection(id=42, name='Old collection', form_number='OLD'),
+            Topic(id=57, title='Old topic'),
+        ])
         db.session.commit()
         headers = _auth_header(preserved_admin.id)
 
@@ -52,6 +57,13 @@ def test_clear_database_preserves_configured_admin(app):
     with app.app_context():
         users = User.query.all()
         assert [(user.email, user.role) for user in users] == [('joe@joe-ryan.mba', 'admin')]
+
+        new_project = Project(name='New project')
+        new_collection = Collection(name='New collection', form_number='NEW')
+        new_topic = Topic(title='New topic')
+        db.session.add_all([new_project, new_collection, new_topic])
+        db.session.flush()
+        assert (new_project.id, new_collection.id, new_topic.id) == (1, 1, 1)
 
 
 def test_clear_database_rejects_non_admin_without_deleting_users(app):
