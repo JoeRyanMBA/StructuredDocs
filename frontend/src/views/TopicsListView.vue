@@ -5,6 +5,9 @@
     <div class="dashboard-header">
       <h1>All Topics <HelpIcon feature="topics.list" /></h1>
       <p class="subtitle">Browse, review, and manage topics</p>
+      <router-link :to="{ name: 'NewTopic' }" class="btn btn-primary new-topic-button">
+        <i class="bi bi-plus-lg" aria-hidden="true"></i> New Topic
+      </router-link>
     </div>
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -997,6 +1000,10 @@ export default {
 .topics-list {
   padding: 2rem;
   background-color: var(--bg-light-gray);
+}
+
+.new-topic-button {
+  margin-top: 1rem;
 }
 
 .guidance-text {
