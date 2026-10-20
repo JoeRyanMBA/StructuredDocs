@@ -704,6 +704,21 @@ def generate_mobile_kb_html_inline(publication, tree):
             margin: 0;
         }
 
+        .content-section img[data-sd-image-alignment="left"][data-sd-image-wrapping="none"] {
+            margin-left: 0;
+            margin-right: auto;
+        }
+
+        .content-section img[data-sd-image-alignment="center"][data-sd-image-wrapping="none"] {
+            margin-left: auto;
+            margin-right: auto;
+        }
+
+        .content-section img[data-sd-image-alignment="right"][data-sd-image-wrapping="none"] {
+            margin-left: auto;
+            margin-right: 0;
+        }
+
         .content-section img[style*="float"] {
             max-width: min(45%, 320px);
             margin: 0 12px 8px;
@@ -1217,4 +1232,3 @@ def generate_mobile_kb_html_inline(publication, tree):
 </html>'''
     
     return html_template
-
