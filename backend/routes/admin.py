@@ -5,7 +5,7 @@ from ..extensions import limiter
 from ..utils.email_service import get_email_service
 from ..utils.storage import S3CompatibleStorage, get_storage_backend
 from ..utils.settings import get_setting, set_setting, DEFAULTS
-from sqlalchemy import func, text
+from sqlalchemy import func, select, text
 from datetime import datetime, timedelta
 import os
 import json
@@ -16,6 +16,53 @@ from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
 CLEAR_DATABASE_PRESERVED_ADMIN_EMAIL = 'joe@joe-ryan.mba'
+
+
+def _reset_database_id_sequences() -> None:
+    id_tables = [
+        table for table in db.metadata.sorted_tables
+        if 'id' in table.c and table.c.id.primary_key
+    ]
+    dialect = db.engine.dialect.name
+
+    if dialect == 'postgresql':
+        for table in id_tables:
+            sequence_name = db.session.execute(
+                text("SELECT pg_get_serial_sequence(:table_name, 'id')"),
+                {'table_name': table.fullname}
+            ).scalar_one_or_none()
+            if not sequence_name:
+                continue
+
+            max_id = db.session.execute(select(func.max(table.c.id))).scalar_one()
+            sequence_value = max_id if max_id is not None and max_id > 0 else 1
+            sequence_has_value = max_id is not None and max_id > 0
+            db.session.execute(
+                text(
+                    "SELECT setval(CAST(:sequence_name AS regclass), "
+                    ":sequence_value, :sequence_has_value)"
+                ),
+                {
+                    'sequence_name': sequence_name,
+                    'sequence_value': sequence_value,
+                    'sequence_has_value': sequence_has_value,
+                }
+            )
+    elif dialect == 'sqlite':
+        has_sequence_table = db.session.execute(
+            text(
+                "SELECT 1 FROM sqlite_master "
+                "WHERE type = 'table' AND name = 'sqlite_sequence'"
+            )
+        ).scalar_one_or_none()
+        if has_sequence_table:
+            for table in id_tables:
+                db.session.execute(
+                    text("DELETE FROM sqlite_sequence WHERE name = :table_name"),
+                    {'table_name': table.name}
+                )
+    else:
+        raise RuntimeError(f"ID sequence reset is not supported for database dialect '{dialect}'.")
 
 
 # Keep a stable iteration order for branding settings; tests assert the exact
@@ -608,6 +655,19 @@ def clear_database():
             {"admin_email": admin_email}
         )
         db.session.commit()
+
+        try:
+            _reset_database_id_sequences()
+            db.session.commit()
+        except Exception:
+            db.session.rollback()
+            current_app.logger.exception(
+                "Database was cleared, but its ID counters could not be reset."
+            )
+            return jsonify({
+                'status': 'error',
+                'message': 'Database was cleared, but ID counters could not be reset. Check the server logs.'
+            }), 500
 
         storage_purge_result = {
             'attempted': False,
