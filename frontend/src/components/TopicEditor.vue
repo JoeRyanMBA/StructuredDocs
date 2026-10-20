@@ -2359,6 +2359,21 @@ export default {
   max-width: 100%;
   height: auto;
 }
+.preview-content img[data-sd-image-wrapping="none"] {
+  display: block;
+}
+.preview-content img[data-sd-image-alignment="left"][data-sd-image-wrapping="none"] {
+  margin-left: 0;
+  margin-right: auto;
+}
+.preview-content img[data-sd-image-alignment="center"][data-sd-image-wrapping="none"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+.preview-content img[data-sd-image-alignment="right"][data-sd-image-wrapping="none"] {
+  margin-left: auto;
+  margin-right: 0;
+}
 .preview-content img[style*="float"] {
   max-width: min(45%, 320px);
   height: auto;

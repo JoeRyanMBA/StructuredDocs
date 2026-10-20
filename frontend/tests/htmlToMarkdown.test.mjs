@@ -65,6 +65,19 @@ test('htmlToMarkdown preserves image presentation settings including watermark m
   assert.match(markdown, /style="position: absolute; z-index: -1; top: 0; left: 50%; transform: translateX\(-50%\); opacity: 0.18; width: 100%"/)
 })
 
+test('htmlToMarkdown preserves non-wrapped image alignment metadata', () => {
+  const markdown = htmlToMarkdown(
+    '<img src="/images/aligned.png" alt="Aligned" '
+    + 'data-sd-image-size="50%" data-sd-image-alignment="right" '
+    + 'data-sd-image-wrapping="none" '
+    + 'style="display:block;clear:both;margin:0.5rem 0.5rem 0.5rem auto;width:50%;height:auto">'
+  )
+
+  assert.match(markdown, /data-sd-image-alignment="right"/)
+  assert.match(markdown, /data-sd-image-wrapping="none"/)
+  assert.match(markdown, /style="width:50%; height:auto"/)
+})
+
 test('htmlToMarkdown preserves image preset and custom resize dimensions', () => {
   const preset = htmlToMarkdown(
     '<img src="/image.png" style="width:50%;height:auto" data-sd-image-size="50%">'
