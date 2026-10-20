@@ -15,6 +15,8 @@ from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
+CLEAR_DATABASE_PRESERVED_ADMIN_EMAIL = 'joe@joe-ryan.mba'
+
 
 # Keep a stable iteration order for branding settings; tests assert the exact
 # sequence returned when clearing stale references from deleted assets.
@@ -488,9 +490,20 @@ def get_admin_notifications():
 @jwt_required()
 def clear_database():
     """Clear all data from the database except the admin user (admin-only endpoint)."""
-    # NOTE: In production, you should add authentication/authorization checks here!
-    # Adjust this email if your admin user uses a different address
-    admin_email = 'admin@example.com'
+    from ..routes.users import _require_admin
+
+    _, auth_error = _require_admin()
+    if auth_error:
+        return auth_error
+
+    admin_email = CLEAR_DATABASE_PRESERVED_ADMIN_EMAIL
+    preserved_admin = User.query.filter(func.lower(User.email) == admin_email).first()
+    if not preserved_admin or preserved_admin.role != 'admin' or not preserved_admin.active:
+        return jsonify({
+            'status': 'error',
+            'message': f'An active admin account for {admin_email} must exist before clearing the database.'
+        }), 409
+
     payload = request.get_json(silent=True) or {}
     purge_storage_requested = bool(payload.get('purge_storage', False))
     storage_prefix = (payload.get('storage_prefix') or 'images/').strip() or 'images/'
@@ -590,7 +603,10 @@ def clear_database():
         db.session.execute(text("DELETE FROM projects;"))
         db.session.execute(text("DELETE FROM links;"))
         db.session.execute(text("DELETE FROM snippets;"))
-        db.session.execute(text("DELETE FROM users WHERE email != :admin_email"), {"admin_email": admin_email})
+        db.session.execute(
+            text("DELETE FROM users WHERE lower(email) != :admin_email"),
+            {"admin_email": admin_email}
+        )
         db.session.commit()
 
         storage_purge_result = {
