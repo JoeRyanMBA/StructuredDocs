@@ -465,6 +465,31 @@ def test_mobile_kb_image_paragraphs_reset_spacing_with_extra_markup(monkeypatch)
     assert 'max-height: none;' in html
 
 
+def test_mobile_kb_preserves_non_wrapped_image_alignment(monkeypatch):
+    monkeypatch.setattr(kb_generator_module, 'get_export_branding_settings', lambda: {
+        'brand_name': 'Acme',
+        'html_logo': '',
+        'html_primary_color': '#005a9c',
+        'html_accent_color': '#112E51',
+    })
+    monkeypatch.setattr(
+        kb_generator_module,
+        'convert_markdown_to_html',
+        lambda content: (
+            '<p><img src="image.png" data-sd-image-alignment="center" '
+            'data-sd-image-wrapping="none"></p>'
+        ),
+    )
+
+    html = kb_generator_module.generate_mobile_kb_html_inline(
+        types.SimpleNamespace(title='Knowledge Base', id=1),
+        [{'id': 1, 'title': 'Overview', 'content': 'ignored', 'children': []}],
+    )
+
+    assert '.content-section img[data-sd-image-alignment="center"][data-sd-image-wrapping="none"]' in html
+    assert 'margin-left: auto;\n            margin-right: auto;' in html
+
+
 def test_mobile_kb_has_previous_and_next_topic_navigation(monkeypatch):
     monkeypatch.setattr(kb_generator_module, 'get_export_branding_settings', lambda: {
         'brand_name': 'Acme',

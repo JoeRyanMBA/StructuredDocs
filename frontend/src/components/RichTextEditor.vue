@@ -1645,7 +1645,6 @@ export default {
   width: 100%;
   position: relative;
   isolation: isolate;
-  white-space: pre-wrap;
   tab-size: 4;
   min-height: 0;
   height: 100%;
@@ -1673,6 +1672,21 @@ export default {
   max-width: min(45%, 320px);
   height: auto;
   margin: 0 12px 8px;
+}
+.wysiwyg-content img[data-sd-image-wrapping="none"] {
+  display: block;
+}
+.wysiwyg-content img[data-sd-image-alignment="left"][data-sd-image-wrapping="none"] {
+  margin-left: 0;
+  margin-right: auto;
+}
+.wysiwyg-content img[data-sd-image-alignment="center"][data-sd-image-wrapping="none"] {
+  margin-left: auto;
+  margin-right: auto;
+}
+.wysiwyg-content img[data-sd-image-alignment="right"][data-sd-image-wrapping="none"] {
+  margin-left: auto;
+  margin-right: 0;
 }
 .wysiwyg-content ul,
 .wysiwyg-content ol {
