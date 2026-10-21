@@ -91,3 +91,23 @@ test('htmlToMarkdown preserves image preset and custom resize dimensions', () =>
   assert.match(custom, /style="width:240px; height:auto"/)
   assert.match(custom, /data-sd-image-size="custom"/)
 })
+
+test('htmlToMarkdown preserves explicitly empty image alt text', () => {
+  const markdown = htmlToMarkdown('<img src="/images/decorative.png" alt="">')
+
+  assert.match(markdown, /!\[\]\(\/images\/decorative\.png\)/)
+})
+
+test('htmlToMarkdown preserves continued numbering across standalone images', () => {
+  const markdown = htmlToMarkdown(
+    '<ol><li>Step one</li></ol>'
+    + '<p><img src="/images/step-one.png" alt="Step one"></p>'
+    + '<ol start="2"><li>Step two</li></ol>'
+  )
+
+  assert.match(markdown, /1\. Step one/)
+  assert.match(markdown, /!\[Step one\]\(\/images\/step-one\.png\)/)
+  assert.match(markdown, /2\. Step two/)
+  assert.ok(markdown.indexOf('1. Step one') < markdown.indexOf('![Step one]'))
+  assert.ok(markdown.indexOf('![Step one]') < markdown.indexOf('2. Step two'))
+})
