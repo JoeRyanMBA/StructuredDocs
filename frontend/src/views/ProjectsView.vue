@@ -442,7 +442,7 @@
           
           <!-- Add from existing stakeholders -->
           <div class="stakeholder-selector">
-            <h4>Add Existing Stakeholder</h4>
+            <h3>Add Existing Stakeholder</h3>
             <div class="selector-row">
               <select v-model="selectedStakeholderId" class="stakeholder-select">
                 <option value="">Select a stakeholder...</option>
@@ -502,7 +502,7 @@
             
             <!-- Add new stakeholder manually -->
             <div class="add-new-stakeholder">
-              <h4>Or Add New Stakeholder</h4>
+              <h3>Or Add New Stakeholder</h3>
               <div class="new-stakeholder-form">
                 <input
                   v-model="newStakeholderName"

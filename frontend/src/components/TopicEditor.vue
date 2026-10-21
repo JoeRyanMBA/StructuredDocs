@@ -1036,7 +1036,13 @@ export default {
       if (this.editorMode === 'wysiwyg') {
         this.captureWysiwygSelection()
       }
+      this.resetImageUploadState()
       this.showImageModal = true
+    },
+    resetImageUploadState() {
+      this.imageUploadFile = null
+      this.imageUploadMessage = ''
+      this.imageUploadPreview = ''
     },
     captureWysiwygSelection() {
       this.$refs.richEditor?.saveSelection()
@@ -1748,6 +1754,7 @@ export default {
       this.selectedExistingImage = null
       this.savedWysiwygRange = null
       this.imageInsertMode = 'url'
+      this.resetImageUploadState()
       this.showImageModal = false
     },
 
