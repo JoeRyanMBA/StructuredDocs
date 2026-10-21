@@ -20,7 +20,7 @@
         >
           • List <span class="toolbar-dropdown__caret">▾</span>
         </button>
-        <div v-show="activeListMenu === 'bullet'" class="dropdown-content" @click.stop>
+        <div v-if="activeListMenu === 'bullet'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 1)">Level 1</button>
           <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 2)">Level 2</button>
           <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 3)">Level 3</button>
@@ -37,7 +37,7 @@
         >
           1. List <span class="toolbar-dropdown__caret">▾</span>
         </button>
-        <div v-show="activeListMenu === 'ordered'" class="dropdown-content" @click.stop>
+        <div v-if="activeListMenu === 'ordered'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 1)">Level 1</button>
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 2)">Level 2</button>
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 3)">Level 3</button>
@@ -77,6 +77,19 @@
         <span class="rte-toolbar-group-label">Image</span>
         <div class="rte-toolbar-group-controls">
           <slot name="toolbar-image-extra" />
+          <label class="rte-image-alt-control">
+            <span>Alt text</span>
+            <input
+              type="text"
+              class="rte-image-alt-input"
+              aria-label="Selected image alt text"
+              placeholder="Describe the selected image"
+              :value="imageContext.altText"
+              :disabled="!imageContext.selected"
+              @mousedown.stop
+              @input="applyImageAltText($event.target.value)"
+            />
+          </label>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'size' }]">
         <button
           type="button"
@@ -188,6 +201,7 @@ export default {
       _resizeMaxWidth: 0,
       imageContext: {
         selected: false,
+        altText: '',
         size: 'original',
         alignment: 'left',
         wrapping: 'none',
@@ -204,6 +218,7 @@ export default {
       const el = this.$refs.editorEl
       if (el && el.innerHTML !== newVal) {
         el.innerHTML = newVal || ''
+        this.continueOrderedListsAfterImages(el)
         this._savedRange = null
         this.refreshImageContext()
       }
@@ -220,6 +235,7 @@ export default {
   mounted() {
     if (this.$refs.editorEl) {
       this.$refs.editorEl.innerHTML = this.modelValue || ''
+      this.continueOrderedListsAfterImages(this.$refs.editorEl)
       this.setSpellcheck(this.spellcheck)
       this.$refs.editorEl.setAttribute('lang', this.spellcheckLang || 'en-US')
       this.refreshImageContext()
@@ -274,7 +290,7 @@ export default {
     onDocumentMouseDown(event) {
       if (!this.$el?.contains(event.target)) {
         this.closeToolbarMenus()
-        this.imageContext.selected = false
+        this.imageContext = { ...this.imageContext, selected: false, altText: '' }
         this.imageResizeHandleStyle = null
       }
     },
@@ -306,7 +322,7 @@ export default {
     refreshImageContext() {
       const image = this.getSelectedImage()
       if (!image) {
-        this.imageContext.selected = false
+        this.imageContext = { ...this.imageContext, selected: false, altText: '' }
         this.imageResizeHandleStyle = null
         return
       }
@@ -314,6 +330,7 @@ export default {
       const float = image.style.float
       this.imageContext = {
         selected: true,
+        altText: image.getAttribute('alt') || '',
         size: image.dataset.sdImageSize || (image.style.width === '100%'
           ? 'full'
           : image.style.width ? 'custom' : 'original'),
@@ -416,10 +433,22 @@ export default {
       }
       this.saveSelection()
     },
+    applyImageAltText(value) {
+      const image = this.getSelectedImage()
+      if (!image) {
+        this.imageContext = { ...this.imageContext, selected: false, altText: '' }
+        return
+      }
+
+      const altText = String(value ?? '')
+      image.setAttribute('alt', altText)
+      this.imageContext = { ...this.imageContext, selected: true, altText }
+      this.emitUpdate()
+    },
     applyImageOption(option, value) {
       const image = this.getSelectedImage()
       if (!image) {
-        this.imageContext.selected = false
+        this.imageContext = { ...this.imageContext, selected: false, altText: '' }
         return
       }
 
@@ -484,14 +513,14 @@ export default {
         image.style.margin = wrapping === 'text-right' ? '0 12px 8px 0' : '0 0 8px 12px'
       }
 
-      this.imageContext = { selected: true, size, alignment, wrapping }
+      this.imageContext = { ...this.imageContext, selected: true, size, alignment, wrapping }
       this.updateImageResizeHandle(image)
       this.closeImageMenu()
       this.emitUpdate()
     },
     applyListLevel(type, level) {
-      this.insertList(type, level)
       this.closeListMenu()
+      this.insertList(type, level)
     },
     insertTableFromPrompt() {
       const rowsInput = window.prompt('Number of rows (including header row):', '3')
@@ -970,9 +999,57 @@ export default {
         this.normalizeStyledListGroups()
       }
 
+      this.continueOrderedListsAfterImages()
       this.placeCaretAtEnd(this.getCurrentListItem() || this.$refs.editorEl)
       this.saveSelection()
       this.emitUpdate()
+    },
+    continueOrderedListsAfterImages(container = this.$refs.editorEl) {
+      if (!(container instanceof HTMLElement)) return
+
+      const parents = [container, ...container.querySelectorAll('*')]
+      parents.forEach(parent => {
+        let previousOrderedList = null
+        let imageBetweenLists = false
+
+        Array.from(parent.childNodes).forEach(node => {
+          if (node.nodeType === Node.TEXT_NODE && !(node.textContent || '').trim()) return
+
+          if (node instanceof HTMLElement && node.tagName === 'OL') {
+            if (previousOrderedList && imageBetweenLists && !node.hasAttribute('start')) {
+              let nextStart = Number.parseInt(previousOrderedList.getAttribute('start') || '1', 10)
+              if (!Number.isFinite(nextStart)) nextStart = 1
+
+              Array.from(previousOrderedList.children)
+                .filter(item => item.tagName === 'LI')
+                .forEach(item => {
+                  const itemValue = Number.parseInt(item.getAttribute('value') || '', 10)
+                  if (Number.isFinite(itemValue)) nextStart = itemValue
+                  nextStart += 1
+                })
+
+              node.setAttribute('start', String(nextStart))
+            }
+
+            previousOrderedList = node
+            imageBetweenLists = false
+            return
+          }
+
+          if (this.isImageOnlyBlock(node) && previousOrderedList) {
+            imageBetweenLists = true
+            return
+          }
+
+          previousOrderedList = null
+          imageBetweenLists = false
+        })
+      })
+    },
+    isImageOnlyBlock(node) {
+      if (!(node instanceof HTMLElement)) return false
+      const containsImage = node.tagName === 'IMG' || node.querySelector('img')
+      return Boolean(containsImage) && !(node.textContent || '').trim()
     },
     getExistingListItems({ listTag, multiBlockSelection, selectedItemsBeforeCommand, currentItem }) {
       const targetListSelector = listTag.toLowerCase()
@@ -1459,6 +1536,7 @@ export default {
       selection.addRange(range)
     },
     onInput() {
+      this.continueOrderedListsAfterImages()
       this.refreshTableContext()
       if (this._inputTimer) clearTimeout(this._inputTimer)
       this._inputTimer = setTimeout(() => this.emitUpdate(), 300)
@@ -1498,6 +1576,7 @@ export default {
       }
     },
     emitUpdate() {
+      this.continueOrderedListsAfterImages()
       this.$emit('update:modelValue', this.$refs.editorEl?.innerHTML || '')
     },
     setSpellcheck(enabled) {
@@ -1553,6 +1632,7 @@ export default {
       }
     },
     getContent() {
+      this.continueOrderedListsAfterImages()
       return this.$refs.editorEl?.innerHTML || ''
     },
     getEditorEl() {
@@ -1638,6 +1718,28 @@ export default {
   flex-wrap: wrap;
   align-items: center;
   gap: 0.25rem;
+}
+
+.rte-image-alt-control {
+  display: inline-flex;
+  flex-direction: column;
+  gap: 0.15rem;
+  color: #495057;
+  font-size: 0.75rem;
+}
+
+.rte-image-alt-input {
+  width: 12rem;
+  max-width: 100%;
+  padding: 0.4rem 0.5rem;
+  border: 1px solid #dee2e6;
+  border-radius: 3px;
+  font: inherit;
+}
+
+.rte-image-alt-input:disabled {
+  background: #f1f3f5;
+  cursor: not-allowed;
 }
 
 /* wysiwyg-content styles (mirrors TopicEditor for standalone use) */
