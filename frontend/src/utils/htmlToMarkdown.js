@@ -584,7 +584,7 @@ export function htmlToMarkdown(html) {
     }
     if (tag === 'img') {
       const src = node.getAttribute('src') || ''
-      const alt = node.getAttribute('alt') || 'Image'
+      const alt = node.hasAttribute('alt') ? (node.getAttribute('alt') || '') : 'Image'
       const layoutStyle = getImageLayoutStyle(node)
       const presentationAttributes = ['size', 'alignment', 'wrapping']
         .map(name => {

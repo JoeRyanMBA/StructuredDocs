@@ -117,6 +117,35 @@ test('image size presets persist percentage widths in emitted HTML', () => {
   }
 })
 
+test('selected image alt text can be added, edited, cleared, and persisted', () => {
+  const { editor, image, instance, updates } = createEditorHarness()
+  image.setAttribute('alt', 'Original description')
+  const secondImage = document.createElement('img')
+  secondImage.src = '/second-image.png'
+  secondImage.alt = 'Second image'
+  editor.append(secondImage)
+
+  instance.onEditorClick({ target: image })
+  assert.equal(instance.imageContext.altText, 'Original description')
+
+  const updatedAltText = 'A "quoted" description & details'
+  instance.applyImageAltText(updatedAltText)
+  assert.equal(image.getAttribute('alt'), updatedAltText)
+  assert.equal(instance.imageContext.altText, updatedAltText)
+  assert.match(updates.at(-1), /alt="A &quot;quoted&quot; description &amp; details"/)
+
+  instance.onEditorClick({ target: secondImage })
+  assert.equal(instance.imageContext.altText, 'Second image')
+  instance.applyImageAltText('')
+  assert.equal(secondImage.getAttribute('alt'), '')
+  assert.match(updates.at(-1), /alt=""/)
+
+  instance.onEditorClick({ target: image })
+  instance.applyImageAltText('Edited description')
+  assert.equal(image.getAttribute('alt'), 'Edited description')
+  assert.match(updates.at(-1), /alt="Edited description"/)
+})
+
 test('drag resizing stores a custom width and maintains image aspect ratio', () => {
   const { image, instance, updates } = createEditorHarness()
   const parent = image.parentElement

@@ -62,3 +62,53 @@ test('Tab inserts a tab in the WYSIWYG topic editor without leaving it', () => {
   assert.equal(editor.textContent, 'Topic\t text')
   assert.match(updates.at(-1), /Topic\t text/)
 })
+
+test('closes the list dropdown before applying a selected list level', () => {
+  const { instance } = createEditorHarness()
+  instance.activeListMenu = 'ordered'
+  let appliedLevel
+  instance.insertList = (type, level) => {
+    assert.equal(instance.activeListMenu, null)
+    appliedLevel = [type, level]
+  }
+
+  instance.applyListLevel('ordered', 2)
+
+  assert.deepEqual(appliedLevel, ['ordered', 2])
+  assert.equal(instance.activeListMenu, null)
+})
+
+test('continues ordered-list numbering across standalone images', () => {
+  const { editor, instance } = createEditorHarness()
+  editor.innerHTML = [
+    '<ol><li>Step one</li></ol>',
+    '<p><img src="/step-one.png" alt="Step one"></p>',
+    '<ol><li>Step two</li></ol>',
+    '<p><img src="/step-two.png" alt="Step two"></p>',
+    '<ol><li>Step three</li></ol>',
+  ].join('')
+
+  instance.continueOrderedListsAfterImages()
+
+  const lists = editor.querySelectorAll('ol')
+  assert.equal(lists[0].getAttribute('start'), null)
+  assert.equal(lists[1].getAttribute('start'), '2')
+  assert.equal(lists[2].getAttribute('start'), '3')
+})
+
+test('does not change explicit list starts or lists separated by text', () => {
+  const { editor, instance } = createEditorHarness()
+  editor.innerHTML = [
+    '<ol><li>Step one</li></ol>',
+    '<p><img src="/step-one.png" alt="Step one"></p>',
+    '<ol start="5"><li>Step five</li></ol>',
+    '<p>Separate instructions</p>',
+    '<ol><li>New sequence</li></ol>',
+  ].join('')
+
+  instance.continueOrderedListsAfterImages()
+
+  const lists = editor.querySelectorAll('ol')
+  assert.equal(lists[1].getAttribute('start'), '5')
+  assert.equal(lists[2].getAttribute('start'), null)
+})
