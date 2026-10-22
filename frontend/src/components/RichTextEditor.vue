@@ -1104,11 +1104,19 @@ export default {
       const editor = this.$refs.editorEl
       if (!editor || !range) return []
 
+      if (range.collapsed) {
+        const node = range.startContainer
+        const element = node instanceof Element ? node : node.parentElement
+        const item = element?.closest('li')
+        return item && editor.contains(item) ? [item] : []
+      }
+
       return Array.from(editor.querySelectorAll('li')).filter(node => range.intersectsNode(node))
     },
     getSelectionBlockCount(range) {
       const editor = this.$refs.editorEl
       if (!editor || !range) return 0
+      if (range.collapsed) return 1
 
       const selector = 'p,div,li,h1,h2,h3,h4,h5,h6,pre,blockquote'
       const blocks = Array.from(editor.querySelectorAll(selector)).filter(node => range.intersectsNode(node))
