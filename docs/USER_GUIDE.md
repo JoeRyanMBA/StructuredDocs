@@ -2,6 +2,8 @@
 
 StructuredDocs helps authors organize content into projects, collections, and topics, then review and publish that content. Sign in with the account provided by your administrator. Your role and your organization's configuration determine which pages and actions are available. In the navigation, **Projects** contains tasks, milestones, stakeholders, and tags; **Collections** contains collection, import, and publish pages; **Author** contains topics and snippets; and **Reviews** contains review tasks and history.
 
+On desktop, the navigation starts as an icon-only sidebar. Hover over it or move keyboard focus to a navigation link to expand the labels and submenus. It collapses when both the pointer and keyboard focus leave the sidebar. The expanded menu overlays the page without shifting your content. On mobile, use the menu button in the header to open and close navigation.
+
 ## Create a project
 
 Open **Projects** and select **Create Project**. Enter a project name, choose a status, and optionally add a description. Select **Next** to save the project and continue through the setup steps. The guided setup lets you add stakeholders and milestones now or skip either step and add them later.
