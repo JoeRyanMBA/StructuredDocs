@@ -44,6 +44,24 @@
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 4)">Level 4</button>
         </div>
       </div>
+      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'plain' }]">
+        <button
+          type="button"
+          class="toolbar-btn dropdown-btn"
+          aria-haspopup="true"
+          :aria-expanded="(activeListMenu === 'plain').toString()"
+          title="Indented list with no bullet or number"
+          @click.stop="toggleListMenu('plain')"
+        >
+          ⇥ Indent <span class="toolbar-dropdown__caret">▾</span>
+        </button>
+        <div v-if="activeListMenu === 'plain'" class="dropdown-content" @click.stop>
+          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 1)">Level 1</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 2)">Level 2</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 3)">Level 3</button>
+          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 4)">Level 4</button>
+        </div>
+      </div>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeTableMenu }]">
         <button
           type="button"
@@ -1135,6 +1153,7 @@ export default {
       return [currentItem]
     },
     applyVisualListLevel(listItems, level, type) {
+      const isPlain = type === 'plain'
       const markerStyles = type === 'ordered'
         ? { 1: 'decimal', 2: 'lower-alpha', 3: 'lower-roman', 4: 'upper-alpha' }
         : { 1: 'disc', 2: 'circle', 3: 'square', 4: 'disc' }
@@ -1143,7 +1162,10 @@ export default {
         if (!(listItem instanceof HTMLLIElement)) return
         const actualLevel = Math.max(1, Math.min(4, level))
         const marginLeft = actualLevel > 1 ? `${(actualLevel - 1) * 1.5}rem` : ''
-        const markerStyle = markerStyles[actualLevel] || markerStyles[1]
+        const markerStyle = isPlain ? 'none' : (markerStyles[actualLevel] || markerStyles[1])
+        // The class survives serialization and sanitizing; inline list-style-type does not
+        listItem.classList.toggle('list-plain', isPlain)
+        if (!listItem.classList.length) listItem.removeAttribute('class')
 
         if (actualLevel > 1) {
           listItem.dataset.listLevel = String(actualLevel)
@@ -1650,17 +1672,47 @@ export default {
   height: 100%;
   min-height: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
 }
 
+/* Vertical toolbar that stays in view while scrolling long topics */
 .rte-wysiwyg-editor > .rte-toolbar {
-  flex: 0 0 auto;
+  flex: 0 0 15rem;
+  align-self: flex-start;
+  position: sticky;
+  top: 0.5rem;
+  z-index: 20;
+  box-sizing: border-box;
 }
 
 .rte-wysiwyg-editor > .wysiwyg-content {
   flex: 1 1 0;
+  width: auto;
+  min-width: 0;
   height: auto;
   min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .rte-wysiwyg-editor {
+    flex-direction: column;
+  }
+
+  .rte-wysiwyg-editor > .rte-toolbar {
+    flex: 0 0 auto;
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .rte-wysiwyg-editor > .wysiwyg-content {
+    width: 100%;
+    border-radius: 0 0 4px 4px;
+  }
 }
 
 .rte-image-resize-handle {
@@ -1680,29 +1732,29 @@ export default {
 
 .rte-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.65rem;
   padding: 0.5rem;
   background: #f8f9fa;
   border: 1px solid #dee2e6;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
 }
 
 .rte-toolbar-group {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0.3rem;
   min-width: 0;
-  padding-right: 0.65rem;
-  border-right: 1px solid #d7dce1;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #d7dce1;
 }
 
 .rte-toolbar-group:last-child {
-  padding-right: 0;
-  border-right: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .rte-toolbar-group-label {
@@ -1716,21 +1768,35 @@ export default {
 .rte-toolbar-group-controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 0.25rem;
 }
 
+.rte-toolbar-group-controls > .toolbar-btn,
+.rte-toolbar-group-controls > .toolbar-dropdown {
+  flex: 1 1 calc(50% - 0.25rem);
+  min-width: 0;
+}
+
+.rte-toolbar-group-controls > .toolbar-dropdown > .dropdown-btn,
+.rte-toolbar-group-controls > .toolbar-btn {
+  width: 100%;
+  justify-content: center;
+}
+
 .rte-image-alt-control {
-  display: inline-flex;
+  display: flex;
+  flex: 1 1 100%;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.15rem;
   color: #495057;
   font-size: 0.75rem;
 }
 
 .rte-image-alt-input {
-  width: 12rem;
-  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.4rem 0.5rem;
   border: 1px solid #dee2e6;
   border-radius: 3px;
@@ -1752,7 +1818,7 @@ export default {
   height: 100%;
   padding: 1.25rem;
   border: 1px solid #dee2e6;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 4px 4px 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
@@ -1801,6 +1867,9 @@ export default {
 }
 .wysiwyg-content ul {
   list-style-type: disc;
+}
+.wysiwyg-content li.list-plain {
+  list-style-type: none;
 }
 .wysiwyg-content ul ul {
   list-style-type: circle;
@@ -1871,10 +1940,10 @@ export default {
 
 .rte-toolbar .dropdown-content {
   position: absolute;
-  top: 100%;
-  left: 0;
+  top: 0;
+  left: 100%;
   min-width: 180px;
-  margin-top: 2px;
+  margin-left: 4px;
   background: #fff;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -1924,7 +1993,7 @@ export default {
 
 /* wysiwyg-content is defined globally in TopicEditor but included here for standalone pages */
 .rte-wysiwyg-editor .wysiwyg-content {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 4px 4px 0;
 }
 
 .rte-wysiwyg-editor .wysiwyg-content code {

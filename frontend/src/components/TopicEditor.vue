@@ -2168,8 +2168,12 @@ export default {
   min-height: 0;
 }
 
+.topic-editor .rte-wysiwyg-editor {
+  align-items: flex-start;
+}
+
 .topic-editor .rte-wysiwyg-editor > .wysiwyg-content {
-  flex: 0 0 auto;
+  flex: 1 1 0;
   height: auto;
   min-height: 58vh;
   overflow: visible;
