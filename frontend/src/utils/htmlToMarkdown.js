@@ -444,7 +444,12 @@ export function htmlToMarkdown(html) {
     return lines.join('\n')
   }
 
+  // Markdown has no marker-less list, so lists containing plain items stay as raw HTML
   const renderList = (listNode, depth = 1) => {
+    if (listNode.querySelector('li.list-plain')) {
+      const html = listNode.outerHTML.replace(/\n\s*\n/g, '\n').trim()
+      return `${html}\n\n`
+    }
     const isOrdered = getListTag(listNode) === 'OL'
     let index = Number(listNode.getAttribute('start') || 1)
     const lines = []

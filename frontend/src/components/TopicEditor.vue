@@ -183,19 +183,20 @@
             @paste="handleWysiwygPaste"
           >
             <template #toolbar-extra>
-              <button @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
-              <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
-              <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
+              <button @click="openLinkModal" class="toolbar-btn" title="Insert link" aria-label="Insert link">🔗</button>
+              <button @click="openSnippetSelector" class="toolbar-btn" title="Insert snippet" aria-label="Insert snippet">📑</button>
+              <button @click="openCreateSnippet" class="toolbar-btn" title="Create snippet from selection" aria-label="Create snippet">✂️</button>
               <button
                 type="button"
                 @click.prevent.stop="toggleSpellcheck"
                 :class="['toolbar-btn', spellcheckEnabled ? 'toolbar-btn--active is-active' : '']"
                 :title="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
+                :aria-label="spellcheckEnabled ? 'Disable spell check' : 'Enable spell check'"
                 :aria-pressed="spellcheckEnabled ? 'true' : 'false'"
-              >🔤 Spell Check</button>
+              >🔤</button>
             </template>
             <template #toolbar-image-extra>
-              <button @click="openImageModal" class="toolbar-btn">🖼️ Insert Image</button>
+              <button @click="openImageModal" class="toolbar-btn" title="Insert image" aria-label="Insert image">🖼️</button>
             </template>
           </RichTextEditor>
 
@@ -513,15 +514,6 @@
                 <input type="file" accept="image/*" @change="onImageUploadSelect" />
               </div>
               <div class="upload-status" v-if="imageUploadMessage">{{ imageUploadMessage }}</div>
-              <div class="upload-actions">
-                <button class="btn btn-primary" :disabled="imageUploadUploading || !imageUploadFile" @click="uploadImageFile">
-                  {{ imageUploadUploading ? 'Uploading...' : 'Upload & Use' }}
-                </button>
-              </div>
-              <div class="form-group" v-if="imageUrl">
-                <label>Resulting URL</label>
-                <input v-model="imageUrl" type="url" class="form-input">
-              </div>
               <div class="form-group">
                 <label>Alt Text</label>
                 <input v-model="imageAlt" type="text" class="form-input" placeholder="Description of image">
@@ -533,7 +525,9 @@
             </div>
           </div>
           <div class="modal-footer">
-            <button @click="insertImage" class="btn btn-primary">Insert Image</button>
+            <button @click="insertImage" class="btn btn-primary" :disabled="imageUploadUploading">
+              {{ imageUploadUploading ? 'Uploading...' : 'Insert Image' }}
+            </button>
             <button @click="showImageModal = false" class="btn btn-secondary">Cancel</button>
           </div>
         </div>
@@ -1323,7 +1317,7 @@ export default {
     selectExistingImage(img) {
       this.selectedExistingImage = img
       this.imageUrl = this.imageDisplayUrl(img)
-      this.imageAlt = img.alt_text || img.filename
+      this.imageAlt = img.alt_text || ''
     },
 
     onImageUploadSelect(event) {
@@ -1333,52 +1327,33 @@ export default {
     },
 
     async uploadImageFile() {
-      if (!this.imageUploadFile) return
+      if (!this.imageUploadFile) return false
       this.imageUploadUploading = true
       this.imageUploadMessage = 'Uploading...'
       try {
         const formData = new FormData()
         formData.append('image', this.imageUploadFile)
-        console.log('📤 Uploading image:', this.imageUploadFile.name)
         const { data: uploadData } = await axiosInstance.post('/api/images/upload', formData)
-        console.log('✅ Upload response:', uploadData)
-        
-        // Refresh the image list to get the new image with proper metadata
-        // This ensures we get the complete record from the backend API
-        console.log('🔄 Fetching updated image list...')
+
+        // Refresh the list to get the complete record (proper public_url) from the backend
         await this.fetchImages()
         this.filterImages()
-        
-        // Find the newly uploaded image by filename (most reliable)
-        const uploadedFilename = uploadData.filename
-        const newImage = this.availableImages.find(img => img.filename === uploadedFilename)
-        console.log('🔍 Found new image:', newImage)
-        
+
+        const newImage = this.availableImages.find(img => img.filename === uploadData.filename)
         if (newImage) {
-          // Use the image from the fetched list (has proper public_url)
           this.imageUrl = newImage.public_url || newImage.file_path || uploadData.public_url
-          this.imageAlt = newImage.alt_text || newImage.filename
           this.selectedExistingImage = newImage
-          this.imageUploadMessage = '✅ Upload successful. Inserting...'
-          console.log('🎯 Set image URL to:', this.imageUrl)
-          
-          // Auto-insert immediately after successful upload and selection
-          this.$nextTick(() => {
-            this.restoreWysiwygSelection()
-            console.log('🔨 Auto-inserting image...')
-            this.insertImage()
-          })
+          if (!this.imageAlt) this.imageAlt = newImage.alt_text || ''
         } else {
-          // Fallback: use the upload response directly
           this.imageUrl = uploadData.public_url || uploadData.file_path
-          this.imageAlt = uploadData.alt_text || uploadData.filename
-          this.imageUploadMessage = '✅ Upload successful. Ready to insert.'
-          console.log('⚠️ Image not in fetched list, using upload response:', this.imageUrl)
-          this.imageInsertMode = 'existing'
+          if (!this.imageAlt) this.imageAlt = uploadData.alt_text || ''
         }
+        this.imageUploadMessage = ''
+        return Boolean(this.imageUrl)
       } catch (e) {
-        console.error('❌ Upload failed', e)
+        console.error('Image upload failed', e)
         this.imageUploadMessage = `❌ Upload failed: ${e.message}`
+        return false
       } finally {
         this.imageUploadUploading = false
       }
@@ -1723,9 +1698,15 @@ export default {
       this.showLinkModal = false
     },
 
-    insertImage() {
+    async insertImage() {
+      if (this.imageInsertMode === 'upload' && this.imageUploadFile) {
+        if (this.imageUploadUploading) return
+        const uploaded = await this.uploadImageFile()
+        if (!uploaded) return
+      }
       if (!this.imageUrl) return
-      const alt = this.imageAlt || 'Image'
+      const alt = (this.imageAlt || '').trim()
+      const htmlAlt = alt.replace(/&/g, '&amp;').replace(/"/g, '&quot;').replace(/</g, '&lt;').replace(/>/g, '&gt;')
       const caption = (this.imageCaption || '').trim()
       const imageMarkdown = caption
         ? `![${alt}](${this.imageUrl})\n\n${caption}`
@@ -1741,8 +1722,8 @@ export default {
           .replace(/>/g, '&gt;')
           .replace(/"/g, '&quot;')
         const imgHtml = caption
-          ? `<p><img src="${this.imageUrl}" alt="${alt}" /></p><p>${escapedCaption}</p>`
-          : `<img src="${this.imageUrl}" alt="${alt}" />`
+          ? `<p><img src="${this.imageUrl}" alt="${htmlAlt}" /></p><p>${escapedCaption}</p>`
+          : `<img src="${this.imageUrl}" alt="${htmlAlt}" />`
         document.execCommand('insertHTML', false, imgHtml)
         this.updateContentFromWysiwyg()
       }
@@ -1752,6 +1733,8 @@ export default {
       this.imageAlt = ''
       this.imageCaption = ''
       this.selectedExistingImage = null
+      this.imageUploadFile = null
+      this.imageUploadMessage = ''
       this.savedWysiwygRange = null
       this.imageInsertMode = 'url'
       this.resetImageUploadState()
@@ -2073,7 +2056,7 @@ export default {
               if (editor.contains(range.startContainer)) {
                 const imageNode = document.createElement('img')
                 imageNode.src = src
-                imageNode.alt = uploaded.alt_text || generatedName
+                imageNode.alt = uploaded.alt_text || ''
 
                 range.deleteContents()
                 range.insertNode(imageNode)
@@ -2091,7 +2074,7 @@ export default {
             if (!insertedAtCaret) {
               const imageNode = document.createElement('img')
               imageNode.src = src
-              imageNode.alt = uploaded.alt_text || generatedName
+              imageNode.alt = uploaded.alt_text || ''
               editor.appendChild(imageNode)
               editor.appendChild(document.createTextNode(' '))
             }
@@ -2166,10 +2149,6 @@ export default {
 .topic-editor .rte-wysiwyg-editor {
   height: auto;
   min-height: 0;
-}
-
-.topic-editor .rte-wysiwyg-editor {
-  align-items: flex-start;
 }
 
 .topic-editor .rte-wysiwyg-editor > .wysiwyg-content {
