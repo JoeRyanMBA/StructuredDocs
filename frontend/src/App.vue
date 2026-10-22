@@ -184,6 +184,7 @@ export default {
 :root {
   --header-height: 60px;
   --sidebar-width: 250px;
+  --sidebar-rail-width: 64px;
   --ticker-height: 40px; /* Example height */
 }
 
@@ -215,12 +216,12 @@ export default {
   transition: margin-left 240ms cubic-bezier(0.2, 0.8, 0.2, 1), width 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Desktop: sidebar pushes content over */
+/* Reserve only the icon rail; the expanded menu overlays content. */
 @media (min-width: 769px) {
   .sidebar-layout .content {
     /* Push content to the right of the fixed sidebar */
-    margin-left: var(--sidebar-width) !important;
-    width: calc(100% - var(--sidebar-width)) !important;
+    margin-left: var(--sidebar-rail-width) !important;
+    width: calc(100% - var(--sidebar-rail-width)) !important;
     margin-top: calc(var(--header-height) + var(--ticker-height)) !important;
     padding: 2rem !important; /* Ensure padding is maintained */
   }
