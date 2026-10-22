@@ -88,10 +88,10 @@
             </div>
             <RichTextEditor v-else-if="editorMode === 'wysiwyg'" ref="richEditor" @update:model-value="onRichEditorUpdate">
               <template #toolbar-extra>
-                <button type="button" @click="openLinkModal" class="toolbar-btn">🔗 Link</button>
+                <button type="button" @click="openLinkModal" class="toolbar-btn" title="Insert link" aria-label="Insert link">🔗</button>
               </template>
               <template #toolbar-image-extra>
-                <button type="button" @click="openImageModal" class="toolbar-btn">🖼️ Insert Image</button>
+                <button type="button" @click="openImageModal" class="toolbar-btn" title="Insert image" aria-label="Insert image">🖼️</button>
               </template>
             </RichTextEditor>
             <div v-else class="preview-content" v-html="renderedContent"></div>
