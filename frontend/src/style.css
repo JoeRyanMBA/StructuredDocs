@@ -6,11 +6,6 @@
   --filter-button-height: 36px;
 }
 
-/* Indented list without bullet or number */
-li.list-plain {
-  list-style-type: none;
-}
-
 /* Main Layout Styles */
 .sidebar-layout {
   display: flex;

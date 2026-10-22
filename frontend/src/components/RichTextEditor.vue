@@ -49,25 +49,6 @@
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 4)">Level 4</button>
         </div>
       </div>
-      <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'plain' }]">
-        <button
-          type="button"
-          class="toolbar-btn dropdown-btn"
-          aria-haspopup="true"
-          :aria-expanded="(activeListMenu === 'plain').toString()"
-          title="Indented list (no bullet or number)"
-          aria-label="Indented list"
-          @click.stop="toggleListMenu('plain')"
-        >
-          ⇥ <span class="toolbar-dropdown__caret">▾</span>
-        </button>
-        <div v-if="activeListMenu === 'plain'" class="dropdown-content" @click.stop>
-          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 1)">Level 1</button>
-          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 2)">Level 2</button>
-          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 3)">Level 3</button>
-          <button type="button" class="dropdown-item" @click="applyListLevel('plain', 4)">Level 4</button>
-        </div>
-      </div>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeTableMenu }]">
         <button
           type="button"
@@ -1168,7 +1149,6 @@ export default {
       return [currentItem]
     },
     applyVisualListLevel(listItems, level, type) {
-      const isPlain = type === 'plain'
       const markerStyles = type === 'ordered'
         ? { 1: 'decimal', 2: 'lower-alpha', 3: 'lower-roman', 4: 'upper-alpha' }
         : { 1: 'disc', 2: 'circle', 3: 'square', 4: 'disc' }
@@ -1177,10 +1157,7 @@ export default {
         if (!(listItem instanceof HTMLLIElement)) return
         const actualLevel = Math.max(1, Math.min(4, level))
         const marginLeft = actualLevel > 1 ? `${(actualLevel - 1) * 1.5}rem` : ''
-        const markerStyle = isPlain ? 'none' : (markerStyles[actualLevel] || markerStyles[1])
-        // The class survives serialization and sanitizing; inline list-style-type does not
-        listItem.classList.toggle('list-plain', isPlain)
-        if (!listItem.classList.length) listItem.removeAttribute('class')
+        const markerStyle = markerStyles[actualLevel] || markerStyles[1]
 
         if (actualLevel > 1) {
           listItem.dataset.listLevel = String(actualLevel)
@@ -1477,6 +1454,11 @@ export default {
       }
 
       return node instanceof Element ? node.closest('li') : null
+    },
+    getListLevel(listNode) {
+      const firstItem = Array.from(listNode?.children || []).find(child => child instanceof HTMLLIElement)
+      const parsed = Number((firstItem || listNode)?.dataset?.listLevel || listNode?.dataset?.listLevel || '')
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
     },
     getListDepth(listItem) {
       let depth = 1
@@ -1897,9 +1879,6 @@ export default {
 }
 .wysiwyg-content ul {
   list-style-type: disc;
-}
-.wysiwyg-content li.list-plain {
-  list-style-type: none;
 }
 .wysiwyg-content ul ul {
   list-style-type: circle;
