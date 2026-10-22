@@ -1,10 +1,17 @@
 <template>
   <aside class="sidebar" :class="{ 'collapsed': !open }">
-    <nav class="sidebar-nav">
+    <nav class="sidebar-nav" aria-label="Main navigation">
       <ul>
         <li v-for="item in visibleTabs" :key="item.key" :class="{ 'has-submenu': item.children }">
-          <a @click="handleParentClick(item)" :class="{ 'router-link-active': isParentActive(item) }">
-            <span class="nav-icon">{{ item.icon }}</span>
+          <a
+            :href="$router.resolve({ name: item.route }).href"
+            @click.exact.prevent="handleParentClick(item)"
+            :aria-label="item.label"
+            :title="item.label"
+            :aria-expanded="item.children ? String(openSubmenu === item.key) : undefined"
+            :class="{ 'router-link-active': isParentActive(item) }"
+          >
+            <span class="nav-icon" aria-hidden="true">{{ item.icon }}</span>
             <span class="nav-label">{{ item.label }}</span>
             <span v-if="item.children" class="arrow" :class="{ 'open': openSubmenu === item.key }">▶</span>
           </a>
@@ -12,11 +19,13 @@
             <li v-for="child in item.children" :key="child.key">
               <router-link
                 :to="{ name: child.route }"
+                :aria-label="child.label"
+                :title="child.label"
                 active-class="no-active"
                 exact-active-class="no-active"
                 :class="{ 'router-link-active': isChildActive(child, item) }"
               >
-                <span class="nav-icon">{{ child.icon }}</span>
+                <span class="nav-icon" aria-hidden="true">{{ child.icon }}</span>
                 <span class="nav-label">{{ child.label }}</span>
               </router-link>
             </li>
@@ -160,7 +169,7 @@ export default {
 
 <style scoped>
 .sidebar {
-  width: 250px;
+  width: var(--sidebar-width);
   position: fixed;
   top: calc(var(--header-height) + var(--ticker-height));
   left: 0;
@@ -169,13 +178,32 @@ export default {
   color: #f8f9fa;
   padding-top: 1rem;
   z-index: 1000;
-  transition: transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
+  overflow-x: hidden;
+  overflow-y: auto;
+  transition: width 240ms cubic-bezier(0.2, 0.8, 0.2, 1), transform 240ms cubic-bezier(0.2, 0.8, 0.2, 1);
 }
 
-/* Desktop: sidebar always visible */
+/* Expand over the content so hovering does not move the page. */
 @media (min-width: 769px) {
   .sidebar {
-    transform: translateX(0) !important; /* Always visible on desktop, override any collapsed state */
+    width: var(--sidebar-rail-width);
+    transform: translateX(0);
+  }
+
+  .sidebar:hover,
+  .sidebar:focus-within {
+    width: var(--sidebar-width);
+    box-shadow: 4px 0 12px #00000026;
+  }
+
+  .sidebar:not(:hover):not(:focus-within) .nav-label,
+  .sidebar:not(:hover):not(:focus-within) .arrow,
+  .sidebar:not(:hover):not(:focus-within) .submenu {
+    display: none;
+  }
+
+  .sidebar:not(:hover):not(:focus-within) .nav-icon {
+    margin-right: 0;
   }
 }
 
@@ -238,11 +266,13 @@ export default {
 .nav-icon {
   margin-right: 1rem;
   width: 20px;
+  flex-shrink: 0;
   text-align: center;
 }
 
 .nav-label {
   flex-grow: 1;
+  white-space: nowrap;
 }
 
 .arrow {

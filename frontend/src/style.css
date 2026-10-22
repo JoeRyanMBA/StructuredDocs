@@ -27,6 +27,12 @@
   left: 250px; /* shift when sidebar is open */
 }
 
+@media (min-width: 769px) {
+  .sidebar-layout .ticker-bar {
+    left: var(--sidebar-rail-width);
+  }
+}
+
 .sidebar-layout main.content {
   margin-left: 0; /* default collapsed */
   margin-top: calc(var(--header-height) + var(--ticker-height)); /* Account for header and ticker */
