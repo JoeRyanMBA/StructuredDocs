@@ -11,6 +11,11 @@ globalThis.Node = dom.window.Node
 globalThis.Element = dom.window.Element
 globalThis.HTMLElement = dom.window.HTMLElement
 globalThis.HTMLTableCellElement = dom.window.HTMLTableCellElement
+globalThis.HTMLLIElement = dom.window.HTMLLIElement
+globalThis.DOMParser = dom.window.DOMParser
+
+const { htmlToMarkdown } = await import('../src/utils/htmlToMarkdown.js')
+const { marked } = await import('marked')
 
 const source = await readFile(new URL('../src/components/RichTextEditor.vue', import.meta.url), 'utf8')
 const { descriptor } = parse(source)
@@ -112,3 +117,29 @@ test('does not change explicit list starts or lists separated by text', () => {
   assert.equal(lists[1].getAttribute('start'), '5')
   assert.equal(lists[2].getAttribute('start'), null)
 })
+
+for (const [type, tag, marker] of [['bullet', 'ul', '-'], ['ordered', 'ol', '1.']]) {
+  test(`${type} levels preserve ancestors and round-trip as nested lists`, () => {
+    const { editor, instance } = createEditorHarness()
+    editor.innerHTML = `<${tag}><li>Level 1<${tag}><li>Level 2</li><li>Level 3</li></${tag}></li></${tag}>`
+    const item = editor.querySelectorAll('li')[2]
+    const range = document.createRange()
+    range.selectNodeContents(item)
+    range.collapse(true)
+    window.getSelection().removeAllRanges()
+    window.getSelection().addRange(range)
+    instance.saveSelection()
+
+    assert.deepEqual(instance.getIntersectingListItems(range), [item])
+    instance.applyListLevel(type, 3)
+
+    assert.equal(editor.querySelectorAll(`${tag} > li > ${tag} > li > ${tag} > li`).length, 1)
+    assert.equal(editor.querySelectorAll('li').length, 3)
+    const markdown = htmlToMarkdown(editor.innerHTML)
+    assert.equal(markdown.trimEnd(), `${marker} Level 1\n    ${marker} Level 2\n        ${marker} Level 3`)
+    const preview = document.createElement('div')
+    preview.innerHTML = marked.parse(markdown)
+    assert.equal(preview.querySelectorAll(`${tag} > li > ${tag} > li > ${tag} > li`).length, 1)
+    editor.remove()
+  })
+}

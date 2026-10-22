@@ -1,24 +1,27 @@
 <template>
   <div class="rte-wysiwyg-editor">
+    <div class="rte-toolbar-col">
     <div class="rte-toolbar" @mousedown.prevent>
       <div class="rte-toolbar-group" role="group" aria-label="Text formatting">
         <span class="rte-toolbar-group-label">Text</span>
         <div class="rte-toolbar-group-controls">
-      <button type="button" @click="exec('bold')" class="toolbar-btn">𝐁 Bold</button>
-      <button type="button" @click="exec('italic')" class="toolbar-btn">𝐼 Italic</button>
-      <button type="button" @click="applyInlineCode" class="toolbar-btn">⟨⟩ Code</button>
-      <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn">𝐇𝟐 Header</button>
-      <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn">𝐇𝟑 Header</button>
-      <button type="button" @click="clearFormatting()" class="toolbar-btn" title="Clear formatting from selected text">Tx Clear</button>
+      <button type="button" @click="exec('bold')" class="toolbar-btn" title="Bold" aria-label="Bold">𝐁</button>
+      <button type="button" @click="exec('italic')" class="toolbar-btn" title="Italic" aria-label="Italic">𝐼</button>
+      <button type="button" @click="applyInlineCode" class="toolbar-btn" title="Inline code" aria-label="Inline code">⟨⟩</button>
+      <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn" title="Heading 2" aria-label="Heading 2">𝐇𝟐</button>
+      <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn" title="Heading 3" aria-label="Heading 3">𝐇𝟑</button>
+      <button type="button" @click="clearFormatting()" class="toolbar-btn" title="Clear formatting from selected text" aria-label="Clear formatting">Tx</button>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'bullet' }]">
         <button
           type="button"
           class="toolbar-btn dropdown-btn"
           aria-haspopup="true"
           :aria-expanded="(activeListMenu === 'bullet').toString()"
+          title="Bulleted list"
+          aria-label="Bulleted list"
           @click.stop="toggleListMenu('bullet')"
         >
-          • List <span class="toolbar-dropdown__caret">▾</span>
+          • <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-if="activeListMenu === 'bullet'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" @click="applyListLevel('bullet', 1)">Level 1</button>
@@ -33,9 +36,11 @@
           class="toolbar-btn dropdown-btn"
           aria-haspopup="true"
           :aria-expanded="(activeListMenu === 'ordered').toString()"
+          title="Numbered list"
+          aria-label="Numbered list"
           @click.stop="toggleListMenu('ordered')"
         >
-          1. List <span class="toolbar-dropdown__caret">▾</span>
+          1. <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-if="activeListMenu === 'ordered'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 1)">Level 1</button>
@@ -50,9 +55,11 @@
           class="toolbar-btn dropdown-btn"
           aria-haspopup="true"
           :aria-expanded="activeTableMenu.toString()"
+          title="Table"
+          aria-label="Table"
           @click.stop="toggleTableMenu"
         >
-          ▦ Table <span class="toolbar-dropdown__caret">▾</span>
+          ▦ <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeTableMenu" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" @click="insertTable(2, 2)">Insert 2 x 2</button>
@@ -97,9 +104,11 @@
           :disabled="!imageContext.selected"
           aria-haspopup="true"
           :aria-expanded="(activeImageMenu === 'size').toString()"
+          :title="`Image size: ${imageSizeLabel(imageContext.size)}`"
+          :aria-label="`Image size: ${imageSizeLabel(imageContext.size)}`"
           @click.stop="toggleImageMenu('size')"
         >
-          Image size: {{ imageSizeLabel(imageContext.size) }} <span class="toolbar-dropdown__caret">▾</span>
+          ⤢ <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeImageMenu === 'size'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'original').toString()" @click="applyImageOption('size', 'original')">Original size</button>
@@ -114,9 +123,11 @@
           :disabled="!imageContext.selected"
           aria-haspopup="true"
           :aria-expanded="(activeImageMenu === 'alignment').toString()"
+          :title="`Image alignment: ${imageContext.alignment}`"
+          :aria-label="`Image alignment: ${imageContext.alignment}`"
           @click.stop="toggleImageMenu('alignment')"
         >
-          Align: {{ imageContext.alignment }} <span class="toolbar-dropdown__caret">▾</span>
+          ☰ <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeImageMenu === 'alignment'" class="dropdown-content" @click.stop>
                   <button v-for="alignment in ['left', 'center', 'right']" :key="alignment" type="button" class="dropdown-item" :disabled="!imageContext.selected || (imageContext.wrapping !== 'none' && imageContext.wrapping !== 'watermark')" :aria-pressed="(imageContext.alignment === alignment).toString()" @click="applyImageOption('alignment', alignment)">{{ alignment }}</button>
@@ -129,9 +140,11 @@
           :disabled="!imageContext.selected"
           aria-haspopup="true"
           :aria-expanded="(activeImageMenu === 'wrapping').toString()"
+          :title="`Text wrapping: ${imageWrappingLabel(imageContext.wrapping)}`"
+          :aria-label="`Text wrapping: ${imageWrappingLabel(imageContext.wrapping)}`"
           @click.stop="toggleImageMenu('wrapping')"
         >
-          Wrapping: {{ imageWrappingLabel(imageContext.wrapping) }} <span class="toolbar-dropdown__caret">▾</span>
+          ▤ <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeImageMenu === 'wrapping'" class="dropdown-content" @click.stop>
           <button type="button" class="dropdown-item" :disabled="!imageContext.selected" :aria-pressed="(imageContext.wrapping === 'none').toString()" @click="applyImageOption('wrapping', 'none')">Above and below</button>
@@ -148,6 +161,7 @@
           <slot name="toolbar-extra" />
         </div>
       </div>
+    </div>
     </div>
     <div
       ref="editorEl"
@@ -1090,11 +1104,19 @@ export default {
       const editor = this.$refs.editorEl
       if (!editor || !range) return []
 
+      if (range.collapsed) {
+        const node = range.startContainer
+        const element = node instanceof Element ? node : node.parentElement
+        const item = element?.closest('li')
+        return item && editor.contains(item) ? [item] : []
+      }
+
       return Array.from(editor.querySelectorAll('li')).filter(node => range.intersectsNode(node))
     },
     getSelectionBlockCount(range) {
       const editor = this.$refs.editorEl
       if (!editor || !range) return 0
+      if (range.collapsed) return 1
 
       const selector = 'p,div,li,h1,h2,h3,h4,h5,h6,pre,blockquote'
       const blocks = Array.from(editor.querySelectorAll(selector)).filter(node => range.intersectsNode(node))
@@ -1441,6 +1463,11 @@ export default {
 
       return node instanceof Element ? node.closest('li') : null
     },
+    getListLevel(listNode) {
+      const firstItem = Array.from(listNode?.children || []).find(child => child instanceof HTMLLIElement)
+      const parsed = Number((firstItem || listNode)?.dataset?.listLevel || listNode?.dataset?.listLevel || '')
+      return Number.isFinite(parsed) && parsed > 0 ? parsed : 1
+    },
     getListDepth(listItem) {
       let depth = 1
       let currentList = listItem?.parentElement
@@ -1650,17 +1677,65 @@ export default {
   height: 100%;
   min-height: 0;
   display: flex;
-  flex-direction: column;
+  flex-direction: row;
+  align-items: stretch;
 }
 
-.rte-wysiwyg-editor > .rte-toolbar {
-  flex: 0 0 auto;
+/* The column's height is at least the toolbar's, so the text area is never shorter than the toolbar */
+.rte-wysiwyg-editor > .rte-toolbar-col {
+  flex: 0 0 12rem;
+  position: relative;
+  z-index: 20;
+}
+
+/* Sticky toolbar stays in view while scrolling long topics */
+.rte-toolbar-col > .rte-toolbar {
+  position: sticky;
+  top: 0.5rem;
+  box-sizing: border-box;
+  min-height: 100%;
 }
 
 .rte-wysiwyg-editor > .wysiwyg-content {
   flex: 1 1 0;
+  width: auto;
+  min-width: 0;
   height: auto;
   min-height: 0;
+}
+
+@media (max-width: 900px) {
+  .rte-wysiwyg-editor {
+    flex-direction: column;
+  }
+
+  .rte-wysiwyg-editor > .rte-toolbar-col {
+    flex: 0 0 auto;
+  }
+
+  .rte-toolbar-col > .rte-toolbar {
+    position: static;
+    flex-direction: row;
+    flex-wrap: wrap;
+    border-right: 1px solid #dee2e6;
+    border-bottom: none;
+    border-radius: 4px 4px 0 0;
+  }
+
+  .rte-toolbar .dropdown {
+    position: relative;
+  }
+
+  .rte-toolbar .dropdown-content {
+    top: 100%;
+    left: 0;
+    margin-left: 0;
+  }
+
+  .rte-wysiwyg-editor > .wysiwyg-content {
+    width: 100%;
+    border-radius: 0 0 4px 4px;
+  }
 }
 
 .rte-image-resize-handle {
@@ -1680,29 +1755,29 @@ export default {
 
 .rte-toolbar {
   display: flex;
-  flex-wrap: wrap;
-  align-items: flex-start;
+  flex-direction: column;
+  align-items: stretch;
   gap: 0.65rem;
   padding: 0.5rem;
   background: #f8f9fa;
   border: 1px solid #dee2e6;
-  border-bottom: none;
-  border-radius: 4px 4px 0 0;
+  border-right: none;
+  border-radius: 4px 0 0 4px;
 }
 
 .rte-toolbar-group {
   display: flex;
   flex-direction: column;
-  align-items: flex-start;
+  align-items: stretch;
   gap: 0.3rem;
   min-width: 0;
-  padding-right: 0.65rem;
-  border-right: 1px solid #d7dce1;
+  padding-bottom: 0.65rem;
+  border-bottom: 1px solid #d7dce1;
 }
 
 .rte-toolbar-group:last-child {
-  padding-right: 0;
-  border-right: 0;
+  padding-bottom: 0;
+  border-bottom: 0;
 }
 
 .rte-toolbar-group-label {
@@ -1716,21 +1791,32 @@ export default {
 .rte-toolbar-group-controls {
   display: flex;
   flex-wrap: wrap;
-  align-items: center;
+  align-items: stretch;
   gap: 0.25rem;
 }
 
+.rte-toolbar-group-controls > .toolbar-btn,
+.rte-toolbar-group-controls > .toolbar-dropdown > .dropdown-btn {
+  min-width: 2.25rem;
+  height: 2.25rem;
+  padding: 0 0.4rem;
+  justify-content: center;
+  line-height: 1;
+}
+
 .rte-image-alt-control {
-  display: inline-flex;
+  display: flex;
+  flex: 1 1 100%;
   flex-direction: column;
+  align-items: stretch;
   gap: 0.15rem;
   color: #495057;
   font-size: 0.75rem;
 }
 
 .rte-image-alt-input {
-  width: 12rem;
-  max-width: 100%;
+  width: 100%;
+  box-sizing: border-box;
   padding: 0.4rem 0.5rem;
   border: 1px solid #dee2e6;
   border-radius: 3px;
@@ -1752,7 +1838,7 @@ export default {
   height: 100%;
   padding: 1.25rem;
   border: 1px solid #dee2e6;
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 4px 4px 0;
   font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', 'Helvetica Neue', Arial, sans-serif;
   font-size: 14px;
   line-height: 1.6;
@@ -1857,8 +1943,9 @@ export default {
   border-color: #205493;
 }
 
+/* Static so menus anchor to the toolbar and open beside it, clear of neighbouring buttons */
 .rte-toolbar .dropdown {
-  position: relative;
+  position: static;
   display: inline-block;
 }
 
@@ -1871,10 +1958,10 @@ export default {
 
 .rte-toolbar .dropdown-content {
   position: absolute;
-  top: 100%;
-  left: 0;
+  top: auto;
+  left: 100%;
   min-width: 180px;
-  margin-top: 2px;
+  margin-left: 4px;
   background: #fff;
   border: 1px solid #dee2e6;
   border-radius: 4px;
@@ -1924,7 +2011,7 @@ export default {
 
 /* wysiwyg-content is defined globally in TopicEditor but included here for standalone pages */
 .rte-wysiwyg-editor .wysiwyg-content {
-  border-radius: 0 0 4px 4px;
+  border-radius: 0 4px 4px 0;
 }
 
 .rte-wysiwyg-editor .wysiwyg-content code {
