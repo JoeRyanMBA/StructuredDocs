@@ -93,6 +93,9 @@ Useful variants:
   `staging` on port `28080`. This workflow uses the required repository-level
   `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, and `VPS_HOST_KEY` secrets, plus the
   optional `VPS_PORT` secret. It preserves server-local configuration and data.
+  The VPS needs Python 3 to validate the resolved Compose configuration.
+  Both `build: .` and long-form `build.context: .` are supported for `app`;
+  the context must resolve to the staging directory receiving the source sync.
 - Pushes or merged pull requests to `main` run **Deploy Production Stack**.
   The protected `production` environment must be approved in the run's
   **Review deployments** panel before deployment starts. A successful PR
