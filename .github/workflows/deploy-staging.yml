@@ -77,15 +77,6 @@ jobs:
                 exit 1
               }
             done
-            cd "$STAGING_DIR"
-            docker compose -p staging -f docker-compose.single.yml --env-file .env \
-              config --format json | python3 -c '
-          import json, os, sys
-          config = json.load(sys.stdin)
-          context = config.get("services", {}).get("app", {}).get("build", {}).get("context")
-          if not context or os.path.realpath(context) != os.path.realpath(sys.argv[1]):
-              sys.exit("Staging Compose app must build from the environment directory.")
-            ' "$STAGING_DIR"
             if grep -q 'host.docker.internal' "$STAGING_DIR/.env" &&
               ! grep -q 'host.docker.internal:host-gateway' \
                 "$STAGING_DIR/docker-compose.single.yml"; then
@@ -143,7 +134,8 @@ jobs:
             fi
             compose() {
               "${DC[@]}" -p staging \
-                -f docker-compose.single.yml --env-file .env "$@"
+                -f docker-compose.single.yml -f docker-compose.staging-build.yml \
+                --env-file .env "$@"
             }
             export IMAGE_TAG="staging-${IMAGE_TAG}"
             compose config -q
