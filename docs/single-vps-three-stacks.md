@@ -85,6 +85,24 @@ Useful variants:
 
 ## 1. Architecture
 
+### GitHub branch deployments
+
+- Pushes or merged pull requests to `dev` run **Deploy Dev To VPS**.
+- Pushes or merged pull requests to `staging` run **Deploy Staging Stack**,
+  rebuilding `/opt/structureddocs/staging` with Compose project
+  `structureddocs_staging` on port `28080`. This workflow uses repository-level
+  `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, and optional `VPS_PORT` and
+  `VPS_HOST_KEY` secrets. It preserves server-local configuration and data.
+- Pushes or merged pull requests to `main` run **Deploy Production Stack**.
+  The protected `production` environment must be approved in the run's
+  **Review deployments** panel before deployment starts. A successful PR
+  build does not mean the live application has been updated.
+
+The staging workflow must first be merged into `staging` before automatic
+staging deployments can run. Its **Run workflow** action can also deploy the
+`staging` branch manually once GitHub exposes the workflow from the default
+branch. Production approval remains separate and is not bypassed by staging.
+
 - One VPS hosts three Docker Compose projects.
 - One reverse proxy (Caddy or Nginx) routes domains to per-environment backend ports.
 - Each environment uses:
