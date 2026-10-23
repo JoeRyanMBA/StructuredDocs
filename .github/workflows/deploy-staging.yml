@@ -77,11 +77,6 @@ jobs:
                 exit 1
               }
             done
-            grep -Eq '^[[:space:]]+build:[[:space:]]*\.[[:space:]]*$' \
-              "$STAGING_DIR/docker-compose.single.yml" || {
-                echo "Staging Compose must build from the environment directory (build: .)."
-                exit 1
-              }
             if grep -q 'host.docker.internal' "$STAGING_DIR/.env" &&
               ! grep -q 'host.docker.internal:host-gateway' \
                 "$STAGING_DIR/docker-compose.single.yml"; then
@@ -139,7 +134,8 @@ jobs:
             fi
             compose() {
               "${DC[@]}" -p staging \
-                -f docker-compose.single.yml --env-file .env "$@"
+                -f docker-compose.single.yml -f docker-compose.staging-build.yml \
+                --env-file .env "$@"
             }
             export IMAGE_TAG="staging-${IMAGE_TAG}"
             compose config -q
