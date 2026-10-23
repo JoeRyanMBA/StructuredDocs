@@ -28,10 +28,21 @@ Example:
   --branch main
 ```
 
-Then, in each environment folder (`/opt/structureddocs/dev`, `/opt/structureddocs/staging`, `/opt/structureddocs/production`):
+Then start each stack from its environment folder using its matching project name (`structureddocs_dev`, `structureddocs_staging`, or `structureddocs_production`). For example, start staging with:
 
 ```bash
-docker compose -f docker-compose.single.yml --env-file .env up -d --build
+docker compose -p structureddocs_staging \
+  -f docker-compose.single.yml --env-file .env up -d --build
+```
+
+For an existing staging stack started without `-p`, perform this one-time migration before deploying: stop the old `staging` project, update its Compose image line to the isolated staging reference shown below, then start it with `-p structureddocs_staging`. Do not add `-v` to the `down` command; the stack's bind-mounted data is preserved.
+
+```bash
+docker compose -p staging -f docker-compose.single.yml --env-file .env down
+# Set the image line in docker-compose.single.yml to:
+# image: ${IMAGE_REPO:-structureddocs-staging-backend}:${IMAGE_TAG:-latest}
+docker compose -p structureddocs_staging \
+  -f docker-compose.single.yml --env-file .env up -d --build
 ```
 
 For production, use the `structureddocs_production` Compose project name so it remains isolated from the legacy app and the other stacks:
@@ -90,7 +101,7 @@ Useful variants:
 - Pushes or merged pull requests to `dev` run **Deploy Dev To VPS**.
 - Pushes or merged pull requests to `staging` run **Deploy Staging Stack**,
   rebuilding `/opt/structureddocs/staging` with Compose project
-  `staging` on port `28080`. This workflow uses the required repository-level
+  `structureddocs_staging` on port `28080`. This workflow uses the required repository-level
   `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, and `VPS_HOST_KEY` secrets, plus the
   optional `VPS_PORT` secret. It preserves server-local configuration and data.
 - Pushes or merged pull requests to `main` run **Deploy Production Stack**.
@@ -202,13 +213,13 @@ In practice:
 ## 5. Compose file per environment
 
 Create `docker-compose.single.yml` in each environment folder.
-Use this template (adjust only the `ports` value per environment):
+Use this template (set a different `IMAGE_REPO` for each environment, then adjust the `ports` value):
 
 ```yaml
 services:
   app:
     build: .
-    image: ${IMAGE_REPO:-structureddocs-backend}:${IMAGE_TAG:-latest}
+    image: ${IMAGE_REPO:?Set an environment-specific image repository}:${IMAGE_TAG:-latest}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -244,6 +255,8 @@ services:
       - ./data/images:/app/backend/static/images
     command: ["./start.sh"]
 ```
+
+Use `structureddocs-dev-backend`, `structureddocs-staging-backend`, and `structureddocs-production-backend` for the three local image repositories. The scaffold generates these environment-specific defaults automatically.
 
 The app reads `.enable_blueprints` as a single comma-separated line. The working value on this VPS is:
 
@@ -345,8 +358,8 @@ Promotion path:
 
 Deploy command per environment folder:
 
-- `docker compose -f docker-compose.single.yml --env-file .env pull`
-- `docker compose -f docker-compose.single.yml --env-file .env up -d --build`
+- `docker compose -p structureddocs_<environment> -f docker-compose.single.yml --env-file .env pull`
+- `docker compose -p structureddocs_<environment> -f docker-compose.single.yml --env-file .env up -d --build`
 
 In the working host-Postgres setup, the app container must have `extra_hosts` for `host.docker.internal`, and `DATABASE_URL` must point at `host.docker.internal:5432` with `sslmode=disable`.
 

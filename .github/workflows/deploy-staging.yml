@@ -82,6 +82,11 @@ jobs:
                 echo "Staging Compose must build from the environment directory (build: .)."
                 exit 1
               }
+            grep -Fq 'image: ${IMAGE_REPO:-structureddocs-staging-backend}:${IMAGE_TAG:-latest}' \
+              "$STAGING_DIR/docker-compose.single.yml" || {
+                echo "Staging Compose must use the isolated staging image reference."
+                exit 1
+              }
             if grep -q 'host.docker.internal' "$STAGING_DIR/.env" &&
               ! grep -q 'host.docker.internal:host-gateway' \
                 "$STAGING_DIR/docker-compose.single.yml"; then
@@ -125,7 +130,7 @@ jobs:
             ./ "${VPS_USER}@${VPS_HOST}:${STAGING_DIR}/"
 
           ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' IMAGE_TAG='${GITHUB_SHA}' bash -s" <<'EOF'
+            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' IMAGE_REPO='structureddocs-staging-backend' IMAGE_TAG='${GITHUB_SHA}' bash -s" <<'EOF'
             set -euo pipefail
             cd "$STAGING_DIR"
             [[ -f Dockerfile ]] || { echo "Missing $STAGING_DIR/Dockerfile after source sync."; exit 1; }
@@ -138,7 +143,7 @@ jobs:
               exit 1
             fi
             compose() {
-              "${DC[@]}" -p staging \
+              "${DC[@]}" -p structureddocs_staging \
                 -f docker-compose.single.yml --env-file .env "$@"
             }
             export IMAGE_TAG="staging-${IMAGE_TAG}"

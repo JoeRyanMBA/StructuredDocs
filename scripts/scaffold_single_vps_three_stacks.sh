@@ -123,7 +123,7 @@ create_compose_file() {
 services:
   app:
     build: .
-    image: \${IMAGE_REPO:-structureddocs-backend}:\${IMAGE_TAG:-latest}
+    image: \${IMAGE_REPO:-structureddocs-${env_name}-backend}:\${IMAGE_TAG:-latest}
     extra_hosts:
       - "host.docker.internal:host-gateway"
     environment:
@@ -258,8 +258,8 @@ Environment folders:
 
 Next steps per environment:
   1) Edit .env secrets and DATABASE_URL
-  2) Start stack:
-     docker compose -f docker-compose.single.yml --env-file .env up -d --build
+  2) Start stack (replace <env> with dev, staging, or production):
+     docker compose -p structureddocs_<env> -f docker-compose.single.yml --env-file .env up -d --build
   3) Verify health:
      curl -sS http://127.0.0.1:<port>/api/health
 
