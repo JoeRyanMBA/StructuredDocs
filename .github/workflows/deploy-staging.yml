@@ -99,6 +99,7 @@ jobs:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
           VPS_USER: ${{ secrets.VPS_USER }}
+          IMAGE_TAG: staging-${{ github.sha }}
         run: |
           set -euo pipefail
           PORT="${VPS_PORT:-22}"
@@ -129,10 +130,14 @@ jobs:
             ./ "${VPS_USER}@${VPS_HOST}:${STAGING_DIR}/"
 
           ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' bash -s" <<'EOF'
+            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' " \
+            "IMAGE_TAG='${IMAGE_TAG}' bash -s" <<'EOF'
             set -euo pipefail
             cd "$STAGING_DIR"
             [[ -f Dockerfile ]] || { echo "Missing $STAGING_DIR/Dockerfile after source sync."; exit 1; }
+            IMAGE_TAG_ENV_FILE="$(mktemp "${STAGING_DIR}/.staging-image-tag.XXXXXX")"
+            trap 'rm -f "$IMAGE_TAG_ENV_FILE"' EXIT
+            printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG" > "$IMAGE_TAG_ENV_FILE"
             if docker compose version >/dev/null 2>&1; then
               DC=(docker compose)
             elif sudo -n docker compose version >/dev/null 2>&1; then
@@ -143,7 +148,8 @@ jobs:
             fi
             compose() {
               "${DC[@]}" -p structureddocs_staging \
-                -f docker-compose.single.yml --env-file .env "$@"
+                -f docker-compose.single.yml --env-file .env \
+                --env-file "$IMAGE_TAG_ENV_FILE" "$@"
             }
             compose config -q
             if ! grep -Fq "${STAGING_PORT}:8080" docker-compose.single.yml; then
