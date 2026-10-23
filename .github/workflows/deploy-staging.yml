@@ -1,0 +1,163 @@
+name: Deploy Staging Stack
+
+on:
+  push:
+    branches: [ staging ]
+  workflow_dispatch:
+
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+  STAGING_DIR: /opt/structureddocs/staging
+  STAGING_PORT: 28080
+
+concurrency:
+  group: deploy-vps-staging
+  cancel-in-progress: false
+
+permissions:
+  contents: read
+
+jobs:
+  deploy:
+    if: github.ref == 'refs/heads/staging'
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v5
+
+      - name: Configure SSH
+        env:
+          VPS_SSH_KEY: ${{ secrets.VPS_SSH_KEY }}
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_HOST_KEY: ${{ secrets.VPS_HOST_KEY }}
+        run: |
+          set -euo pipefail
+          : "${VPS_HOST:?VPS_HOST secret is required}"
+          : "${VPS_SSH_KEY:?VPS_SSH_KEY secret is required}"
+          : "${VPS_HOST_KEY:?VPS_HOST_KEY secret is required}"
+          mkdir -p ~/.ssh
+          chmod 700 ~/.ssh
+          printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
+          chmod 600 ~/.ssh/id_ed25519
+          printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
+          chmod 600 ~/.ssh/known_hosts
+
+      - name: Check staging stack configuration
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          : "${VPS_USER:?VPS_USER secret is required}"
+          PORT="${VPS_PORT:-22}"
+          SSH_OPTS=(
+            -i ~/.ssh/id_ed25519
+            -p "$PORT"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
+          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
+            "STAGING_DIR='${STAGING_DIR}' bash -s" <<'EOF'
+            set -euo pipefail
+            [[ -d "$STAGING_DIR" && -w "$STAGING_DIR" ]] || {
+              echo "Missing or unwritable $STAGING_DIR."
+              exit 1
+            }
+            for file in .env docker-compose.single.yml .enable_blueprints; do
+              [[ -r "$STAGING_DIR/$file" ]] || {
+                echo "Missing or unreadable $STAGING_DIR/$file."
+                exit 1
+              }
+            done
+            for key in DATABASE_URL ADMIN_API_KEY; do
+              grep -Eq "^${key}=.+$" "$STAGING_DIR/.env" || {
+                echo "$key is missing or blank in $STAGING_DIR/.env."
+                exit 1
+              }
+            done
+            grep -Eq '^[[:space:]]+build:[[:space:]]*\.[[:space:]]*$' \
+              "$STAGING_DIR/docker-compose.single.yml" || {
+                echo "Staging Compose must build from the environment directory (build: .)."
+                exit 1
+              }
+            if grep -q 'host.docker.internal' "$STAGING_DIR/.env" &&
+              ! grep -q 'host.docker.internal:host-gateway' \
+                "$STAGING_DIR/docker-compose.single.yml"; then
+              echo "Staging Compose must map host.docker.internal when DATABASE_URL uses it."
+              exit 1
+            fi
+          EOF
+
+      - name: Sync source and deploy staging stack
+        env:
+          VPS_HOST: ${{ secrets.VPS_HOST }}
+          VPS_PORT: ${{ secrets.VPS_PORT }}
+          VPS_USER: ${{ secrets.VPS_USER }}
+        run: |
+          set -euo pipefail
+          PORT="${VPS_PORT:-22}"
+          SSH_OPTS=(
+            -i ~/.ssh/id_ed25519
+            -p "$PORT"
+            -o ServerAliveInterval=30
+            -o ServerAliveCountMax=10
+          )
+          SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+          rsync -az --delete --omit-dir-times --no-perms -e "$SSH_COMMAND" \
+            --exclude '.git' \
+            --exclude '.github' \
+            --exclude '.venv' \
+            --exclude '.runtime-secrets' \
+            --exclude '__pycache__' \
+            --exclude 'node_modules' \
+            --exclude 'frontend/node_modules' \
+            --exclude 'frontend/dist' \
+            --exclude '.env*' \
+            --exclude '.enable_blueprints' \
+            --exclude 'docker-compose.single.yml' \
+            --exclude '/source/' \
+            --exclude '/backups/' \
+            --exclude '/instance/' \
+            --exclude '/data/' \
+            --exclude 'structured_docs.db' \
+            ./ "${VPS_USER}@${VPS_HOST}:${STAGING_DIR}/"
+
+          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
+            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' IMAGE_TAG='${GITHUB_SHA}' bash -s" <<'EOF'
+            set -euo pipefail
+            cd "$STAGING_DIR"
+            [[ -f Dockerfile ]] || { echo "Missing $STAGING_DIR/Dockerfile after source sync."; exit 1; }
+            if docker compose -f docker-compose.single.yml --env-file .env ps >/dev/null 2>&1; then
+              DC=(docker compose)
+            elif sudo -n docker compose -f docker-compose.single.yml --env-file .env ps >/dev/null 2>&1; then
+              DC=(sudo -n docker compose)
+            else
+              echo "Docker Compose requires direct access or passwordless sudo."
+              exit 1
+            fi
+            compose() {
+              "${DC[@]}" -p staging \
+                -f docker-compose.single.yml --env-file .env "$@"
+            }
+            export IMAGE_TAG="staging-${IMAGE_TAG}"
+            compose config -q
+            if ! grep -Fq "${STAGING_PORT}:8080" docker-compose.single.yml; then
+              echo "Staging app is not published on port ${STAGING_PORT}."
+              exit 1
+            fi
+            compose up -d --build --force-recreate --remove-orphans
+            for i in $(seq 1 36); do
+              if curl -fsS --max-time 5 \
+                "http://127.0.0.1:${STAGING_PORT}/api/health" >/dev/null 2>&1; then
+                echo "Staging health check passed."
+                exit 0
+              fi
+              echo "Waiting for staging health ($i/36)..."
+              sleep 5
+            done
+            echo "Staging health check failed. Recent app logs:"
+            compose logs --tail 120 app
+            exit 1
+          EOF
