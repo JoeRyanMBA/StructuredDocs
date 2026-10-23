@@ -77,11 +77,6 @@ jobs:
                 exit 1
               }
             done
-            grep -Eq '^[[:space:]]+build:[[:space:]]*\.[[:space:]]*$' \
-              "$STAGING_DIR/docker-compose.single.yml" || {
-                echo "Staging Compose must build from the environment directory (build: .)."
-                exit 1
-              }
             if grep -q 'host.docker.internal' "$STAGING_DIR/.env" &&
               ! grep -q 'host.docker.internal:host-gateway' \
                 "$STAGING_DIR/docker-compose.single.yml"; then
@@ -143,6 +138,12 @@ jobs:
             }
             export IMAGE_TAG="staging-${IMAGE_TAG}"
             compose config -q
+            BUILD_CONTEXT="$(compose config --format json | python3 -c \
+              'import json, sys; print(json.load(sys.stdin).get("services", {}).get("app", {}).get("build", {}).get("context", ""))')"
+            if [[ -z "$BUILD_CONTEXT" || "$(realpath "$BUILD_CONTEXT")" != "$(pwd -P)" ]]; then
+              echo "Staging app must build from the environment directory ($STAGING_DIR)."
+              exit 1
+            fi
             if ! grep -Fq "${STAGING_PORT}:8080" docker-compose.single.yml; then
               echo "Staging app is not published on port ${STAGING_PORT}."
               exit 1
