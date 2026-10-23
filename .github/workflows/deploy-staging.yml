@@ -130,7 +130,8 @@ jobs:
             ./ "${VPS_USER}@${VPS_HOST}:${STAGING_DIR}/"
 
           ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' IMAGE_TAG='${IMAGE_TAG}' bash -s" <<'EOF'
+            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' " \
+            "IMAGE_TAG='${IMAGE_TAG}' bash -s" <<'EOF'
             set -euo pipefail
             cd "$STAGING_DIR"
             [[ -f Dockerfile ]] || { echo "Missing $STAGING_DIR/Dockerfile after source sync."; exit 1; }
