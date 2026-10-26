@@ -1,15 +1,30 @@
 <template>
   <main class="collection-reader" aria-label="Collection topic">
     <div class="reader-toolbar">
-      <div class="reader-tabs" role="group" aria-label="Topic mode">
-        <button type="button" :aria-pressed="!editing" :disabled="!topic || loading" @click="requestPreview">
-          <i class="bi bi-eye" aria-hidden="true"></i> Preview
+      <h2 class="tools-heading">Topic Tools</h2>
+      <div class="topic-tool-actions">
+        <div v-if="!creating" class="reader-tabs" role="group" aria-label="Topic mode">
+          <button type="button" :aria-pressed="!editing" :disabled="!topic || busy" @click="requestPreview">
+            <i class="bi bi-eye" aria-hidden="true"></i> Preview
+          </button>
+          <button type="button" :aria-pressed="editing" :disabled="!topic || busy || !usageLoaded || !!pendingAttachment" @click="editing = true">
+            <i class="bi bi-pencil" aria-hidden="true"></i> Edit
+          </button>
+        </div>
+        <button v-if="topic?.id && !creating" type="button" class="secondary-btn" :disabled="busy || !canCreateChild || !!pendingAttachment" :title="canCreateChild ? 'Create a topic beneath this topic' : 'Maximum topic nesting reached'" @click="$emit('new-child', topic)">
+          <i class="bi bi-file-earmark-plus" aria-hidden="true"></i> New Child Topic
         </button>
-        <button type="button" :aria-pressed="editing" :disabled="!topic || loading || !usageLoaded" @click="editing = true">
-          <i class="bi bi-pencil" aria-hidden="true"></i> Edit
-        </button>
+        <template v-if="editing">
+          <button type="button" class="primary-btn" :disabled="busy" @click="saveEditor"><i class="bi bi-floppy" aria-hidden="true"></i> Save</button>
+          <button type="button" class="secondary-btn" :disabled="busy" @click="requestPreview">Cancel</button>
+        </template>
       </div>
-      <span v-if="saving" role="status">Saving topic...</span>
+      <span v-if="saving || attaching" role="status">{{ attaching ? 'Adding topic to collection...' : 'Saving topic...' }}</span>
+    </div>
+    <p v-if="creating" class="draft-context">{{ newTopicParent ? `New child of ${newTopicParent.title}` : 'New top-level topic' }}</p>
+    <div v-if="attachmentError" class="reader-notice" role="alert">
+      {{ attachmentError }}
+      <button type="button" class="secondary-btn" :disabled="busy" @click="retryAttachment">Retry Add to Collection</button>
     </div>
     <div v-if="metadataError" class="reader-notice" role="alert">
       {{ metadataError }}
@@ -40,14 +55,13 @@
     <template v-else-if="topic">
       <TopicEditor
         v-if="editing"
-        :key="topic.id"
+        :key="editorKey"
         ref="editor"
         embedded
         :topic-id="topic.id"
         :initial-title="topic.title"
         :initial-content="topic.content"
         :initial-frontmatter="topic.frontmatter || ''"
-        @save="onSaved"
         @close="requestPreview"
       />
       <article v-else class="collection-html-preview">
@@ -57,19 +71,22 @@
         <div v-else class="collection-html-content" v-html="previewHtml"></div>
       </article>
     </template>
-    <div v-else class="reader-state">No topic selected.</div>
+    <div v-else class="reader-state">
+      <p>{{ emptyCollection ? 'No topics in this collection.' : 'No topic selected.' }}</p>
+      <button type="button" class="primary-btn" :disabled="busy" @click="$emit('new-topic')"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> New Topic</button>
+    </div>
 
-    <div v-if="pendingAction" class="modal-overlay" @keydown.esc="pendingAction = null">
+    <div v-if="pendingAction" class="modal-overlay" @keydown.esc="!busy && (pendingAction = null)">
       <div class="modal-content unsaved-topic-dialog" role="dialog" aria-modal="true" aria-labelledby="unsaved-topic-title">
         <div class="modal-header">
           <h2 id="unsaved-topic-title">Unsaved Topic Changes</h2>
-          <button type="button" class="plain-close" aria-label="Close unsaved changes dialog" :disabled="saving" @click="pendingAction = null"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
+          <button type="button" class="plain-close" aria-label="Close unsaved changes dialog" :disabled="busy" @click="pendingAction = null"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         </div>
         <p>{{ topic?.title }}</p>
         <div class="modal-footer">
-          <button type="button" class="secondary-btn" :disabled="saving" @click="pendingAction = null">Cancel</button>
-          <button type="button" class="secondary-btn" :disabled="saving" @click="finishPending">Discard</button>
-          <button type="button" class="primary-btn" :disabled="saving" @click="savePending">Save</button>
+          <button type="button" class="secondary-btn" :disabled="busy" @click="pendingAction = null">Cancel</button>
+          <button type="button" class="secondary-btn" :disabled="busy" @click="finishPending">Discard</button>
+          <button type="button" class="primary-btn" :disabled="busy" @click="savePending">Save</button>
         </div>
       </div>
     </div>
@@ -87,17 +104,26 @@ import { renderCollectionTopic, substituteCollectionVariables } from '@/utils/co
 export default {
   name: 'CollectionTopicPane',
   components: { TopicEditor },
-  props: { collectionId: { type: [String, Number], required: true } },
-  emits: ['selected', 'saved', 'audience-change'],
+  props: {
+    collectionId: { type: [String, Number], required: true },
+    attachTopic: { type: Function, required: true },
+    canCreateChild: { type: Boolean, default: false },
+    emptyCollection: { type: Boolean, default: false },
+    collectionBusy: { type: Boolean, default: false },
+  },
+  emits: ['selected', 'saved', 'audience-change', 'new-topic', 'new-child', 'draft-started'],
   data() {
     return {
       topic: null, editing: false, loading: false, error: '', saving: false,
       previewHtml: '', previewError: '', rendering: false, metadataError: '',
       usage: {}, usageLoaded: false, tags: [], selectedTagIds: [], mapping: {},
       pendingAction: null, requestId: 0, renderId: 0,
+      creating: false, newTopicParent: null, previousTopic: null, editorKey: 0,
+      pendingAttachment: null, attaching: false, attachmentError: '',
     }
   },
   computed: {
+    busy() { return this.saving || this.attaching || this.loading || this.collectionBusy },
     sharedCollections() { return this.usage[String(this.topic?.id)]?.collections || [] },
     previewTitle() { return substituteCollectionVariables(this.topic?.title, this.mapping) },
     storageKey() { return `collection-audience-${this.collectionId}` },
@@ -142,14 +168,24 @@ export default {
       return !!editor?.isDirty
     },
     openTopic(topic) {
+      if (this.saving || this.attaching || this.pendingAttachment) return
       if (String(topic?.id) === String(this.topic?.id)) return
       const action = () => this.loadTopic(topic)
       if (this.hasUnsavedChanges()) this.pendingAction = action
       else action()
     },
     requestPreview() {
-      if (!this.editing) return
-      const action = () => { this.editing = false; this.renderPreview() }
+      if (!this.editing || this.busy) return
+      const action = () => {
+        if (this.creating) {
+          this.topic = this.previousTopic
+          this.creating = false
+          this.newTopicParent = null
+          this.previousTopic = null
+        }
+        this.editing = false
+        this.renderPreview()
+      }
       if (this.hasUnsavedChanges()) this.pendingAction = action
       else action()
     },
@@ -159,15 +195,87 @@ export default {
       action?.()
     },
     async savePending() {
+      if (await this.saveEditor()) this.finishPending()
+    },
+    newTopic(parent = null) {
+      if (this.busy || this.pendingAttachment) return
+      const action = () => {
+        this.requestId++
+        this.renderId++
+        if (!this.creating) this.previousTopic = this.topic
+        this.newTopicParent = parent
+        this.topic = { id: null, title: '', content: '', frontmatter: '' }
+        this.editorKey++
+        this.creating = true
+        this.editing = true
+        this.error = ''
+        this.previewError = ''
+        this.$emit('draft-started')
+      }
+      if (this.hasUnsavedChanges()) this.pendingAction = action
+      else action()
+    },
+    async saveEditor() {
+      if (this.busy) return false
+      const editor = this.$refs.editor
+      if (typeof editor?.title === 'string' && !editor.title.trim()) {
+        editor.$el.querySelector('#title')?.reportValidity()
+        return false
+      }
       this.saving = true
-      await this.$refs.editor.saveTopic()
-      this.saving = false
-      if (!this.hasUnsavedChanges()) this.finishPending()
+      try {
+        const result = await this.$refs.editor.saveTopic()
+        if (!result?.id) return false
+        this.topic = { ...this.topic, ...result }
+        if (this.creating) {
+          this.pendingAttachment = { topic: this.topic, parentId: this.newTopicParent?.id ?? null }
+          this.creating = false
+          this.previousTopic = null
+          this.newTopicParent = null
+          if (!await this.attachCreatedTopic()) {
+            this.pendingAction = null
+            this.editing = false
+            await this.renderPreview()
+            return false
+          }
+        } else {
+          this.$emit('saved', this.topic)
+        }
+        if (!this.pendingAction) this.editing = false
+        await this.renderPreview()
+        return true
+      } finally {
+        this.saving = false
+      }
+    },
+    async attachCreatedTopic() {
+      this.attaching = true
+      this.attachmentError = ''
+      try {
+        const { topic, parentId } = this.pendingAttachment
+        if (!await this.attachTopic(topic, parentId)) throw new Error('Collection save failed')
+        this.pendingAttachment = null
+        this.$emit('selected', topic)
+        this.loadContext()
+        return true
+      } catch {
+        this.attachmentError = `Topic #${this.pendingAttachment.topic.id} was saved, but could not be added to the collection. Retry without creating another topic.`
+        return false
+      } finally {
+        this.attaching = false
+      }
+    },
+    async retryAttachment() {
+      if (!this.busy && this.pendingAttachment) await this.attachCreatedTopic()
     },
     async loadTopic(topic) {
       const requestId = ++this.requestId
       this.renderId++
       this.topic = topic
+      this.creating = false
+      this.newTopicParent = null
+      this.previousTopic = null
+      this.editorKey++
       this.editing = false
       this.loading = !!topic
       this.error = ''
@@ -201,23 +309,17 @@ export default {
         if (renderId === this.renderId) this.rendering = false
       }
     },
-    async onSaved(result) {
-      const editor = this.$refs.editor
-      this.topic = { ...this.topic, title: editor.title, content: editor.content, frontmatter: editor.frontmatter, ...result }
-      this.$emit('saved', this.topic)
-      await this.$nextTick()
-      if (!this.pendingAction) {
-        this.editing = false
-        await this.renderPreview()
-      }
-    },
   },
 }
 </script>
 
 <style scoped>
 .collection-reader { min-width: 0; border-left: 1px solid var(--extended-lavender-gray); padding-left: 1.5rem; }
-.reader-toolbar { display: flex; align-items: center; justify-content: space-between; gap: 1rem; margin-bottom: 1rem; }
+.reader-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin-bottom: 1rem; }
+.tools-heading { font-size: .8rem; font-weight: 700; color: var(--text-secondary-cool-gray); margin: 0; }
+.topic-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
+.topic-tool-actions > button { font-size: .85rem; padding: .4rem .75rem; }
+.draft-context { font-size: .9rem; overflow-wrap: anywhere; color: var(--primary-deep-teal); }
 .reader-tabs { display: flex; gap: 0; }
 .reader-tabs button { border: 1px solid var(--extended-lavender-gray); padding: .5rem 1rem; background: white; color: var(--primary-deep-teal); }
 .reader-tabs button[aria-pressed="true"] { background: var(--primary-deep-teal); color: white; }
