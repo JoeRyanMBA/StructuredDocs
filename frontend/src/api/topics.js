@@ -1,5 +1,17 @@
 import { apiDelete, apiGet, apiPost, apiPut } from './base'
 
+export function getTopic(topicId) {
+  return apiGet(`/api/topics/${topicId}`)
+}
+
+export function getTopicUsage() {
+  return apiGet('/api/topics/usage-summary')
+}
+
+export function getAudienceTags() {
+  return apiGet('/api/tags/')
+}
+
 export async function getTopicTagsMap() {
   try {
     const data = await apiGet('/api/tags/entity/topic')

@@ -4,12 +4,13 @@
       class="collection-topic-item"
       :class="{
         'selected': organizeView.selectedTopics.has(topic.id),
+        'active-topic': String(organizeView.activeTopicId) === String(topic.id),
         'drop-target': organizeView.dropTarget === topic.id
       }"
       @click="handleClick"
       @contextmenu="handleRightClick"
     >
-      <div class="collection-topic-item-row" style="display: flex; align-items: center; width: 100%;">
+      <div class="collection-topic-item-row" style="display: flex; align-items: center; width: 100%;" :tabindex="organizeView.organizeMode ? -1 : 0" :aria-current="String(organizeView.activeTopicId) === String(topic.id) ? 'page' : undefined" @keydown.enter.prevent="organizeView.previewTopic(topic)" @keydown.space.prevent="organizeView.previewTopic(topic)">
         <div v-if="topic.children && topic.children.length > 0" class="expand-toggle" @click.stop="organizeView.toggleExpansion(topic.id)">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <path v-if="organizeView.expandedTopics.has(topic.id)" d="M3 4.5L6 7.5L9 4.5" :stroke="organizeView.arrowColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
@@ -17,7 +18,7 @@
           </svg>
         </div>
         <div v-else class="expand-spacer"></div>
-        <div class="drag-handle">
+        <div v-if="organizeView.organizeMode" class="drag-handle">
           <svg width="12" height="12" viewBox="0 0 12 12" fill="none">
             <circle cx="2" cy="2" r="1" fill="#999"/>
             <circle cx="6" cy="2" r="1" fill="#999"/>
@@ -41,11 +42,11 @@
             <button class="icon-btn" @click.stop="organizeView.previewTopic(topic)" title="Preview this topic" aria-label="Preview topic">
               <i class="bi bi-zoom-in" aria-hidden="true"></i>
             </button>
-            <button class="topic-btn up" @click.stop="organizeView.moveTopicUp(topic)">▲</button>
-            <button class="topic-btn down" @click.stop="organizeView.moveTopicDown(topic)">▼</button>
+            <button v-if="organizeView.organizeMode" class="topic-btn up" title="Move up" aria-label="Move up" @click.stop="organizeView.moveTopicUp(topic)">▲</button>
+            <button v-if="organizeView.organizeMode" class="topic-btn down" title="Move down" aria-label="Move down" @click.stop="organizeView.moveTopicDown(topic)">▼</button>
             <!-- Hide indent button at max depth (H5 = depth 4) -->
-            <button v-if="depth < 4" class="topic-btn right" @click.stop="organizeView.indentTopic(topic)">▶</button>
-            <button class="topic-btn left" @click.stop="organizeView.outdentTopic(topic)">◀</button>
+            <button v-if="organizeView.organizeMode && depth < 4" class="topic-btn right" title="Indent" aria-label="Indent" @click.stop="organizeView.indentTopic(topic)">▶</button>
+            <button v-if="organizeView.organizeMode" class="topic-btn left" title="Outdent" aria-label="Outdent" @click.stop="organizeView.outdentTopic(topic)">◀</button>
           </div>
         </div>
       </div>
@@ -58,6 +59,7 @@
     >
       <draggable
         :list="topic.children"
+        :disabled="!organizeView.organizeMode"
         group="topics"
         item-key="id"
         @change="organizeView.onTopicDrop"
@@ -99,6 +101,10 @@ export default {
     handleClick(event) {
       event.preventDefault()
       event.stopPropagation()
+      if (!this.organizeView.organizeMode) {
+        this.organizeView.previewTopic(this.topic)
+        return
+      }
       if (this.depth === 0 && event.shiftKey && this.organizeView.lastSelectedIndex !== -1) {
         this.organizeView.selectRange(this.organizeView.lastSelectedIndex, this.topicIndex)
       } else if (event.ctrlKey || event.metaKey) {
@@ -112,6 +118,7 @@ export default {
       }
     },
     handleRightClick(event) {
+      if (!this.organizeView.organizeMode) return
       this.organizeView.handleTopicRightClick(this.topic, this.topicIndex, event)
     }
   }

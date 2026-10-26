@@ -96,6 +96,8 @@ export default {
     }
   },
   async created() {
+    const rawTagIds = this.$route.query.tag_ids || []
+    this.selectedTagIds = (Array.isArray(rawTagIds) ? rawTagIds : [rawTagIds]).map(Number).filter(Number.isFinite)
     try {
       const [json, tagsData] = await Promise.all([
         getPublication(this.id),
