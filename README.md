@@ -102,6 +102,38 @@ For canonical Docker production layering, use:
 
 `docker compose -f docker-compose.base.yml -f docker-compose.prod.yml up -d --build`
 
+### Promote Between Environments
+
+Run **Actions → Promote Environment → Run workflow** from the default branch,
+select `source_env` and `target_env`, and leave `force_sync` unchecked for the
+recommended review flow. The workflow must be present on the default branch
+before it appears in the Actions UI.
+
+Only **dev → staging** and **staging → production** are allowed. Environment
+names map to branches `dev`, `staging`, and **`main` for production**, matching
+the deployment workflows. Both branches must already exist.
+
+- **Default (PR):** creates a source-to-target pull request for normal review,
+  checks, and merge. Reuses an existing open PR; does nothing if there are no
+  source commits to promote. Enable **Settings → Actions → General → Workflow
+  permissions → Allow GitHub Actions to create and approve pull requests**.
+  Repository/organization policies may restrict this setting.
+- **Force sync (destructive):** rewrites the target branch to the captured source
+  commit, discarding target-only commits from its history, including any
+  branch-specific configuration. Back up the target SHA first; the old and new
+  SHAs are logged. An explicit `--force-with-lease` rejects the push if the target
+  changes after it is fetched. A moving source requires another run to capture
+  its latest tip. Branch protection/rulesets can block force pushes; the workflow
+  fails rather than bypassing protections. Prefer a PR instead of relaxing them.
+- Promotions to the same target are serialized, but other writers can still
+  update branches. The workflow uses only `GITHUB_TOKEN`: PR mode grants
+  contents read / pull requests write; force mode grants contents write.
+- Events created with `GITHUB_TOKEN` do **not** trigger other Actions workflows.
+  For a bot-created PR, arrange required checks through your repository's
+  approved process. After force sync, manually run the matching deployment
+  workflow on the updated target (`staging` or `main`); promotion alone does not
+  deploy the app or change environment secrets.
+
 ### Local Development (without Docker)
 
 ```bash

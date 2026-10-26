@@ -1,0 +1,131 @@
+name: Promote Environment
+
+on:
+  workflow_dispatch:
+    inputs:
+      source_env:
+        description: Source environment
+        type: choice
+        required: true
+        options: [dev, staging]
+      target_env:
+        description: Target environment (production uses main)
+        type: choice
+        required: true
+        options: [staging, production]
+      force_sync:
+        description: Rewrite the target branch to exactly match the source (destructive)
+        type: boolean
+        default: false
+
+permissions: {}
+
+concurrency:
+  group: promote-environment-${{ inputs.target_env }}
+  cancel-in-progress: false
+
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    outputs:
+      source: ${{ steps.branches.outputs.source }}
+      target: ${{ steps.branches.outputs.target }}
+    steps:
+      - name: Validate promotion and resolve branches
+        id: branches
+        env:
+          SOURCE_ENV: ${{ inputs.source_env }}
+          TARGET_ENV: ${{ inputs.target_env }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          case "$SOURCE_ENV:$TARGET_ENV" in
+            dev:staging) source=dev; target=staging ;;
+            staging:production) source=staging; target=main ;;
+            *)
+              echo "::error::Invalid promotion. Only dev -> staging and staging -> production are allowed."
+              exit 1
+              ;;
+          esac
+          printf 'source=%s\ntarget=%s\n' "$source" "$target" >> "$GITHUB_OUTPUT"
+          echo "Validated promotion: $SOURCE_ENV ($source) -> $TARGET_ENV ($target)"
+
+  pull-request:
+    needs: validate
+    if: ${{ !inputs.force_sync }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: read
+      pull-requests: write
+    steps:
+      - name: Create or reuse promotion pull request
+        env:
+          GH_TOKEN: ${{ github.token }}
+          GH_REPO: ${{ github.repository }}
+          SOURCE: ${{ needs.validate.outputs.source }}
+          TARGET: ${{ needs.validate.outputs.target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          existing=$(gh pr list --repo "$GH_REPO" --base "$TARGET" \
+            --head "$SOURCE" --state open --json url,headRepository \
+            --jq '[.[] | select(.headRepository.nameWithOwner == env.GH_REPO)]
+              | .[0].url // empty')
+          if [[ -n "$existing" ]]; then
+            echo "Reusing promotion PR: $existing"
+            exit 0
+          fi
+          ahead=$(gh api "repos/$GH_REPO/compare/$TARGET...$SOURCE" --jq '.ahead_by')
+          if [[ "$ahead" == 0 ]]; then
+            echo "No source commits to promote from $SOURCE to $TARGET; no PR needed."
+            exit 0
+          fi
+          gh pr create --repo "$GH_REPO" --base "$TARGET" --head "$SOURCE" \
+            --title "Promote $SOURCE to $TARGET" \
+            --body "Promotes $SOURCE into $TARGET for review and merge. No force sync was performed. Requested by $GITHUB_ACTOR; workflow: $GITHUB_SERVER_URL/$GH_REPO/actions/runs/$GITHUB_RUN_ID" || {
+              echo "::error::Could not create promotion PR. Check branch history, token permissions, and the repository setting allowing Actions to create pull requests."
+              exit 1
+            }
+
+  force-sync:
+    needs: validate
+    if: ${{ inputs.force_sync }}
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    permissions:
+      contents: write
+    steps:
+      - name: Force-align target with an explicit lease
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SOURCE: ${{ needs.validate.outputs.source }}
+          TARGET: ${{ needs.validate.outputs.target }}
+        shell: bash
+        run: |
+          set -euo pipefail
+          gh auth setup-git
+          workdir=$(mktemp -d "$RUNNER_TEMP/promotion.XXXXXX")
+          trap 'rm -rf "$workdir"' EXIT
+          git init "$workdir"
+          cd "$workdir"
+          git remote add origin "$GITHUB_SERVER_URL/$GITHUB_REPOSITORY.git"
+          git fetch --no-tags origin \
+            "refs/heads/$SOURCE:refs/remotes/origin/$SOURCE" \
+            "refs/heads/$TARGET:refs/remotes/origin/$TARGET"
+          source_sha=$(git rev-parse "refs/remotes/origin/$SOURCE")
+          target_sha=$(git rev-parse "refs/remotes/origin/$TARGET")
+          if [[ "$source_sha" == "$target_sha" ]]; then
+            echo "$TARGET already matches $SOURCE at $source_sha; no update needed."
+            exit 0
+          fi
+          echo "::warning::Force syncing $TARGET from $target_sha to $SOURCE at $source_sha. Target-only commits will be removed from the branch."
+          git push --force-with-lease="refs/heads/$TARGET:$target_sha" \
+            origin "$source_sha:refs/heads/$TARGET" || {
+              echo "::error::Force sync refused. The target may have moved, or branch protection/rulesets may prohibit this update. No automatic retry or protection bypass is attempted."
+              exit 1
+            }
+          echo "Force sync completed: $TARGET moved from $target_sha to $source_sha (source: $SOURCE)."
+          printf '### Force sync completed\n- Source: `%s` at `%s`\n- Target: `%s`\n- Previous target: `%s`\n' \
+            "$SOURCE" "$source_sha" "$TARGET" "$target_sha" >> "$GITHUB_STEP_SUMMARY"
