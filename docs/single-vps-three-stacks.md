@@ -90,9 +90,14 @@ Useful variants:
 - Pushes or merged pull requests to `dev` run **Deploy Dev To VPS**.
 - Pushes or merged pull requests to `staging` run **Deploy Staging Stack**,
   rebuilding `/opt/structureddocs/staging` with Compose project
-  `structureddocs_staging` on port `28080`. This workflow uses repository-level
-  `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, and optional `VPS_PORT` and
-  `VPS_HOST_KEY` secrets. It preserves server-local configuration and data.
+  `staging` on port `28080`. This workflow uses the required repository-level
+  `VPS_HOST`, `VPS_USER`, `VPS_SSH_KEY`, and `VPS_HOST_KEY` secrets, plus the
+  optional `VPS_PORT` secret. It preserves server-local configuration and data.
+  Staging layers `docker-compose.staging-build.yml` over the server-local
+  `docker-compose.single.yml` so the app builds the synced source and `Dockerfile`
+  in `/opt/structureddocs/staging`, even if the server file uses an older
+  `./source` build context. Ports, environment settings, and volumes remain
+  server-managed.
 - Pushes or merged pull requests to `main` run **Deploy Production Stack**.
   The protected `production` environment must be approved in the run's
   **Review deployments** panel before deployment starts. A successful PR

@@ -35,16 +35,12 @@ jobs:
           set -euo pipefail
           : "${VPS_HOST:?VPS_HOST secret is required}"
           : "${VPS_SSH_KEY:?VPS_SSH_KEY secret is required}"
+          : "${VPS_HOST_KEY:?VPS_HOST_KEY secret is required}"
           mkdir -p ~/.ssh
           chmod 700 ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
-          PORT="${VPS_PORT:-22}"
-          if [[ -n "${VPS_HOST_KEY:-}" ]]; then
-            printf '%s\n' "$VPS_HOST_KEY" >> ~/.ssh/known_hosts
-          else
-            ssh-keyscan -p "$PORT" "$VPS_HOST" >> ~/.ssh/known_hosts
-          fi
+          printf '%s\n' "$VPS_HOST_KEY" > ~/.ssh/known_hosts
           chmod 600 ~/.ssh/known_hosts
 
       - name: Check staging stack configuration
@@ -81,11 +77,6 @@ jobs:
                 exit 1
               }
             done
-            grep -Eq '^[[:space:]]+build:[[:space:]]*\.[[:space:]]*$' \
-              "$STAGING_DIR/docker-compose.single.yml" || {
-                echo "Staging Compose must build from the environment directory (build: .)."
-                exit 1
-              }
             if grep -q 'host.docker.internal' "$STAGING_DIR/.env" &&
               ! grep -q 'host.docker.internal:host-gateway' \
                 "$STAGING_DIR/docker-compose.single.yml"; then
@@ -129,22 +120,24 @@ jobs:
             ./ "${VPS_USER}@${VPS_HOST}:${STAGING_DIR}/"
 
           ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' bash -s" <<'EOF'
+            "STAGING_DIR='${STAGING_DIR}' STAGING_PORT='${STAGING_PORT}' IMAGE_TAG='${GITHUB_SHA}' bash -s" <<'EOF'
             set -euo pipefail
             cd "$STAGING_DIR"
             [[ -f Dockerfile ]] || { echo "Missing $STAGING_DIR/Dockerfile after source sync."; exit 1; }
-            if docker compose version >/dev/null 2>&1; then
+            if docker compose -f docker-compose.single.yml --env-file .env ps >/dev/null 2>&1; then
               DC=(docker compose)
-            elif sudo -n docker compose version >/dev/null 2>&1; then
+            elif sudo -n docker compose -f docker-compose.single.yml --env-file .env ps >/dev/null 2>&1; then
               DC=(sudo -n docker compose)
             else
               echo "Docker Compose requires direct access or passwordless sudo."
               exit 1
             fi
             compose() {
-              "${DC[@]}" -p structureddocs_staging \
-                -f docker-compose.single.yml --env-file .env "$@"
+              "${DC[@]}" -p staging \
+                -f docker-compose.single.yml -f docker-compose.staging-build.yml \
+                --env-file .env "$@"
             }
+            export IMAGE_TAG="staging-${IMAGE_TAG}"
             compose config -q
             if ! grep -Fq "${STAGING_PORT}:8080" docker-compose.single.yml; then
               echo "Staging app is not published on port ${STAGING_PORT}."
