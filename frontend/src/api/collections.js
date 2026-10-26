@@ -1,4 +1,8 @@
-import { apiRequest } from './base.js'
+import { apiRequest, apiPost } from './base.js'
+
+export function getCollectionVariablePreview(collectionId) {
+  return apiPost(`/api/variables/collections/${collectionId}/preview`, {})
+}
 
 export async function getCollections() {
   try {

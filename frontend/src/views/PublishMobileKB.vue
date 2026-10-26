@@ -109,6 +109,11 @@ export default {
     }
   },
   async created() {
+    if (this.$route.query.collection) {
+      const rawTagIds = this.$route.query.tag_ids || []
+      const tagIds = Array.isArray(rawTagIds) ? rawTagIds : [rawTagIds]
+      this.selectedTagIds = tagIds.map(Number).filter(Number.isFinite)
+    }
     await Promise.all([this.fetchPublications(), this.loadTags()])
   },
   methods: {
@@ -144,7 +149,7 @@ export default {
     
     selectPublication(pub) {
       // Navigate to publication view
-      this.$router.push({ name: 'PublicationView', params: { id: pub.id } })
+      this.$router.push({ name: 'PublicationView', params: { id: pub.id }, query: { tag_ids: this.selectedTagIds.map(String) } })
     },
     
     async previewMobileKB(pubId) {
