@@ -69,8 +69,10 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          existing=$(gh pr list --repo "$GH_REPO" --base "$TARGET" --head "$SOURCE" \
-            --state open --json url --jq '.[0].url // empty')
+          existing=$(gh pr list --repo "$GH_REPO" --base "$TARGET" \
+            --head "$SOURCE" --state open --json url,headRepository \
+            --jq '[.[] | select(.headRepository.nameWithOwner == env.GH_REPO)]
+              | .[0].url // empty')
           if [[ -n "$existing" ]]; then
             echo "Reusing promotion PR: $existing"
             exit 0
