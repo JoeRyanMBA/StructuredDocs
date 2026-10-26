@@ -62,22 +62,41 @@ class PromoteEnvironmentWorkflowTests(unittest.TestCase):
         mock = """
 gh() {
   case "$1 $2" in
-    "pr list") printf '%s' "$EXISTING" ;;
+    "pr list")
+      local jq_filter=
+      while (($#)); do
+        if [[ "$1" == "--jq" ]]; then
+          jq_filter=$2
+          break
+        fi
+        shift
+      done
+      printf '%s' "$PR_DATA" | jq -r "$jq_filter" ;;
     "api "*) echo "$AHEAD" ;;
     "pr create") printf 'CREATE'; printf ' <%s>' "$@"; echo ;;
     *) return 99 ;;
   esac
 }
 """
-        for existing, ahead, expected in (
-            ("https://github.com/example/repo/pull/1", "1", "Reusing promotion PR"),
-            ("", "0", "no PR needed"),
-            ("", "2", "CREATE"),
+        for pr_data, ahead, expected in (
+            (
+                '[{"url":"https://github.com/example/repo/pull/1",'
+                '"headRepository":{"nameWithOwner":"example/repo"}}]',
+                "1",
+                "Reusing promotion PR",
+            ),
+            (
+                '[{"url":"https://github.com/example/repo/pull/2",'
+                '"headRepository":{"nameWithOwner":"contributor/repo"}}]',
+                "2",
+                "CREATE",
+            ),
+            ("[]", "0", "no PR needed"),
         ):
-            with self.subTest(existing=existing, ahead=ahead):
+            with self.subTest(pr_data=pr_data, ahead=ahead):
                 result, _ = self.run_script(
                     "Create or reuse promotion pull request",
-                    {"EXISTING": existing, "AHEAD": ahead}, mock,
+                    {"PR_DATA": pr_data, "AHEAD": ahead}, mock,
                 )
                 self.assertEqual(result.returncode, 0, result.stderr)
                 self.assertIn(expected, result.stdout)
