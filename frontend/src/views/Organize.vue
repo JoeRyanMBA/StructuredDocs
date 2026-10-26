@@ -1,17 +1,15 @@
 <template>
-  <div class="organize-view">
+  <div class="organize-view" :class="{ 'is-organizing': organizeMode, 'outline-open': showOutline }">
     
     <div class="organize-header">
-      <h1>{{ isEditMode ? '✏️ Edit Collection' : '📋 Organize Collection' }} <HelpIcon feature="collections.organize" /></h1>
-      <p class="guidance-text">
-        Add topics to your collection by dragging topics from the Available Topics area to your collection. 
-        Use the drag handles to drag topics. You can organize your topics within the collection by reordering them and dragging them onto other topics to create a hierarchy.
-        <br><br>
-        <strong>Multi-select:</strong> Click to select a topic, Ctrl+click to select multiple individual topics, Shift+click to select a range of topics (e.g., topics 2-12).
-      </p>
+      <h1>{{ currentCollection?.name || 'Collection' }} <HelpIcon feature="collections.organize" /></h1>
     </div>
     
     <div class="organize-top-actions">
+      <button class="secondary-btn outline-toggle" type="button" :aria-expanded="showOutline" @click="showOutline = !showOutline"><i class="bi bi-list-nested" aria-hidden="true"></i> Outline</button>
+      <button class="secondary-btn" type="button" :aria-pressed="organizeMode" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
+      <button class="secondary-btn" type="button" :aria-expanded="showAvailableTopics" @click="showAvailableTopics = !showAvailableTopics; organizeMode = true"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Topics</button>
+      <button class="secondary-btn" type="button" :aria-pressed="isEditMode" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
       <button class="secondary-btn" @click="refreshTopics" :disabled="refreshing">
         <span v-if="refreshing"><i class="bi bi-arrow-clockwise spin"></i> Refreshing…</span>
         <span v-else><i class="bi bi-arrow-clockwise"></i> Refresh Topics</span>
@@ -101,7 +99,7 @@
           <div class="node">
             
             <!-- Multi-select controls -->
-            <div v-if="selectedTopics.size > 0" class="multi-select-controls">
+            <div v-if="organizeMode && selectedTopics.size > 0" class="multi-select-controls">
               <span class="selected-count">{{ selectedTopics.size }} topic(s) selected</span>
               <button @click="clearSelection" class="clear-btn">Clear Selection</button>
               <button @click="moveSelectedToTop" class="move-btn">Move to Top</button>
@@ -127,6 +125,7 @@
             <div class="topics-container">
               <draggable
                 :list="currentCollection.topics"
+                :disabled="!organizeMode"
                 group="topics"
                 item-key="id"
                 @change="onTopicDrop"
@@ -194,7 +193,17 @@
           </div>
         </div>
       </div>
-      <div class="topics-panel">
+      <CollectionTopicPane
+        v-if="currentCollection"
+        ref="topicPane"
+        :collection-id="id"
+        @selected="onPaneSelected"
+        @saved="onPaneSaved"
+        @audience-change="audienceTagIds = $event"
+      />
+      <button v-if="showAvailableTopics" class="available-topics-backdrop" aria-label="Close available topics" @click="showAvailableTopics = false"></button>
+      <div v-if="showAvailableTopics" class="topics-panel available-topics-drawer" role="dialog" aria-modal="true" aria-label="Available topics" @keydown.esc="showAvailableTopics = false">
+        <button type="button" class="icon-btn drawer-close" title="Close available topics" aria-label="Close available topics" @click="showAvailableTopics = false"><i class="bi bi-x-lg" aria-hidden="true"></i></button>
         <h2>Available Topics <span class="topic-count-badge">{{ visibleUnassignedCount }} / {{ unassignedTopics.length }}</span></h2>
 
         <!-- Text search -->
@@ -323,28 +332,6 @@
       @click="closeContextMenu"
     ></div>
 
-    <div v-if="previewModal.show" class="modal-overlay" @click.self="closePreviewModal">
-      <div class="modal-content preview-modal" @click.stop>
-        <div class="modal-header-row modal-header">
-          <h3><i class="bi bi-zoom-in" aria-hidden="true"></i> Topic Preview</h3>
-          <button class="plain-close btn-close" @click="closePreviewModal">✕</button>
-        </div>
-        <div class="modal-body">
-          <div v-if="previewModal.loading">Loading…</div>
-          <div v-else-if="previewModal.error" class="error">{{ previewModal.error }}</div>
-          <div v-else>
-            <TopicEditor
-              :topicId="previewModal.topic.id"
-              :initialTitle="previewModal.title"
-              :initialContent="previewModal.content"
-              :initialFrontmatter="previewModal.frontmatter"
-              :readOnly="true"
-            />
-          </div>
-        </div>
-      </div>
-    </div>
-
     <VariableSelectionModal
       :show="showVariableModal"
       :collection-id="variableModalData?.collectionId"
@@ -365,11 +352,11 @@ import { apiGet } from '@/api/base'
 import { getCollections, getCollection, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { getTopics, getTopicTagsMap } from '@/api/topics.js' // You may need to implement this
-import TopicEditor from '@/components/TopicEditor.vue'
 import { toast } from '@/composables/useToast'
 import TagEditor from '@/components/TagEditor.vue'
 import VariableSelectionModal from '@/components/VariableSelectionModal.vue'
 import OrganizeTopicNode from '@/components/OrganizeTopicNode.vue'
+import CollectionTopicPane from '@/components/CollectionTopicPane.vue'
 
 import HelpIcon from '@/components/HelpIcon.vue'
 
@@ -381,13 +368,18 @@ export default {
       required: true
     }
   },
-  components: { CollectionTree, TopicItem, draggable, TopicEditor, VariableSelectionModal, TagEditor, OrganizeTopicNode, HelpIcon },
+  components: { CollectionTree, TopicItem, draggable, VariableSelectionModal, TagEditor, OrganizeTopicNode, CollectionTopicPane, HelpIcon },
   provide() {
     return { organizeView: this }
   },
   data() {
     return {
       currentCollection: null, // The specific collection being organized
+      organizeMode: false,
+      showAvailableTopics: false,
+      showOutline: false,
+      activeTopicId: null,
+      audienceTagIds: [],
       allCollections: [], // All collections (for saving purposes)
       topics: [],
       unassignedTopics: [],
@@ -408,15 +400,6 @@ export default {
         y: 0,
         targetTopic: null
       },
-      previewModal: {
-        show: false,
-        topic: null,
-        loading: false,
-        error: null,
-        content: '',
-        title: '',
-        frontmatter: ''
-  },
   /* Snapshot of last saved state for unsaved-changes detection */
       lastSavedSnapshot: null
       , showVariableModal: false
@@ -458,6 +441,12 @@ export default {
     },
     visibleUnassignedCount() {
       return this.unassignedTopics.filter(t => this.isAvailableTopicVisible(t)).length
+    },
+  },
+  watch: {
+    '$route.query.topic'(topicId) {
+      const topic = this.findTopicInTree(this.currentCollection?.topics || [], topicId)
+      if (topic) this.previewTopic(topic)
     },
   },
   async created() {
@@ -523,18 +512,56 @@ export default {
     this.unassignedTopics = this.getUnassignedTopics()
     // Establish initial snapshot once data is loaded
     this.setSnapshot()
+    await this.$nextTick()
+    const initialTopic = this.findTopicInTree(this.currentCollection.topics, this.$route.query.topic) || this.currentCollection.topics[0]
+    if (initialTopic) this.previewTopic(initialTopic)
     window.addEventListener('beforeunload', this.beforeUnloadHandler)
   },
   unmounted() {
     window.removeEventListener('beforeunload', this.beforeUnloadHandler)
   },
   beforeRouteLeave(to, from, next) {
+    if (this.$refs.topicPane?.hasUnsavedChanges() && !window.confirm('You have unsaved topic changes. Leave without saving?')) return next(false)
     if (!this.isDirty()) return next()
     const confirmLeave = window.confirm('You have unsaved collection changes. Leave this page without saving?')
     if (confirmLeave) return next()
     next(false)
   },
   methods: {
+    findTopicInTree(topics, topicId) {
+      for (const topic of topics) {
+        if (String(topic.id) === String(topicId)) return topic
+        const found = this.findTopicInTree(topic.children || [], topicId)
+        if (found) return found
+      }
+      return null
+    },
+    onPaneSelected(topic) {
+      this.activeTopicId = topic.id
+      this.showOutline = false
+      this.showAvailableTopics = false
+      const expandPath = (topics) => topics.some(node => {
+        if (String(node.id) === String(topic.id)) return true
+        if (expandPath(node.children || [])) { this.expandedTopics.add(node.id); return true }
+        return false
+      })
+      expandPath(this.currentCollection.topics)
+      if (String(this.$route.query.topic) !== String(topic.id)) {
+        this.$router.replace({ query: { ...this.$route.query, topic: String(topic.id) } })
+      }
+    },
+    onPaneSaved(topic) {
+      const updateTitle = nodes => nodes.forEach(node => {
+        if (String(node.id) === String(topic.id)) node.title = topic.title
+        updateTitle(node.children || [])
+      })
+      updateTitle(this.currentCollection.topics)
+      if (this.lastSavedSnapshot) {
+        const snapshot = JSON.parse(this.lastSavedSnapshot)
+        updateTitle(snapshot.collection?.topics || [])
+        this.lastSavedSnapshot = JSON.stringify(snapshot)
+      }
+    },
     
     serializeState() {
       // Minimal representation for dirty detection (avoid functions/circular)
@@ -551,7 +578,7 @@ export default {
       return this.serializeState() !== this.lastSavedSnapshot
     },
     beforeUnloadHandler(e) {
-      if (this.isDirty()) {
+      if (this.isDirty() || this.$refs.topicPane?.hasUnsavedChanges()) {
         e.preventDefault()
         e.returnValue = ''
       }
@@ -633,6 +660,10 @@ export default {
 
     selectTopic(topicId) {
       this.selectedTopics.add(topicId)
+      if (!this.organizeMode) {
+        const topic = this.findTopicInTree(this.currentCollection.topics, topicId)
+        if (topic) this.previewTopic(topic)
+      }
     },
 
     toggleTopicSelection(topicId) {
@@ -1357,6 +1388,12 @@ export default {
 
     // Add publish methods from CollectionTree
     async goPublishHtml(collectionId, event) {
+      if (this.$refs.topicPane?.hasUnsavedChanges()) {
+        toast.error('Save or discard your topic edits before exporting.')
+        return
+      }
+      await this.saveChanges()
+      if (this.isDirty()) return
       const button = event?.target
       if (button) {
         button.disabled = true
@@ -1367,7 +1404,7 @@ export default {
         console.log(`Publishing HTML for collection ${collectionId}`)
         const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
         console.log('Publication created:', result)
-        this.$router.push({ name: 'PublishMobileKB' })
+        this.$router.push({ name: 'PublishMobileKB', query: { collection: String(collectionId), tag_ids: this.audienceTagIds.map(String) } })
         
       } catch (error) {
         const errorData = error?.response?.data
@@ -1462,12 +1499,13 @@ export default {
       const { type, collectionId } = this.pendingPublishAction
       try {
         if (type === 'configure-only') {
+          await this.$refs.topicPane?.loadContext()
           toast.success('Variables configured. You can now publish HTML or PDF.')
           return
         }
         const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
         toast.success('Collection published successfully!')
-        if (type === 'html') this.$router.push({ name: 'PublishMobileKB' })
+        if (type === 'html') this.$router.push({ name: 'PublishMobileKB', query: { collection: String(collectionId), tag_ids: this.audienceTagIds.map(String) } })
         else this.$router.push({ name: 'PublishPDF' })
       } catch (e) {
         console.error(e)
@@ -1545,29 +1583,7 @@ export default {
       }
     },
     async previewTopic(topic) {
-      this.previewModal.show = true;
-      this.previewModal.loading = true;
-      this.previewModal.error = null;
-      this.previewModal.topic = topic;
-      try {
-        const data = await apiGet(`/api/topics/${topic.id}`);
-        this.previewModal.title = data.title || topic.title;
-        this.previewModal.content = data.content || '';
-        this.previewModal.frontmatter = data.frontmatter || '';
-      } catch (e) {
-        this.previewModal.error = e.message;
-      } finally {
-        this.previewModal.loading = false;
-      }
-    },
-    closePreviewModal() {
-      this.previewModal.show = false;
-      this.previewModal.topic = null;
-      this.previewModal.content = '';
-      this.previewModal.title = '';
-      this.previewModal.frontmatter = '';
-      this.previewModal.error = null;
-      this.previewModal.loading = false;
+      this.$refs.topicPane?.openTopic(topic)
     },
   }
 }
@@ -1575,7 +1591,7 @@ export default {
 
 <style scoped>
 .organize-view {
-  padding: 2rem;
+  padding: 1.5rem;
   background-color: var(--bg-white);
 }
 
@@ -1600,8 +1616,34 @@ export default {
 
 .organize-layout {
   display: grid;
-  grid-template-columns: 1fr 1fr;
+  grid-template-columns: minmax(260px, 340px) minmax(0, 1fr);
   gap: 2rem;
+}
+
+.organize-layout > .collections-panel { min-width: 0; padding: 0; border: 0; box-shadow: none; border-radius: 0; }
+.organize-layout > .collections-panel .panel-title-row { flex-wrap: wrap; }
+.organize-layout > .collections-panel h2 { font-size: 1.15rem; overflow-wrap: anywhere; }
+.organize-layout :deep(.collection-topic-item) { border: 0; border-radius: 3px; padding: .5rem .25rem; margin-bottom: .1rem; }
+.organize-layout :deep(.collection-topic-item.active-topic) { background: var(--extended-cool-mint); box-shadow: inset 3px 0 var(--primary-deep-teal); }
+.organize-layout :deep(.topic-title) { min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.organize-layout :deep(.topic-content-row) { flex-wrap: wrap; gap: .25rem; }
+.organize-layout :deep(.topic-actions) { flex-shrink: 0; }
+.organize-layout :deep(.child-topics) { margin-left: .75rem; padding-left: .25rem; }
+.organize-view:not(.is-organizing) :deep(.topic-id-badge),
+.organize-view:not(.is-organizing) :deep(.topic-status-badge),
+.organize-view:not(.is-organizing) :deep(.child-count),
+.organize-view:not(.is-organizing) :deep(.collection-topic-item .topic-actions) { display: none; }
+.outline-toggle { display: none; }
+.available-topics-backdrop { position: fixed; inset: 0; background: #0005; z-index: 1040; border: 0; }
+.organize-layout > .available-topics-drawer { position: fixed; inset: 0 0 0 auto; width: min(520px, 100%); z-index: 1041; overflow-y: auto; border-radius: 0; padding: 1.5rem; }
+.drawer-close { align-self: flex-end; flex-shrink: 0; width: 36px; height: 36px; }
+@media (max-width: 800px) {
+  .organize-view { padding: .75rem; }
+  .organize-layout { grid-template-columns: minmax(0, 1fr); gap: 1rem; }
+  .outline-toggle { display: inline-flex; }
+  .organize-layout > .collections-panel { display: none; }
+  .outline-open .organize-layout > .collections-panel { display: block; max-height: 55vh; overflow-y: auto; }
+  .organize-header h1 { font-size: 1.5rem; overflow-wrap: anywhere; }
 }
 
 .collections-panel, .topics-panel {
@@ -1928,9 +1970,15 @@ export default {
 
 .publish-buttons {
   margin-top: 1.5rem;
-  display: flex;
-  gap: 1rem;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: .5rem;
 }
+
+.publish-buttons button { width: 100%; min-width: 0; white-space: normal; overflow-wrap: anywhere; }
+.collections-panel .current-collection, .collections-panel .node { border: 0; padding: 0; background: transparent; }
+.collections-panel .topics-container { padding: 0; border: 0; min-height: 0; }
+.collections-panel .collection-topics-list { padding: 0; min-height: 0; border: 0; }
 
 .publish-btn, .publish-btn-disabled {
   padding: 0.75rem 1.5rem;
@@ -1967,6 +2015,7 @@ export default {
 .organize-top-actions {
   margin-bottom: 1rem;
   display: inline-flex;
+  flex-wrap: wrap;
   gap: 0.75rem;
   align-items: center;
 }
