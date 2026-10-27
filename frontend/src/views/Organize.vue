@@ -7,13 +7,6 @@
     
     <div class="organize-top-actions">
       <button class="secondary-btn outline-toggle" type="button" :aria-expanded="showOutline" @click="showOutline = !showOutline"><i class="bi bi-list-nested" aria-hidden="true"></i> Outline</button>
-      <button class="secondary-btn" type="button" :aria-pressed="organizeMode" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
-      <button class="secondary-btn" type="button" :aria-expanded="showAvailableTopics" @click="showAvailableTopics = !showAvailableTopics; organizeMode = true"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Topics</button>
-      <button class="secondary-btn" type="button" :aria-pressed="isEditMode" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
-      <button class="secondary-btn" @click="refreshTopics" :disabled="refreshing">
-        <span v-if="refreshing"><i class="bi bi-arrow-clockwise spin"></i> Refreshing…</span>
-        <span v-else><i class="bi bi-arrow-clockwise"></i> Refresh Topics</span>
-      </button>
       <span v-if="confirmation" class="confirmation">{{ confirmation }}</span>
     </div>
 
@@ -47,6 +40,20 @@
           </div>
         </div>
         
+        <section class="collection-tools" aria-labelledby="collection-tools-title">
+          <h3 id="collection-tools-title">Collection Tools</h3>
+          <div class="collection-tool-actions">
+            <button type="button" class="primary-btn" :disabled="!currentCollection || saving" @click="requestNewTopic()"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> New Topic</button>
+            <button type="button" class="secondary-btn" :disabled="!currentCollection || saving" :aria-expanded="showAvailableTopics" @click="showAvailableTopics = !showAvailableTopics; organizeMode = true"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Existing Topics</button>
+            <button type="button" class="secondary-btn" :aria-pressed="organizeMode" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
+            <button type="button" class="secondary-btn" :aria-pressed="isEditMode" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
+            <details class="collection-more-tools">
+              <summary class="icon-btn" aria-label="More collection tools" title="More collection tools"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
+              <button type="button" class="secondary-btn" @click="refreshTopics" :disabled="refreshing"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> {{ refreshing ? 'Refreshing...' : 'Refresh Topics' }}</button>
+            </details>
+          </div>
+        </section>
+
         <!-- Collection Properties Edit Panel (only in edit mode) -->
         <div v-if="isEditMode && currentCollection" class="collection-edit-panel">
           <h3>Collection Properties</h3>
@@ -197,9 +204,16 @@
         v-if="currentCollection"
         ref="topicPane"
         :collection-id="id"
+        :attach-topic="attachCreatedTopic"
+        :can-create-child="activeTopicDepth !== null && activeTopicDepth < 4"
+        :empty-collection="!currentCollection.topics?.length"
+        :collection-busy="saving"
         @selected="onPaneSelected"
         @saved="onPaneSaved"
         @audience-change="audienceTagIds = $event"
+        @new-topic="requestNewTopic()"
+        @new-child="requestNewTopic($event)"
+        @draft-started="showOutline = false; showAvailableTopics = false"
       />
       <button v-if="showAvailableTopics" class="available-topics-backdrop" aria-label="Close available topics" @click="showAvailableTopics = false"></button>
       <div v-if="showAvailableTopics" class="topics-panel available-topics-drawer" role="dialog" aria-modal="true" aria-label="Available topics" @keydown.esc="showAvailableTopics = false">
@@ -295,13 +309,6 @@
       </div>
     </div>
     
-    <div class="organize-actions">
-      <button class="secondary-btn" @click="refreshTopics" :disabled="refreshing">
-        <span v-if="refreshing"><i class="bi bi-arrow-clockwise spin"></i> Refreshing…</span>
-        <span v-else><i class="bi bi-arrow-clockwise"></i> Refresh Topics</span>
-      </button>
-      <span v-if="confirmation" class="confirmation">{{ confirmation }}</span>
-    </div>
     
     <!-- Context Menu -->
     <div 
@@ -413,6 +420,9 @@ export default {
     }
   },
   computed: {
+    activeTopicDepth() {
+      return this.findTopicDepth(this.currentCollection?.topics || [], this.activeTopicId)
+    },
     isAllExpanded() {
       if (!this.currentCollection || !this.currentCollection.topics) return false;
       const idsWithChildren = new Set(this.getAllTopicsWithChildren(this.currentCollection.topics));
@@ -528,6 +538,35 @@ export default {
     next(false)
   },
   methods: {
+    findTopicDepth(topics, topicId, depth = 0) {
+      for (const topic of topics) {
+        if (String(topic.id) === String(topicId)) return depth
+        const nestedDepth = this.findTopicDepth(topic.children || [], topicId, depth + 1)
+        if (nestedDepth !== null) return nestedDepth
+      }
+      return null
+    },
+    requestNewTopic(parent = null) {
+      if (this.saving || !this.currentCollection) return
+      if (parent) {
+        const depth = this.findTopicDepth(this.currentCollection.topics, parent.id)
+        if (depth === null || depth >= 4) return
+      }
+      this.$refs.topicPane?.newTopic(parent)
+    },
+    async attachCreatedTopic(topic, parentId) {
+      if (this.saving) return false
+      if (!this.findTopicInTree(this.currentCollection.topics, topic.id)) {
+        const parent = parentId == null ? null : this.findTopicInTree(this.currentCollection.topics, parentId)
+        if (parentId != null && (!parent || this.findTopicDepth(this.currentCollection.topics, parentId) >= 4)) return false
+        const siblings = parent ? (parent.children ||= []) : this.currentCollection.topics
+        siblings.push({ ...topic, children: [] })
+        if (parent) this.expandedTopics.add(parent.id)
+      }
+      if (!this.topics.some(existing => String(existing.id) === String(topic.id))) this.topics.push(topic)
+      this.unassignedTopics = this.getUnassignedTopics()
+      return this.saveChanges()
+    },
     findTopicInTree(topics, topicId) {
       for (const topic of topics) {
         if (String(topic.id) === String(topicId)) return topic
@@ -1367,6 +1406,7 @@ export default {
     },
 
     async saveChanges() {
+      if (this.saving) return false
       this.saving = true
       try {
         const collectionToUpdate = this.findCollectionById(this.allCollections, parseInt(this.id))
@@ -1377,10 +1417,12 @@ export default {
         this.confirmation = 'Collection saved!'
         setTimeout(() => { this.confirmation = '' }, 1500)
         this.setSnapshot()
+        return true
       } catch (e) {
         console.error('Failed to save collection:', e)
         this.confirmation = 'Save failed — please try again.'
         setTimeout(() => { this.confirmation = '' }, 3000)
+        return false
       } finally {
         this.saving = false
       }
@@ -1634,6 +1676,14 @@ export default {
 .organize-view:not(.is-organizing) :deep(.child-count),
 .organize-view:not(.is-organizing) :deep(.collection-topic-item .topic-actions) { display: none; }
 .outline-toggle { display: none; }
+.collection-tools { margin: .75rem 0 1.25rem; }
+.collection-tools h3 { font-size: .8rem; font-weight: 700; color: var(--text-secondary-cool-gray); margin: 0 0 .5rem; }
+.collection-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .375rem; }
+.collection-tool-actions > button { font-size: .85rem; padding: .4rem .6rem; }
+.collection-more-tools { position: relative; }
+.collection-more-tools summary { list-style: none; }
+.collection-more-tools summary::-webkit-details-marker { display: none; }
+.collection-more-tools > button { position: absolute; top: calc(100% + .25rem); right: 0; z-index: 10; width: max-content; box-shadow: 0 2px 6px #0002; }
 .available-topics-backdrop { position: fixed; inset: 0; background: #0005; z-index: 1040; border: 0; }
 .organize-layout > .available-topics-drawer { position: fixed; inset: 0 0 0 auto; width: min(520px, 100%); z-index: 1041; overflow-y: auto; border-radius: 0; padding: 1.5rem; }
 .drawer-close { align-self: flex-end; flex-shrink: 0; width: 36px; height: 36px; }

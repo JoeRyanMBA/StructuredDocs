@@ -228,7 +228,7 @@
         </div>
 
         <!-- Actions -->
-        <div class="editor-actions">
+        <div v-if="!embedded" class="editor-actions">
           <button
             type="button"
             @click="saveTopic"
@@ -1478,6 +1478,7 @@ export default {
         setTimeout(() => { 
           this.saveSuccess = null
         }, 5000)
+        return result
         
       } catch (error) {
         console.error('[saveTopic] Caught error:', error, {
