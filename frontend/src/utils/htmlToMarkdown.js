@@ -305,6 +305,15 @@ export function htmlToMarkdown(html) {
           collectListEntries(listNode, getListLevel(listNode, 1))
         )
         const semanticList = buildSemanticList(entries, tagName)
+        const normalizedRoot = semanticList.firstElementChild
+        if (
+          current.tagName === 'OL'
+          && current.hasAttribute('start')
+          && normalizedRoot instanceof HTMLElement
+          && normalizedRoot.tagName === 'OL'
+        ) {
+          normalizedRoot.setAttribute('start', current.getAttribute('start'))
+        }
         current.replaceWith(semanticList)
         listNodes.slice(1).forEach(node => node.remove())
         spacerNodes.forEach(node => node.remove())
@@ -312,6 +321,77 @@ export function htmlToMarkdown(html) {
 
       index = cursor
     }
+  }
+
+  const isImageOnlyBlock = (node) => (
+    node instanceof HTMLElement
+    && Boolean(node.tagName === 'IMG' || node.querySelector('img'))
+    && !(node.textContent || '').trim()
+  )
+
+  const normalizeImageSeparatedListLevels = (container) => {
+    let previousList = null
+    let imageBlocks = []
+
+    Array.from(container.childNodes).forEach(node => {
+      if (isEmptySpacer(node)) return
+
+      if (node instanceof HTMLElement && ['UL', 'OL'].includes(node.tagName)) {
+        const previousItems = Array.from(previousList?.children || [])
+          .filter(child => child instanceof HTMLLIElement)
+        const currentItems = Array.from(node.children)
+          .filter(child => child instanceof HTMLLIElement)
+        const previousLevel = previousItems.length
+          ? getListLevel(previousItems.at(-1), getListLevel(previousList, 1))
+          : 1
+        const currentLevel = currentItems.length
+          ? getListLevel(currentItems[0], getListLevel(node, 1))
+          : 1
+
+        if (previousList && imageBlocks.length && currentLevel === previousLevel + 1 && previousItems.length) {
+          const parentItem = previousItems.at(-1)
+          const listTag = getListTag(node, node.tagName)
+          let nestedList = Array.from(parentItem.children).find(child =>
+            child instanceof HTMLElement
+            && ['UL', 'OL'].includes(child.tagName)
+            && getListTag(child, child.tagName) === listTag
+          )
+
+          if (nestedList) {
+            const imageHost = Array.from(nestedList.children)
+              .filter(child => child instanceof HTMLLIElement)
+              .at(-1) || parentItem
+            imageBlocks.forEach(block => imageHost.appendChild(block))
+          } else {
+            imageBlocks.forEach(block => parentItem.appendChild(block))
+            nestedList = createSemanticList(listTag)
+            if (node.hasAttribute('start') && nestedList.tagName === 'OL') {
+              nestedList.setAttribute('start', node.getAttribute('start'))
+            }
+            parentItem.appendChild(nestedList)
+          }
+
+          while (node.firstChild) {
+            nestedList.appendChild(node.firstChild)
+          }
+          node.remove()
+          imageBlocks = []
+          return
+        }
+
+        previousList = node
+        imageBlocks = []
+        return
+      }
+
+      if (isImageOnlyBlock(node) && previousList) {
+        imageBlocks.push(node)
+        return
+      }
+
+      previousList = null
+      imageBlocks = []
+    })
   }
 
   const isStyledListItem = (node) => {
@@ -338,6 +418,7 @@ export function htmlToMarkdown(html) {
   }
 
   unwrapListWrappers(doc.body)
+  normalizeImageSeparatedListLevels(doc.body)
   normalizeStyledListGroups(doc.body)
 
   const normalizeSoftWrappedText = (text) => {
