@@ -1,12 +1,48 @@
 import assert from 'node:assert/strict'
 import { readFile } from 'node:fs/promises'
 import test from 'node:test'
-import { parse } from '@vue/compiler-sfc'
+import { compileStyle, parse } from '@vue/compiler-sfc'
+import { JSDOM } from 'jsdom'
+import createDOMPurify from 'dompurify'
+import { renderCollectionTopic } from '../src/utils/collectionPreview.js'
 
 const source = await readFile(new URL('../src/components/CollectionTopicPane.vue', import.meta.url), 'utf8')
 const { descriptor } = parse(source)
 const script = 'const TopicEditor = {};\n' + descriptor.script.content.replace(/^import .*$/gm, '')
 const { default: component } = await import(`data:text/javascript;base64,${Buffer.from(script).toString('base64')}`)
+
+test('collection preview applies saved image alignment after sanitizing topic HTML', async () => {
+  const { window } = new JSDOM('<!doctype html><html><head></head><body></body></html>')
+  try {
+    const { document } = window
+    const scopeId = 'data-v-collection-preview-test'
+    const stylesheet = compileStyle({ source: descriptor.styles[0].content, id: scopeId, scoped: true })
+    assert.deepEqual(stylesheet.errors, [])
+    const style = document.createElement('style')
+    style.textContent = stylesheet.code
+    document.head.append(style)
+    const preview = document.createElement('div')
+    preview.className = 'collection-html-content'
+    preview.setAttribute(scopeId, '')
+    const purifier = createDOMPurify(window)
+    preview.innerHTML = await renderCollectionTopic(
+      ['left', 'center', 'right'].map(alignment =>
+        `<p><img src="/image.png" data-sd-image-alignment="${alignment}" data-sd-image-wrapping="none"></p>`).join('\n'),
+      { document, sanitize: html => purifier.sanitize(html) },
+    )
+    document.body.append(preview)
+    const images = preview.querySelectorAll('img')
+    assert.equal(images.length, 3)
+    for (const [index, margins] of [['0px', 'auto'], ['auto', 'auto'], ['auto', '0px']].entries()) {
+      const computed = window.getComputedStyle(images[index])
+      assert.equal(computed.display, 'block')
+      assert.equal(computed.marginLeft, margins[0])
+      assert.equal(computed.marginRight, margins[1])
+    }
+  } finally {
+    window.close()
+  }
+})
 
 function createPane(overrides = {}) {
   const events = []
