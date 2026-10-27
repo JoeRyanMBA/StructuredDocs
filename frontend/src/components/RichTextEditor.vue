@@ -1190,6 +1190,11 @@ export default {
           continue
         }
 
+        if (this.isImageOnlyBlock(sibling)) {
+          sibling = sibling.previousSibling
+          continue
+        }
+
         return sibling instanceof HTMLElement && ['UL', 'OL'].includes(sibling.tagName) ? sibling : null
       }
 
@@ -1513,11 +1518,22 @@ export default {
         if (!(previousItem instanceof HTMLLIElement)) {
           const previousList = this.getPreviousAdjacentList(currentList, listTag)
           if (previousList instanceof HTMLElement) {
+            previousItem = previousList.lastElementChild
+            if (!(previousItem instanceof HTMLLIElement)) break
+
+            let sibling = previousList.nextSibling
+            while (sibling && sibling !== currentList) {
+              const nextSibling = sibling.nextSibling
+              if (this.isImageOnlyBlock(sibling)) {
+                previousItem.appendChild(sibling)
+              }
+              sibling = nextSibling
+            }
+
             while (currentList.firstChild) {
               previousList.appendChild(currentList.firstChild)
             }
             currentList.remove()
-            previousItem = previousList.lastElementChild
           }
         }
 
@@ -1691,7 +1707,7 @@ export default {
 /* Sticky toolbar stays in view while scrolling long topics */
 .rte-toolbar-col > .rte-toolbar {
   position: sticky;
-  top: 0.5rem;
+  top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
   box-sizing: border-box;
   min-height: 100%;
 }
@@ -1711,6 +1727,9 @@ export default {
 
   .rte-wysiwyg-editor > .rte-toolbar-col {
     flex: 0 0 auto;
+    position: sticky;
+    top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
+    z-index: 20;
   }
 
   .rte-toolbar-col > .rte-toolbar {

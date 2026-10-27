@@ -119,6 +119,34 @@ test('does not change explicit list starts or lists separated by text', () => {
 })
 
 for (const [type, tag, marker] of [['bullet', 'ul', '-'], ['ordered', 'ol', '1.']]) {
+  test(`${type} level 2 after an image nests under the previous list item`, () => {
+    const { editor, instance } = createEditorHarness()
+    editor.innerHTML = [
+      `<${tag}><li>Level 1</li></${tag}>`,
+      '<p><img src="/between-levels.png" alt="Example"></p>',
+      `<${tag}><li>Level 2</li></${tag}>`,
+    ].join('')
+    const item = editor.querySelectorAll('li')[1]
+    const range = document.createRange()
+    range.selectNodeContents(item)
+    range.collapse(true)
+    window.getSelection().removeAllRanges()
+    window.getSelection().addRange(range)
+    instance.saveSelection()
+
+    instance.applyListLevel(type, 2)
+
+    const parentItem = editor.querySelector(`${tag} > li`)
+    const nestedList = parentItem.querySelector(`:scope > ${tag}`)
+    const imageBlock = parentItem.querySelector(':scope > p')
+    assert.ok(nestedList)
+    assert.equal(nestedList.querySelector(':scope > li')?.textContent, 'Level 2')
+    assert.equal(imageBlock.querySelector('img')?.getAttribute('alt'), 'Example')
+    assert.equal(imageBlock.compareDocumentPosition(nestedList) & Node.DOCUMENT_POSITION_FOLLOWING, Node.DOCUMENT_POSITION_FOLLOWING)
+    assert.equal(Array.from(editor.querySelector(tag).children).filter(child => child.tagName === 'LI').length, 1)
+    editor.remove()
+  })
+
   test(`${type} levels preserve ancestors and round-trip as nested lists`, () => {
     const { editor, instance } = createEditorHarness()
     editor.innerHTML = `<${tag}><li>Level 1<${tag}><li>Level 2</li><li>Level 3</li></${tag}></li></${tag}>`
