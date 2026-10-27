@@ -239,7 +239,7 @@
           </button>
 
           <button
-            v-if="topicId"
+            v-if="topicId && !embedded"
             type="button"
             @click="$emit('show-review-modal')"
             class="btn btn-secondary"
@@ -248,7 +248,7 @@
           </button>
 
           <button
-            v-if="topicId"
+            v-if="topicId && !embedded"
             type="button"
             @click="$emit('show-sequential-modal')"
             class="btn btn-secondary"
@@ -258,7 +258,7 @@
 
           <button
             type="button"
-            @click="$router.go(-1)"
+            @click="embedded ? $emit('close') : $router.go(-1)"
             class="btn btn-secondary"
           >
             Close
@@ -628,6 +628,10 @@ export default {
   name: 'TopicEditor',
   components: { TagEditor, SnippetSelector, RichTextEditor },
   props: {
+    embedded: {
+      type: Boolean,
+      default: false
+    },
     topicId: {
       type: [String, Number],
       default: null
