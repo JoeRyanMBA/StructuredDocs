@@ -215,6 +215,10 @@ export default {
   line-height: 1.75;
   color: var(--text-primary-charcoal, #2d2d2d);
 }
+.topic-body :deep(ol) { list-style-type: decimal; }
+.topic-body :deep(ol ol) { list-style-type: lower-alpha; }
+.topic-body :deep(ol ol ol) { list-style-type: lower-roman; }
+.topic-body :deep(ol ol ol ol) { list-style-type: upper-alpha; }
 
 /* Anchor headings */
 :deep(.anchor-heading) {
