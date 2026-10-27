@@ -333,6 +333,10 @@ export default {
 .collection-html-preview { max-width: 76ch; margin: 0 auto; line-height: 1.65; overflow-wrap: anywhere; }
 .collection-html-preview h1 { font-size: 1.75rem; line-height: 1.25; margin-bottom: 1.5rem; }
 .collection-html-content :deep(img) { max-width: 100%; height: auto; }
+.collection-html-content :deep(img[data-sd-image-wrapping="none"]) { display: block; }
+.collection-html-content :deep(img[data-sd-image-alignment="left"][data-sd-image-wrapping="none"]) { margin-left: 0; margin-right: auto; }
+.collection-html-content :deep(img[data-sd-image-alignment="center"][data-sd-image-wrapping="none"]) { margin-left: auto; margin-right: auto; }
+.collection-html-content :deep(img[data-sd-image-alignment="right"][data-sd-image-wrapping="none"]) { margin-left: auto; margin-right: 0; }
 .collection-html-content :deep(table) { display: block; max-width: 100%; overflow-x: auto; border-collapse: collapse; }
 .collection-html-content :deep(td), .collection-html-content :deep(th) { border: 1px solid #d6dadd; padding: .5rem; }
 .collection-html-content :deep(pre) { overflow-x: auto; padding: 1rem; background: #f4f5f5; }
