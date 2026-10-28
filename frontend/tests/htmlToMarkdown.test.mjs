@@ -111,3 +111,18 @@ test('htmlToMarkdown preserves continued numbering across standalone images', ()
   assert.ok(markdown.indexOf('1. Step one') < markdown.indexOf('![Step one]'))
   assert.ok(markdown.indexOf('![Step one]') < markdown.indexOf('2. Step two'))
 })
+
+test('htmlToMarkdown preserves list continuation and nesting across images', () => {
+  const markdown = htmlToMarkdown(
+    '<ol start="3"><li>Complete the form.</li></ol>'
+    + '<p><img src="/images/form.png" alt="Form"></p>'
+    + '<ol><li data-list-level="2" style="margin-left: 1.5rem; list-style-type: lower-alpha">Select a project.</li>'
+    + '<li data-list-level="2" style="margin-left: 1.5rem; list-style-type: lower-alpha">Select a status.</li></ol>'
+  )
+
+  assert.match(markdown, /^3\. Complete the form\./)
+  assert.match(markdown, /!\[Form\]\(\/images\/form\.png\)/)
+  assert.match(markdown, /\n    1\. Select a project\./)
+  assert.match(markdown, /\n    2\. Select a status\./)
+  assert.ok(markdown.indexOf('![Form]') < markdown.indexOf('    1. Select a project.'))
+})
