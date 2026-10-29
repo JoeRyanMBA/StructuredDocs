@@ -1,6 +1,7 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
 import { JSDOM } from 'jsdom'
+import { marked } from 'marked'
 
 const dom = new JSDOM('<!doctype html><html><body></body></html>')
 globalThis.window = dom.window
@@ -96,6 +97,13 @@ test('htmlToMarkdown preserves explicitly empty image alt text', () => {
   const markdown = htmlToMarkdown('<img src="/images/decorative.png" alt="">')
 
   assert.match(markdown, /!\[\]\(\/images\/decorative\.png\)/)
+})
+
+test('htmlToMarkdown keeps trailing whitespace outside bold markers', () => {
+  const markdown = htmlToMarkdown('<p><strong>Enter </strong>the project name.</p>')
+
+  assert.equal(markdown, '**Enter** the project name.')
+  assert.match(marked.parse(markdown), /<strong>Enter<\/strong> the project name\./)
 })
 
 test('htmlToMarkdown preserves continued numbering across standalone images', () => {

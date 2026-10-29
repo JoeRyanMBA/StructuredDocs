@@ -1,10 +1,18 @@
 <template>
   <div class="import-history">
-    <h2>Import History</h2>
+    <div class="history-header">
+      <h2>Import History</h2>
+      <router-link :to="{ name: 'Collections' }" class="collections-link">Go to Collections</router-link>
+    </div>
     
     <p class="guidance-text">
       This is a list of imported topics. Available actions appear in the Actions column.
     </p>
+
+    <div v-if="$route.query.success" class="success-banner" role="status">
+      <span>{{ $route.query.success }}</span>
+      <router-link :to="{ name: 'Collections' }">Browse Collections</router-link>
+    </div>
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else-if="error" class="error">{{ error }}</div>
@@ -33,6 +41,12 @@
                 :to="{ name: 'ImportReview', params: { id: doc.id } }"
               >
                 Review
+              </router-link>
+              <router-link
+                v-else-if="doc.status === 'approved'"
+                :to="{ name: 'Collections' }"
+              >
+                View Collections
               </router-link>
               <span v-else>—</span>
             </td>
@@ -145,6 +159,41 @@ export default {
   padding: 2rem;
   background-color: var(--bg-light-mist-gray);
 }
+
+.history-header {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+}
+
+.collections-link {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.6rem 1rem;
+  border-radius: 4px;
+  background: var(--primary-deep-teal);
+  color: #fff;
+  font-weight: 600;
+  text-decoration: none;
+}
+
+.collections-link:hover { color: #fff; background: var(--primary-teal-hover, #1a6b6b); }
+
+.success-banner {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 1rem;
+  padding: 0.75rem 1rem;
+  margin-bottom: 1rem;
+  border-left: 4px solid var(--success-dark-green);
+  border-radius: 4px;
+  background: var(--extended-cool-mint);
+  color: var(--text-primary-charcoal);
+}
+
+.success-banner a { color: var(--primary-deep-teal); font-weight: 600; }
 
 .guidance-text {
   background: var(--bg-light-mist-gray);
