@@ -471,6 +471,16 @@ export function htmlToMarkdown(html) {
     return out
   }
 
+  const renderEmphasis = (node, marker) => {
+    const content = renderChildren(node)
+    const trimmed = content.trim()
+    if (!trimmed) return content
+
+    const leadingWhitespace = content.match(/^\s*/)?.[0] || ''
+    const trailingWhitespace = content.match(/\s*$/)?.[0] || ''
+    return `${leadingWhitespace}${marker}${trimmed}${marker}${trailingWhitespace}`
+  }
+
   const getSingleListChild = (node) => {
     if (!(node instanceof HTMLElement)) return null
 
@@ -651,8 +661,8 @@ export function htmlToMarkdown(html) {
     if (tag === 'h1') return `# ${renderChildren(node).trim()}\n\n`
     if (tag === 'h2') return `## ${renderChildren(node).trim()}\n\n`
     if (tag === 'h3') return `### ${renderChildren(node).trim()}\n\n`
-    if (tag === 'strong' || tag === 'b') return `**${renderChildren(node)}**`
-    if (tag === 'em' || tag === 'i') return `*${renderChildren(node)}*`
+    if (tag === 'strong' || tag === 'b') return renderEmphasis(node, '**')
+    if (tag === 'em' || tag === 'i') return renderEmphasis(node, '*')
     if (tag === 'pre') {
       const codeText = (node.textContent || '').replace(/\u00a0/g, ' ').trimEnd()
       return codeText ? `\`\`\`\n${codeText}\n\`\`\`\n\n` : ''
