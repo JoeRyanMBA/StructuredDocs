@@ -216,7 +216,7 @@ export default {
   font-size: 0.8rem;
   font-weight: 600;
 }
-.status-badge.pending { background: var(--extended-warm-taupe); color: var(--warning-amber); }
+.status-badge.pending { background: var(--extended-warm-taupe); color: var(--text-primary-charcoal); }
 .status-badge.sme_approved { background: var(--extended-cool-mint); color: var(--success-dark-green); }
 .status-badge.final_approved { background: var(--extended-sky-blue); color: var(--primary-deep-teal); }
 
@@ -246,7 +246,7 @@ export default {
   border-left: 4px solid var(--warning-amber);
   padding: 1rem 1.5rem;
   border-radius: 4px;
-  color: var(--text-primary-dark-navy);
+  color: var(--text-primary-charcoal);
 }
 
 .collection-selector {
@@ -256,7 +256,7 @@ export default {
   display: block;
   font-weight: 600;
   margin-bottom: 0.4rem;
-  color: var(--text-primary-dark-navy);
+  color: var(--text-primary-charcoal);
 }
 .optional { font-weight: 400; color: var(--text-secondary-cool-gray); font-size: 0.85rem; }
 .collection-select {
@@ -297,7 +297,7 @@ export default {
 .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-secondary {
   padding: 0.6rem 1.4rem; border: 1px solid var(--border-gray); background: #fff;
-  color: var(--text-primary-dark-navy); cursor: pointer; border-radius: 4px;
+  color: var(--text-primary-charcoal); cursor: pointer; border-radius: 4px;
 }
 .btn-secondary:hover:not(:disabled) { background: var(--bg-light-gray); }
 .btn-secondary-link {
