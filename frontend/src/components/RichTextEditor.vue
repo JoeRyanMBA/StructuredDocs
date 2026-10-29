@@ -1697,17 +1697,18 @@ export default {
   align-items: stretch;
 }
 
-/* The column's height is at least the toolbar's, so the text area is never shorter than the toolbar */
 .rte-wysiwyg-editor > .rte-toolbar-col {
   flex: 0 0 12rem;
-  position: relative;
+  position: sticky;
+  align-self: flex-start;
+  top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
+  max-height: calc(100dvh - var(--header-height, 0px) - var(--ticker-height, 0px) - 1rem);
+  overflow-y: auto;
   z-index: 20;
 }
 
-/* Sticky toolbar stays in view while scrolling long topics */
 .rte-toolbar-col > .rte-toolbar {
-  position: sticky;
-  top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
+  position: static;
   box-sizing: border-box;
 }
 
@@ -1726,9 +1727,7 @@ export default {
 
   .rte-wysiwyg-editor > .rte-toolbar-col {
     flex: 0 0 auto;
-    position: sticky;
-    top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
-    z-index: 20;
+    align-self: stretch;
   }
 
   .rte-toolbar-col > .rte-toolbar {
