@@ -1709,7 +1709,6 @@ export default {
   position: sticky;
   top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
   box-sizing: border-box;
-  min-height: 100%;
 }
 
 .rte-wysiwyg-editor > .wysiwyg-content {
