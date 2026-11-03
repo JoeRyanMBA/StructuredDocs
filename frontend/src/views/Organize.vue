@@ -45,13 +45,16 @@
           <div class="collection-tool-actions">
             <button type="button" class="primary-btn" :disabled="!currentCollection || saving" @click="requestNewTopic()"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> New Topic</button>
             <button type="button" class="secondary-btn" :disabled="!currentCollection || saving" :aria-expanded="showAvailableTopics" @click="showAvailableTopics = !showAvailableTopics; organizeMode = true"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Existing Topics</button>
-            <button type="button" class="secondary-btn" :aria-pressed="organizeMode" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
-            <button type="button" class="secondary-btn" :aria-pressed="isEditMode" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
+            <button type="button" class="secondary-btn" :aria-pressed="organizeMode ? 'true' : 'false'" :title="organizeMode ? 'Exit organize mode' : 'Reorder and nest topics in this collection'" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
+            <button type="button" class="secondary-btn" :aria-pressed="isEditMode ? 'true' : 'false'" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
             <details class="collection-more-tools">
               <summary class="icon-btn" aria-label="More collection tools" title="More collection tools"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
               <button type="button" class="secondary-btn" @click="refreshTopics" :disabled="refreshing"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> {{ refreshing ? 'Refreshing...' : 'Refresh Topics' }}</button>
             </details>
           </div>
+          <p v-if="organizeMode" class="organize-mode-hint" role="status">
+            Organize mode is on — drag a topic by its handle to reorder, or use ▲ ▼ to move and ◀ ▶ to change nesting. Click Save to keep your changes.
+          </p>
         </section>
 
         <!-- Collection Properties Edit Panel (only in edit mode) -->
@@ -1680,6 +1683,8 @@ export default {
 .collection-tools h3 { font-size: .8rem; font-weight: 700; color: var(--text-secondary-cool-gray); margin: 0 0 .5rem; }
 .collection-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .375rem; }
 .collection-tool-actions > button { font-size: .85rem; padding: .4rem .6rem; }
+.collection-tool-actions > button[aria-pressed="true"] { background-color: var(--primary-deep-teal); border-color: var(--primary-deep-teal) !important; color: white; }
+.organize-mode-hint { margin: .5rem 0 0; font-size: .8rem; line-height: 1.4; color: var(--text-secondary-cool-gray); }
 .collection-more-tools { position: relative; }
 .collection-more-tools summary { list-style: none; }
 .collection-more-tools summary::-webkit-details-marker { display: none; }
