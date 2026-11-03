@@ -1703,7 +1703,7 @@ export default {
   align-self: flex-start;
   top: calc(var(--header-height, 0px) + var(--ticker-height, 0px) + 0.5rem);
   max-height: calc(100dvh - var(--header-height, 0px) - var(--ticker-height, 0px) - 1rem);
-  overflow-y: auto;
+  overflow: visible;
   z-index: 20;
 }
 
