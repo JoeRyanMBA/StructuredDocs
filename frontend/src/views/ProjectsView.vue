@@ -28,7 +28,7 @@
           <div class="metric-content">
             <h3>Total Stakeholders</h3>
             <div class="metric-number">{{ projectMetrics.stakeholders }}</div>
-            <div class="metric-detail">Across all projects</div>
+            <div class="metric-detail">In stakeholder directory</div>
           </div>
         </div>
         
@@ -713,7 +713,7 @@ export default {
       const total = this.projects.length
       const active = this.projects.filter(p => p.status === 'active').length
       const completed = this.projects.filter(p => p.status === 'completed').length
-      const stakeholders = this.projects.reduce((sum, p) => sum + (p.stakeholders?.length || 0), 0)
+      const stakeholders = this.availableStakeholders.length
       return {
         total,
         active,
