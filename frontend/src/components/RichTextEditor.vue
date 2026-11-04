@@ -174,9 +174,13 @@
       contenteditable="true"
       :spellcheck="spellcheck"
       :lang="spellcheckLang"
-      class="wysiwyg-content"
+      :class="['wysiwyg-content', { 'is-file-drag-over': isFileDragOver }]"
       @input="onInput"
       @paste="onPaste"
+      @dragenter="onDragEnter"
+      @dragover="onDragOver"
+      @dragleave="onDragLeave"
+      @drop="onDrop"
       @keydown="onKeydown"
       @mouseup="saveSelection"
       @keyup="saveSelection"
@@ -204,11 +208,12 @@ export default {
     spellcheck: { type: Boolean, default: false },
     spellcheckLang: { type: String, default: 'en-US' },
   },
-  emits: ['update:modelValue', 'paste'],
+  emits: ['update:modelValue', 'paste', 'drop'],
   data() {
     return {
       _inputTimer: null,
       _savedRange: null,
+      isFileDragOver: false,
       activeListMenu: null,
       activeTableMenu: false,
       activeImageMenu: null,
@@ -1768,6 +1773,99 @@ export default {
     onPaste(event) {
       this.$emit('paste', event)
     },
+    isFileDrag(event) {
+      return Array.from(event.dataTransfer?.types || []).includes('Files')
+    },
+    onDragEnter(event) {
+      if (!this.isFileDrag(event)) return
+      event.preventDefault()
+      this.isFileDragOver = true
+    },
+    onDragOver(event) {
+      if (!this.isFileDrag(event)) return
+      event.preventDefault()
+      if (event.dataTransfer) event.dataTransfer.dropEffect = 'copy'
+      this.isFileDragOver = true
+    },
+    onDragLeave(event) {
+      const relatedTarget = event.relatedTarget
+      if (relatedTarget instanceof Node && this.$refs.editorEl?.contains(relatedTarget)) return
+      this.isFileDragOver = false
+    },
+    setCaretAtPoint(x, y) {
+      const editor = this.$refs.editorEl
+      if (!editor) return false
+
+      editor.focus()
+      let range = document.caretRangeFromPoint?.(x, y)
+      if (range && !editor.contains(range.startContainer)) range = null
+
+      if (!range) {
+        const caretPosition = document.caretPositionFromPoint?.(x, y)
+        if (caretPosition && editor.contains(caretPosition.offsetNode)) {
+          range = document.createRange()
+          range.setStart(caretPosition.offsetNode, caretPosition.offset)
+          range.collapse(true)
+        }
+      }
+
+      if (!range) {
+        range = document.createRange()
+        range.selectNodeContents(editor)
+        range.collapse(false)
+      }
+
+      const selection = window.getSelection()
+      if (!selection) return false
+      selection.removeAllRanges()
+      selection.addRange(range)
+      return true
+    },
+    onDrop(event) {
+      const files = Array.from(event.dataTransfer?.files || [])
+      if (!files.length && !this.isFileDrag(event)) {
+        this.isFileDragOver = false
+        return
+      }
+
+      event.preventDefault()
+      this.isFileDragOver = false
+      if (files.some(file => file.type.startsWith('image/'))) {
+        this.setCaretAtPoint(event.clientX, event.clientY)
+        this.saveSelection()
+      }
+      this.$emit('drop', event)
+    },
+    insertImageAtSelection(src, alt = '') {
+      const editor = this.$refs.editorEl
+      if (!editor) return false
+      if (!this.restoreSelection()) editor.focus()
+
+      const selection = window.getSelection()
+      let range = selection?.rangeCount ? selection.getRangeAt(0) : null
+      if (!range || !editor.contains(range.startContainer)) {
+        range = document.createRange()
+        range.selectNodeContents(editor)
+        range.collapse(false)
+      }
+
+      range.deleteContents()
+      const image = document.createElement('img')
+      image.src = src
+      image.alt = alt
+      range.insertNode(image)
+
+      const spacer = document.createTextNode(' ')
+      image.after(spacer)
+      range.setStartAfter(spacer)
+      range.collapse(true)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+
+      this.saveSelection()
+      this.emitUpdate()
+      return true
+    },
     onKeydown(event) {
       if (this.handleTableShortcut(event)) return
       if (this.handleTableTab(event)) return
@@ -2045,6 +2143,12 @@ export default {
   cursor: text;
   box-sizing: border-box;
   transition: border-color 0.2s ease, box-shadow 0.2s ease;
+}
+
+.wysiwyg-content.is-file-drag-over {
+  outline: 2px dashed #205493;
+  outline-offset: -6px;
+  background-color: rgba(32, 84, 147, 0.06);
 }
 .wysiwyg-content p { margin: 0 0 1rem 0; line-height: 1.7; }
 .wysiwyg-content p:last-child { margin-bottom: 0; }
