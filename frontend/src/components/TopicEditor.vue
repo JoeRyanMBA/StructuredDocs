@@ -135,6 +135,9 @@
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 2)">Level 2</button>
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 3)">Level 3</button>
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 4)">Level 4</button>
+                  <div class="dropdown-divider"></div>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 1, 'continue')">Continue previous numbering</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 1, 'restart')">Restart numbering at 1</button>
                 </div>
               </div>
               <div class="dropdown toolbar-dropdown">
@@ -1519,13 +1522,21 @@ export default {
       })
     },
 
-    insertListMarkdown(type, level = 1) {
+    insertListMarkdown(type, level = 1, numbering = 'restart') {
       const textarea = this.$refs.markdownEditor
       if (!textarea) return
 
       const safeLevel = Math.max(1, Number(level) || 1)
       const indent = '    '.repeat(safeLevel - 1)
-      const marker = type === 'ordered' ? '1. ' : '- '
+      const previousListItem = type === 'ordered' && numbering === 'continue'
+        ? textarea.value.slice(0, textarea.selectionStart).split('\n').reverse().find(line => {
+            const match = line.match(/^(\s*)(\d+)\.\s+/)
+            return match && match[1].length === indent.length
+          })
+        : null
+      const previousNumber = previousListItem?.match(/^\s*(\d+)\.\s+/)
+      const startNumber = previousNumber ? Number(previousNumber[1]) + 1 : 1
+      const marker = type === 'ordered' ? `${startNumber}. ` : '- '
       const prefix = `${indent}${marker}`
       const start = textarea.selectionStart
       const end = textarea.selectionEnd

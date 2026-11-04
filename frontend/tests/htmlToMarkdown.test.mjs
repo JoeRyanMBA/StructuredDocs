@@ -15,6 +15,7 @@ globalThis.HTMLTableRowElement = dom.window.HTMLTableRowElement
 globalThis.HTMLTableCellElement = dom.window.HTMLTableCellElement
 
 const { htmlToMarkdown } = await import('../src/utils/htmlToMarkdown.js')
+const { sanitizeHtml } = await import('../src/utils/sanitize.js')
 
 test('htmlToMarkdown preserves table structure and alignment markers', () => {
   const html = `
@@ -106,6 +107,17 @@ test('htmlToMarkdown keeps trailing whitespace outside bold markers', () => {
   assert.match(marked.parse(markdown), /<strong>Enter<\/strong> the project name\./)
 })
 
+test('htmlToMarkdown preserves safe paragraph indentation and inline formatting', () => {
+  const markdown = htmlToMarkdown(
+    '<p style="margin-left: 80px"><strong>Indented</strong> paragraph'
+    + '<img src="/image.png" onerror="alert(1)"></p>'
+  )
+
+  assert.match(markdown, /^<p style="margin-left: 80px"><strong>Indented<\/strong> paragraph/)
+  assert.doesNotMatch(markdown, /onerror/)
+  assert.match(marked.parse(markdown), /<p style="margin-left: 80px"><strong>Indented<\/strong> paragraph/)
+})
+
 test('htmlToMarkdown preserves continued numbering across standalone images', () => {
   const markdown = htmlToMarkdown(
     '<ol><li>Step one</li></ol>'
@@ -133,4 +145,18 @@ test('htmlToMarkdown preserves list continuation and nesting across images', () 
   assert.match(markdown, /\n    1\. Select a project\./)
   assert.match(markdown, /\n    2\. Select a status\./)
   assert.ok(markdown.indexOf('![Form]') < markdown.indexOf('    1. Select a project.'))
+})
+
+test('htmlToMarkdown preserves explicit list restarts and item numbering', () => {
+  const restarted = htmlToMarkdown(
+    '<ol start="1" data-sd-list-numbering="restart"><li>Start over</li></ol>'
+  )
+  const numbered = htmlToMarkdown(
+    '<ol start="4"><li value="6">Six</li><li>Seven</li></ol>'
+  )
+
+  assert.match(restarted, /<ol start="1" data-sd-list-numbering="restart"><li>Start over<\/li><\/ol>/)
+  assert.match(marked.parse(restarted), /<ol start="1" data-sd-list-numbering="restart">/)
+  assert.match(sanitizeHtml(marked.parse(restarted)), /data-sd-list-numbering="restart"/)
+  assert.equal(numbered, '6. Six\n7. Seven')
 })
