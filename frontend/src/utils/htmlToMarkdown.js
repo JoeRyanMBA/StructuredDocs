@@ -2,6 +2,8 @@
  * Convert an HTML string to Markdown.
  * Shared by TopicEditor and SnippetsLibrary.
  */
+import { sanitizeHtml } from './sanitize.js'
+
 export function htmlToMarkdown(html) {
   const parser = new DOMParser()
   const doc = parser.parseFromString(html || '', 'text/html')
@@ -36,6 +38,13 @@ export function htmlToMarkdown(html) {
         return /^-?\d+(\.\d+)?(px|pt|em|rem|%)?$/.test(value)
       })
       .join('; ')
+  }
+  const getParagraphIndent = (node) => {
+    const match = String(node.style?.marginLeft || '').trim().match(/^(\d+(?:\.\d+)?)(px)$/i)
+    if (!match) return ''
+
+    const value = Number(match[1])
+    return value > 0 && value <= 400 ? `${value}px` : ''
   }
   const inferListLevelFromMargin = (marginValue) => {
     const raw = String(marginValue || '').trim()
@@ -536,12 +545,18 @@ export function htmlToMarkdown(html) {
   }
 
   const renderList = (listNode, depth = 1) => {
+    if (listNode.dataset.sdListNumbering === 'restart') {
+      return `${sanitizeHtml(listNode.outerHTML)}\n\n`
+    }
+
     const isOrdered = getListTag(listNode) === 'OL'
     let index = Number(listNode.getAttribute('start') || 1)
     const lines = []
 
     listNode.childNodes.forEach(child => {
       if (!(child instanceof HTMLElement) || child.tagName.toLowerCase() !== 'li') return
+      const itemValue = Number.parseInt(child.getAttribute('value') || '', 10)
+      if (isOrdered && Number.isFinite(itemValue)) index = itemValue
       lines.push(renderListItem(child, depth, index, isOrdered))
       index += 1
     })
@@ -709,6 +724,12 @@ export function htmlToMarkdown(html) {
       const singleListChild = getSingleListChild(node)
       if (singleListChild) {
         return renderList(singleListChild, getListLevel(node, getListLevel(singleListChild, 1)))
+      }
+      if (tag === 'p') {
+        const paragraphIndent = getParagraphIndent(node)
+        if (paragraphIndent) {
+          return `<p style="margin-left: ${paragraphIndent}">${sanitizeHtml(node.innerHTML)}</p>\n\n`
+        }
       }
       return `${renderChildren(node).trim()}\n\n`
     }

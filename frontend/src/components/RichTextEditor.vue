@@ -7,9 +7,12 @@
         <div class="rte-toolbar-group-controls">
       <button type="button" @click="exec('bold')" class="toolbar-btn" title="Bold" aria-label="Bold">𝐁</button>
       <button type="button" @click="exec('italic')" class="toolbar-btn" title="Italic" aria-label="Italic">𝐼</button>
+      <button type="button" @click="exec('underline')" class="toolbar-btn" title="Underline" aria-label="Underline"><u>U</u></button>
       <button type="button" @click="applyInlineCode" class="toolbar-btn" title="Inline code" aria-label="Inline code">⟨⟩</button>
       <button type="button" @click="exec('formatBlock', 'h2')" class="toolbar-btn" title="Heading 2" aria-label="Heading 2">𝐇𝟐</button>
       <button type="button" @click="exec('formatBlock', 'h3')" class="toolbar-btn" title="Heading 3" aria-label="Heading 3">𝐇𝟑</button>
+      <button type="button" @click="adjustParagraphIndent(1)" class="toolbar-btn" title="Increase paragraph indent" aria-label="Increase paragraph indent">⇥</button>
+      <button type="button" @click="adjustParagraphIndent(-1)" class="toolbar-btn" title="Decrease paragraph indent" aria-label="Decrease paragraph indent">⇤</button>
       <button type="button" @click="clearFormatting()" class="toolbar-btn" title="Clear formatting from selected text" aria-label="Clear formatting">Tx</button>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeListMenu === 'bullet' }]">
         <button
@@ -47,6 +50,9 @@
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 2)">Level 2</button>
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 3)">Level 3</button>
           <button type="button" class="dropdown-item" @click="applyListLevel('ordered', 4)">Level 4</button>
+          <div class="dropdown-divider"></div>
+          <button type="button" class="dropdown-item" @click="applyOrderedListNumbering('continue')">Continue previous numbering</button>
+          <button type="button" class="dropdown-item" @click="applyOrderedListNumbering('restart')">Restart numbering at 1</button>
         </div>
       </div>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeTableMenu }]">
@@ -902,6 +908,95 @@ export default {
       selection.addRange(range)
       return true
     },
+    adjustParagraphIndent(direction) {
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
+
+      const editor = this.$refs.editorEl
+      const selection = window.getSelection()
+      if (!editor || !selection || selection.rangeCount === 0) return
+
+      const range = selection.getRangeAt(0)
+      if (!editor.contains(range.commonAncestorContainer)) return
+
+      const blockSelector = 'p,h1,h2,h3,h4,h5,h6,pre,blockquote'
+      const blocks = range.collapsed
+        ? (() => {
+            const node = range.startContainer
+            const element = node instanceof Element ? node : node.parentElement
+            const block = element?.closest(blockSelector)
+            return block && editor.contains(block) ? [block] : []
+          })()
+        : Array.from(editor.querySelectorAll(blockSelector)).filter(block => range.intersectsNode(block))
+      const increment = direction > 0 ? 40 : -40
+      let changed = false
+
+      blocks.forEach(block => {
+        const currentMargin = block.style.marginLeft.trim()
+        const match = currentMargin.match(/^(\d+(?:\.\d+)?)(px|rem|em)$/i)
+        if (currentMargin && !match) return
+
+        const currentIndent = match
+          ? Number(match[1]) * (match[2].toLowerCase() === 'px' ? 1 : 16)
+          : 0
+        const nextIndent = Math.max(0, Math.min(400, currentIndent + increment))
+        if (nextIndent === currentIndent) return
+
+        if (nextIndent === 0) {
+          block.style.removeProperty('margin-left')
+        } else {
+          block.style.marginLeft = `${nextIndent}px`
+        }
+        changed = true
+      })
+
+      if (changed) {
+        this.saveSelection()
+        this.emitUpdate()
+      }
+    },
+    replaceListItemWithParagraph(item) {
+      const list = item.parentElement
+      if (!(list instanceof HTMLElement) || !['UL', 'OL'].includes(list.tagName)) return null
+
+      const listContainer = list.parentNode
+      if (!listContainer) return null
+
+      const listItems = Array.from(list.children)
+      const itemIndex = listItems.indexOf(item)
+      if (itemIndex < 0) return null
+
+      const precedingItems = listItems.slice(0, itemIndex)
+      const followingItems = listItems.slice(itemIndex + 1)
+      const paragraph = document.createElement('p')
+      const plainText = this.fragmentToPlainText(item.cloneNode(true)).trim()
+      plainText.split('\n').forEach((line, index) => {
+        if (index > 0) paragraph.appendChild(document.createElement('br'))
+        paragraph.appendChild(document.createTextNode(line))
+      })
+
+      item.remove()
+      let trailingList = null
+      if (precedingItems.length > 0 && followingItems.length > 0) {
+        trailingList = list.cloneNode(false)
+        followingItems.forEach(listItem => trailingList.appendChild(listItem))
+        if (list.tagName === 'OL') {
+          trailingList.setAttribute('start', String(Number(list.getAttribute('start') || 1) + precedingItems.length + 1))
+        }
+      }
+
+      if (precedingItems.length === 0 && followingItems.length === 0) {
+        listContainer.replaceChild(paragraph, list)
+      } else if (precedingItems.length === 0) {
+        listContainer.insertBefore(paragraph, list)
+      } else {
+        listContainer.insertBefore(paragraph, list.nextSibling)
+        if (trailingList) listContainer.insertBefore(trailingList, paragraph.nextSibling)
+      }
+
+      return paragraph
+    },
     clearFormatting() {
       if (!this.restoreSelection()) {
         this.$refs.editorEl?.focus()
@@ -913,6 +1008,44 @@ export default {
 
       const range = selection.getRangeAt(0)
       if (!editor.contains(range.commonAncestorContainer) || range.collapsed) return
+
+      const intersectingItems = this.getIntersectingListItems(range)
+      const listItemsToClear = intersectingItems.filter(item => {
+        const containsIntersectingChild = intersectingItems.some(other => other !== item && item.contains(other))
+        if (!containsIntersectingChild) return true
+
+        const hasSelectedDirectText = node => {
+          if (node.nodeType === Node.TEXT_NODE) {
+            return Boolean(node.textContent) && range.intersectsNode(node)
+          }
+          if (node instanceof HTMLElement && ['UL', 'OL'].includes(node.tagName)) return false
+          return Array.from(node.childNodes).some(hasSelectedDirectText)
+        }
+        return Array.from(item.childNodes).some(hasSelectedDirectText)
+      })
+
+      if (listItemsToClear.length > 0) {
+        const paragraphs = listItemsToClear
+          .reverse()
+          .map(item => this.replaceListItemWithParagraph(item))
+          .filter(Boolean)
+          .filter(paragraph => paragraph.isConnected)
+          .sort((left, right) => (
+            left.compareDocumentPosition(right) & Node.DOCUMENT_POSITION_FOLLOWING ? -1 : 1
+          ))
+        const firstParagraph = paragraphs[0]
+        const lastParagraph = paragraphs.at(-1)
+        if (firstParagraph && lastParagraph) {
+          const updatedRange = document.createRange()
+          updatedRange.selectNodeContents(firstParagraph)
+          updatedRange.setEnd(lastParagraph, lastParagraph.childNodes.length)
+          selection.removeAllRanges()
+          selection.addRange(updatedRange)
+        }
+        this.saveSelection()
+        this.emitUpdate()
+        return
+      }
 
       const plainText = this.fragmentToPlainText(range.cloneContents()).trim()
       range.deleteContents()
@@ -1017,6 +1150,54 @@ export default {
       this.placeCaretAtEnd(this.getCurrentListItem() || this.$refs.editorEl)
       this.saveSelection()
       this.emitUpdate()
+    },
+    applyOrderedListNumbering(mode) {
+      this.closeListMenu()
+      if (!this.restoreSelection()) {
+        this.$refs.editorEl?.focus()
+      }
+
+      let list = this.getCurrentListItem()?.closest('ol')
+      if (!list) {
+        this.insertList('ordered', 1)
+        list = this.getCurrentListItem()?.closest('ol')
+      }
+      if (!list) return
+
+      if (mode === 'restart') {
+        list.setAttribute('start', '1')
+        list.dataset.sdListNumbering = 'restart'
+      } else {
+        const previousList = this.getPreviousOrderedList(list)
+        const previousEnd = previousList ? this.getOrderedListEnd(previousList) : null
+        list.setAttribute('start', String(previousEnd === null ? 1 : previousEnd + 1))
+        delete list.dataset.sdListNumbering
+      }
+
+      this.saveSelection()
+      this.emitUpdate()
+    },
+    getPreviousOrderedList(list) {
+      let previous = list.previousElementSibling
+      while (previous && previous.tagName !== 'OL') {
+        previous = previous.previousElementSibling
+      }
+      return previous
+    },
+    getOrderedListEnd(list) {
+      let nextNumber = Number.parseInt(list.getAttribute('start') || '1', 10)
+      if (!Number.isFinite(nextNumber)) nextNumber = 1
+      let lastNumber = null
+
+      Array.from(list.children)
+        .filter(item => item.tagName === 'LI')
+        .forEach(item => {
+          const itemValue = Number.parseInt(item.getAttribute('value') || '', 10)
+          lastNumber = Number.isFinite(itemValue) ? itemValue : nextNumber
+          nextNumber = lastNumber + 1
+        })
+
+      return lastNumber
     },
     continueOrderedListsAfterImages(container = this.$refs.editorEl) {
       if (!(container instanceof HTMLElement)) return
