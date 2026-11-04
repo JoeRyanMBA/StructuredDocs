@@ -30,10 +30,14 @@ function createEditorHarness() {
   document.body.append(editor)
 
   const updates = []
+  const emitted = []
   const instance = {
     ...richTextEditor.data(),
     $refs: { editorEl: editor },
-    $emit: (_event, value) => updates.push(value),
+    $emit: (event, value) => {
+      if (event === 'update:modelValue') updates.push(value)
+      else emitted.push({ event, value })
+    },
   }
   for (const [name, method] of Object.entries(richTextEditor.methods)) {
     instance[name] = method.bind(instance)
@@ -41,7 +45,7 @@ function createEditorHarness() {
   instance.handleTableShortcut = () => false
   instance.handleTableTab = () => false
 
-  return { editor, instance, updates }
+  return { editor, instance, updates, emitted }
 }
 
 test('Tab inserts a tab in the WYSIWYG topic editor without leaving it', () => {
@@ -68,6 +72,91 @@ test('Tab inserts a tab in the WYSIWYG topic editor without leaving it', () => {
   assert.match(updates.at(-1), /Topic\t text/)
 })
 
+test('toolbar underlines the selected text', () => {
+  const { editor, instance } = createEditorHarness()
+  const text = editor.querySelector('p').firstChild
+  const range = document.createRange()
+  range.selectNodeContents(text)
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection()
+
+  const originalExecCommand = document.execCommand
+  let commandArguments
+  document.execCommand = (...args) => {
+    commandArguments = args
+  }
+  try {
+    assert.match(source, /@click="exec\('underline'\)"[^>]*title="Underline"[^>]*aria-label="Underline"/)
+    instance.exec('underline')
+  } finally {
+    document.execCommand = originalExecCommand
+  }
+
+  assert.deepEqual(commandArguments, ['underline', false, null])
+})
+
+test('dropping files over the editor emits the drop event and allows image insertion at the caret', () => {
+  const { editor, instance, updates, emitted } = createEditorHarness()
+  const file = new window.File(['image'], 'diagram.png', { type: 'image/png' })
+  let prevented = false
+  let caretPosition
+  instance.setCaretAtPoint = (x, y) => {
+    caretPosition = [x, y]
+    return true
+  }
+  instance.saveSelection = () => true
+
+  instance.onDrop({
+    dataTransfer: { files: [file], types: ['Files'] },
+    clientX: 24,
+    clientY: 42,
+    preventDefault() {
+      prevented = true
+    },
+  })
+
+  assert.equal(prevented, true)
+  assert.deepEqual(caretPosition, [24, 42])
+  assert.equal(emitted.at(-1).event, 'drop')
+
+  const text = editor.querySelector('p').firstChild
+  const range = document.createRange()
+  range.setStart(text, 5)
+  range.collapse(true)
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection = richTextEditor.methods.saveSelection.bind(instance)
+  instance.saveSelection()
+  instance.insertImageAtSelection('/images/diagram.png', 'Diagram')
+
+  assert.equal(editor.querySelector('img')?.getAttribute('src'), '/images/diagram.png')
+  assert.equal(editor.querySelector('img')?.getAttribute('alt'), 'Diagram')
+  assert.match(updates.at(-1), /<img src="\/images\/diagram\.png" alt="Diagram">/)
+})
+
+test('indent controls adjust every selected paragraph and can restore the left margin', () => {
+  const { editor, instance, updates } = createEditorHarness()
+  editor.innerHTML = '<p>First paragraph</p><p>Second paragraph</p><p>Unselected paragraph</p>'
+  const paragraphs = editor.querySelectorAll('p')
+  const range = document.createRange()
+  range.setStart(paragraphs[0].firstChild, 0)
+  range.setEnd(paragraphs[1].firstChild, paragraphs[1].textContent.length)
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection()
+
+  assert.match(source, /@click="adjustParagraphIndent\(1\)"[^>]*title="Increase paragraph indent"/)
+  assert.match(source, /@click="adjustParagraphIndent\(-1\)"[^>]*title="Decrease paragraph indent"/)
+  instance.adjustParagraphIndent(1)
+
+  assert.deepEqual(Array.from(paragraphs, paragraph => paragraph.style.marginLeft), ['40px', '40px', ''])
+  assert.match(updates.at(-1), /style="margin-left: 40px;?"/)
+
+  instance.adjustParagraphIndent(-1)
+  assert.deepEqual(Array.from(paragraphs, paragraph => paragraph.style.marginLeft), ['', '', ''])
+})
+
 test('closes the list dropdown before applying a selected list level', () => {
   const { instance } = createEditorHarness()
   instance.activeListMenu = 'ordered'
@@ -81,6 +170,24 @@ test('closes the list dropdown before applying a selected list level', () => {
 
   assert.deepEqual(appliedLevel, ['ordered', 2])
   assert.equal(instance.activeListMenu, null)
+})
+
+test('clears formatting from a selected list item without changing neighboring items', () => {
+  const { editor, instance, updates } = createEditorHarness()
+  editor.innerHTML = '<ul><li>Keep this</li><li><strong>Remove formatting</strong></li><li>Keep that</li></ul>'
+  const selectedText = editor.querySelector('strong').firstChild
+  const range = document.createRange()
+  range.selectNodeContents(selectedText)
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection()
+
+  instance.clearFormatting()
+
+  assert.deepEqual(Array.from(editor.querySelectorAll('ul > li'), item => item.textContent), ['Keep this', 'Keep that'])
+  assert.equal(editor.querySelector('p')?.textContent, 'Remove formatting')
+  assert.equal(editor.querySelector('p strong'), null)
+  assert.match(updates.at(-1), /<p>Remove formatting<\/p>/)
 })
 
 test('continues ordered-list numbering across standalone images', () => {
@@ -116,6 +223,30 @@ test('does not change explicit list starts or lists separated by text', () => {
   const lists = editor.querySelectorAll('ol')
   assert.equal(lists[1].getAttribute('start'), '5')
   assert.equal(lists[2].getAttribute('start'), null)
+})
+
+test('ordered-list controls can continue a prior list or explicitly restart at one', () => {
+  const { editor, instance, updates } = createEditorHarness()
+  editor.innerHTML = '<ol start="4"><li value="6">Six</li><li>Seven</li></ol><p>Section break</p><ol start="1"><li>Next step</li></ol>'
+  const nextStep = editor.querySelectorAll('ol')[1]
+  const range = document.createRange()
+  range.selectNodeContents(nextStep.querySelector('li'))
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection()
+  instance.activeListMenu = 'ordered'
+
+  assert.match(source, /applyOrderedListNumbering\('continue'\).*Continue previous numbering/)
+  assert.match(source, /applyOrderedListNumbering\('restart'\).*Restart numbering at 1/)
+  instance.applyOrderedListNumbering('continue')
+
+  assert.equal(nextStep.getAttribute('start'), '8')
+  assert.equal(nextStep.dataset.sdListNumbering, undefined)
+
+  instance.applyOrderedListNumbering('restart')
+  assert.equal(nextStep.getAttribute('start'), '1')
+  assert.equal(nextStep.dataset.sdListNumbering, 'restart')
+  assert.match(updates.at(-1), /data-sd-list-numbering="restart"/)
 })
 
 for (const [type, tag, marker] of [['bullet', 'ul', '-'], ['ordered', 'ol', '1.']]) {

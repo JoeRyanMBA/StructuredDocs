@@ -135,6 +135,9 @@
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 2)">Level 2</button>
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 3)">Level 3</button>
                   <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 4)">Level 4</button>
+                  <div class="dropdown-divider"></div>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 1, 'continue')">Continue previous numbering</button>
+                  <button type="button" class="dropdown-item" @click="insertListMarkdown('ordered', 1, 'restart')">Restart numbering at 1</button>
                 </div>
               </div>
               <div class="dropdown toolbar-dropdown">
@@ -181,6 +184,7 @@
             spellcheck-lang="en-US"
             @update:model-value="onRichEditorUpdate"
             @paste="handleWysiwygPaste"
+            @drop="handleWysiwygDrop"
           >
             <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn" title="Insert link" aria-label="Insert link">🔗</button>
@@ -616,7 +620,9 @@ import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE, apiGet, apiPost, apiPut } from '@/api/base'
 import axiosInstance from '@/api/axiosInstance'
+import { toast } from '@/composables/useToast'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
+import { uploadInlineImageDataUrls } from '@/utils/uploadInlineImageDataUrls'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
 import { searchTopics } from '@/api/topics.js'
@@ -1426,9 +1432,20 @@ export default {
       this.saveSuccess = null
       
       try {
+        const contentWithUploadedImages = await uploadInlineImageDataUrls(
+          this.content,
+          image => this.uploadInlineImageData(image)
+        )
+        if (contentWithUploadedImages !== this.content) {
+          this.content = contentWithUploadedImages
+          if (this.editorMode === 'wysiwyg') {
+            await this._initWysiwygContent()
+          }
+        }
+
         const payload = {
           title: this.title,
-          content: this.content,
+          content: contentWithUploadedImages,
           frontmatter: this.frontmatter
         }
         
@@ -1519,13 +1536,21 @@ export default {
       })
     },
 
-    insertListMarkdown(type, level = 1) {
+    insertListMarkdown(type, level = 1, numbering = 'restart') {
       const textarea = this.$refs.markdownEditor
       if (!textarea) return
 
       const safeLevel = Math.max(1, Number(level) || 1)
       const indent = '    '.repeat(safeLevel - 1)
-      const marker = type === 'ordered' ? '1. ' : '- '
+      const previousListItem = type === 'ordered' && numbering === 'continue'
+        ? textarea.value.slice(0, textarea.selectionStart).split('\n').reverse().find(line => {
+            const match = line.match(/^(\s*)(\d+)\.\s+/)
+            return match && match[1].length === indent.length
+          })
+        : null
+      const previousNumber = previousListItem?.match(/^\s*(\d+)\.\s+/)
+      const startNumber = previousNumber ? Number(previousNumber[1]) + 1 : 1
+      const marker = type === 'ordered' ? `${startNumber}. ` : '- '
       const prefix = `${indent}${marker}`
       const start = textarea.selectionStart
       const end = textarea.selectionEnd
@@ -2018,86 +2043,101 @@ export default {
       return htmlToMarkdown(html)
     },
 
+    async uploadInlineImageData({ mimeType, extension, base64 }) {
+      const binary = atob(base64)
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0))
+      const formData = new FormData()
+      formData.append(
+        'image',
+        new Blob([bytes], { type: mimeType }),
+        `embedded-image.${extension}`
+      )
+
+      const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
+      const publicUrl = uploaded.public_url || uploaded.file_path
+      if (!publicUrl) {
+        throw new Error('Image upload succeeded but no image URL was returned.')
+      }
+      return publicUrl
+    },
+
+    async uploadAndInsertEditorImage(imageFile) {
+      const extensionByMime = {
+        'image/png': '.png',
+        'image/jpeg': '.jpg',
+        'image/jpg': '.jpg',
+        'image/gif': '.gif',
+        'image/bmp': '.bmp',
+        'image/x-ms-bmp': '.bmp',
+        'image/webp': '.webp',
+        'image/svg+xml': '.svg',
+      }
+      const allowedExtension = imageFile.name?.match(/\.(png|jpe?g|gif|bmp|webp|svg)$/i)?.[0]
+      const extension = imageFile.type ? extensionByMime[imageFile.type] : allowedExtension
+      if (!extension) {
+        throw new Error('Use a PNG, JPEG, GIF, BMP, WebP, or SVG image.')
+      }
+
+      const baseName = imageFile.name?.replace(/\.[^.]+$/, '') || `editor_image_${Date.now()}`
+      const formData = new FormData()
+      formData.append('image', imageFile, `${baseName}${extension}`)
+
+      const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
+      const src = uploaded.public_url || uploaded.file_path
+      if (!src) throw new Error('Upload succeeded but no image URL was returned.')
+
+      const inserted = this.$refs.richEditor?.insertImageAtSelection(src, uploaded.alt_text || '')
+      if (!inserted) throw new Error('The image uploaded, but could not be inserted into the editor.')
+    },
+
     async handleWysiwygPaste(event) {
       const clipboard = event.clipboardData
       if (!clipboard) return
 
       const items = Array.from(clipboard.items || [])
       const imageItem = items.find(item => (item.type || '').startsWith('image/'))
-
       if (imageItem) {
         event.preventDefault()
-
         const imageFile = imageItem.getAsFile()
-        if (!imageFile) return
-
-        const mimeType = imageFile.type || 'image/png'
-        const extByMime = {
-          'image/png': '.png',
-          'image/jpeg': '.jpg',
-          'image/jpg': '.jpg',
-          'image/gif': '.gif',
-          'image/webp': '.webp',
-          'image/svg+xml': '.svg'
+        if (!imageFile) {
+          toast.error('Could not read the pasted image.')
+          return
         }
-        const ext = extByMime[mimeType] || '.png'
-        const generatedName = `pasted_image_${Date.now()}${ext}`
 
         try {
-          const formData = new FormData()
-          formData.append('image', imageFile, generatedName)
-
-          const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
-          const src = uploaded.public_url || uploaded.file_path
-          if (!src) throw new Error('Upload succeeded but no image URL returned')
-
-          const editor = this.$refs.richEditor?.getEditorEl()
-          if (editor) {
-            const selection = window.getSelection()
-            let insertedAtCaret = false
-
-            if (selection && selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0)
-              if (editor.contains(range.startContainer)) {
-                const imageNode = document.createElement('img')
-                imageNode.src = src
-                imageNode.alt = uploaded.alt_text || ''
-
-                range.deleteContents()
-                range.insertNode(imageNode)
-
-                const spacer = document.createTextNode(' ')
-                imageNode.after(spacer)
-                range.setStartAfter(spacer)
-                range.collapse(true)
-                selection.removeAllRanges()
-                selection.addRange(range)
-                insertedAtCaret = true
-              }
-            }
-
-            if (!insertedAtCaret) {
-              const imageNode = document.createElement('img')
-              imageNode.src = src
-              imageNode.alt = uploaded.alt_text || ''
-              editor.appendChild(imageNode)
-              editor.appendChild(document.createTextNode(' '))
-            }
-
-            this.updateContentFromWysiwyg()
-          }
-          return
-        } catch (e) {
-          console.error('Image paste upload failed', e)
+          await this.uploadAndInsertEditorImage(imageFile)
+        } catch (error) {
+          console.error('Image paste upload failed', error)
+          toast.error(`Could not add pasted image: ${error.message}`)
         }
+        return
       }
 
-      // Fallback: plain text paste handling
       event.preventDefault()
       const text = clipboard.getData('text/plain')
       const nextText = this.normalizePastedLineBreaks ? this.normalizeSoftWrappedPastedText(text) : text
       document.execCommand('insertText', false, nextText)
       this.onWysiwygInput()
+    },
+
+    async handleWysiwygDrop(event) {
+      const files = Array.from(event.dataTransfer?.files || [])
+      const imageFiles = files.filter(file => file.type.startsWith('image/'))
+      if (!files.length) return
+
+      const rejectedCount = files.length - imageFiles.length
+      if (rejectedCount > 0) {
+        toast.error('Only image files can be dropped into the editor.')
+      }
+
+      for (const imageFile of imageFiles) {
+        try {
+          await this.uploadAndInsertEditorImage(imageFile)
+        } catch (error) {
+          console.error('Image drop upload failed', error)
+          toast.error(`Could not add ${imageFile.name || 'dropped image'}: ${error.message}`)
+        }
+      }
     },
 
     handleWysiwygKeydown(event) {
