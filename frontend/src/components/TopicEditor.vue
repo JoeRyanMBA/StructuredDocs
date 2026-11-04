@@ -184,6 +184,7 @@
             spellcheck-lang="en-US"
             @update:model-value="onRichEditorUpdate"
             @paste="handleWysiwygPaste"
+            @drop="handleWysiwygDrop"
           >
             <template #toolbar-extra>
               <button @click="openLinkModal" class="toolbar-btn" title="Insert link" aria-label="Insert link">🔗</button>
@@ -619,6 +620,7 @@ import { marked } from 'marked'
 import { getImageUrl as getResolvedImageUrl, getRetryImageSrc } from '@/services/imageUrl'
 import { API_BASE, apiGet, apiPost, apiPut } from '@/api/base'
 import axiosInstance from '@/api/axiosInstance'
+import { toast } from '@/composables/useToast'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
@@ -2029,86 +2031,83 @@ export default {
       return htmlToMarkdown(html)
     },
 
+    async uploadAndInsertEditorImage(imageFile) {
+      const extensionByMime = {
+        'image/png': '.png',
+        'image/jpeg': '.jpg',
+        'image/jpg': '.jpg',
+        'image/gif': '.gif',
+        'image/bmp': '.bmp',
+        'image/x-ms-bmp': '.bmp',
+        'image/webp': '.webp',
+        'image/svg+xml': '.svg',
+      }
+      const allowedExtension = imageFile.name?.match(/\.(png|jpe?g|gif|bmp|webp|svg)$/i)?.[0]
+      const extension = imageFile.type ? extensionByMime[imageFile.type] : allowedExtension
+      if (!extension) {
+        throw new Error('Use a PNG, JPEG, GIF, BMP, WebP, or SVG image.')
+      }
+
+      const baseName = imageFile.name?.replace(/\.[^.]+$/, '') || `editor_image_${Date.now()}`
+      const formData = new FormData()
+      formData.append('image', imageFile, `${baseName}${extension}`)
+
+      const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
+      const src = uploaded.public_url || uploaded.file_path
+      if (!src) throw new Error('Upload succeeded but no image URL was returned.')
+
+      const inserted = this.$refs.richEditor?.insertImageAtSelection(src, uploaded.alt_text || '')
+      if (!inserted) throw new Error('The image uploaded, but could not be inserted into the editor.')
+    },
+
     async handleWysiwygPaste(event) {
       const clipboard = event.clipboardData
       if (!clipboard) return
 
       const items = Array.from(clipboard.items || [])
       const imageItem = items.find(item => (item.type || '').startsWith('image/'))
-
       if (imageItem) {
         event.preventDefault()
-
         const imageFile = imageItem.getAsFile()
-        if (!imageFile) return
-
-        const mimeType = imageFile.type || 'image/png'
-        const extByMime = {
-          'image/png': '.png',
-          'image/jpeg': '.jpg',
-          'image/jpg': '.jpg',
-          'image/gif': '.gif',
-          'image/webp': '.webp',
-          'image/svg+xml': '.svg'
+        if (!imageFile) {
+          toast.error('Could not read the pasted image.')
+          return
         }
-        const ext = extByMime[mimeType] || '.png'
-        const generatedName = `pasted_image_${Date.now()}${ext}`
 
         try {
-          const formData = new FormData()
-          formData.append('image', imageFile, generatedName)
-
-          const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
-          const src = uploaded.public_url || uploaded.file_path
-          if (!src) throw new Error('Upload succeeded but no image URL returned')
-
-          const editor = this.$refs.richEditor?.getEditorEl()
-          if (editor) {
-            const selection = window.getSelection()
-            let insertedAtCaret = false
-
-            if (selection && selection.rangeCount > 0) {
-              const range = selection.getRangeAt(0)
-              if (editor.contains(range.startContainer)) {
-                const imageNode = document.createElement('img')
-                imageNode.src = src
-                imageNode.alt = uploaded.alt_text || ''
-
-                range.deleteContents()
-                range.insertNode(imageNode)
-
-                const spacer = document.createTextNode(' ')
-                imageNode.after(spacer)
-                range.setStartAfter(spacer)
-                range.collapse(true)
-                selection.removeAllRanges()
-                selection.addRange(range)
-                insertedAtCaret = true
-              }
-            }
-
-            if (!insertedAtCaret) {
-              const imageNode = document.createElement('img')
-              imageNode.src = src
-              imageNode.alt = uploaded.alt_text || ''
-              editor.appendChild(imageNode)
-              editor.appendChild(document.createTextNode(' '))
-            }
-
-            this.updateContentFromWysiwyg()
-          }
-          return
-        } catch (e) {
-          console.error('Image paste upload failed', e)
+          await this.uploadAndInsertEditorImage(imageFile)
+        } catch (error) {
+          console.error('Image paste upload failed', error)
+          toast.error(`Could not add pasted image: ${error.message}`)
         }
+        return
       }
 
-      // Fallback: plain text paste handling
       event.preventDefault()
       const text = clipboard.getData('text/plain')
       const nextText = this.normalizePastedLineBreaks ? this.normalizeSoftWrappedPastedText(text) : text
       document.execCommand('insertText', false, nextText)
       this.onWysiwygInput()
+    },
+
+    async handleWysiwygDrop(event) {
+      const files = Array.from(event.dataTransfer?.files || [])
+      const imageFiles = files.filter(file => file.type.startsWith('image/'))
+      if (!files.length) return
+
+      const rejectedCount = files.length - imageFiles.length
+      if (rejectedCount > 0) {
+        toast.error('Only image files can be dropped into the editor.')
+      }
+
+      for (const imageFile of imageFiles) {
+        try {
+          await this.uploadAndInsertEditorImage(imageFile)
+        } catch (error) {
+          console.error('Image drop upload failed', error)
+          toast.error(`Could not add ${imageFile.name || 'dropped image'}: ${error.message}`)
+        }
+      }
     },
 
     handleWysiwygKeydown(event) {
