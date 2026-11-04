@@ -622,6 +622,7 @@ import { API_BASE, apiGet, apiPost, apiPut } from '@/api/base'
 import axiosInstance from '@/api/axiosInstance'
 import { toast } from '@/composables/useToast'
 import { htmlToMarkdown } from '@/utils/htmlToMarkdown'
+import { uploadInlineImageDataUrls } from '@/utils/uploadInlineImageDataUrls'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
 import { searchTopics } from '@/api/topics.js'
@@ -1431,9 +1432,20 @@ export default {
       this.saveSuccess = null
       
       try {
+        const contentWithUploadedImages = await uploadInlineImageDataUrls(
+          this.content,
+          image => this.uploadInlineImageData(image)
+        )
+        if (contentWithUploadedImages !== this.content) {
+          this.content = contentWithUploadedImages
+          if (this.editorMode === 'wysiwyg') {
+            await this._initWysiwygContent()
+          }
+        }
+
         const payload = {
           title: this.title,
-          content: this.content,
+          content: contentWithUploadedImages,
           frontmatter: this.frontmatter
         }
         
@@ -2029,6 +2041,24 @@ export default {
 
     htmlToMarkdown(html) {
       return htmlToMarkdown(html)
+    },
+
+    async uploadInlineImageData({ mimeType, extension, base64 }) {
+      const binary = atob(base64)
+      const bytes = Uint8Array.from(binary, character => character.charCodeAt(0))
+      const formData = new FormData()
+      formData.append(
+        'image',
+        new Blob([bytes], { type: mimeType }),
+        `embedded-image.${extension}`
+      )
+
+      const { data: uploaded } = await axiosInstance.post('/api/images/upload', formData)
+      const publicUrl = uploaded.public_url || uploaded.file_path
+      if (!publicUrl) {
+        throw new Error('Image upload succeeded but no image URL was returned.')
+      }
+      return publicUrl
     },
 
     async uploadAndInsertEditorImage(imageFile) {
