@@ -2337,8 +2337,9 @@ export default {
 .preview-content p:has(img[data-sd-image-wrapping="watermark"]),
 .topic-preview-content p:has(img[data-sd-image-wrapping="watermark"]) {
   position: relative;
-  z-index: 0;
+  z-index: auto;
 }
+.topic-preview-content { isolation: isolate; }
 .wysiwyg-content ul,
 .wysiwyg-content ol,
 .preview-content ul,
