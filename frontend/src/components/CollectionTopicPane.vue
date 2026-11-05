@@ -331,8 +331,10 @@ export default {
 .audience-options label { display: flex; align-items: center; gap: .4rem; }
 .audience-options input[type="checkbox"] { width: 1rem; height: 1rem; flex: 0 0 1rem; margin: 0; padding: 0; }
 .collection-html-preview { max-width: 76ch; margin: 0 auto; line-height: 1.65; overflow-wrap: anywhere; }
+.collection-html-content { isolation: isolate; }
 .collection-html-preview h1 { font-size: 1.75rem; line-height: 1.25; margin-bottom: 1.5rem; }
 .collection-html-content :deep(img) { max-width: 100%; height: auto; }
+.collection-html-content :deep(p:has(img[data-sd-image-wrapping="watermark"])) { position: relative; z-index: auto; }
 .collection-html-content :deep(ol) { list-style-type: decimal; }
 .collection-html-content :deep(ol ol) { list-style-type: lower-alpha; }
 .collection-html-content :deep(ol ol ol) { list-style-type: lower-roman; }
