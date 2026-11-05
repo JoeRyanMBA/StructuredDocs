@@ -209,7 +209,7 @@ Defaults override limiter internal defaults; per-endpoint limits applied best-ef
 ```env
 
 ENABLE_SECURITY_HEADERS=1
-CSP_HEADER="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob:; connect-src *; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'"
+CSP_HEADER="default-src 'self'; script-src 'self' 'unsafe-inline'; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https:; connect-src *; font-src 'self' data:; frame-ancestors 'none'; object-src 'none'"
 PERMISSIONS_POLICY="geolocation=(), microphone=(), camera=()"
 
 ```
