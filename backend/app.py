@@ -1259,7 +1259,7 @@ p { color: #666; }
                 resp.headers.setdefault('Permissions-Policy', os.environ.get('PERMISSIONS_POLICY', 'geolocation=(), microphone=(), camera=()'))
                 # Build CSP with optional remote image host support.
                 remote_img_src = os.environ.get('STORAGE_PUBLIC_BASE_URL')
-                img_src = "'self' data: blob:" + (f" {remote_img_src}" if remote_img_src else '')
+                img_src = "'self' data: blob: https:" + (f" {remote_img_src}" if remote_img_src else '')
                 default_csp = f"default-src 'self'; img-src {img_src}; style-src 'self' 'unsafe-inline'; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://cdn.tiny.cloud; font-src 'self' data:; connect-src *; frame-ancestors 'none'; object-src 'none'"
                 resp.headers.setdefault('Content-Security-Policy', os.environ.get('CSP_HEADER', default_csp))
             except Exception as e:
