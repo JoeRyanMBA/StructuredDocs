@@ -30,10 +30,14 @@ function createEditorHarness() {
   document.body.append(editor)
 
   const updates = []
+  const emitted = []
   const instance = {
     ...richTextEditor.data(),
     $refs: { editorEl: editor },
-    $emit: (_event, value) => updates.push(value),
+    $emit: (event, value) => {
+      if (event === 'update:modelValue') updates.push(value)
+      else emitted.push({ event, value })
+    },
   }
   for (const [name, method] of Object.entries(richTextEditor.methods)) {
     instance[name] = method.bind(instance)
@@ -41,7 +45,7 @@ function createEditorHarness() {
   instance.handleTableShortcut = () => false
   instance.handleTableTab = () => false
 
-  return { editor, instance, updates }
+  return { editor, instance, updates, emitted }
 }
 
 test('Tab inserts a tab in the WYSIWYG topic editor without leaving it', () => {
@@ -90,6 +94,45 @@ test('toolbar underlines the selected text', () => {
   }
 
   assert.deepEqual(commandArguments, ['underline', false, null])
+})
+
+test('dropping files over the editor emits the drop event and allows image insertion at the caret', () => {
+  const { editor, instance, updates, emitted } = createEditorHarness()
+  const file = new window.File(['image'], 'diagram.png', { type: 'image/png' })
+  let prevented = false
+  let caretPosition
+  instance.setCaretAtPoint = (x, y) => {
+    caretPosition = [x, y]
+    return true
+  }
+  instance.saveSelection = () => true
+
+  instance.onDrop({
+    dataTransfer: { files: [file], types: ['Files'] },
+    clientX: 24,
+    clientY: 42,
+    preventDefault() {
+      prevented = true
+    },
+  })
+
+  assert.equal(prevented, true)
+  assert.deepEqual(caretPosition, [24, 42])
+  assert.equal(emitted.at(-1).event, 'drop')
+
+  const text = editor.querySelector('p').firstChild
+  const range = document.createRange()
+  range.setStart(text, 5)
+  range.collapse(true)
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection = richTextEditor.methods.saveSelection.bind(instance)
+  instance.saveSelection()
+  instance.insertImageAtSelection('/images/diagram.png', 'Diagram')
+
+  assert.equal(editor.querySelector('img')?.getAttribute('src'), '/images/diagram.png')
+  assert.equal(editor.querySelector('img')?.getAttribute('alt'), 'Diagram')
+  assert.match(updates.at(-1), /<img src="\/images\/diagram\.png" alt="Diagram">/)
 })
 
 test('indent controls adjust every selected paragraph and can restore the left margin', () => {
