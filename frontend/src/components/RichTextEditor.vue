@@ -2152,6 +2152,10 @@ export default {
 }
 .wysiwyg-content p { margin: 0 0 1rem 0; line-height: 1.7; }
 .wysiwyg-content p:last-child { margin-bottom: 0; }
+.wysiwyg-content p:has(img[data-sd-image-wrapping="watermark"]) {
+  position: relative;
+  z-index: 0;
+}
 .wysiwyg-content p:has(> img[style*="float"]) { display: contents; }
 .wysiwyg-content p:has(> img[style*="float"]) > br { display: none; }
 .wysiwyg-content img {
