@@ -46,7 +46,55 @@
             <button type="button" class="primary-btn" :disabled="!currentCollection || saving" @click="requestNewTopic()"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> New Topic</button>
             <button type="button" class="secondary-btn" :disabled="!currentCollection || saving" :aria-expanded="showAvailableTopics" @click="showAvailableTopics = !showAvailableTopics; organizeMode = true"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Existing Topics</button>
             <button type="button" class="secondary-btn" :aria-pressed="organizeMode ? 'true' : 'false'" :title="organizeMode ? 'Exit organize mode' : 'Reorder and nest topics in this collection'" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
-            <button type="button" class="secondary-btn" :aria-pressed="isEditMode ? 'true' : 'false'" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
+            <details class="collection-properties-dropdown" :open="isEditMode" @toggle="isEditMode = $event.target.open">
+              <summary class="secondary-btn" :aria-expanded="isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Collection Properties</summary>
+              <div v-if="currentCollection" class="collection-edit-panel">
+                <h3>Collection Properties</h3>
+                <div class="edit-form">
+                  <div class="form-group">
+                    <label>Collection Name:</label>
+                    <input
+                      v-model="currentCollection.name"
+                      @blur="saveCollectionProperty('name')"
+                      class="edit-input"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Form Number:</label>
+                    <input
+                      v-model="currentCollection.form_number"
+                      @blur="saveCollectionProperty('form_number')"
+                      class="edit-input"
+                      placeholder="e.g., FORM-001"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Project:</label>
+                    <select v-model="currentCollection.projectId" @change="saveCollectionProperty('projectId')" class="edit-input">
+                      <option value="">Select Project...</option>
+                      <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
+                    </select>
+                  </div>
+                  <div class="form-group">
+                    <label>Subtitle:</label>
+                    <input
+                      v-model="currentCollection.description"
+                      @blur="saveCollectionProperty('description')"
+                      class="edit-input"
+                      placeholder="Subtitle (optional — appears on PDF cover page)"
+                    />
+                  </div>
+                  <div class="form-group">
+                    <label>Tags:</label>
+                    <TagEditor
+                      v-if="currentCollection?.id"
+                      entity-type="collection"
+                      :entity-id="currentCollection.id"
+                    />
+                  </div>
+                </div>
+              </div>
+            </details>
             <details class="collection-more-tools">
               <summary class="icon-btn" aria-label="More collection tools" title="More collection tools"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
               <button type="button" class="secondary-btn" @click="refreshTopics" :disabled="refreshing"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> {{ refreshing ? 'Refreshing...' : 'Refresh Topics' }}</button>
@@ -57,54 +105,6 @@
           </p>
         </section>
 
-        <!-- Collection Properties Edit Panel (only in edit mode) -->
-        <div v-if="isEditMode && currentCollection" class="collection-edit-panel">
-          <h3>Collection Properties</h3>
-          <div class="edit-form">
-            <div class="form-group">
-              <label>Collection Name:</label>
-              <input 
-                v-model="currentCollection.name" 
-                @blur="saveCollectionProperty('name')"
-                class="edit-input"
-              />
-            </div>
-            <div class="form-group">
-              <label>Form Number:</label>
-              <input 
-                v-model="currentCollection.form_number" 
-                @blur="saveCollectionProperty('form_number')"
-                class="edit-input"
-                placeholder="e.g., FORM-001"
-              />
-            </div>
-            <div class="form-group">
-              <label>Project:</label>
-              <select v-model="currentCollection.projectId" @change="saveCollectionProperty('projectId')" class="edit-input">
-                <option value="">Select Project...</option>
-                <option v-for="project in projects" :key="project.id" :value="project.id">{{ project.name }}</option>
-              </select>
-            </div>
-            <div class="form-group">
-              <label>Subtitle:</label>
-              <input 
-                v-model="currentCollection.description" 
-                @blur="saveCollectionProperty('description')"
-                class="edit-input"
-                placeholder="Subtitle (optional — appears on PDF cover page)"
-              />
-            </div>
-            <div class="form-group">
-              <label>Tags:</label>
-              <TagEditor
-                v-if="currentCollection?.id"
-                entity-type="collection"
-                :entity-id="currentCollection.id"
-              />
-            </div>
-          </div>
-        </div>
-        
         <div v-if="currentCollection" class="current-collection">
           <div class="node">
             
@@ -1684,6 +1684,12 @@ export default {
 .collection-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .375rem; }
 .collection-tool-actions > button { font-size: .85rem; padding: .4rem .6rem; }
 .collection-tool-actions > button[aria-pressed="true"] { background-color: var(--primary-deep-teal); border-color: var(--primary-deep-teal) !important; color: white; }
+.collection-properties-dropdown { position: relative; }
+.collection-properties-dropdown summary { display: inline-flex; align-items: center; gap: .35rem; list-style: none; cursor: pointer; font-size: .85rem; padding: .4rem .6rem; }
+.collection-properties-dropdown summary::-webkit-details-marker { display: none; }
+.collection-properties-dropdown[open] summary { background-color: var(--primary-deep-teal); border-color: var(--primary-deep-teal) !important; color: white; }
+.collection-properties-dropdown .collection-edit-panel { position: absolute; top: calc(100% + .35rem); left: 0; z-index: 20; width: min(360px, calc(100vw - 2rem)); max-height: min(75vh, 640px); overflow-y: auto; margin: 0; box-shadow: 0 4px 12px #0003; }
+.collection-properties-dropdown .collection-edit-panel h3 { margin-top: 0; }
 .organize-mode-hint { margin: .5rem 0 0; font-size: .8rem; line-height: 1.4; color: var(--text-secondary-cool-gray); }
 .collection-more-tools { position: relative; }
 .collection-more-tools summary { list-style: none; }
