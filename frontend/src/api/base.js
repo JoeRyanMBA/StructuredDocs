@@ -28,7 +28,7 @@ function normalizeApiBase(raw) {
 // In production on structureddocs.online, prefer same-origin API calls so a stale
 // hosted frontend env var cannot bypass the live /api proxy on the site.
 export function computeApiBase() {
-  const normalized = normalizeApiBase((import.meta.env.VITE_API_BASE_URL || '').trim());
+  const normalized = normalizeApiBase((import.meta.env?.VITE_API_BASE_URL || '').trim());
   if (!normalized) return '';
 
   if (typeof window !== 'undefined') {
