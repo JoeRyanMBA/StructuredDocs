@@ -254,7 +254,7 @@ def submit_review(review_id):
         db.session.commit()
         
         response_data = {
-            'message': 'Review submitted successfully',
+            'message': 'Review sent successfully',
             'review': review.to_dict()
         }
         

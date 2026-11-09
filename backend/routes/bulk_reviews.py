@@ -280,7 +280,7 @@ def submit_bulk_topic_feedback(token, review_id):
         completed_count = sum(1 for r in all_reviews if r.status == 'completed')
         return jsonify({
             'success': True,
-            'message': 'Feedback submitted',
+            'message': 'Feedback sent',
             'completed_count': completed_count,
             'total': len(all_reviews),
             'batch_complete': batch.status == 'completed',
