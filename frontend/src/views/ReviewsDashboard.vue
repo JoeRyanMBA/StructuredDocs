@@ -789,7 +789,7 @@ export default {
   gap: 0.5rem;
 }
 
-.reassign-actions .btn {
+.reassign-modal .reassign-actions .btn {
   height: 36px;
 }
 
