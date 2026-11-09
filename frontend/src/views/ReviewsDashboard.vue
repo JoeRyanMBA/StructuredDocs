@@ -807,6 +807,8 @@ export default {
 
 .reassign-actions .btn {
   height: 36px;
+  margin: 0;
+  transform: none !important;
 }
 
 /* Review Items */
