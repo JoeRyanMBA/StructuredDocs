@@ -129,7 +129,7 @@ jobs:
             IMAGE_TAG_ENV_FILE="$(mktemp "${STAGING_DIR}/.staging-image-tag.XXXXXX")"
             trap 'rm -f "$IMAGE_TAG_ENV_FILE"' EXIT
             printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG" > "$IMAGE_TAG_ENV_FILE"
-            if docker compose version >/dev/null 2>&1; then
+            if docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
               DC=(docker compose)
             elif sudo -n docker compose -f docker-compose.single.yml --env-file .env ps >/dev/null 2>&1; then
               DC=(sudo -n docker compose)
