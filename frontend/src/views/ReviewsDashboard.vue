@@ -789,6 +789,10 @@ export default {
   gap: 0.5rem;
 }
 
+.reassign-actions .btn {
+  height: 36px;
+}
+
 /* Review Items */
 .reviews-list {
   max-height: 400px;
