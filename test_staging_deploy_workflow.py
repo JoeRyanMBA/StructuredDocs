@@ -27,6 +27,8 @@ class StagingDeployWorkflowTests(unittest.TestCase):
         command = (
             "set -euo pipefail\n"
             "DC=(docker compose)\n"
+            "IMAGE_TAG_ENV_FILE=.image-tag.env\n"
+            ": > \"$IMAGE_TAG_ENV_FILE\"\n"
             "compose() {\n" + compose_function + "}\n"
             "compose config --format json\n"
         )
