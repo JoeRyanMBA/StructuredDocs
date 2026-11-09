@@ -14,30 +14,6 @@
       <div class="collections-panel">
         <div class="panel-title-row">
           <h2>{{ currentCollection?.name || 'Collection' }}</h2>
-          <div v-if="currentCollection" class="collection-bulk-actions">
-            <button
-              type="button"
-              class="collection-bulk-btn"
-              @click="expandAll"
-              :disabled="isAllExpanded || !(currentCollection.topics && currentCollection.topics.length)"
-              title="Expand all topics"
-              aria-label="Expand all topics"
-            >
-              <i class="bi bi-chevron-double-down" aria-hidden="true"></i>
-              <span>Expand All</span>
-            </button>
-            <button
-              type="button"
-              class="collection-bulk-btn"
-              @click="collapseAll"
-              :disabled="!isAllExpanded"
-              title="Collapse all topics"
-              aria-label="Collapse all topics"
-            >
-              <i class="bi bi-chevron-double-up" aria-hidden="true"></i>
-              <span>Collapse All</span>
-            </button>
-          </div>
         </div>
         
         <section class="collection-tools" aria-labelledby="collection-tools-title">
@@ -46,7 +22,7 @@
             <button type="button" class="primary-btn" :disabled="!currentCollection || saving" @click="requestNewTopic()"><i class="bi bi-file-earmark-plus" aria-hidden="true"></i> New Topic</button>
             <button type="button" class="secondary-btn" :disabled="!currentCollection || saving" :aria-expanded="showAvailableTopics" @click="showAvailableTopics = !showAvailableTopics; organizeMode = true"><i class="bi bi-plus-lg" aria-hidden="true"></i> Add Existing Topics</button>
             <button type="button" class="secondary-btn" :aria-pressed="organizeMode ? 'true' : 'false'" :title="organizeMode ? 'Exit organize mode' : 'Reorder and nest topics in this collection'" @click="organizeMode = !organizeMode"><i class="bi bi-diagram-3" aria-hidden="true"></i> Organize</button>
-            <button type="button" class="secondary-btn" :aria-pressed="isEditMode ? 'true' : 'false'" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Properties</button>
+            <button type="button" class="secondary-btn" :aria-expanded="isEditMode" aria-controls="collection-properties-panel" @click="isEditMode = !isEditMode"><i class="bi bi-sliders" aria-hidden="true"></i> Collection Properties</button>
             <details class="collection-more-tools">
               <summary class="icon-btn" aria-label="More collection tools" title="More collection tools"><i class="bi bi-three-dots" aria-hidden="true"></i></summary>
               <button type="button" class="secondary-btn" @click="refreshTopics" :disabled="refreshing"><i class="bi bi-arrow-clockwise" aria-hidden="true"></i> {{ refreshing ? 'Refreshing...' : 'Refresh Topics' }}</button>
@@ -58,7 +34,7 @@
         </section>
 
         <!-- Collection Properties Edit Panel (only in edit mode) -->
-        <div v-if="isEditMode && currentCollection" class="collection-edit-panel">
+        <div v-if="currentCollection" v-show="isEditMode" id="collection-properties-panel" class="collection-edit-panel">
           <h3>Collection Properties</h3>
           <div class="edit-form">
             <div class="form-group">
@@ -103,6 +79,31 @@
               />
             </div>
           </div>
+        </div>
+
+        <div v-if="currentCollection" class="collection-bulk-actions">
+          <button
+            type="button"
+            class="collection-bulk-btn"
+            @click="expandAll"
+            :disabled="isAllExpanded || !(currentCollection.topics && currentCollection.topics.length)"
+            title="Expand all topics"
+            aria-label="Expand all topics"
+          >
+            <i class="bi bi-chevron-double-down" aria-hidden="true"></i>
+            <span>Expand All</span>
+          </button>
+          <button
+            type="button"
+            class="collection-bulk-btn"
+            @click="collapseAll"
+            :disabled="!isAllExpanded"
+            title="Collapse all topics"
+            aria-label="Collapse all topics"
+          >
+            <i class="bi bi-chevron-double-up" aria-hidden="true"></i>
+            <span>Collapse All</span>
+          </button>
         </div>
         
         <div v-if="currentCollection" class="current-collection">
