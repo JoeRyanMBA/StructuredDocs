@@ -97,6 +97,30 @@ async function parseResponseBody(response) {
   }
 }
 
+function getHtmlErrorMessage(html) {
+  const heading = html.match(/<h[1-6]\b[^>]*>([\s\S]*?)<\/h[1-6]\s*>/i)
+  const title = html.match(/<title\b[^>]*>([\s\S]*?)<\/title\s*>/i)
+  const source = heading?.[1] || title?.[1] || html
+  const message = source
+    .replace(/<script\b[^>]*>[\s\S]*?<\/script>/gi, ' ')
+    .replace(/<style\b[^>]*>[\s\S]*?<\/style>/gi, ' ')
+    .replace(/<[^>]*>/g, ' ')
+    .replace(/&nbsp;|&#160;/gi, ' ')
+    .replace(/&amp;/gi, '&')
+    .replace(/&lt;/gi, '<')
+    .replace(/&gt;/gi, '>')
+    .replace(/&quot;/gi, '"')
+    .replace(/&#39;|&apos;/gi, "'")
+    .replace(/\s+/g, ' ')
+    .trim()
+
+  return message.slice(0, 200)
+}
+
+function isHtmlErrorPage(body) {
+  return /<(?:!doctype\s+html|html\b|head\b|body\b|h[1-6]\b)/i.test(body)
+}
+
 function isLikelyJwt(token) {
   if (!token || typeof token !== 'string') return false;
   const parts = token.split('.');
@@ -205,7 +229,11 @@ export async function apiRequest(endpoint, options = {}, _isRetry = false) {
       if (body?.error) message = body.error;
       else if (body?.msg) message = body.msg;
       else if (body?.message) message = body.message;
-      else if (typeof body === 'string' && body.trim()) message = body.trim().slice(0, 200);
+      else if (typeof body === 'string' && body.trim()) {
+        message = isHtmlErrorPage(body)
+          ? getHtmlErrorMessage(body) || `Server returned an HTML error page (HTTP ${response.status}).`
+          : body.trim().slice(0, 200);
+      }
     } catch (_) { /* body not JSON, keep default message */ }
 
     throw new Error(message);
