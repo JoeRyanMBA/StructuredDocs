@@ -225,7 +225,7 @@
         </div>
       </div>
 
-    <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
+    <div v-if="showReviewModal" class="modal-overlay" @click.self="!submittingReview && closeReviewModal()">
       <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Send for review" :aria-busy="submittingReview">
         <div class="modal-header-row review-modal-header">
           <h3 class="modal-heading">Send for Review</h3>
@@ -707,6 +707,7 @@ export default {
 }
 
 .review-modal-content { width: min(560px, 92vw); max-width: 560px; }
+.review-modal-actions .btn-primary:disabled { opacity: .65; cursor: wait; transform: none; box-shadow: none; }
 
 .review-topic-title {
   margin: 0 0 0.9rem;
@@ -728,6 +729,10 @@ export default {
 }
 
 .reviewers-list {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: .35rem .75rem;
   border: 1px solid #e5e7eb;
   border-radius: 6px;
   max-height: 180px;
@@ -739,7 +744,12 @@ export default {
   display: flex;
   align-items: center;
   gap: .5rem;
-  margin-bottom: .35rem;
+  margin: 0;
+}
+
+.reviewer-option input {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .empty-help {

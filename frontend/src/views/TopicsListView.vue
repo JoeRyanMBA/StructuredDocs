@@ -985,6 +985,7 @@ export default {
 .reviewers-list { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; border: 1px solid #e5e7eb; border-radius: 6px; max-height: 180px; overflow: auto; padding: .5rem .6rem; }
 .reviewer-option { display: flex; align-items: center; gap: .5rem; margin: 0; }
 .reviewer-option input { flex: 0 0 auto; margin: 0; }
+.review-modal-actions .btn-primary:disabled { opacity: .65; cursor: wait; transform: none; box-shadow: none; }
 .empty-help { font-size: .85rem; color: #6b7280; }
 /* Match User Management icon buttons */
 .btn-icon {

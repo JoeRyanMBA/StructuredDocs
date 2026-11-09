@@ -4,6 +4,6 @@ services:
       context: .
       dockerfile: Dockerfile
       args:
-        APP_VERSION: ${APP_VERSION:-0.2.0}
+        APP_VERSION: ${APP_VERSION:-staging}
         GIT_COMMIT: ${GIT_COMMIT:-}
         BUILD_TIME: ${BUILD_TIME:-}
