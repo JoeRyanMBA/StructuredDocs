@@ -978,6 +978,7 @@ export default {
 .review-topic-title { font-weight: 600; color: #374151; margin-bottom: .85rem; }
 .reviewers-list { border: 1px solid #e5e7eb; border-radius: 6px; max-height: 180px; overflow: auto; padding: .5rem .6rem; }
 .reviewer-option { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+.reviewer-option input[type="checkbox"] { width: 1rem; height: 1rem; flex: 0 0 1rem; margin: 0; padding: 0; }
 .empty-help { font-size: .85rem; color: #6b7280; }
 /* Match User Management icon buttons */
 .btn-icon {

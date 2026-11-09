@@ -742,6 +742,14 @@ export default {
   margin-bottom: .35rem;
 }
 
+.reviewer-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  margin: 0;
+  padding: 0;
+}
+
 .empty-help {
   font-size: .85rem;
   color: #6b7280;
