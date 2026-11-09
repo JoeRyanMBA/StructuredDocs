@@ -771,10 +771,25 @@ export default {
 .reassign-checkbox-row {
   display: flex;
   align-items: flex-start;
+  justify-content: flex-start;
   gap: 0.5rem;
   margin: 0.5rem 0 0.75rem;
   color: var(--text-dark-gray);
   font-size: 0.9rem;
+  text-align: left;
+}
+
+.reassign-checkbox-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+}
+
+.reassign-checkbox-row span {
+  flex: 1;
+  min-width: 0;
 }
 
 .reassign-error {
@@ -785,8 +800,13 @@ export default {
 
 .reassign-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.reassign-actions .btn {
+  height: 36px;
 }
 
 /* Review Items */
