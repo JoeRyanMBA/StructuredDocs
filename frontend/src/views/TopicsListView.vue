@@ -203,11 +203,11 @@
       @bulk-review-requested="onBulkReviewRequested"
     />
 
-    <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
-      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Submit topic for review">
+    <div v-if="showReviewModal" class="modal-overlay" @click.self="!submittingReview && closeReviewModal()">
+      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Send topic for review" :aria-busy="submittingReview">
         <div class="modal-header-row review-modal-header">
-          <h3 class="modal-heading">Submit for Review</h3>
-          <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close">&times;</button>
+          <h3 class="modal-heading">Send for Review</h3>
+          <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close" :disabled="submittingReview">&times;</button>
         </div>
 
         <div class="modal-body review-modal-body">
@@ -215,7 +215,7 @@
 
           <div class="form-group">
             <label>Project (optional)</label>
-            <select v-model="reviewData.project_id" class="filter-input" @change="onProjectChange">
+            <select v-model="reviewData.project_id" class="filter-input" @change="onProjectChange" :disabled="submittingReview">
               <option value="">No project selected</option>
               <option v-for="project in availableProjects" :key="project.id" :value="project.id">
                 {{ project.name }}
@@ -227,7 +227,7 @@
             <label>Select one or more reviewers</label>
             <div v-if="safeProjectStakeholders.length" class="reviewers-list">
               <label v-for="stakeholder in safeProjectStakeholders" :key="stakeholder.id" class="reviewer-option">
-                <input type="checkbox" :value="stakeholder.id" v-model="reviewData.assigned_stakeholder_ids" />
+                <input type="checkbox" :value="stakeholder.id" v-model="reviewData.assigned_stakeholder_ids" :disabled="submittingReview" />
                 <span>{{ stakeholder.name }} <small v-if="stakeholder.role">({{ stakeholder.role }})</small></span>
               </label>
             </div>
@@ -236,29 +236,30 @@
 
           <div class="form-group">
             <label>Due Date</label>
-            <input v-model="reviewData.due_date" type="date" class="filter-input" />
+            <input v-model="reviewData.due_date" type="date" class="filter-input" :disabled="submittingReview" />
           </div>
 
           <div class="form-group">
             <label>Notes to reviewer(s) (optional)</label>
-            <textarea v-model="reviewData.submitter_notes" rows="3" class="filter-input" placeholder="What should reviewers focus on?"></textarea>
+            <textarea v-model="reviewData.submitter_notes" rows="3" class="filter-input" placeholder="What should reviewers focus on?" :disabled="submittingReview"></textarea>
           </div>
 
           <div class="form-check form-switch" style="margin-top: .25rem;">
-            <input class="form-check-input" id="sequentialToggle" type="checkbox" v-model="reviewData.isSequential" />
+            <input class="form-check-input" id="sequentialToggle" type="checkbox" v-model="reviewData.isSequential" :disabled="submittingReview" />
             <label class="form-check-label" for="sequentialToggle">Use sequential review order (expert first)</label>
           </div>
         </div>
 
         <div class="modal-footer review-modal-actions">
-          <button type="button" class="btn btn-secondary" @click="closeReviewModal">Cancel</button>
+          <button type="button" class="btn btn-secondary" @click="closeReviewModal" :disabled="submittingReview">Cancel</button>
           <button
             type="button"
             class="btn btn-primary"
             @click="confirmSubmitForReview"
-            :disabled="!selectedTopic || reviewData.assigned_stakeholder_ids.length === 0"
+            :disabled="submittingReview || !selectedTopic || reviewData.assigned_stakeholder_ids.length === 0"
+            :aria-busy="submittingReview"
           >
-            Request Review
+            {{ submittingReview ? 'Sending...' : 'Request Review' }}
           </button>
         </div>
       </div>
@@ -313,6 +314,7 @@ export default {
       loading: true,
       error: null,
       showReviewModal: false,
+      submittingReview: false,
       showSequentialModal: false,
       sequentialModalMode: 'setup',
       selectedTopic: null,
@@ -812,6 +814,7 @@ export default {
 
     async confirmSubmitForReview() {
       try {
+        if (this.submittingReview) return
         console.log('Starting review submission...')
         console.log('Selected topic:', this.selectedTopic)
         console.log('Review data:', this.reviewData)
@@ -830,6 +833,7 @@ export default {
           toast.error('Select at least one reviewer before submitting.')
           return
         }
+        this.submittingReview = true
 
         // Check if sequential review was requested
         if (this.reviewData.isSequential && this.reviewData.assigned_stakeholder_ids.length > 1) {
@@ -910,6 +914,8 @@ export default {
       } catch (err) {
         console.error('Submit for review failed:', err)
   toast.error(err.message || 'Failed to submit topic for review. Please try again.')
+      } finally {
+        this.submittingReview = false
       }
     },
 
@@ -976,8 +982,9 @@ export default {
 .action-buttons { display: inline-flex; gap: 0.5rem; align-items: center; justify-content: center; }
 .review-modal-content { width: min(700px, 94vw); max-width: 700px; }
 .review-topic-title { font-weight: 600; color: #374151; margin-bottom: .85rem; }
-.reviewers-list { border: 1px solid #e5e7eb; border-radius: 6px; max-height: 180px; overflow: auto; padding: .5rem .6rem; }
-.reviewer-option { display: flex; align-items: center; gap: .5rem; margin-bottom: .35rem; }
+.reviewers-list { display: flex; flex-wrap: wrap; align-items: center; gap: .35rem .75rem; border: 1px solid #e5e7eb; border-radius: 6px; max-height: 180px; overflow: auto; padding: .5rem .6rem; }
+.reviewer-option { display: flex; align-items: center; gap: .5rem; margin: 0; }
+.reviewer-option input { flex: 0 0 auto; margin: 0; }
 .empty-help { font-size: .85rem; color: #6b7280; }
 /* Match User Management icon buttons */
 .btn-icon {

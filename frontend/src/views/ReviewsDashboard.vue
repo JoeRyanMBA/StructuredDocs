@@ -770,11 +770,16 @@ export default {
 
 .reassign-checkbox-row {
   display: flex;
-  align-items: flex-start;
-  gap: 0.5rem;
+  align-items: center;
+  gap: 0.35rem;
   margin: 0.5rem 0 0.75rem;
   color: var(--text-dark-gray);
   font-size: 0.9rem;
+}
+
+.reassign-checkbox-row input {
+  flex: 0 0 auto;
+  margin: 0;
 }
 
 .reassign-error {
@@ -785,8 +790,15 @@ export default {
 
 .reassign-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
+}
+
+.reassign-actions .btn {
+  flex: 0 0 150px;
+  height: 36px;
+  box-sizing: border-box;
 }
 
 /* Review Items */

@@ -226,10 +226,10 @@
       </div>
 
     <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
-      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Request review">
+      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Send for review" :aria-busy="submittingReview">
         <div class="modal-header-row review-modal-header">
-          <h3 class="modal-heading">Submit for Review</h3>
-          <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close">&times;</button>
+          <h3 class="modal-heading">Send for Review</h3>
+          <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close" :disabled="submittingReview">&times;</button>
         </div>
         <div class="modal-body review-modal-body">
           <p class="review-topic-title">{{ selectedTopicForReview?.title }}</p>
@@ -238,7 +238,7 @@
             <label>Select one or more reviewers</label>
             <div v-if="availableReviewers.length" class="reviewers-list">
               <label v-for="reviewer in availableReviewers" :key="reviewer.id" class="reviewer-option">
-                <input type="checkbox" :value="reviewer.id" v-model="selectedReviewerIds" />
+                <input type="checkbox" :value="reviewer.id" v-model="selectedReviewerIds" :disabled="submittingReview" />
                 <span>{{ reviewer.name }} <small>({{ reviewer.role || 'reviewer' }})</small></span>
               </label>
             </div>
@@ -258,7 +258,7 @@
         <div class="modal-footer review-modal-actions">
           <button type="button" class="btn btn-secondary" @click="closeReviewModal" :disabled="submittingReview">Cancel</button>
           <button type="button" class="btn btn-primary" @click="confirmSubmitForReview" :disabled="submittingReview || selectedReviewerIds.length === 0">
-            Request Review
+            {{ submittingReview ? 'Requesting...' : 'Request Review' }}
           </button>
         </div>
       </div>

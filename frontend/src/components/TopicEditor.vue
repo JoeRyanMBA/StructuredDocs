@@ -497,7 +497,7 @@
                 <label>Search Images</label>
                 <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
               </div>
-                <div class="image-grid" v-if="availableImages && availableImages.length">
+                <div class="image-grid" v-if="availableImages && filteredImages.length">
                   <div 
                     v-for="img in filteredImages" 
                     :key="img.id" 
@@ -510,7 +510,23 @@
                     <div class="image-source-badge">{{ formatImageSource(img.source) }}</div>
                   </div>
                 </div>
-              <div class="empty-state" v-else>No images found.</div>
+                <div class="empty-state" v-else>No images found.</div>
+                <div class="image-preview-actions">
+                  <button
+                    type="button"
+                    class="btn btn-secondary btn-sm"
+                    :disabled="!selectedExistingImage"
+                    :aria-expanded="imagePreviewVisible.toString()"
+                    @click="toggleImagePreview"
+                  >{{ imagePreviewVisible ? 'Hide image preview' : 'Preview selected image' }}</button>
+                </div>
+                <div v-if="imagePreviewVisible && selectedExistingImage" class="image-preview-panel">
+                  <img
+                    :src="imageDisplayUrl(selectedExistingImage)"
+                    :alt="selectedExistingImage.alt_text || selectedExistingImage.filename || 'Selected image preview'"
+                  >
+                  <div class="image-preview-caption">{{ selectedExistingImage.filename }}</div>
+                </div>
             </div>
             <div v-else>
               <div class="form-group">
@@ -689,7 +705,8 @@ export default {
       availableImages: [],
   filteredImages: [],
   imageSearch: '',
-      linkInsertMode: 'manual',
+  imagePreviewVisible: false,
+  linkInsertMode: 'manual',
   linkUploadFile: null,
   linkUploadUploading: false,
   linkUploadMessage: '',
@@ -1041,6 +1058,7 @@ export default {
         this.captureWysiwygSelection()
       }
       this.resetImageUploadState()
+      this.imagePreviewVisible = false
       this.showImageModal = true
     },
     resetImageUploadState() {
@@ -1328,6 +1346,11 @@ export default {
       this.selectedExistingImage = img
       this.imageUrl = this.imageDisplayUrl(img)
       this.imageAlt = img.alt_text || ''
+    },
+    toggleImagePreview() {
+      if (this.selectedExistingImage) {
+        this.imagePreviewVisible = !this.imagePreviewVisible
+      }
     },
 
     onImageUploadSelect(event) {
@@ -2582,6 +2605,25 @@ export default {
   color:#475569;
   background:#f1f5f9;
 }
+.image-preview-actions { margin-top:.75rem; }
+.image-preview-panel {
+  margin-top:.75rem;
+  padding:.75rem;
+  border:1px solid #dbe5f0;
+  border-radius:6px;
+  background:#f8fafc;
+  text-align:center;
+}
+.image-preview-panel img {
+  display:block;
+  max-width:100%;
+  max-height:320px;
+  width:auto;
+  height:auto;
+  object-fit:contain;
+  margin:0 auto;
+}
+.image-preview-caption { margin-top:.5rem; color:#475569; font-size:.85rem; overflow-wrap:anywhere; }
 
 /* Title input styling */
 .title-label {

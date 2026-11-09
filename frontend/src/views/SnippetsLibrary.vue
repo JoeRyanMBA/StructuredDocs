@@ -209,6 +209,22 @@
               </div>
             </div>
             <div class="empty-state" v-else>No images found.</div>
+            <div class="image-preview-actions">
+              <button
+                type="button"
+                class="btn btn-secondary btn-sm"
+                :disabled="!selectedExistingImage"
+                :aria-expanded="imagePreviewVisible.toString()"
+                @click="toggleImagePreview"
+              >{{ imagePreviewVisible ? 'Hide image preview' : 'Preview selected image' }}</button>
+            </div>
+            <div v-if="imagePreviewVisible && selectedExistingImage" class="image-preview-panel">
+              <img
+                :src="imageDisplayUrl(selectedExistingImage)"
+                :alt="selectedExistingImage.alt_text || selectedExistingImage.filename || 'Selected image preview'"
+              >
+              <div class="image-preview-caption">{{ selectedExistingImage.filename }}</div>
+            </div>
           </div>
           <div v-else>
             <div class="form-group">
@@ -281,6 +297,7 @@ export default {
       imageUrl: '',
       imageAlt: '',
       imageSearch: '',
+      imagePreviewVisible: false,
       availableImages: [],
       filteredImages: [],
       selectedExistingImage: null,
@@ -504,6 +521,7 @@ export default {
       this.availableImages = []
       this.filteredImages = []
       this.selectedExistingImage = null
+      this.imagePreviewVisible = false
       this.imageUploadFile = null
       this.imageUploadMessage = ''
       this.showImageModal = true
@@ -529,6 +547,11 @@ export default {
       this.selectedExistingImage = img
       this.imageUrl = img.public_url || img.file_path || ''
       this.imageAlt = img.alt_text || img.filename || ''
+    },
+    toggleImagePreview() {
+      if (this.selectedExistingImage) {
+        this.imagePreviewVisible = !this.imagePreviewVisible
+      }
     },
     imageDisplayUrl(img) {
       return img.public_url || img.file_path || ''
@@ -786,6 +809,30 @@ export default {
 
 .upload-status { font-size: 0.85rem; margin: 0.35rem 0; color: #495057; }
 .upload-actions { margin: 0.5rem 0; }
+.image-preview-actions { margin-top: 0.75rem; }
+.image-preview-panel {
+  margin-top: 0.75rem;
+  padding: 0.75rem;
+  border: 1px solid #dbe5f0;
+  border-radius: 6px;
+  background: #f8fafc;
+  text-align: center;
+}
+.image-preview-panel img {
+  display: block;
+  max-width: 100%;
+  max-height: 320px;
+  width: auto;
+  height: auto;
+  object-fit: contain;
+  margin: 0 auto;
+}
+.image-preview-caption {
+  margin-top: 0.5rem;
+  color: #475569;
+  font-size: 0.85rem;
+  overflow-wrap: anywhere;
+}
 
 
 .modal-overlay {
