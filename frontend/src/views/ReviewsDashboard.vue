@@ -1082,4 +1082,14 @@ export default {
     font-size: 2rem;
   }
 }
+
+@media (max-width: 360px) {
+  .reassign-actions {
+    flex-wrap: wrap;
+  }
+
+  .reassign-actions .btn {
+    flex: 1 1 100%;
+  }
+}
 </style>
