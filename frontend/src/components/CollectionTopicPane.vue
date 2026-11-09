@@ -2,6 +2,7 @@
   <main class="collection-reader" aria-label="Collection topic">
     <div class="reader-toolbar">
       <h2 class="tools-heading">Topic Tools</h2>
+      <span v-if="topic?.id" class="topic-id-label">Topic ID: {{ topic.id }}</span>
       <div class="topic-tool-actions">
         <div v-if="!creating" class="reader-tabs" role="group" aria-label="Topic mode">
           <button type="button" :aria-pressed="!editing" :disabled="!topic || busy" @click="requestPreview">
@@ -317,6 +318,7 @@ export default {
 .collection-reader { min-width: 0; border-left: 1px solid var(--extended-lavender-gray); padding-left: 1.5rem; }
 .reader-toolbar { display: flex; flex-direction: column; align-items: flex-start; gap: .5rem; margin-bottom: 1rem; }
 .tools-heading { font-size: .8rem; font-weight: 700; color: var(--text-secondary-cool-gray); margin: 0; }
+.topic-id-label { color: var(--text-secondary-cool-gray); font-size: .8rem; font-variant-numeric: tabular-nums; }
 .topic-tool-actions { display: flex; align-items: center; flex-wrap: wrap; gap: .5rem; }
 .topic-tool-actions > button { font-size: .85rem; padding: .4rem .75rem; }
 .draft-context { font-size: .9rem; overflow-wrap: anywhere; color: var(--primary-deep-teal); }

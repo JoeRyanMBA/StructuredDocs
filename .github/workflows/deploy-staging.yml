@@ -138,6 +138,9 @@ jobs:
                 --env-file .env "$@"
             }
             export IMAGE_TAG="staging-${IMAGE_TAG}"
+            export GIT_COMMIT="${IMAGE_TAG#staging-}"
+            export APP_VERSION="0.2.0+${GIT_COMMIT:0:7}"
+            export BUILD_TIME="$(date -u +"%Y-%m-%dT%H:%M:%SZ")"
             compose config -q
             if ! grep -Fq "${STAGING_PORT}:8080" docker-compose.single.yml; then
               echo "Staging app is not published on port ${STAGING_PORT}."
