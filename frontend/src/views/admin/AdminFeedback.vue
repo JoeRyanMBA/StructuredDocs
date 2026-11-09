@@ -1,7 +1,7 @@
 <template>
   <section class="admin-page">
   <h1>Feedback</h1>
-  <p class="subtitle">User-submitted feedback from the floating widget.</p>
+  <p class="subtitle">Feedback sent by users from the floating widget.</p>
 
     <div v-if="loading" class="loading">Loading…</div>
     <div v-else>

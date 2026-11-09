@@ -171,7 +171,7 @@
 
       <!-- Feedback Form -->
       <div class="feedback-form">
-        <h3>Submit Your Review</h3>
+        <h3>Send Your Review</h3>
         
         <!-- Changes Detection Alert -->
         <div v-if="hasChanges" class="changes-alert">
@@ -185,7 +185,7 @@
           <label>Overall Recommendation</label>
           <select v-model="overallRecommendation" class="form-select">
             <option value="">Select recommendation...</option>
-            <option value="approve">{{ hasChanges ? 'Approve original content (ignore my edits)' : 'Approve as submitted' }}</option>
+            <option value="approve">{{ hasChanges ? 'Approve original content (ignore my edits)' : 'Approve as sent' }}</option>
             <option value="approve_with_changes">{{ hasChanges ? 'Approve with my edits' : 'Approve with minor changes' }}</option>
             <option value="needs_more_info">Request more information</option>
             <option value="reject">Reject - significant issues</option>
@@ -296,7 +296,7 @@
         <!-- Submit Actions -->
         <div class="form-actions">
           <button @click="submitReview" :disabled="submitting || !canSubmit" class="btn btn-success">
-            {{ submitting ? 'Submitting...' : 'Submit Review' }}
+            {{ submitting ? 'Sending...' : 'Send Review' }}
           </button>
           <button @click="saveDraft" :disabled="submitting" class="btn btn-primary">
             Save Draft
@@ -307,7 +307,7 @@
       <!-- Success Message -->
       <div v-if="submitted" class="success-container">
         <div class="success-icon">✅</div>
-        <h3>Review Submitted Successfully!</h3>
+        <h3>Review Sent Successfully!</h3>
         <p>Thank you for your feedback. The author will be notified of your review.</p>
       </div>
     </div>
@@ -580,14 +580,14 @@ export default {
         const data = await response.json()
         
         if (!response.ok) {
-          throw new Error(data.error || 'Failed to submit review')
+          throw new Error(data.error || 'Failed to send review')
         }
         
   this.submitted = true
-  toast.success('Review submitted successfully!')
+  toast.success('Review sent successfully!')
         
       } catch (error) {
-  toast.error('Failed to submit review: ' + error.message)
+  toast.error('Failed to send review: ' + error.message)
       } finally {
         this.submitting = false
       }

@@ -189,7 +189,7 @@ export const bootstrapIcons = [
     "key": "bi bi-check-lg",
     "label": "Check Lg",
     "token": "bi bi-check-lg",
-    "meaning": "Confirm, save, or submit.",
+    "meaning": "Confirm, save, or send.",
     "usedIn": [
       "ButtonCatalog.vue",
       "ReviewFeedbackView.vue"

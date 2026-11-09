@@ -63,7 +63,7 @@
       <div class="quick-actions-grid">
           <button class="quick-action-card" @click="sendNewReview">
             <div class="action-icon">📤</div>
-            <div class="action-content" title="Submit topics to stakeholders">
+            <div class="action-content" title="Send topics to stakeholders">
               <h3>Send for Review</h3>
             </div>
           </button>
@@ -197,11 +197,11 @@
         </div>
         <div class="guide-modal-body">
           <ol>
-            <li><strong>Author submits topic for review:</strong> open a topic from Author Dashboard and click Submit for Review.</li>
+            <li><strong>Author sends topic for review:</strong> open a topic from Author Dashboard and click Send for Review.</li>
             <li><strong>Select reviewer + details:</strong> choose reviewer, priority, due date, and optional message.</li>
             <li><strong>Topic status changes:</strong> topic moves to Pending Review and appears in the Reviews area.</li>
-            <li><strong>Reviewer completes review:</strong> reviewer submits recommendation and feedback.</li>
-            <li><strong>Author incorporates changes:</strong> use Incorporate Feedback to apply requested edits, then re-submit if needed.</li>
+            <li><strong>Reviewer completes review:</strong> reviewer sends recommendation and feedback.</li>
+            <li><strong>Author incorporates changes:</strong> use Incorporate Feedback to apply requested edits, then resend if needed.</li>
           </ol>
           <p><strong>Sequential review:</strong> when enabled, reviewers run in order (expert-first), and each next reviewer gets the updated content flow.</p>
         </div>
