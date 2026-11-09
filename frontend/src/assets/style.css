@@ -1741,6 +1741,30 @@ input:focus, select:focus, textarea:focus {
   min-width: 120px;
 }
 
+.review-modal-actions .btn.btn-primary,
+.reassign-actions .btn.btn-primary {
+  background: var(--primary-deep-teal);
+  color: #fff;
+  border-color: var(--primary-deep-teal) !important;
+}
+
+.review-modal-actions .btn.btn-primary:hover:not(:disabled),
+.reassign-actions .btn.btn-primary:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+  border-color: var(--primary-medium-teal) !important;
+}
+
+.review-modal-actions .btn.btn-primary:disabled,
+.reassign-actions .btn.btn-primary:disabled {
+  background: var(--border-light-gray);
+  color: var(--text-dark-gray);
+  border-color: var(--border-light-gray) !important;
+  opacity: 1;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
 /* Optional larger modal size */
 .large-modal,
 .modal.large {
