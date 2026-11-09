@@ -185,7 +185,7 @@
             <button type="button" @click="showRequestAccess = false" class="btn btn-secondary cancel-btn">
               Cancel
             </button>
-            <button type="submit" class="btn btn-primary submit-btn">Submit Request</button>
+            <button type="submit" class="btn btn-primary submit-btn">Send Request</button>
           </div>
         </form>
       </div>
@@ -354,7 +354,7 @@ export default {
         // Mock API call - in real implementation, this would send to backend
         await new Promise(resolve => setTimeout(resolve, 500))
         
-        toast.success(`Access request submitted for ${this.accessRequest.name}. You will receive an email notification once your request is reviewed.`)
+        toast.success(`Access request sent for ${this.accessRequest.name}. You will receive an email notification once your request is reviewed.`)
         
         // Reset form
         this.accessRequest = {

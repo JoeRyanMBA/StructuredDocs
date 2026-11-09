@@ -39,11 +39,12 @@ jobs:
       - name: Derive version metadata
         id: meta
         run: |
+          APP_VERSION=$(python3 -c 'import json; print(json.load(open("backend/version.json"))["version"])')
           COMMIT=$(git rev-parse --short HEAD)
           TS=$(date -u +"%Y-%m-%dT%H:%M:%SZ")
-          echo "commit=$COMMIT" >> $GITHUB_OUTPUT
-          echo "build_time=$TS" >> $GITHUB_OUTPUT
-          echo "app_version=0.2.0" >> $GITHUB_OUTPUT
+          echo "commit=$COMMIT" >> "$GITHUB_OUTPUT"
+          echo "build_time=$TS" >> "$GITHUB_OUTPUT"
+          echo "app_version=$APP_VERSION" >> "$GITHUB_OUTPUT"
       - name: Build image (publish on main)
         uses: docker/build-push-action@v6
         with:

@@ -48,7 +48,7 @@
         @click="showReviewForm = !showReviewForm"
         class="btn btn-success btn-sm"
       >
-        {{ showReviewForm ? 'Cancel' : 'Submit Review' }}
+        {{ showReviewForm ? 'Cancel' : 'Send Review' }}
       </button>
     </div>
     
@@ -92,7 +92,7 @@
             Cancel
           </button>
           <button type="submit" :disabled="loading" class="btn btn-success btn-sm">
-            {{ loading ? 'Submitting...' : 'Submit Review' }}
+            {{ loading ? 'Sending...' : 'Send Review' }}
           </button>
         </div>
       </form>
@@ -176,7 +176,7 @@ export default {
     await submitReview(this.review.id, reviewData)
     this.$emit('review-updated')
     this.showReviewForm = false
-    toast.success('Review submitted successfully!')
+    toast.success('Review sent successfully!')
         
         // Reset form
         this.recommendation = ''
@@ -185,7 +185,7 @@ export default {
         
       } catch (error) {
   console.error('Failed to submit review:', error)
-  toast.error('Failed to submit review: ' + error.message)
+  toast.error('Failed to send review: ' + error.message)
       } finally {
         this.loading = false
       }

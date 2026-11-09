@@ -17,7 +17,7 @@
     <div v-else-if="allComplete" class="state-container success-state">
       <div class="state-icon">🎉</div>
       <h2>All Done — Thank You!</h2>
-      <p>You have reviewed all {{ batch.total }} topic{{ batch.total !== 1 ? 's' : '' }}. Your feedback has been submitted.</p>
+      <p>You have reviewed all {{ batch.total }} topic{{ batch.total !== 1 ? 's' : '' }}. Your feedback has been sent.</p>
     </div>
 
     <!-- Main portal -->
@@ -106,7 +106,7 @@
         <aside class="feedback-panel">
           <!-- If already submitted show summary -->
           <div v-if="currentTopic.completed" class="already-reviewed">
-            <h3>✓ Feedback Submitted</h3>
+            <h3>✓ Feedback Sent</h3>
             <p v-if="currentTopic.recommendation" class="recommendation-summary">
               Recommendation: <strong>{{ formatRecommendation(currentTopic.recommendation) }}</strong>
             </p>
@@ -125,7 +125,7 @@
               <label>Overall Recommendation <span class="required">*</span></label>
               <select v-model="form.recommendation" class="form-select" required>
                 <option value="">Select recommendation…</option>
-                <option value="approve">Approve as submitted</option>
+                <option value="approve">Approve as sent</option>
                 <option value="approve_with_changes">Approve with minor changes</option>
                 <option value="needs_more_info">Request more information</option>
                 <option value="reject">Reject — significant issues</option>
@@ -215,7 +215,7 @@
 
             <div class="form-actions">
               <button type="submit" class="btn btn-success" :disabled="submitting || !form.recommendation">
-                {{ submitting ? 'Submitting…' : 'Submit & Continue' }}
+                {{ submitting ? 'Sending…' : 'Send & Continue' }}
               </button>
             </div>
           </form>
@@ -443,7 +443,7 @@ export default {
           }
         }
       } catch (err) {
-        alert('Failed to submit feedback: ' + (err.message || 'Unknown error'))
+        alert('Failed to send feedback: ' + (err.message || 'Unknown error'))
       } finally {
         this.submitting = false
       }
@@ -456,7 +456,7 @@ export default {
 
     formatRecommendation(val) {
       const map = {
-        approve: 'Approve as submitted',
+        approve: 'Approve as sent',
         approve_with_changes: 'Approve with changes',
         needs_more_info: 'Request more information',
         reject: 'Reject',

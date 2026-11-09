@@ -497,7 +497,11 @@
                 <label>Search Images</label>
                 <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
               </div>
-                <div class="image-grid" v-if="availableImages && availableImages.length">
+              <label class="image-thumbnail-control">
+                <span>Thumbnail size</span>
+                <input v-model.number="imageThumbnailSize" type="range" min="100" max="240" step="20" aria-label="Thumbnail size">
+              </label>
+                <div class="image-grid image-picker-grid" :style="{ '--image-thumbnail-size': imageThumbnailSize + 'px' }" v-if="availableImages && availableImages.length">
                   <div 
                     v-for="img in filteredImages" 
                     :key="img.id" 
@@ -689,6 +693,7 @@ export default {
       availableImages: [],
   filteredImages: [],
   imageSearch: '',
+  imageThumbnailSize: 160,
       linkInsertMode: 'manual',
   linkUploadFile: null,
   linkUploadUploading: false,
