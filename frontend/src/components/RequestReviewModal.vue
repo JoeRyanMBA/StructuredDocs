@@ -283,7 +283,7 @@ export default {
   margin-top: 1.5rem;
 }
 
-.form-actions .btn {
+.request-review-modal .form-actions .btn {
   height: 36px;
 }
 </style>
