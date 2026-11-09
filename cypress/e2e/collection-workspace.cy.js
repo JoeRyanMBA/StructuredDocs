@@ -77,6 +77,15 @@ describe('Collection workspace', () => {
     cy.screenshot('collection-workspace-desktop')
   })
 
+  it('keeps collection properties collapsed and places topic controls below them', () => {
+    cy.get('.collection-edit-panel').should('not.be.visible')
+    cy.contains('button', 'Collection Properties').should('have.attr', 'aria-expanded', 'false').click()
+    cy.get('.collection-edit-panel').should('be.visible')
+    cy.get('.collection-edit-panel').contains('label', 'Tags:').should('be.visible')
+    cy.get('.collection-edit-panel + .collection-bulk-actions').should('exist')
+    cy.get('.collection-bulk-actions + .current-collection').should('exist')
+  })
+
   it('protects edits when changing topics and returns to preview after saving', () => {
     cy.get('.reader-tabs').contains('button', 'Edit').click()
     cy.get('.shared-topic-warning').should('contain', 'Changes affect all of them')
