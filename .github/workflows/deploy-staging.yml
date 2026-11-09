@@ -138,7 +138,7 @@ jobs:
               exit 1
             fi
             compose() {
-              "${DC[@]}" -p structureddocs_staging \
+              "${DC[@]}" -p staging \
                 -f docker-compose.single.yml --env-file .env \
                 --env-file "$IMAGE_TAG_ENV_FILE" "$@"
             }
