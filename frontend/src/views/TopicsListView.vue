@@ -148,8 +148,8 @@
                 v-if="t.status === 'draft'"
                 @click="submitForReview(t.id)"
                 class="btn-icon btn-send-review"
-                title="Submit for review"
-                aria-label="Submit for review"
+                title="Send for review"
+                aria-label="Send for review"
               >
                 <i class="bi bi-send"></i>
               </button>
@@ -204,9 +204,9 @@
     />
 
     <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
-      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Submit topic for review">
+      <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Send topic for review">
         <div class="modal-header-row review-modal-header">
-          <h3 class="modal-heading">Submit for Review</h3>
+          <h3 class="modal-heading">Send for Review</h3>
           <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close">&times;</button>
         </div>
 
@@ -768,7 +768,7 @@ export default {
 
     async submitForReview(id) {
       console.log('🔥 submitForReview called with ID:', id)
-  toast.info(`Submit for review clicked (Topic #${id})`)
+  toast.info(`Send for review clicked (Topic #${id})`)
       
       // Find the topic and open the modal
       const topic = this.topics.find(t => t.id === id)
@@ -827,7 +827,7 @@ export default {
             selectedTopic: !!this.selectedTopic,
             stakeholder_ids: this.reviewData.assigned_stakeholder_ids
           })
-          toast.error('Select at least one reviewer before submitting.')
+          toast.error('Select at least one reviewer before sending.')
           return
         }
 
@@ -867,7 +867,7 @@ export default {
           this.closeReviewModal()
           await this.fetchTopics()
           
-          toast.success(`"${topicTitle}" submitted for sequential review. First reviewer notified.`)
+          toast.success(`"${topicTitle}" sent for sequential review. First reviewer notified.`)
           
         } else {
           // Regular parallel review process
@@ -904,12 +904,12 @@ export default {
           this.closeReviewModal()
           await this.fetchTopics()
           
-          toast.success(`"${topicTitle}" submitted for review to ${reviewerCount} reviewer(s).`)
+          toast.success(`"${topicTitle}" sent for review to ${reviewerCount} reviewer(s).`)
         }
 
       } catch (err) {
         console.error('Submit for review failed:', err)
-  toast.error(err.message || 'Failed to submit topic for review. Please try again.')
+  toast.error(err.message || 'Failed to send topic for review. Please try again.')
       }
     },
 

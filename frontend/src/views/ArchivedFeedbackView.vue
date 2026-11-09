@@ -17,7 +17,7 @@
         <tr>
           <th>Subject</th>
           <th>Type</th>
-          <th>Submitted</th>
+          <th>Sent</th>
           <th>Actions</th>
         </tr>
       </thead>
