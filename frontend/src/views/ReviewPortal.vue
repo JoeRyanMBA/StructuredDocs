@@ -86,15 +86,13 @@
           <div class="view-toggle">
             <button 
               @click="activeView = 'read'" 
-              :class="{ active: activeView === 'read' }"
-              class="toggle-btn"
+              :class="['btn', activeView === 'read' ? 'btn-primary' : 'btn-secondary']"
             >
               📖 Read Only
             </button>
             <button 
               @click="activeView = 'edit'" 
-              :class="{ active: activeView === 'edit' }"
-              class="toggle-btn"
+              :class="['btn', activeView === 'edit' ? 'btn-primary' : 'btn-secondary']"
             >
               ✏️ Edit Content
             </button>
@@ -112,7 +110,7 @@
             <span class="notice-icon">💡</span>
             <span>You can directly edit the content below. Your changes will be tracked and sent to the author for review.</span>
           </div>
-          <div class="quill-wrapper">
+          <div class="quill-wrapper review-editor-theme">
             <div ref="quillEditor" class="quill-editor"></div>
           </div>
           <div class="editor-actions">
@@ -317,6 +315,7 @@
 <script>
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
+import '@/styles/review-editor.css'
 import { toast } from '@/composables/useToast'
 import { normalizeReviewHtml } from '@/utils/reviewHtml'
 import { sanitizeHtml } from '@/utils/sanitize'
@@ -612,8 +611,8 @@ export default {
   max-width: 1200px;
   margin: 0 auto;
   padding: 2rem;
-  font-family: var(--font-family-sans);
-  background-color: var(--bg-light-gray);
+  background-color: var(--bg-light-mist-gray);
+  color: var(--text-primary-charcoal);
 }
 
 /* Loading and Error States */
@@ -628,7 +627,7 @@ export default {
 .loading-spinner {
   width: 40px;
   height: 40px;
-  border: 4px solid var(--primary-light-blue);
+  border: 4px solid var(--border-light-gray);
   border-top: 4px solid var(--primary-deep-teal);
   border-radius: 50%;
   animation: spin 1s linear infinite;
@@ -658,8 +657,8 @@ export default {
 
 .error-explanation {
   text-align: left;
-  background-color: var(--bg-light-gray, #f8f9fa);
-  border: 1px solid var(--border-light-gray, #dee2e6);
+  background-color: var(--bg-light-mist-gray);
+  border: 1px solid var(--border-light-gray);
   border-radius: var(--border-radius-md, 0.375rem);
   padding: 1rem 1.25rem;
   margin: 0 auto 1.5rem;
@@ -701,7 +700,7 @@ export default {
 
 .review-title h1 {
   margin: 0 0 0.5rem 0;
-  color: var(--text-dark-gray);
+  color: var(--primary-deep-teal);
   font-size: 2rem;
   font-weight: 600;
 }
@@ -725,8 +724,8 @@ export default {
 
 .due-date {
   padding: 0.25rem 0.75rem;
-  background: var(--primary-light-blue);
-  color: var(--primary-dark-blue);
+  background: var(--info-light-blue);
+  color: var(--info-dark-blue);
   border-radius: 20px;
   font-weight: 500;
 }
@@ -821,6 +820,11 @@ export default {
   margin-bottom: 0.25rem;
 }
 
+.content-text :deep(ol) { list-style-type: decimal; }
+.content-text :deep(ol ol) { list-style-type: lower-alpha; }
+.content-text :deep(ol ol ol) { list-style-type: lower-roman; }
+.content-text :deep(ol ol ol ol) { list-style-type: upper-alpha; }
+
 .content-text blockquote {
   border-left: 4px solid var(--border-light-gray);
   padding-left: 1rem;
@@ -833,7 +837,7 @@ export default {
   background: var(--bg-white);
   padding: 0.125rem 0.25rem;
   border-radius: 0.25rem;
-  font-family: var(--font-family-mono);
+  font-family: monospace;
   font-size: 0.875rem;
 }
 
@@ -877,7 +881,7 @@ export default {
 }
 
 .content-text a {
-  color: var(--primary-dark-blue);
+  color: var(--primary-medium-teal);
   text-decoration: underline;
 }
 
@@ -896,6 +900,7 @@ export default {
 .view-toggle {
   display: flex;
   gap: 0.5rem;
+  flex-wrap: wrap;
 }
 
 .editor-container {
@@ -947,7 +952,7 @@ export default {
   border-right: 1px solid var(--border-light-gray);
   border-top: none;
   border-radius: 0 0 var(--border-radius-md) var(--border-radius-md);
-  font-family: var(--font-family-sans);
+  font-family: inherit;
   font-size: 14px;
   line-height: 1.6;
 }
@@ -1178,7 +1183,7 @@ export default {
 .form-select:focus, .form-input:focus, .form-textarea:focus {
   outline: none;
   border-color: var(--primary-deep-teal);
-  box-shadow: 0 0 0 3px rgba(32, 84, 147, 0.1);
+  box-shadow: 0 0 0 3px var(--primary-light-teal-t);
 }
 
 .help-text {
@@ -1251,58 +1256,4 @@ export default {
   color: var(--success-dark-green);
 }
 
-/* General Button Styles */
-.btn {
-  padding: 0.75rem 1.5rem;
-  border-radius: var(--border-radius-md);
-  font-weight: 600;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: 1px solid transparent;
-  text-align: center;
-}
-
-.btn:disabled {
-  opacity: 0.6;
-  cursor: not-allowed;
-}
-
-.btn-primary {
-  background-color: var(--primary-deep-teal);
-  color: var(--bg-white);
-}
-.btn-primary:hover:not(:disabled) {
-  background-color: var(--primary-dark-blue);
-}
-
-.btn-secondary {
-  background-color: var(--border-light-gray);
-  color: var(--text-primary-charcoal);
-  border-color: var(--extended-lavender-gray) !important;
-}
-.btn-secondary:hover:not(:disabled) {
-  background-color: var(--extended-lavender-gray);
-}
-
-.btn-success {
-  background-color: var(--success-dark-green);
-  color: var(--bg-white);
-}
-.btn-success:hover:not(:disabled) {
-  background-color: #14532d; /* Darker green */
-}
-
-.btn-outline {
-  background-color: transparent;
-  border-color: var(--primary-deep-teal);
-  color: var(--primary-deep-teal);
-}
-.btn-outline:hover:not(:disabled) {
-  background-color: var(--primary-light-blue);
-}
-
-.btn-sm {
-  padding: 0.25rem 0.75rem;
-  font-size: 0.875rem;
-}
 </style>
