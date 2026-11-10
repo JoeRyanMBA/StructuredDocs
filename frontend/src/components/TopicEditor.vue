@@ -2239,6 +2239,7 @@ export default {
 .editor-controls-row .editor-mode-toggle { margin-bottom: 1rem; }
 .paste-options { margin: 0 0 1rem auto; }
 .paste-option-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .9rem; color: #475569; }
+.paste-option-label input[type="checkbox"] { width: 1rem; height: 1rem; flex: 0 0 1rem; margin: 0; padding: 0; }
 
 /* Editor mode segmented control */
 
