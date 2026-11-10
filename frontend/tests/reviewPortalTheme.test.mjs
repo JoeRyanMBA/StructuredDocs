@@ -78,7 +78,7 @@ test('single-review portal uses shared tokens, button variants, and editor style
     assert.ok(sharedCss.includes(`${token}:`), `Shared token ${token} must exist`)
   }
   assert.match(source, /import '@\/styles\/review-editor\.css'/)
-  assert.match(descriptor.template.content, /class="quill-wrapper review-editor-theme"/)
+  assert.match(descriptor.template.content, /class="quill-wrapper review-editor-theme review-image-content"/)
   assert.match(descriptor.template.content, /activeView === 'read' \? 'btn-primary' : 'btn-secondary'/)
   assert.match(descriptor.template.content, /activeView === 'edit' \? 'btn-primary' : 'btn-secondary'/)
 })
