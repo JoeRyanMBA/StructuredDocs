@@ -107,7 +107,7 @@
         </div>
 
         <!-- WYSIWYG Editor view -->
-        <div v-if="activeView === 'edit'" class="editor-container">
+        <div v-show="activeView === 'edit'" class="editor-container">
           <div class="editor-notice">
             <span class="notice-icon">💡</span>
             <span>You can directly edit the content below. Your changes will be tracked and sent to the author for review.</span>
@@ -470,7 +470,7 @@ export default {
         })
 
         // Set initial content
-        this.quillEditor.root.innerHTML = this.originalContent
+        this.quillEditor.clipboard.dangerouslyPasteHTML(this.originalContent)
 
         // Track changes
         this.quillEditor.on('text-change', () => {
@@ -505,7 +505,7 @@ export default {
     resetContent() {
       this.editableContent = this.originalContent
       if (this.quillEditor) {
-        this.quillEditor.root.innerHTML = this.originalContent
+        this.quillEditor.clipboard.dangerouslyPasteHTML(this.originalContent, 'silent')
       }
       this.hasChanges = false
       this.changeCount = 0
