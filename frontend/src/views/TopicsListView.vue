@@ -768,7 +768,6 @@ export default {
 
     async submitForReview(id) {
       console.log('🔥 submitForReview called with ID:', id)
-  toast.info(`Send for review clicked (Topic #${id})`)
       
       // Find the topic and open the modal
       const topic = this.topics.find(t => t.id === id)
