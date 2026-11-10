@@ -101,7 +101,7 @@
 
         <!-- Read-only view -->
         <div v-if="activeView === 'read'" class="content-viewer">
-          <div class="content-text" v-html="formattedContent"></div>
+          <div class="content-text review-image-content" v-html="formattedContent"></div>
         </div>
 
         <!-- WYSIWYG Editor view -->
@@ -110,7 +110,7 @@
             <span class="notice-icon">💡</span>
             <span>You can directly edit the content below. Your changes will be tracked and sent to the author for review.</span>
           </div>
-          <div class="quill-wrapper review-editor-theme">
+          <div class="quill-wrapper review-editor-theme review-image-content">
             <div ref="quillEditor" class="quill-editor"></div>
           </div>
           <div class="editor-actions">
@@ -313,9 +313,10 @@
 </template>
 
 <script>
-import Quill from 'quill'
+import Quill from '@/utils/reviewQuill'
 import 'quill/dist/quill.snow.css'
 import '@/styles/review-editor.css'
+import '@/styles/review-images.css'
 import { toast } from '@/composables/useToast'
 import { normalizeReviewHtml } from '@/utils/reviewHtml'
 import { sanitizeHtml } from '@/utils/sanitize'
