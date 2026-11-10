@@ -56,7 +56,7 @@
           <div class="form-actions">
             <button type="button" @click="closeModal" class="btn btn-secondary">Cancel</button>
             <button type="submit" :disabled="loading || !selectedReviewer" class="btn btn-primary">
-              {{ loading ? 'Sending…' : `Send to Reviewer (${topics.length} topics)` }}
+              {{ loading ? 'Sending…' : 'Send to reviewer' }}
             </button>
           </div>
         </form>
