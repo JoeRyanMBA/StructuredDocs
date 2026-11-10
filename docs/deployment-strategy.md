@@ -1,5 +1,22 @@
 # StructuredDocs Deployment Strategy
 
+## Release Version and Build Metadata
+
+The release version is maintained in [backend/version.json](../backend/version.json).
+Update its `version` intentionally for each release using semantic versioning:
+patch for fixes, minor for backward-compatible features, and major for breaking
+changes. Deployments do not automatically increment this number.
+
+The backend CI workflow reads this file and passes the release version, Git commit,
+and UTC build timestamp into the Docker image. Runtime `APP_VERSION`, `GIT_COMMIT`,
+and `BUILD_TIME` environment variables take precedence over the JSON metadata.
+
+The footer fetches these values from `/api/version`. For builds outside CI, supply
+`GIT_COMMIT` and `BUILD_TIME` as Docker build arguments to identify the build.
+If no build timestamp is recorded, the footer omits the build age rather than
+displaying backend startup time as build time. An available local Git checkout
+can provide the commit when it has not been explicitly supplied.
+
 ## Current issues and solutions
 
 After experiencing issues with earlier infrastructure setups, this guide outlines a reliable deployment approach together with several fallback options.

@@ -202,7 +202,11 @@
               <label>Search Images</label>
               <input v-model="imageSearch" type="text" class="form-input" placeholder="Filter by filename" @input="filterImages">
             </div>
-            <div class="image-grid" v-if="filteredImages && filteredImages.length">
+            <label class="image-thumbnail-control">
+              <span>Thumbnail size</span>
+              <input v-model.number="imageThumbnailSize" type="range" min="100" max="240" step="20" aria-label="Thumbnail size">
+            </label>
+            <div class="image-grid image-picker-grid" :style="{ '--image-thumbnail-size': imageThumbnailSize + 'px' }" v-if="filteredImages && filteredImages.length">
               <div v-for="img in filteredImages" :key="img.id" class="image-item" :class="{ selected: selectedExistingImage && selectedExistingImage.id === img.id }" @click="selectExistingImage(img)">
                 <img :src="imageDisplayUrl(img)" :alt="img.alt_text || img.filename" @error="handleImageError">
                 <div class="image-caption">{{ img.filename }}</div>
@@ -281,6 +285,7 @@ export default {
       imageUrl: '',
       imageAlt: '',
       imageSearch: '',
+      imageThumbnailSize: 160,
       availableImages: [],
       filteredImages: [],
       selectedExistingImage: null,

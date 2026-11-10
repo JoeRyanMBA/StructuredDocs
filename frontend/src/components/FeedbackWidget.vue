@@ -30,7 +30,7 @@
               <textarea id="feedbackMessage" v-model="feedback.message" required rows="5"></textarea>
             </div>
             <div class="modal-footer sd-modal-actions">
-              <button type="submit" class="btn btn-primary primary-btn">Submit Feedback</button>
+              <button type="submit" class="btn btn-primary primary-btn">Send Feedback</button>
             </div>
           </form>
           </div>
@@ -57,7 +57,7 @@
               <textarea id="bugReproduction" v-model="bugReport.reproduction_steps" rows="5" placeholder="1. Go to '...' page. 2. Click on '....' button. 3. See error."></textarea>
             </div>
             <div class="modal-footer sd-modal-actions">
-              <button type="submit" class="btn btn-primary primary-btn">Submit Bug Report</button>
+              <button type="submit" class="btn btn-primary primary-btn">Send Bug Report</button>
             </div>
           </form>
           </div>
@@ -101,7 +101,7 @@ export default {
         toast.success('Thank you for your feedback!')
       } catch (err) {
         console.error('Failed to submit feedback', err)
-        toast.error('Failed to submit feedback')
+        toast.error('Failed to send feedback')
       }
     },
     async submitBugReport() {
@@ -123,7 +123,7 @@ export default {
         toast.success('Thank you for reporting this bug!')
       } catch (err) {
         console.error('Failed to submit bug', err)
-        toast.error('Failed to submit bug report')
+        toast.error('Failed to send bug report')
       }
     }
   }

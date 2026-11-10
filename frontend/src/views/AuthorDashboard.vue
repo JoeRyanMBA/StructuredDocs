@@ -197,8 +197,8 @@
                         v-if="topic.status === 'draft'"
                         @click.stop="submitForReview(topic.id)"
                         class="btn-icon btn-send-review"
-                        title="Submit for review"
-                        aria-label="Submit for review"
+                        title="Send for review"
+                        aria-label="Send for review"
                         type="button"
                       >
                         <i class="bi bi-send"></i>
@@ -228,7 +228,7 @@
     <div v-if="showReviewModal" class="modal-overlay" @click.self="closeReviewModal">
       <div class="modal-content review-modal-content" role="dialog" aria-modal="true" aria-label="Request review">
         <div class="modal-header-row review-modal-header">
-          <h3 class="modal-heading">Submit for Review</h3>
+          <h3 class="modal-heading">Send for Review</h3>
           <button type="button" class="plain-close" @click="closeReviewModal" aria-label="Close">&times;</button>
         </div>
         <div class="modal-body review-modal-body">
@@ -566,11 +566,11 @@ export default {
         await this.loadMyTopics()
         await this.loadStats()
         this.closeReviewModal()
-        toast.success(`"${topicTitle}" submitted for review to ${reviewerCount} reviewer(s).`)
+        toast.success(`"${topicTitle}" sent for review to ${reviewerCount} reviewer(s).`)
         this.$router.push({ name: 'ReviewsHome' })
       } catch (err) {
         console.error('Submit for review failed:', err)
-        toast.error(err.message || 'Failed to submit for review')
+        toast.error(err.message || 'Failed to send for review')
       } finally {
         this.submittingReview = false
       }
@@ -740,6 +740,14 @@ export default {
   align-items: center;
   gap: .5rem;
   margin-bottom: .35rem;
+}
+
+.reviewer-option input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  margin: 0;
+  padding: 0;
 }
 
 .empty-help {

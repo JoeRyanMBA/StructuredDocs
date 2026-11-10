@@ -44,7 +44,7 @@ export default {
       component: '',
       contact: '',
       message: '',
-      title: 'Submit Feedback',
+      title: 'Send Feedback',
       submitting: false
     }
   },
@@ -86,10 +86,10 @@ export default {
         modal.hide()
         this.message = ''
         this.contact = ''
-        toast.success('Thanks — your report has been submitted.')
+        toast.success('Thanks — your report has been sent.')
       } catch (err) {
         console.error(err)
-        toast.error('Failed to submit feedback')
+        toast.error('Failed to send feedback')
       } finally {
         this.submitting = false;
       }

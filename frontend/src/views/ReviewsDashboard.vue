@@ -63,7 +63,7 @@
       <div class="quick-actions-grid">
           <button class="quick-action-card" @click="sendNewReview">
             <div class="action-icon">📤</div>
-            <div class="action-content" title="Submit topics to stakeholders">
+            <div class="action-content" title="Send topics to stakeholders">
               <h3>Send for Review</h3>
             </div>
           </button>
@@ -197,11 +197,11 @@
         </div>
         <div class="guide-modal-body">
           <ol>
-            <li><strong>Author submits topic for review:</strong> open a topic from Author Dashboard and click Submit for Review.</li>
+            <li><strong>Author sends topic for review:</strong> open a topic from Author Dashboard and click Send for Review.</li>
             <li><strong>Select reviewer + details:</strong> choose reviewer, priority, due date, and optional message.</li>
             <li><strong>Topic status changes:</strong> topic moves to Pending Review and appears in the Reviews area.</li>
-            <li><strong>Reviewer completes review:</strong> reviewer submits recommendation and feedback.</li>
-            <li><strong>Author incorporates changes:</strong> use Incorporate Feedback to apply requested edits, then re-submit if needed.</li>
+            <li><strong>Reviewer completes review:</strong> reviewer sends recommendation and feedback.</li>
+            <li><strong>Author incorporates changes:</strong> use Incorporate Feedback to apply requested edits, then resend if needed.</li>
           </ol>
           <p><strong>Sequential review:</strong> when enabled, reviewers run in order (expert-first), and each next reviewer gets the updated content flow.</p>
         </div>
@@ -771,10 +771,25 @@ export default {
 .reassign-checkbox-row {
   display: flex;
   align-items: flex-start;
+  justify-content: flex-start;
   gap: 0.5rem;
   margin: 0.5rem 0 0.75rem;
   color: var(--text-dark-gray);
   font-size: 0.9rem;
+  text-align: left;
+}
+
+.reassign-checkbox-row input[type="checkbox"] {
+  width: 1rem;
+  height: 1rem;
+  flex: 0 0 1rem;
+  margin: 0.15rem 0 0;
+  padding: 0;
+}
+
+.reassign-checkbox-row span {
+  flex: 1;
+  min-width: 0;
 }
 
 .reassign-error {
@@ -785,12 +800,15 @@ export default {
 
 .reassign-actions {
   display: flex;
+  align-items: center;
   justify-content: flex-end;
   gap: 0.5rem;
 }
 
 .reassign-modal .reassign-actions .btn {
   height: 36px;
+  margin: 0;
+  transform: none !important;
 }
 
 /* Review Items */
