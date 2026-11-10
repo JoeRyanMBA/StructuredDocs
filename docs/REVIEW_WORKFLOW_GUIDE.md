@@ -47,6 +47,9 @@ Reviewer edits do not automatically replace the topic. **Open in editor**
 shows the existing topic until the author applies changes. A **Review
 Completed** status confirms submission, not incorporation into the topic.
 
+The review portal preserves saved image alignment in both **Read Only** and
+**Edit Content**, including when submitting text edits alongside images.
+
 ## Where to Manage Reviews
 
 - **Reviews Dashboard**: high-level metrics and activity.
