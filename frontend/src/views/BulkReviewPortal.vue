@@ -605,6 +605,10 @@ export default {
 .topic-content :deep(table) { border-collapse: collapse; width: 100%; }
 .topic-content :deep(td), .topic-content :deep(th) { border: 1px solid #dee2e6; padding: 8px 12px; }
 .topic-content :deep(pre) { background: #f8f9fa; padding: 12px; border-radius: 6px; overflow-x: auto; }
+.topic-content :deep(ol) { list-style-type: decimal; }
+.topic-content :deep(ol ol) { list-style-type: lower-alpha; }
+.topic-content :deep(ol ol ol) { list-style-type: lower-roman; }
+.topic-content :deep(ol ol ol ol) { list-style-type: upper-alpha; }
 
 /* ---- Feedback panel ---- */
 .feedback-panel {

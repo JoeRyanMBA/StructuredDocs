@@ -821,6 +821,11 @@ export default {
   margin-bottom: 0.25rem;
 }
 
+.content-text :deep(ol) { list-style-type: decimal; }
+.content-text :deep(ol ol) { list-style-type: lower-alpha; }
+.content-text :deep(ol ol ol) { list-style-type: lower-roman; }
+.content-text :deep(ol ol ol ol) { list-style-type: upper-alpha; }
+
 .content-text blockquote {
   border-left: 4px solid var(--border-light-gray);
   padding-left: 1rem;
