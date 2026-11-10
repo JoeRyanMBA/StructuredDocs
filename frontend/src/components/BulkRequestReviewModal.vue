@@ -207,9 +207,10 @@ export default {
 .form-input:focus { outline: none; border-color: #3b82f6; box-shadow: 0 0 0 3px rgba(59,130,246,0.1); }
 .form-help { display: block; margin-top: 3px; font-size: 12px; color: #6b7280; }
 
-.form-actions { display: flex; gap: 10px; justify-content: flex-end; margin-top: 20px; }
+.form-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
 .btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: none; font-weight: 500; line-height: 1.5; box-sizing: border-box; display: inline-block; }
+.form-actions .btn-primary { white-space: normal; text-align: center; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-secondary { background: #f3f4f6; color: #374151; }
 .btn-secondary:hover { background: #e5e7eb; }
