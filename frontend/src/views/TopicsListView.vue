@@ -69,6 +69,29 @@
 
       <p class="table-instruction">Select a topic to edit.</p>
 
+      <!-- Bulk actions toolbar -->
+      <div class="bulk-actions" v-if="selectedTopicIds.length > 0">
+        <span class="selection-count">{{ selectedTopicIds.length }} selected</span>
+        <button class="btn btn-sm btn-danger" @click="confirmBulkDelete" :disabled="deleting || !isAdmin">
+          <i class="bi bi-trash"></i> Delete Selected
+        </button>
+        <button
+          v-if="selectedTopicIds.length >= 2"
+          class="btn btn-sm btn-primary"
+          @click="showBulkReviewModal = true"
+          :disabled="deleting"
+        >
+          <i class="bi bi-send"></i> Request Bulk Review
+        </button>
+        <div class="bulk-actions-spacer"></div>
+        <button class="btn btn-sm btn-secondary" @click="selectAllResults" :disabled="deleting">
+          Select all results ({{ filteredTopics.length }})
+        </button>
+        <button class="btn btn-sm" @click="clearSelection" :disabled="deleting">
+          Clear selection
+        </button>
+      </div>
+
       <div class="topics-table-container">
         <table class="topics-table">
       <thead>
