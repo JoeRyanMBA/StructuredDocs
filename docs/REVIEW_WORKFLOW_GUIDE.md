@@ -33,6 +33,20 @@ Use sequential review when you want reviewers to work in order.
 - `revisions_requested`: Author should update content and resubmit.
 - `approved`: Review accepted.
 
+## Bulk Review Content Edits
+
+1. In the bulk review portal, select **Edit Content** and make your changes.
+2. Select **Approve with minor changes**, then **Send & Continue** to submit
+   the edited version with your feedback. Typing alone does not save to the
+   server; do not refresh or close the page before submitting.
+3. The author opens **View** on the completed review to reach **Incorporate
+   Feedback**. The **Content Edits** section shows proposed changes for the
+   author to accept or reject.
+
+Reviewer edits do not automatically replace the topic. **Open in editor**
+shows the existing topic until the author applies changes. A **Review
+Completed** status confirms submission, not incorporation into the topic.
+
 ## Where to Manage Reviews
 
 - **Reviews Dashboard**: high-level metrics and activity.
