@@ -78,7 +78,7 @@ export async function submitBulkTopicFeedback(token, reviewId, feedbackData) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify(feedbackData)
   })
-  if (!res.ok) await throwApiError(res, 'Failed to submit feedback')
+  if (!res.ok) await throwApiError(res, 'Failed to send feedback')
   return res.json()
 }
 

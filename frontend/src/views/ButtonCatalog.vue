@@ -178,7 +178,7 @@ export default {
           icon: 'bi bi-check-lg',
           stylesheet: 'assets/style.css (.btn-success)',
           usedIn: [
-            'ReviewPortal.vue (Submit Review)'
+            'ReviewPortal.vue (Send Review)'
           ],
           exampleTag: 'button',
           exampleBind: { type: 'button' }
@@ -238,7 +238,7 @@ export default {
           exampleBind: { type: 'button', title: 'Edit' }
         },
         {
-          name: 'Icon: Submit for Review',
+          name: 'Icon: Send for Review',
           classes: 'btn-icon btn-send-review',
           text: '',
           icon: 'bi bi-send',
@@ -248,7 +248,7 @@ export default {
             'AuthorDashboard.vue actions'
           ],
           exampleTag: 'button',
-          exampleBind: { type: 'button', title: 'Submit for review' }
+          exampleBind: { type: 'button', title: 'Send for review' }
         },
         {
           name: 'Icon: Sequential Review',
@@ -433,9 +433,9 @@ export default {
           exampleBind: { type: 'button' }
         },
         {
-          name: 'Submit',
+          name: 'Send',
           classes: 'submit-btn',
-          text: 'Submit Review',
+          text: 'Send Review',
           icon: 'bi bi-check-lg',
           stylesheet: 'assets/style.css (.submit-btn)',
           usedIn: [

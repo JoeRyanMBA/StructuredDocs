@@ -112,8 +112,6 @@ def _load_version_metadata():
             meta['commit'] = subprocess.check_output(['git', 'rev-parse', '--short', 'HEAD'], stderr=subprocess.DEVNULL).decode().strip()
         except Exception:
             pass
-    if not meta.get('build_time'):
-        meta['build_time'] = datetime.utcnow().isoformat() + 'Z'
     return meta
 
 

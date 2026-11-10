@@ -199,7 +199,7 @@ def submit_review_feedback(token):
         warnings = []
         response_payload = {
             'success': True,
-            'message': 'Feedback submitted successfully',
+            'message': 'Feedback sent successfully',
             'feedback_items_count': len(created_items),
             'content_updated': edited_content is not None and overall_recommendation == 'approve_with_changes',
             'sequence_advanced': False,
@@ -223,7 +223,7 @@ def submit_review_feedback(token):
                     'Sequence advance failed while submitting token feedback for review_id=%s',
                     review_id,
                 )
-                warnings.append('Review submitted, but sequential review progression needs manual verification.')
+                warnings.append('Review sent, but sequential review progression needs manual verification.')
                 review = db.session.get(Review, review_id)
                 sequence = None
 
@@ -237,7 +237,7 @@ def submit_review_feedback(token):
                     'Topic status update failed while submitting token feedback for review_id=%s',
                     review_id,
                 )
-                warnings.append('Review submitted, but topic status update needs manual verification.')
+                warnings.append('Review sent, but topic status update needs manual verification.')
 
         if warnings:
             response_payload['warning'] = ' '.join(dict.fromkeys(warnings))
@@ -316,7 +316,7 @@ Priority: {{priority}}
 
 {{author_message}}
 
-To access the review material and submit your feedback, please click the link below:
+To access the review material and send your feedback, please click the link below:
 {{review_url}}
 
 This secure link will expire on {{expires_at}} and can be accessed up to {{max_access}} times.
@@ -324,7 +324,7 @@ This secure link will expire on {{expires_at}} and can be accessed up to {{max_a
 Instructions for Review:
 1. Click the link above to access the content
 2. Read through the material carefully
-3. Use the feedback form to submit your comments
+3. Use the feedback form to send your comments
 4. You can provide general feedback or specific suggestions for text changes
 5. Please complete your review by the due date
 

@@ -37,7 +37,7 @@
             </div>
           </div>
 
-          <div class="metric-card" title="Users with the Reviewer role — can review topics and submit feedback via review links">
+          <div class="metric-card" title="Users with the Reviewer role — can review topics and send feedback via review links">
             <div class="metric-icon">📝</div>
             <div class="metric-content">
               <h3>Reviewers</h3>
@@ -85,7 +85,7 @@
           </button>
           <button class="quick-action-card" @click="navigateTo('/admin/bugs')">
             <div class="action-icon">🐞</div>
-            <div class="action-content" title="Review user-submitted bug reports">
+            <div class="action-content" title="Review bug reports sent by users">
               <h3>View Bug Reports</h3>
             </div>
           </button>
