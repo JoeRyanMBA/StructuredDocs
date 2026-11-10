@@ -246,6 +246,7 @@
 </template>
 
 <script>
+import { markRaw } from 'vue'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import '@/styles/review-editor.css'
@@ -366,11 +367,11 @@ export default {
         ['link'],
         ['clean'],
       ]
-      this.quillInstance = new Quill(this.$refs.quillEditor, {
+      this.quillInstance = markRaw(new Quill(this.$refs.quillEditor, {
         modules: { toolbar: toolbarOptions },
         theme: 'snow',
         placeholder: 'Edit the content here…',
-      })
+      }))
       // Restore any previously saved edits, otherwise use original content
       const reviewId = this.currentTopic?.review_id
       const originalContent = normalizeReviewHtml(this.renderedTopicContent)
