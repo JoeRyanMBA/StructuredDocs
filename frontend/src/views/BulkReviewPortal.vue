@@ -373,8 +373,10 @@ export default {
       // Restore any previously saved edits, otherwise use original content
       const reviewId = this.currentTopic?.review_id
       const originalContent = normalizeReviewHtml(this.renderedTopicContent)
-      const saved = reviewId != null ? normalizeReviewHtml(this.topicEdits[reviewId]) : null
-      this.quillInstance.root.innerHTML = saved ?? originalContent
+      const saved = reviewId != null ? this.topicEdits[reviewId] : null
+      this.quillInstance.clipboard.dangerouslyPasteHTML(
+        saved == null ? originalContent : normalizeReviewHtml(saved)
+      )
       // Persist every keystroke to topicEdits
       this.quillInstance.on('text-change', () => {
         if (reviewId != null) {
@@ -388,7 +390,10 @@ export default {
       const reviewId = this.currentTopic.review_id
       delete this.topicEdits[reviewId]
       if (this.quillInstance) {
-        this.quillInstance.root.innerHTML = normalizeReviewHtml(this.renderedTopicContent)
+        this.quillInstance.clipboard.dangerouslyPasteHTML(
+          normalizeReviewHtml(this.renderedTopicContent),
+          'silent'
+        )
       }
     },
 
