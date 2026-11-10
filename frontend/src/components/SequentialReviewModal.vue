@@ -900,6 +900,16 @@ export default {
 .seq-modal-body { padding: 0 1.25rem .75rem; }
 .start-seq-btn { min-width: 190px; }
 
+.seq-modal-footer .btn.start-seq-btn,
+.seq-modal-footer .btn.start-seq-btn:disabled {
+  background: var(--primary-deep-teal);
+  color: #fff;
+}
+
+.seq-modal-footer .btn.start-seq-btn:hover:not(:disabled) {
+  background: var(--primary-medium-teal);
+}
+
 /* Topic info */
 .topic-info-box {
   background: var(--bg-white, #fff);
