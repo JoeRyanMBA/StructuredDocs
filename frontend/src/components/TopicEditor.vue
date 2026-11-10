@@ -56,52 +56,54 @@
           <TagEditor entity-type="topic" :entity-id="Number(topicId)" />
         </div>
 
-        <!-- Editor Mode Toggle -->
-    <div class="editor-mode-toggle" role="tablist" aria-label="Select editor mode">
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="(editorMode === 'markdown').toString()"
-            :tabindex="editorMode === 'markdown' ? 0 : -1"
-            :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'markdown' ? 'btn-primary active' : 'btn-secondary']"
-      @click="editorMode = 'markdown'"
-      title="Edit in raw Markdown"
-          >
-            📝 <span class="label-text">Markdown</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="(editorMode === 'wysiwyg').toString()"
-            :tabindex="editorMode === 'wysiwyg' ? 0 : -1"
-            :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'wysiwyg' ? 'btn-primary active' : 'btn-secondary']"
-      @click="editorMode = 'wysiwyg'"
-      title="Visual editor"
-          >
-            📄 <span class="label-text">WYSIWYG</span>
-          </button>
-          <button
-            type="button"
-            role="tab"
-            :aria-selected="(editorMode === 'preview').toString()"
-            :tabindex="editorMode === 'preview' ? 0 : -1"
-            :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'preview' ? 'btn-primary active' : 'btn-secondary']"
-      @click="editorMode = 'preview'"
-      title="Preview rendered content"
-          >
-            <i class="bi bi-zoom-in" aria-hidden="true"></i> <span class="label-text">Preview</span>
-          </button>
-        </div>
+        <div class="editor-controls-row">
+          <!-- Editor Mode Toggle -->
+          <div class="editor-mode-toggle" role="tablist" aria-label="Select editor mode">
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="(editorMode === 'markdown').toString()"
+              :tabindex="editorMode === 'markdown' ? 0 : -1"
+              :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'markdown' ? 'btn-primary active' : 'btn-secondary']"
+              @click="editorMode = 'markdown'"
+              title="Edit in raw Markdown"
+            >
+              📝 <span class="label-text">Markdown</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="(editorMode === 'wysiwyg').toString()"
+              :tabindex="editorMode === 'wysiwyg' ? 0 : -1"
+              :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'wysiwyg' ? 'btn-primary active' : 'btn-secondary']"
+              @click="editorMode = 'wysiwyg'"
+              title="Visual editor"
+            >
+              📄 <span class="label-text">WYSIWYG</span>
+            </button>
+            <button
+              type="button"
+              role="tab"
+              :aria-selected="(editorMode === 'preview').toString()"
+              :tabindex="editorMode === 'preview' ? 0 : -1"
+              :class="['mode-toggle-btn','btn','btn-sm', editorMode === 'preview' ? 'btn-primary active' : 'btn-secondary']"
+              @click="editorMode = 'preview'"
+              title="Preview rendered content"
+            >
+              <i class="bi bi-zoom-in" aria-hidden="true"></i> <span class="label-text">Preview</span>
+            </button>
+          </div>
 
-        <div class="paste-options">
-          <label class="paste-option-label">
-            <input
-              type="checkbox"
-              v-model="normalizePastedLineBreaks"
-              @change="persistPastePreferences"
-            />
-            Normalize pasted Word line breaks
-          </label>
+          <div class="paste-options">
+            <label class="paste-option-label">
+              <input
+                type="checkbox"
+                v-model="normalizePastedLineBreaks"
+                @change="persistPastePreferences"
+              />
+              Normalize pasted Word line breaks
+            </label>
+          </div>
         </div>
 
         <!-- Content Editor -->
@@ -2233,7 +2235,9 @@ export default {
 .variable-insert { display:flex; gap:.4rem; align-items:center; margin-top:.4rem; flex-wrap:wrap; }
 .variable-insert select { padding:.25rem .4rem; font-size:.7rem; }
 .var-insert-label { font-size:.6rem; text-transform:uppercase; letter-spacing:.5px; color:#475569; }
-.paste-options { margin: .25rem 0 .75rem; }
+.editor-controls-row { display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: .75rem; }
+.editor-controls-row .editor-mode-toggle { margin-bottom: 1rem; }
+.paste-options { margin: 0 0 1rem auto; }
 .paste-option-label { display: inline-flex; align-items: center; gap: .4rem; font-size: .9rem; color: #475569; }
 
 /* Editor mode segmented control */
