@@ -315,12 +315,12 @@
 </template>
 
 <script>
-import { marked } from 'marked'
 import Quill from 'quill'
 import 'quill/dist/quill.snow.css'
 import { toast } from '@/composables/useToast'
-import { sanitizeHtml } from '@/utils/sanitize'
 import { normalizeReviewHtml } from '@/utils/reviewHtml'
+import { sanitizeHtml } from '@/utils/sanitize'
+import { renderTopicMarkdown } from '@/utils/topicMarkdown'
 
 export default {
   name: 'ReviewPortal',
@@ -364,18 +364,7 @@ export default {
     },
     
     formattedContent() {
-      if (!this.review.topic_content) return ''
-      
-      // Configure marked options for better rendering
-      marked.setOptions({
-        breaks: true,        // Convert line breaks to <br>
-        gfm: true,          // GitHub Flavored Markdown
-        sanitize: false,    // Allow HTML (sanitized below via DOMPurify)
-        smartypants: true   // Use smart quotes and dashes
-      })
-      
-      // Convert markdown to HTML and sanitize before rendering
-      return sanitizeHtml(marked(this.review.topic_content))
+      return sanitizeHtml(renderTopicMarkdown(this.review.topic_content))
     },
     
     canSubmit() {
@@ -451,13 +440,7 @@ export default {
     initializeEditableContent() {
       if (this.review.topic_content) {
         // Convert markdown to HTML for editing
-        marked.setOptions({
-          breaks: true,
-          gfm: true,
-          sanitize: false,
-          smartypants: true
-        })
-        this.originalContent = normalizeReviewHtml(marked(this.review.topic_content))
+        this.originalContent = normalizeReviewHtml(sanitizeHtml(renderTopicMarkdown(this.review.topic_content)))
         this.editableContent = this.originalContent
         
         // Initialize Quill editor if not already done
