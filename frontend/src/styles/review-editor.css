@@ -1,0 +1,46 @@
+.review-editor-theme .ql-toolbar,
+.review-editor-theme .ql-container,
+.review-editor-theme .ql-picker-options,
+.review-editor-theme .ql-tooltip {
+  border-color: var(--border-color-gray);
+}
+
+.review-editor-theme .ql-toolbar,
+.review-editor-theme .ql-container {
+  font-family: inherit;
+}
+
+.review-editor-theme .ql-picker-options,
+.review-editor-theme .ql-tooltip {
+  background: var(--bg-white);
+  color: var(--text-primary-charcoal);
+}
+
+.review-editor-theme .ql-snow .ql-picker { color: var(--text-dark-gray); }
+.review-editor-theme .ql-snow .ql-stroke { stroke: var(--text-dark-gray); }
+.review-editor-theme .ql-snow .ql-fill { fill: var(--text-dark-gray); }
+
+.review-editor-theme .ql-snow button:hover,
+.review-editor-theme .ql-snow button:focus,
+.review-editor-theme .ql-snow button.ql-active,
+.review-editor-theme .ql-snow .ql-picker-label:hover,
+.review-editor-theme .ql-snow .ql-picker-label.ql-active,
+.review-editor-theme .ql-snow .ql-picker-item:hover,
+.review-editor-theme .ql-snow .ql-picker-item.ql-selected,
+.review-editor-theme .ql-snow a {
+  color: var(--primary-deep-teal);
+}
+
+.review-editor-theme .ql-snow button:hover .ql-stroke,
+.review-editor-theme .ql-snow button:focus .ql-stroke,
+.review-editor-theme .ql-snow button.ql-active .ql-stroke,
+.review-editor-theme .ql-snow .ql-picker-label:hover .ql-stroke,
+.review-editor-theme .ql-snow .ql-picker-label.ql-active .ql-stroke {
+  stroke: var(--primary-deep-teal);
+}
+
+.review-editor-theme .ql-snow button:hover .ql-fill,
+.review-editor-theme .ql-snow button:focus .ql-fill,
+.review-editor-theme .ql-snow button.ql-active .ql-fill {
+  fill: var(--primary-deep-teal);
+}
