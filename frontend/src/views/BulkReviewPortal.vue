@@ -91,10 +91,10 @@
           </div>
 
           <!-- Read-only view -->
-          <div v-if="activeView === 'read'" class="topic-content" v-html="renderedTopicContent"></div>
+          <div v-if="activeView === 'read'" class="topic-content review-image-content" v-html="renderedTopicContent"></div>
 
           <!-- WYSIWYG editor view -->
-          <div v-else class="editor-section review-editor-theme">
+          <div v-else class="editor-section review-editor-theme review-image-content">
             <div class="editor-notice">
               💡 Your edits are tracked and shared with the author for review — they won't be applied automatically.
             </div>
@@ -247,9 +247,10 @@
 
 <script>
 import { markRaw } from 'vue'
-import Quill from 'quill'
+import Quill from '@/utils/reviewQuill'
 import 'quill/dist/quill.snow.css'
 import '@/styles/review-editor.css'
+import '@/styles/review-images.css'
 import { getBulkReview, submitBulkTopicFeedback } from '@/api/reviews.js'
 import HelpIcon from '@/components/HelpIcon.vue'
 import { normalizeReviewHtml } from '@/utils/reviewHtml'

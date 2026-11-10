@@ -11,7 +11,7 @@ for (const name of ['window', 'document', 'Node', 'Element', 'HTMLElement', 'Tex
 globalThis.getComputedStyle = window.getComputedStyle.bind(window)
 
 const [{ default: Quill }, { reactive, markRaw }, { normalizeReviewHtml }, { renderTopicMarkdown }, { sanitizeHtml }] = await Promise.all([
-  import('quill'),
+  import('../src/utils/reviewQuill.js'),
   import('vue'),
   import('../src/utils/reviewHtml.js'),
   import('../src/utils/topicMarkdown.js'),
@@ -30,11 +30,11 @@ const component = new Function(
   return { batch_complete: true, completed_count: 1 }
 })
 
-function createPortal() {
+function createPortal(content = 'Keep these words and remove these words.') {
   document.body.innerHTML = '<div id="editor"></div>'
   const portal = reactive({
     ...component.data.call(component.methods),
-    batch: { total: 1, topics: [{ review_id: 42, topic_content: 'Keep these words and remove these words.' }] },
+    batch: { total: 1, topics: [{ review_id: 42, topic_content: content }] },
     $route: { params: { token: 'test-token' } },
     $refs: { quillEditor: document.querySelector('#editor') },
   })
@@ -53,6 +53,39 @@ afterEach(() => {
   window.getSelection().removeAllRanges()
 })
 after(() => window.close())
+
+const imageCss = await readFile(new URL('../src/styles/review-images.css', import.meta.url), 'utf8')
+for (const alignment of ['left', 'center', 'right']) {
+  test(`bulk review preserves ${alignment} images in both tabs and submitted edits`, async () => {
+    const content = `<p>Keep these words.</p><img src="/image.png" alt="Example" data-sd-image-alignment="${alignment}" data-sd-image-wrapping="none" data-sd-image-size="50%" style="width: 50%; height: auto">`
+    const style = document.createElement('style')
+    style.textContent = imageCss
+    document.head.append(style)
+    try {
+      const portal = createPortal(content)
+      const readOnly = document.createElement('div')
+      readOnly.className = 'review-image-content'
+      readOnly.innerHTML = portal.renderedTopicContent
+      document.body.append(readOnly)
+      portal.quillInstance.root.classList.add('review-image-content')
+      for (const image of [readOnly.querySelector('img'), portal.quillInstance.root.querySelector('img')]) {
+        assert.equal(image.dataset.sdImageAlignment, alignment)
+        assert.equal(image.style.width, '50%')
+        const computed = window.getComputedStyle(image)
+        assert.equal(computed.display, 'block')
+        assert.equal(computed.marginLeft, alignment === 'left' ? '0px' : 'auto')
+        assert.equal(computed.marginRight, alignment === 'right' ? '0px' : 'auto')
+      }
+      portal.quillInstance.deleteText(5, 6, 'user')
+      await portal.submitCurrentFeedback()
+      const submitted = new DOMParser().parseFromString(submissions.at(-1)[2].edited_content, 'text/html')
+      assert.equal(submitted.querySelector('img').dataset.sdImageAlignment, alignment)
+      assert.equal(submitted.querySelector('img').style.width, '50%')
+    } finally {
+      style.remove()
+    }
+  })
+}
 
 test('bulk reviewer word deletions are included in submitted feedback', async () => {
   const portal = createPortal()
