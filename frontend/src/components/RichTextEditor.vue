@@ -2154,7 +2154,7 @@ export default {
 .wysiwyg-content p:last-child { margin-bottom: 0; }
 .wysiwyg-content p:has(img[data-sd-image-wrapping="watermark"]) {
   position: relative;
-  z-index: 0;
+  z-index: auto;
 }
 .wysiwyg-content p:has(> img[style*="float"]) { display: contents; }
 .wysiwyg-content p:has(> img[style*="float"]) > br { display: none; }
