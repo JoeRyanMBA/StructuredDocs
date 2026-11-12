@@ -10,7 +10,7 @@
       <aside class="snippet-list-panel">
         <div class="panel-toolbar">
           <input v-model="search" type="text" class="search-input" placeholder="Search snippets or #id…" />
-          <button class="btn-new" @click="startNew">+ New Snippet</button>
+          <button class="btn btn-primary btn-sm" @click="startNew">+ New Snippet</button>
         </div>
         <ul class="snippet-list">
           <li
@@ -49,7 +49,7 @@
               <span v-if="!creating && selected" class="object-id-badge" title="Snippet ID">#{{ selected.id }}</span>
             </h2>
             <div class="form-header-actions">
-              <button v-if="!creating" type="button" class="btn-delete"
+              <button v-if="!creating" type="button" class="btn btn-danger btn-sm"
                 :disabled="selected && selected.usage_count > 0"
                 :title="selected && selected.usage_count > 0 ? 'Cannot delete: used in topics' : 'Delete snippet'"
                 @click="confirmDelete">🗑 Delete</button>
@@ -98,10 +98,10 @@
           </div>
 
           <div class="form-actions">
-            <button type="submit" class="btn-save" :disabled="saving">
+            <button type="submit" class="btn btn-primary" :disabled="saving">
               {{ saving ? 'Saving…' : (creating ? 'Create Snippet' : 'Save Changes') }}
             </button>
-            <button type="button" class="btn-cancel" @click="cancel">Cancel</button>
+            <button type="button" class="btn btn-secondary" @click="cancel">Cancel</button>
             <span v-if="saveMsg" class="save-msg">{{ saveMsg }}</span>
           </div>
 
@@ -125,8 +125,8 @@
         <h3>Delete Snippet?</h3>
         <p>This will remove <strong>{{ selected && selected.title }}</strong> and all its placeholder references in topic content will become empty.</p>
         <div class="confirm-actions">
-          <button class="btn-delete" @click="doDelete">Yes, Delete</button>
-          <button class="btn-cancel" @click="showDeleteConfirm = false">Cancel</button>
+          <button class="btn btn-danger" @click="doDelete">Yes, Delete</button>
+          <button class="btn btn-secondary" @click="showDeleteConfirm = false">Cancel</button>
         </div>
       </div>
     </div>
@@ -624,18 +624,6 @@ export default {
   font-size: 0.85rem;
   box-sizing: border-box;
 }
-.btn-new {
-  background: #205493;
-  color: #fff;
-  border: none;
-  border-radius: 6px;
-  padding: 0.4rem 0.75rem;
-  font-size: 0.85rem;
-  cursor: pointer;
-  text-align: center;
-}
-.btn-new:hover { background: #1a4376; }
-
 .snippet-list { list-style: none; margin: 0; padding: 0.25rem 0; max-height: 60vh; overflow-y: auto; }
 .snippet-list-item {
   padding: 0.6rem 0.75rem;
@@ -759,23 +747,7 @@ export default {
   font-size: 0.9rem;
   line-height: 1.6;
 }
-.btn-save {
-  background: #205493; color: #fff; border: none;
-  border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.9rem; cursor: pointer;
-}
-.btn-save:hover:not(:disabled) { background: #1a4376; }
-.btn-save:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-cancel {
-  background: none; border: 1px solid #ced4da;
-  border-radius: 6px; padding: 0.5rem 1rem; font-size: 0.9rem; cursor: pointer; color: #495057;
-}
-.btn-cancel:hover { background: #f8f9fa; }
-.btn-delete {
-  background: #dc3545; color: #fff; border: none;
-  border-radius: 6px; padding: 0.4rem 0.75rem; font-size: 0.85rem; cursor: pointer;
-}
-.btn-delete:hover:not(:disabled) { background: #b02a37; }
-.btn-delete:disabled { opacity: 0.45; cursor: not-allowed; }
+.form-actions .btn:disabled, .form-header-actions .btn:disabled { opacity: 0.6; cursor: not-allowed; }
 .save-msg { color: #198754; font-size: 0.85rem; }
 .form-header-actions { display: flex; gap: 0.5rem; }
 

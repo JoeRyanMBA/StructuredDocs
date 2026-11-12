@@ -9,6 +9,7 @@ if TYPE_CHECKING:
 from sqlalchemy import or_, and_
 from ..services.review_sequences import apply_topic_status_for_review, advance_sequence_for_review
 from ..utils.email_service import email_service
+from ..utils.review_identity import current_review_stakeholder
 import secrets
 import logging
 
@@ -27,6 +28,38 @@ def reviews_root():
         return jsonify([review.to_dict() for review in reviews])
     except Exception as e:
         return jsonify({'error': str(e)}), 500
+
+
+@reviews_bp.route('/tasks', methods=['GET'])
+@jwt_required()
+def review_tasks():
+    """Return review work involving the authenticated user."""
+    try:
+        stakeholder, error = current_review_stakeholder()
+        if error:
+            return error
+        result = {'assigned': [], 'sent': [], 'completed': [], 'stakeholder_linked': bool(stakeholder)}
+        if stakeholder:
+            reviews = Review.query.filter(
+                or_(Review.reviewer_id == stakeholder.id, Review.requested_by == stakeholder.id)
+            ).order_by(Review.requested_at.desc()).all()
+            for review in reviews:
+                data = review.to_dict()
+                if review.reviewer_id != stakeholder.id:
+                    data.pop('review_notes', None)
+                if review.status == 'completed':
+                    result['completed'].append(data)
+                elif review.reviewer_id == stakeholder.id and review.status in ('pending', 'in_progress'):
+                    result['assigned'].append(data)
+                    if review.requested_by == stakeholder.id:
+                        result['sent'].append(data)
+                elif review.requested_by == stakeholder.id and review.status in ('pending', 'in_progress', 'declined'):
+                    result['sent'].append(data)
+        return jsonify(result)
+    except Exception:
+        current_app.logger.exception('Failed to load review tasks')
+        return jsonify({'error': 'Failed to load review tasks'}), 500
+
 
 @reviews_bp.route('/<int:review_id>', methods=['GET'])
 @jwt_required()
@@ -90,27 +123,11 @@ def request_review():
         if not reviewer.can_review:
             return jsonify({'error': 'Selected stakeholder cannot perform reviews'}), 400
             
-        # Resolve requester stakeholder (supports legacy requested_by and email/name fallbacks)
-        requester = None
-        requested_by = data.get('requested_by')
-        if requested_by is not None:
-            requester = Stakeholder.query.get(requested_by)
-
-        if not requester:
-            requester_email = (data.get('requester_email') or '').strip()
-            if requester_email:
-                requester = Stakeholder.query.filter(Stakeholder.email.ilike(requester_email)).first()
-
-        if not requester:
-            requester_name = (data.get('requester_name') or '').strip()
-            if requester_name:
-                requester = Stakeholder.query.filter(Stakeholder.name == requester_name).first()
-
-        if not requester:
-            requester = Stakeholder.query.filter(Stakeholder.active == True).order_by(Stakeholder.id.asc()).first()
-
-        if not requester:
-            return jsonify({'error': 'No valid requester stakeholder found. Please create an active stakeholder first.'}), 400
+        requester, error = current_review_stakeholder(create=True)
+        if error:
+            return error
+        if requester is None:
+            raise RuntimeError('Requester stakeholder was not resolved')
         
         # Calculate due date (default to 7 days from now if not specified)
         due_date = None

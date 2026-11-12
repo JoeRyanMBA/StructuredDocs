@@ -283,11 +283,6 @@ export default {
 .preview-cell { color: var(--text-secondary-cool-gray); font-size: 0.85rem; max-width: 400px; }
 
 .actions { display: flex; gap: 0.75rem; align-items: center; flex-wrap: wrap; }
-.btn-primary {
-  padding: 0.6rem 1.4rem; border: none; background: var(--primary-deep-teal);
-  color: #fff; cursor: pointer; border-radius: 4px; font-weight: 600;
-}
-.btn-primary:hover:not(:disabled) { background: var(--primary-teal-hover, #1a6b6b); }
 .btn-primary:disabled { opacity: 0.6; cursor: not-allowed; }
 .btn-danger {
   padding: 0.6rem 1.4rem; border: none; background: var(--error-coral-red);
@@ -295,11 +290,6 @@ export default {
 }
 .btn-danger:hover:not(:disabled) { background: #c0392b; }
 .btn-danger:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-secondary {
-  padding: 0.6rem 1.4rem; border: 1px solid var(--border-gray); background: #fff;
-  color: var(--text-primary-charcoal); cursor: pointer; border-radius: 4px;
-}
-.btn-secondary:hover:not(:disabled) { background: var(--bg-light-gray); }
 .btn-secondary-link {
   padding: 0.6rem 1rem; color: var(--text-secondary-cool-gray); text-decoration: none; font-size: 0.9rem;
 }

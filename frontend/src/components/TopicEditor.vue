@@ -3317,23 +3317,12 @@ export default {
 
 /* Button styles */
 .btn-primary {
-  background: #205493;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
   margin-right: 0.5rem;
   margin-bottom: 0.5rem;
 }
 
-.btn-primary:hover {
-  background: #174a7e;
-}
-
 .btn-primary:disabled {
-  background: #6c757d;
+  opacity: 0.6;
   cursor: not-allowed;
 }
 
@@ -3410,18 +3399,7 @@ export default {
 }
 
 .btn-secondary {
-  background: #6c757d;
-  color: white;
-  border: none;
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  cursor: pointer;
-  font-size: 0.875rem;
   margin-left: 0.5rem;
-}
-
-.btn-secondary:hover {
-  background: #545b62;
 }
 
 .object-id-badge {

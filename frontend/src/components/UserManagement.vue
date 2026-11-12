@@ -586,24 +586,6 @@ td:nth-child(5) {
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: var(--primary-deep-teal);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-dark-teal);
-}
-
-.btn-secondary {
-  background: #6c757d;
-  color: white;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #545b62;
-}
-
 .btn-danger {
   background: #dc3545;
   color: white;

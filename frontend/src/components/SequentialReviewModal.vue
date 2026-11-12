@@ -819,7 +819,6 @@ export default {
         this.success = null
         const payload = {
           topic_id: this.topic.id,
-          created_by: 1,
           name: this.form.name || null,
           description: this.form.description || null,
           initial_message: this.form.initial_message,
