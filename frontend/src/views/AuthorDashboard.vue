@@ -541,18 +541,10 @@ export default {
 
       this.submittingReview = true
       try {
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-        const requesterPayload = {
-          requested_by: Number(currentUser.id) || null,
-          requester_email: currentUser.email || '',
-          requester_name: currentUser.name || ''
-        }
-
         const reviewPromises = this.selectedReviewerIds.map(async (reviewerId) => {
           return apiPost('/api/reviews/request', {
             topic_id: this.selectedTopicForReview.id,
             reviewer_id: Number(reviewerId),
-            ...requesterPayload,
             priority: this.reviewPriority,
             due_date: this.reviewDueDate || null,
             message: this.reviewMessage || `Review requested for: ${this.selectedTopicForReview.title}`
@@ -1036,15 +1028,6 @@ export default {
 .btn i {
   flex-shrink: 0;
   width: 1em;
-}
-
-.btn-primary {
-  background-color: #205493;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background-color: #005E7B;
 }
 
 /* Use global .btn-secondary styles from assets/style.css */

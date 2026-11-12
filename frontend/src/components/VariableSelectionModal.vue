@@ -546,25 +546,6 @@ export default {
   cursor: not-allowed;
 }
 
-.btn-secondary {
-  background: white;
-  border-color: #d1d5db;
-  color: #374151;
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: #f9fafb;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-}
-
 /* Preview panel styling */
 .preview-panel { margin-top: 1.25rem; border: 1px solid #e5e7eb; border-radius: 6px; background: #fdfdfd; }
 .preview-header { display: flex; justify-content: space-between; align-items: center; padding: 0.6rem 0.9rem; cursor: pointer; background:#f3f4f6; border-bottom:1px solid #e5e7eb; }

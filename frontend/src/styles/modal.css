@@ -134,9 +134,9 @@
 .modal-actions .cancel-btn,
 .modal-footer .secondary-btn,
 .modal-actions .secondary-btn {
-  background:#6c757d;
-  border:1px solid #6c757d;
-  color: #fff;
+  background: var(--border-light-gray);
+  border: 1px solid var(--border-light-gray);
+  color: var(--primary-deep-teal);
 }
 
 .modal-footer .btn-secondary:hover:not(:disabled),
@@ -145,8 +145,8 @@
 .modal-actions .cancel-btn:hover:not(:disabled),
 .modal-footer .secondary-btn:hover:not(:disabled),
 .modal-actions .secondary-btn:hover:not(:disabled) {
-  background:#5a6268;
-  border-color:#5a6268;
+  background: var(--extended-seafoam-green);
+  border-color: var(--extended-seafoam-green);
 }
 
 .modal-footer .btn-primary,
@@ -186,9 +186,13 @@
 .modal-footer .primary-btn:disabled,
 .modal-actions .primary-btn:disabled,
 .sd-modal-actions .primary-btn:disabled {
-  background:#9cb2cc;
-  border-color:#9cb2cc;
-  opacity:1;
+  background: var(--primary-deep-teal);
+  border-color: var(--primary-deep-teal);
+  color: #fff;
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 .image-thumbnail-control {

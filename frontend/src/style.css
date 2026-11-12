@@ -307,9 +307,45 @@
 }
 
 .btn.btn-primary:active:not(:disabled),
-.btn-primary:active:not(:disabled) {
+.btn-primary:active:not(:disabled),
+.primary-btn:active:not(:disabled) {
+  background-color: var(--primary-deep-teal) !important;
+  border-color: var(--primary-deep-teal) !important;
+  color: #fff !important;
   transform: translateY(0);
   box-shadow: 0 0 0 2px rgba(0,0,0,0.05) inset;
+}
+
+.btn.btn-secondary:active:not(:disabled),
+.btn-secondary:active:not(:disabled),
+.secondary-btn:active:not(:disabled) {
+  background-color: var(--border-light-gray) !important;
+  border-color: var(--border-light-gray) !important;
+  color: var(--primary-deep-teal) !important;
+}
+
+.btn.btn-primary:disabled,
+.btn-primary:disabled,
+.primary-btn:disabled {
+  background-color: var(--primary-deep-teal);
+  border-color: var(--primary-deep-teal) !important;
+  color: #fff;
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
+}
+
+.btn.btn-secondary:disabled,
+.btn-secondary:disabled,
+.secondary-btn:disabled {
+  background-color: var(--border-light-gray);
+  border-color: var(--border-light-gray) !important;
+  color: var(--primary-deep-teal);
+  opacity: 0.6;
+  cursor: not-allowed;
+  transform: none;
+  box-shadow: none;
 }
 
 /* Uniform small button variant */

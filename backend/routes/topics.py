@@ -10,6 +10,7 @@ import bleach
 import re
 from bleach.css_sanitizer import CSSSanitizer
 from ..utils.audit import log_audit
+from ..utils.review_identity import current_review_stakeholder
 
 topics_bp = Blueprint('topics', __name__, url_prefix='/api/topics')
 
@@ -223,13 +224,11 @@ def create_topic_review(topic_id):
 
     Accepts JSON body (all optional for quick path):
       reviewer_id: Stakeholder ID of reviewer
-      requested_by: Stakeholder ID of requester
       priority: low|medium|high|urgent (default medium)
       message: author message
       due_in_days: int (default 7)
 
-    If reviewer_id or requested_by missing, attempts to auto-select the first Stakeholder with can_review.
-    Returns 400 if no stakeholders available and not provided explicitly.
+    If reviewer_id is missing, attempts to auto-select a reviewer.
     """
     data = request.get_json(silent=True) or {}
     topic = Topic.query.get(topic_id)
@@ -238,9 +237,7 @@ def create_topic_review(topic_id):
 
     try:
         reviewer_id = data.get('reviewer_id')
-        requested_by = data.get('requested_by')
-
-        if not reviewer_id or not requested_by:
+        if not reviewer_id:
             # Try to locate any existing active reviewer-capable stakeholder
             first = Stakeholder.query.filter(Stakeholder.can_review == True, Stakeholder.active == True).first()  # noqa: E712
             if not first:
@@ -266,18 +263,19 @@ def create_topic_review(topic_id):
                     except Exception:
                         # If creation fails, abort with guidance
                         current_app.logger.warning('Failed to auto-provision default reviewer stakeholder')
-                        return jsonify({'error': 'No reviewer/requester supplied and no stakeholders exist. Create a stakeholder or pass reviewer_id & requested_by.'}), 400
-            if not reviewer_id:
-                reviewer_id = first.id
-            if not requested_by:
-                requested_by = first.id
+                        return jsonify({'error': 'No reviewer available. Create a reviewer stakeholder or pass reviewer_id.'}), 400
+            reviewer_id = first.id
 
         reviewer = Stakeholder.query.get(reviewer_id)
-        requester = Stakeholder.query.get(requested_by)
-        if not reviewer or not requester:
-            return jsonify({'error': 'Invalid reviewer_id or requested_by'}), 400
+        if not reviewer:
+            return jsonify({'error': 'Invalid reviewer_id'}), 400
         if not reviewer.can_review:
             return jsonify({'error': 'Selected reviewer cannot review'}), 400
+        requester, error = current_review_stakeholder(create=True)
+        if error:
+            return error
+        if requester is None:
+            raise RuntimeError('Requester stakeholder was not resolved')
 
         priority = data.get('priority', 'medium')
         if priority not in ('low','medium','high','urgent'):

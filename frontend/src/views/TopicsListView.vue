@@ -221,7 +221,6 @@
     <BulkRequestReviewModal
       :topics="selectedTopicsForBulk"
       :is-visible="showBulkReviewModal"
-      :current-user="currentUserObj"
       @close="showBulkReviewModal = false"
       @bulk-review-requested="onBulkReviewRequested"
     />
@@ -375,13 +374,6 @@ export default {
         return user && user.role === 'admin'
       } catch (_) {
         return false
-      }
-    },
-    currentUserObj() {
-      try {
-        return JSON.parse(localStorage.getItem('user') || '{}')
-      } catch (_) {
-        return {}
       }
     },
     selectedTopicsForBulk() {
@@ -837,12 +829,6 @@ export default {
         console.log('Starting review submission...')
         console.log('Selected topic:', this.selectedTopic)
         console.log('Review data:', this.reviewData)
-        const currentUser = JSON.parse(localStorage.getItem('user') || '{}')
-        const requesterPayload = {
-          requested_by: Number(currentUser.id) || null,
-          requester_email: currentUser.email || '',
-          requester_name: currentUser.name || ''
-        }
         
         if (!this.selectedTopic || this.reviewData.assigned_stakeholder_ids.length === 0) {
           console.error('Validation failed:', {
@@ -860,7 +846,6 @@ export default {
           // Create sequential review
           const sequencePayload = {
             topic_id: this.selectedTopic.id,
-            created_by: 1, // TODO: Get current user ID from auth context
             name: `Review Sequence for ${this.selectedTopic.title}`,
             description: 'Expert-first sequential review workflow',
             initial_message: this.reviewData.submitter_notes || `Please review "${this.selectedTopic.title}" for technical accuracy and clarity.`,
@@ -900,7 +885,6 @@ export default {
             const reviewPayload = {
               topic_id: this.selectedTopic.id,
               reviewer_id: stakeholderId,
-              ...requesterPayload,
               priority: 'medium',
               due_date: this.reviewData.due_date,
               message: this.reviewData.submitter_notes || `Review requested for: ${this.selectedTopic.title}`

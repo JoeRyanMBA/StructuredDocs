@@ -536,24 +536,6 @@ export default {
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: var(--primary-deep-teal);
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-medium-teal);
-}
-
-.btn-secondary {
-  background: var(--text-secondary-cool-gray);
-  color: white;
-}
-
-.btn-secondary:hover {
-  background: var(--text-primary-charcoal);
-}
-
 .icon {
   font-size: 16px;
 }
