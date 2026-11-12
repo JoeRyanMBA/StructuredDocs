@@ -22,14 +22,13 @@
       <div class="variables-list">
         <table class="vars-table">
           <thead>
-            <tr><th>Slug</th><th>Name</th><th>Description</th><th>Scope</th><th>Values</th><th></th></tr>
+            <tr><th>Slug</th><th>Name</th><th>Description</th><th>Values</th><th></th></tr>
           </thead>
           <tbody>
             <tr v-for="v in variables" :key="v.id" @click="selectVariable(v)" :class="{selected: selectedVar && selectedVar.id===v.id}">
               <td><code>{{ v.slug }}</code></td>
               <td>{{ v.name }}</td>
               <td class="muted">{{ v.description || '—' }}</td>
-              <td>{{ v.scope }}</td>
               <td>{{ (v.values && Array.isArray(v.values)) ? v.values.length : 0 }}</td>
               <td><button class="btn btn-sm" @click.stop="editVar(v)">Edit</button></td>
             </tr>
@@ -47,7 +46,7 @@
               <td>{{ val.value }}</td>
               <td>{{ val.is_default ? '✔' : '' }}</td>
               <td>
-                <button class="btn btn-sm" @click="makeDefault(val)" :disabled="val.is_default">Make Default</button>
+                <button class="btn btn-sm btn-secondary" @click="makeDefault(val)" :disabled="val.is_default">Make Default</button>
                 <button class="btn btn-sm btn-danger" @click="deleteValue(val)">Delete</button>
               </td>
             </tr>
@@ -95,12 +94,25 @@
           <label>Description
             <textarea v-model="varForm.description" rows="2" />
           </label>
-          <label>Scope
-            <select v-model="varForm.scope">
-              <option value="global">Global</option>
-              <option value="collection">Collection</option>
-            </select>
-          </label>
+          <div v-if="!editingVar" class="initial-values">
+            <div class="initial-values-header">
+              <strong>Initial values <span class="muted">(optional)</span></strong>
+              <button type="button" class="btn btn-sm" @click="addInitialValue">Add value</button>
+            </div>
+            <div v-for="(item, index) in initialValues" :key="index" class="initial-value-row">
+              <input v-model="item.value" :aria-label="`Initial value ${index + 1}`" maxlength="500" />
+              <label>
+                <input v-model="initialDefaultIndex" type="radio" name="initial-default" :value="index" :disabled="!item.value.trim()" />
+                Default
+              </label>
+              <button
+                type="button"
+                class="initial-value-remove"
+                :aria-label="`Remove initial value ${index + 1}`"
+                @click="removeInitialValue(index)"
+              >&times;</button>
+            </div>
+          </div>
           <div class="modal-footer modal-actions">
             <button type="button" class="btn btn-secondary btn-sm" @click="closeVarModal">Cancel</button>
             <button type="submit" class="btn btn-primary btn-sm" :disabled="!formSubmitEnabled || isSaving">{{ isSaving ? (editingVar ? 'Saving…' : 'Creating…') : (editingVar ? 'Update' : 'Create') }}</button>
@@ -125,7 +137,9 @@ export default {
       selectedVar:null,
       showVarModal:false,
       editingVar:false,
-      varForm:{ name:'', slug:'', description:'', scope:'global' },
+      varForm:{ name:'', slug:'', description:'' },
+      initialValues:[],
+      initialDefaultIndex:null,
       newValue:'',
       newValueDefault:false,
   slugTouched:false,
@@ -191,15 +205,30 @@ export default {
     selectVariable(v){ this.selectedVar = v },
     openCreateVar(){
       this.editingVar=false;
-      this.varForm={ name:'', slug:'', description:'', scope:'global'};
+      this.varForm={ name:'', slug:'', description:''};
+      this.initialValues=[];
+      this.initialDefaultIndex=null;
       this.slugTouched=false; this.slugAuto=true; this.showVarModal=true;
     },
     editVar(v){
       this.editingVar=true;
-      this.varForm={ name:v.name, slug:v.slug, description:v.description||'', scope:v.scope };
+      this.varForm={ name:v.name, slug:v.slug, description:v.description||'' };
+      this.initialValues=[];
+      this.initialDefaultIndex=null;
       this.slugTouched=true; this.slugAuto=false; this.showVarModal=true; this.selectedVar=v;
     },
     closeVarModal(){ this.showVarModal=false },
+    addInitialValue(){
+      this.initialValues.push({ value:'' });
+    },
+    removeInitialValue(index){
+      this.initialValues.splice(index, 1);
+      if(this.initialDefaultIndex === index){
+        this.initialDefaultIndex = null;
+      } else if(this.initialDefaultIndex > index){
+        this.initialDefaultIndex -= 1;
+      }
+    },
     handleNameInput(){
       if(this.editingVar) return;
       if(!this.slugTouched){
@@ -267,7 +296,16 @@ export default {
       }
       this.isSaving = true;
       try {
-        const payload = { name:this.varForm.name.trim(), slug:this.varForm.slug.trim(), description:this.varForm.description.trim(), scope:this.varForm.scope }
+        const payload = { name:this.varForm.name.trim(), slug:this.varForm.slug.trim(), description:this.varForm.description.trim() }
+        if(!this.editingVar){
+          payload.initial_values = this.initialValues.reduce((values, item, index) => {
+            const value = item.value.trim();
+            if(value){
+              values.push({ value, is_default:this.initialDefaultIndex === index });
+            }
+            return values;
+          }, []);
+        }
         const method = this.editingVar ? 'PUT' : 'POST'
         const url = this.editingVar ? `/api/variables/${this.selectedVar.id}` : '/api/variables'
         const data = await apiRequest(url, { method, body: JSON.stringify(payload) })
@@ -312,13 +350,14 @@ export default {
 .admin-variables { padding:1.25rem; }
 .subtitle { color:#64748b; margin-bottom:1rem; }
 .actions-bar { display:flex; gap:.5rem; margin-bottom:1rem; align-items:center; }
-.actions-bar .btn { min-width:120px; white-space:nowrap; }
+.actions-bar .btn { min-width:120px; height:36px; white-space:nowrap; }
 .variables-layout { display:flex; gap:1rem; }
 .variables-list { flex:1 1 50%; overflow:auto; }
 .variable-detail { flex:1 1 50%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; }
 .variable-detail.empty { display:flex; align-items:center; justify-content:center; color:#94a3b8; font-style:italic; }
 .vars-table, .values-table { width:100%; border-collapse:collapse; font-size:.85rem; }
 .vars-table th, .vars-table td, .values-table th, .values-table td { padding:.4rem .5rem; border-bottom:1px solid #e2e8f0; }
+.values-table td .btn + .btn { margin-left:.5rem; }
 .vars-table tbody tr { cursor:pointer; }
 .vars-table tbody tr.selected { background:#f1f5f9; }
 .muted { color:#94a3b8; font-size:.75rem; }
@@ -328,6 +367,13 @@ export default {
 .var-modal { max-width:480px; width:100%; padding:1.25rem 1.5rem; }
 .var-form { display:flex; flex-direction:column; gap:.6rem; }
 .var-form input, .var-form textarea, .var-form select { width:100%; }
+.initial-values { display:flex; flex-direction:column; gap:.4rem; }
+.initial-values-header, .initial-value-row { display:flex; align-items:center; gap:.5rem; }
+.initial-values-header { justify-content:space-between; }
+.initial-value-row > input { flex:1; min-width:0; }
+.initial-value-row label { display:flex; align-items:center; gap:.25rem; white-space:nowrap; }
+.initial-value-row input[type=radio] { width:auto; }
+.initial-value-remove { border:0; background:transparent; color:#64748b; cursor:pointer; font-size:1.25rem; line-height:1; padding:.25rem; }
 .modal-actions { display:flex; justify-content:flex-end; gap:.5rem; margin-top:.5rem; }
 .modal-actions .btn { min-width:90px; }
 .form-help { font-size:.7rem; color:#64748b; line-height:1.2; margin-top:-.35rem; margin-bottom:.25rem; }
