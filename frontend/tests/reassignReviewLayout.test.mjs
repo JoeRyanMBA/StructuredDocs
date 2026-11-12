@@ -36,7 +36,7 @@ assert.ok(actions)
 
 for (const state of ['enabled', 'disabled', 'cancel-hover', 'confirm-hover', 'confirm-active']) {
   test(`reassign actions retain equal heights and no vertical offsets: ${state}`, () => {
-    const dom = new JSDOM(`<style>${[...globalStyles, ...scopedStyles].join('\n')}</style>${actions.loc.source}`)
+    const dom = new JSDOM(`<style>${[...globalStyles, ...scopedStyles].join('\n')}</style><div class="reassign-modal">${actions.loc.source}</div>`)
     try {
       for (const element of dom.window.document.querySelectorAll('body *')) {
         element.setAttribute(scopeId, '')

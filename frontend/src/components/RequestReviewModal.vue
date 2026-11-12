@@ -282,4 +282,8 @@ export default {
   opacity: 0.6;
   cursor: not-allowed;
 }
+
+.request-review-modal .form-actions .btn {
+  height: 36px;
+}
 </style>
