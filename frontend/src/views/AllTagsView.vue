@@ -30,8 +30,8 @@
         </div>
         <div class="info-col">
           <h3>Renaming &amp; Deleting</h3>
-          <p>Renaming a tag updates it everywhere it is used. Deleting a tag removes it from all
-          entities. The <strong>Usage</strong> column shows total assignments per tag.</p>
+          <p>Renaming a tag updates it everywhere it is used. Only tags with no assignments can be
+          deleted. The <strong>Usage</strong> column shows total assignments per tag.</p>
         </div>
       </div>
     </div>
@@ -119,7 +119,7 @@
                   <button @click="editTag(tag)" class="btn btn-sm btn-secondary">
                     <i class="bi bi-pencil-square"></i> Edit
                   </button>
-                  <button @click="deleteTag(tag)" class="btn btn-sm btn-danger">
+                  <button v-if="Number(tag.usage_count) === 0" @click="deleteTag(tag)" class="btn btn-sm btn-danger">
                     <i class="bi bi-trash"></i> Delete
                   </button>
                 </div>
