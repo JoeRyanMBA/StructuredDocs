@@ -87,10 +87,6 @@ export default {
     isVisible: {
       type: Boolean,
       default: false
-    },
-    currentUser: {
-      type: Object,
-      required: true
     }
   },
   
@@ -132,7 +128,6 @@ export default {
         const reviewData = {
           topic_id: this.topic.id,
           reviewer_id: parseInt(this.selectedReviewer),
-          requested_by: this.currentUser.id,
           priority: this.priority,
           message: this.message
         }
@@ -281,6 +276,11 @@ export default {
   gap: 1rem;
   justify-content: flex-end;
   margin-top: 1.5rem;
+}
+
+.btn:disabled {
+  opacity: 0.6;
+  cursor: not-allowed;
 }
 
 .request-review-modal .form-actions .btn {

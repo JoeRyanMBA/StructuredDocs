@@ -4,6 +4,7 @@ from flask_jwt_extended import jwt_required, get_jwt_identity
 from datetime import datetime, timedelta
 from ..models import db, Topic, Review, Stakeholder, ReviewBatch, ReviewBatchToken, ReviewFeedback
 from ..utils.email_service import email_service
+from ..utils.review_identity import current_review_stakeholder
 from ..extensions import limiter
 import secrets
 import logging
@@ -28,7 +29,6 @@ def create_bulk_review():
       priority       str        optional (low/medium/high/urgent), default medium
       due_date       str        optional ISO-8601
       message        str        optional author message
-      requested_by   int        optional stakeholder ID of the requester
     """
     try:
         data = request.get_json() or {}
@@ -47,21 +47,18 @@ def create_bulk_review():
         if not reviewer.can_review:
             return jsonify({'error': 'Selected stakeholder cannot perform reviews'}), 400
 
-        # Resolve requester
-        requester = None
-        if data.get('requested_by'):
-            requester = Stakeholder.query.get(data['requested_by'])
-        if not requester:
-            requester = Stakeholder.query.filter(Stakeholder.active == True).order_by(Stakeholder.id.asc()).first()
-        if not requester:
-            return jsonify({'error': 'No valid requester stakeholder found'}), 400
-
         # Validate all topics exist
         topics = Topic.query.filter(Topic.id.in_(topic_ids)).all()
         found_ids = {t.id for t in topics}
         missing = set(topic_ids) - found_ids
         if missing:
             return jsonify({'error': f'Topics not found: {sorted(missing)}'}), 404
+
+        requester, error = current_review_stakeholder(create=True)
+        if error:
+            return error
+        if requester is None:
+            raise RuntimeError('Requester stakeholder was not resolved')
 
         # Preserve caller-supplied ordering
         topic_map = {t.id: t for t in topics}

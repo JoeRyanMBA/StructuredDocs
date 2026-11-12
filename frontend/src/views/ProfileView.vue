@@ -125,32 +125,9 @@ h1 {
   gap: 1rem;
   margin-top: 2rem;
 }
-.btn-primary, .btn-secondary {
-  padding: 0.75rem 1.5rem;
-  border-radius: 4px;
-  font-size: 1rem;
-  cursor: pointer;
-  transition: all 0.2s;
-  border: none;
-}
-.btn-primary {
-  background-color: var(--primary-deep-teal);
-  color: white;
-}
-.btn-primary:hover {
-  background-color: var(--primary-medium-teal);
-}
 .btn-primary:disabled {
-  background-color: var(--primary-light-teal);
+  opacity: 0.6;
   cursor: not-allowed;
-}
-.btn-secondary {
-  background-color: var(--bg-white);
-  border: 1px solid var(--border-color-gray);
-  color: var(--text-primary-charcoal);
-}
-.btn-secondary:hover {
-  background-color: var(--extended-lavender-gray);
 }
 .success-message {
   background-color: var(--extended-cool-mint);

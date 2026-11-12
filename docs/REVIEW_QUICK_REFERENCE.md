@@ -77,6 +77,7 @@ POST   /api/reviews/{id}/start                 - Mark started
 POST   /api/reviews/{id}/submit                - Submit completed review
 POST   /api/reviews/{id}/follow-up             - Send reminder email
 GET    /api/reviews/                           - List all
+GET    /api/reviews/tasks                      - Current user's assigned, sent, and completed reviews
 GET    /api/reviews/{id}                       - Details
 GET    /api/reviews/reviewers                  - Available reviewers
 GET    /api/reviews/pending                    - Filter pending
@@ -87,6 +88,11 @@ GET    /api/review/{token}                    - Reviewer view (no auth)
 POST   /api/review/{token}/feedback           - Submit feedback (no auth)
 GET    /api/reviews/{id}/feedback             - Get feedback (auth)
 ```
+
+Review creation identifies the requester from the authenticated account, not
+the `requested_by` or `created_by` values in a request payload. The account is
+matched to a stakeholder by email; a missing stakeholder is created without
+review permission.
 
 ## Frontend Components Location
 ```

@@ -385,17 +385,7 @@ export default {
 .search-actions { display: flex; gap: 0.75rem; align-items: center; }
 
 /* Buttons */
-.primary-btn {
-  background: var(--primary-deep-teal, #1a6b72); color: #fff; border: none;
-  border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.925rem; cursor: pointer; font-weight: 500;
-}
 .primary-btn:disabled { opacity: .6; cursor: not-allowed; }
-.primary-btn:hover:not(:disabled) { background: #15585e; }
-.secondary-btn {
-  background: #f8f9fa; color: #495057; border: 1px solid #ced4da;
-  border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.925rem; cursor: pointer;
-}
-.secondary-btn:hover { background: #e9ecef; }
 .danger-btn {
   background: #dc3545; color: #fff; border: none;
   border-radius: 6px; padding: 0.5rem 1.25rem; font-size: 0.925rem; cursor: pointer; font-weight: 500;
