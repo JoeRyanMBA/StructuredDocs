@@ -97,7 +97,7 @@
           <div v-if="!editingVar" class="initial-values">
             <div class="initial-values-header">
               <strong>Initial values <span class="muted">(optional)</span></strong>
-              <button type="button" class="btn btn-sm" @click="addInitialValue">Add value</button>
+              <button type="button" class="btn btn-primary btn-sm" @click="addInitialValue">Add value</button>
             </div>
             <div v-for="(item, index) in initialValues" :key="index" class="initial-value-row">
               <input v-model="item.value" :aria-label="`Initial value ${index + 1}`" maxlength="500" />
