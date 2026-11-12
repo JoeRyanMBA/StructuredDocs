@@ -3,7 +3,7 @@
     
     <div class="page-header">
       <h1>📝 Review Tasks</h1>
-      <p>Review topics and provide feedback to authors</p>
+      <p>Track reviews you need to complete and reviews you have sent.</p>
     </div>
     
     <!-- Tabs for different review views -->
@@ -11,46 +11,45 @@
       <button 
         @click="activeTab = 'assigned'" 
         :class="{ active: activeTab === 'assigned' }"
+        :aria-pressed="activeTab === 'assigned'"
         class="tab-btn"
       >
-        My Reviews ({{ assignedReviews.length }})
+        Needs My Review ({{ assignedReviews.length }})
+      </button>
+      <button
+        @click="activeTab = 'sent'"
+        :class="{ active: activeTab === 'sent' }"
+        :aria-pressed="activeTab === 'sent'"
+        class="tab-btn"
+      >
+        Sent for Review ({{ sentReviews.length }})
       </button>
       <button 
         @click="activeTab = 'completed'" 
         :class="{ active: activeTab === 'completed' }"
+        :aria-pressed="activeTab === 'completed'"
         class="tab-btn"
       >
-        Completed
+        Completed ({{ completedReviews.length }})
       </button>
     </div>
     
-    <!-- Assigned Reviews Tab -->
-    <div v-if="activeTab === 'assigned'" class="tab-content">
-      <div v-if="loading" class="loading">Loading reviews...</div>
-      <div v-else-if="assignedReviews.length === 0" class="empty-state">
-        <p>🎉 No pending reviews assigned to you!</p>
-      </div>
-      <div v-else class="reviews-grid">
-        <ReviewCard 
-          v-for="review in assignedReviews" 
-          :key="review.id"
-          :review="review"
-          @review-updated="loadReviews"
-        />
-      </div>
+    <div v-if="!loading && !error && !stakeholderLinked" class="identity-notice" role="status">
+      No stakeholder matches your account email. A matching stakeholder is created when you send a review.
+      An administrator can also create one so reviews can be assigned to you.
     </div>
-    
-    <!-- Completed Reviews Tab -->
-    <div v-if="activeTab === 'completed'" class="tab-content">
-      <div v-if="loading" class="loading">Loading completed reviews...</div>
-      <div v-else-if="completedReviews.length === 0" class="empty-state">
-        <p>No completed reviews yet.</p>
+    <div class="tab-content">
+      <div v-if="loading" class="loading">Loading reviews...</div>
+      <div v-else-if="error" class="empty-state" role="alert">{{ error }}</div>
+      <div v-else-if="visibleReviews.length === 0" class="empty-state">
+        <p>{{ emptyMessage }}</p>
       </div>
       <div v-else class="reviews-grid">
         <ReviewCard 
-          v-for="review in completedReviews" 
+          v-for="review in visibleReviews"
           :key="review.id"
           :review="review"
+          :can-review="activeTab === 'assigned'"
           @review-updated="loadReviews"
         />
       </div>
@@ -60,7 +59,7 @@
 
 <script>
 import ReviewCard from '@/components/ReviewCard.vue'
-import { getPendingReviews, getReviews } from '@/api/reviews.js'
+import { getReviewTasks } from '@/api/reviews.js'
 import { toast } from '@/composables/useToast'
 
 export default {
@@ -73,10 +72,29 @@ export default {
     return {
       activeTab: 'assigned',
       loading: false,
+      error: '',
+      stakeholderLinked: false,
       assignedReviews: [],
+      sentReviews: [],
       completedReviews: [],
-      currentUser: JSON.parse(localStorage.getItem('user') || '{}')
     }
+  },
+
+  computed: {
+    visibleReviews() {
+      return {
+        assigned: this.assignedReviews,
+        sent: this.sentReviews,
+        completed: this.completedReviews,
+      }[this.activeTab]
+    },
+    emptyMessage() {
+      return {
+        assigned: 'No pending reviews assigned to you.',
+        sent: 'No outstanding or declined reviews sent by you.',
+        completed: 'No completed reviews sent or received by you.',
+      }[this.activeTab]
+    },
   },
   
   async created() {
@@ -86,38 +104,21 @@ export default {
   methods: {
     async loadReviews() {
       this.loading = true
+      this.error = ''
       try {
-        const currentUserId = this.currentUser.id
-        const allReviews = await getReviews()
-
-        const assignedForCurrentUser = currentUserId
-          ? allReviews.filter(review =>
-              review.reviewer_id === currentUserId &&
-              ['pending', 'in_progress'].includes(review.status)
-            )
-          : []
-
-        const completedForCurrentUser = currentUserId
-          ? allReviews.filter(review =>
-              review.reviewer_id === currentUserId &&
-              review.status === 'completed'
-            )
-          : []
-
-        // Review assignments are keyed to stakeholder IDs, which may not match
-        // the logged-in app user ID. If there is no match, prefer showing the
-        // global review queues instead of an empty state.
-        this.assignedReviews = assignedForCurrentUser.length > 0
-          ? assignedForCurrentUser
-          : allReviews.filter(review => ['pending', 'in_progress'].includes(review.status))
-
-        this.completedReviews = completedForCurrentUser.length > 0
-          ? completedForCurrentUser
-          : allReviews.filter(review => review.status === 'completed')
-
+        const tasks = await getReviewTasks()
+        if (!Array.isArray(tasks?.assigned) || !Array.isArray(tasks?.sent) ||
+            !Array.isArray(tasks?.completed) || typeof tasks?.stakeholder_linked !== 'boolean') {
+          throw new Error('Invalid review tasks response')
+        }
+        this.assignedReviews = tasks.assigned
+        this.sentReviews = tasks.sent
+        this.completedReviews = tasks.completed
+        this.stakeholderLinked = tasks.stakeholder_linked
       } catch (error) {
         console.error('Failed to load reviews:', error)
-        toast.error('Failed to load reviews')
+        this.error = error.message || 'Failed to load reviews.'
+        toast.error(this.error)
       } finally {
         this.loading = false
       }
@@ -153,6 +154,7 @@ export default {
 
 .review-tabs {
   display: flex;
+  flex-wrap: wrap;
   border-bottom: 2px solid var(--border-light-gray);
   margin-bottom: 1.5rem;
 }
@@ -181,6 +183,13 @@ export default {
 
 .tab-content {
   min-height: 400px;
+}
+
+.identity-notice {
+  padding: 1rem;
+  margin-bottom: 1rem;
+  background: var(--warning-light-yellow);
+  color: var(--warning-dark-yellow);
 }
 
 .loading,

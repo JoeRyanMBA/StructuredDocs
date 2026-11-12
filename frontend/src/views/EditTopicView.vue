@@ -80,7 +80,6 @@
         v-if="topicId"
         :topic="{ id: topicId, title: topic.title }"
         :isVisible="showReviewModal"
-        :currentUser="currentUserData"
         @close="showReviewModal = false"
         @review-requested="onReviewRequested"
       />
@@ -126,8 +125,7 @@ export default {
       panelOpen: true,
       showReviewModal: false,
       showSequentialModal: false,
-      sequentialMode: 'setup',
-      currentUserData: {}
+      sequentialMode: 'setup'
     }
   },
 
@@ -140,12 +138,8 @@ export default {
   created() {
     if (!this.hasId) {
       this.loading = false
-      this.loadCurrentUser()
       return
     }
-
-    // Load current user for review modals
-    this.loadCurrentUser()
 
     const topicFetch = apiGet(`/api/topics/${this.topicId}`)
       .then(data => {
@@ -175,16 +169,6 @@ export default {
   },
 
   methods: {
-    loadCurrentUser() {
-      try {
-        const userStr = localStorage.getItem('user')
-        if (userStr) {
-          this.currentUserData = JSON.parse(userStr)
-        }
-      } catch (e) {
-        console.error('Failed to load current user:', e)
-      }
-    },
     formatFeedbackType(type) {
       const labels = {
         'general_comment': 'General Comment', 'text_edit': 'Text Edit',

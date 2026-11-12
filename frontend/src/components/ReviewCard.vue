@@ -6,6 +6,7 @@
         <h4>{{ review.topic_title }}</h4>
         <div class="review-meta">
           <span class="requester">Requested by: {{ review.requester_name }}</span>
+          <span>Reviewer: {{ review.reviewer_name }}</span>
           <span class="due-date" :class="{ overdue: isOverdue }">
             Due: {{ formatDate(review.due_date) }}
           </span>
@@ -28,7 +29,7 @@
     
     <div class="review-actions">
       <button 
-        v-if="review.status === 'pending'" 
+        v-if="canReview && review.status === 'pending'"
         @click="startReview"
         class="btn btn-secondary btn-sm"
         :disabled="loading"
@@ -44,7 +45,7 @@
       </button>
       
       <button 
-        v-if="review.status === 'in_progress'" 
+        v-if="canReview && review.status === 'in_progress'"
         @click="showReviewForm = !showReviewForm"
         class="btn btn-success btn-sm"
       >
@@ -53,7 +54,7 @@
     </div>
     
     <!-- Review Form -->
-    <div v-if="showReviewForm" class="review-form">
+    <div v-if="canReview && showReviewForm" class="review-form">
       <form @submit.prevent="submitReview">
         <div class="form-group">
           <label>Recommendation *</label>
@@ -128,7 +129,11 @@ export default {
     review: {
       type: Object,
       required: true
-    }
+    },
+    canReview: {
+      type: Boolean,
+      default: false
+    },
   },
   
   data() {
@@ -327,16 +332,6 @@ export default {
 .btn-sm {
   padding: 0.25rem 0.5rem;
   font-size: 0.8rem;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
 }
 
 .btn-success {

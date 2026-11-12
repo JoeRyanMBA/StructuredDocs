@@ -53,7 +53,7 @@ The review portal preserves saved image alignment in both **Read Only** and
 ## Where to Manage Reviews
 
 - **Reviews Dashboard**: high-level metrics and activity.
-- **Reviews > Tasks**: review work queue.
+- **Reviews > Tasks**: your assigned work, outstanding or declined requests you sent, and completed reviews sent or received. Account and stakeholder identities are matched by email; sending a review creates a matching stakeholder if needed, without granting review permission. Existing reviews retain their recorded requester.
 - **Reviews > History**: completed reviews and past activity.
 - **Incorporate Feedback**: apply reviewer comments to topics.
 

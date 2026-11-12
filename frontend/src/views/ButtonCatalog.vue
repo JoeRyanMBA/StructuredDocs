@@ -81,6 +81,7 @@
       <ul>
         <li>All buttons should use variables defined in <code>src/assets/style.css</code>.</li>
         <li>Avoid local overrides except for page-specific layouts.</li>
+        <li>Primary and secondary actions retain their palette when pressed or disabled; disabled actions use reduced opacity.</li>
       </ul>
     </div>
   </div>

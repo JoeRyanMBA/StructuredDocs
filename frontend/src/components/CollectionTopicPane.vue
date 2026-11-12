@@ -28,7 +28,7 @@
     </div>
     <div v-if="metadataError" class="reader-notice" role="alert">
       {{ metadataError }}
-      <button type="button" @click="loadContext">Retry</button>
+      <button type="button" class="secondary-btn" @click="loadContext">Retry</button>
     </div>
     <div v-if="topic && sharedCollections.length > 1" class="reader-notice shared-topic-warning" role="status">
       <i class="bi bi-link-45deg" aria-hidden="true"></i>
@@ -50,7 +50,7 @@
     </details>
     <div v-if="loading" class="reader-state" role="status">Loading topic...</div>
     <div v-else-if="error" class="reader-state" role="alert">
-      {{ error }} <button type="button" @click="loadTopic(topic)">Retry</button>
+      {{ error }} <button type="button" class="secondary-btn" @click="loadTopic(topic)">Retry</button>
     </div>
     <template v-else-if="topic">
       <TopicEditor
@@ -67,7 +67,7 @@
       <article v-else class="collection-html-preview">
         <h1>{{ previewTitle }}</h1>
         <div v-if="rendering" role="status">Rendering preview...</div>
-        <div v-else-if="previewError" role="alert">{{ previewError }} <button type="button" @click="renderPreview">Retry</button></div>
+        <div v-else-if="previewError" role="alert">{{ previewError }} <button type="button" class="secondary-btn" @click="renderPreview">Retry</button></div>
         <div v-else class="collection-html-content" v-html="previewHtml"></div>
       </article>
     </template>
