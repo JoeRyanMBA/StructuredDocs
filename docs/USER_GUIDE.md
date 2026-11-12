@@ -164,7 +164,13 @@ Open **Reviews > History** to find completed reviews. Search or filter the list 
 
 ### View Review Tasks
 
-Open **Reviews > Tasks** to see assigned review work. Use **My Reviews** for pending or in-progress assignments and **Completed** for finished reviews. Open a review to read the topic and submit feedback or a recommendation.
+Open **Reviews > Tasks** to see your review work:
+
+- **Needs My Review**: pending or in-progress reviews assigned to you.
+- **Sent for Review**: outstanding or declined reviews you requested.
+- **Completed**: completed reviews you sent or received.
+
+The app matches your account to a stakeholder using your email address. If no matching stakeholder exists, sending a review creates one without granting review permission. An administrator can create or update your stakeholder if you need to receive reviews. Older reviews that were attributed to the wrong requester cannot be automatically reassigned.
 
 See the [Review Workflow Guide](REVIEW_WORKFLOW_GUIDE.md) for additional workflow details.
 

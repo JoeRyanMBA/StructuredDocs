@@ -10,6 +10,10 @@ export async function getReviews() {
   return apiGet('/api/reviews/')
 }
 
+export async function getReviewTasks() {
+  return apiGet('/api/reviews/tasks')
+}
+
 export async function getReviewers() {
   return apiGet('/api/reviews/reviewers')
 }

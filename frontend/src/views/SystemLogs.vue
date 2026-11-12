@@ -521,24 +521,6 @@ td {
   cursor: not-allowed;
 }
 
-.btn-primary {
-  background: var(--primary-deep-teal);
-  color: var(--bg-white);
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: var(--primary-dark-blue);
-}
-
-.btn-secondary {
-  background: var(--secondary-slate-gray);
-  color: var(--bg-white);
-}
-
-.btn-secondary:hover:not(:disabled) {
-  background: var(--secondary-dark-gray);
-}
-
 .btn-sm {
   padding: 0.25rem 0.75rem;
   font-size: 0.8rem;
