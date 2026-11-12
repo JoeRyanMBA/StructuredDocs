@@ -76,6 +76,8 @@ Select **Spell Check** in the editor toolbar to turn the editor's spellcheck on 
 
 Select **Preview** above the editor to see rendered content. If the topic contains audience-specific snippets, select audience tags in the preview controls to check the matching version. Return to Markdown or WYSIWYG to continue editing.
 
+On a collection's organize page, **Preview with audience tags** previews matching snippets across the collection; it does not assign tags to topics. The selection is also passed to HTML export.
+
 ### Normalize pasted Word line breaks
 
 The **Normalize pasted Word line breaks** checkbox is enabled by default. Leave it enabled to clean up soft line breaks when pasting Word text; turn it off if you need to preserve the pasted line breaks as-is. Your preference is saved in the browser.

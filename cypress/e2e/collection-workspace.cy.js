@@ -125,7 +125,8 @@ describe('Collection workspace', () => {
   })
 
   it('passes the selected audience tags to HTML export', () => {
-    cy.get('.audience-settings summary').click()
+    cy.get('.audience-settings summary').should('contain', 'Preview with audience tags').click()
+    cy.get('.audience-settings').should('contain', 'This does not assign tags to topics.')
     cy.contains('.audience-options label', 'Field staff').find('input').check()
     cy.contains('button', 'Save & Export HTML').click()
     cy.wait('@saveCollection')
