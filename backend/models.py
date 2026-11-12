@@ -1000,12 +1000,6 @@ class Variable(db.Model):
     name = db.Column(db.String(120), nullable=False)  # Display name
     slug = db.Column(db.String(120), nullable=False, unique=True)  # Token slug used inside {{slug}}
     description = db.Column(db.Text, nullable=True)
-    scope = db.Column(
-        Enum('global', 'collection', name='variable_scope_enum'),
-        nullable=False,
-        default='global',
-        server_default='global'
-    )
     created_at = db.Column(db.DateTime, server_default=func.now(), nullable=False)
     updated_at = db.Column(db.DateTime, server_default=func.now(), onupdate=func.now(), nullable=False)
 
@@ -1018,7 +1012,6 @@ class Variable(db.Model):
             'name': self.name,
             'slug': self.slug,
             'description': self.description,
-            'scope': self.scope,
             'created_at': self.created_at.isoformat() if self.created_at else None,
             'updated_at': self.updated_at.isoformat() if self.updated_at else None
         }
