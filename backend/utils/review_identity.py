@@ -29,7 +29,7 @@ def current_review_stakeholder(create=False):
     if not create:
         return None, None
 
-    values = {'name': user.name, 'email': user.email.strip(), 'role': 'author', 'can_review': False, 'active': True}
+    values = {'name': user.name, 'email': user.email.strip(), 'role': 'stakeholder', 'can_review': False, 'active': True}
     dialect = db.session.get_bind().dialect.name
     if dialect in ('postgresql', 'sqlite'):
         insert = postgresql_insert if dialect == 'postgresql' else sqlite_insert
