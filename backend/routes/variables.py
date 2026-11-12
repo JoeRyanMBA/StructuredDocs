@@ -60,10 +60,39 @@ def list_variables():
 def create_variable():
     data = request.get_json() or {}
     try:
+        initial_values = data.get('initial_values', [])
+        if not isinstance(initial_values, list):
+            return jsonify({'error': 'initial_values must be a list'}), 400
+
+        validated_values = []
+        seen_values = set()
+        default_count = 0
+        for item in initial_values:
+            if not isinstance(item, dict):
+                return jsonify({'error': 'Each initial value must be an object'}), 400
+            value = item.get('value')
+            if not isinstance(value, str) or not value.strip():
+                return jsonify({'error': 'Each initial value must contain a non-empty value'}), 400
+            value = value.strip()
+            if len(value) > 500:
+                return jsonify({'error': 'Initial values must be 500 characters or fewer'}), 400
+            if value in seen_values:
+                return jsonify({'error': f'Duplicate initial value: {value}'}), 400
+            seen_values.add(value)
+
+            is_default = item.get('is_default', False)
+            if not isinstance(is_default, bool):
+                return jsonify({'error': 'is_default must be a boolean'}), 400
+            if is_default:
+                default_count += 1
+            validated_values.append((value, is_default))
+
+        if default_count > 1:
+            return jsonify({'error': 'Only one initial value can be the default'}), 400
+
         name = data.get('name') or 'Untitled'
         slug = data.get('slug') or name.lower().replace(' ', '_')
         description = data.get('description')
-        scope = data.get('scope', 'global')
         # Basic slug normalization
         import re
         slug = re.sub(r'[^a-zA-Z0-9_\-]', '_', slug)
@@ -78,8 +107,14 @@ def create_variable():
         variable.name = name  # type: ignore[attr-defined]
         variable.slug = slug  # type: ignore[attr-defined]
         variable.description = description  # type: ignore[attr-defined]
-        variable.scope = scope  # type: ignore[attr-defined]
         db.session.add(variable)
+        db.session.flush()
+        for value, is_default in validated_values:
+            variable_value = VariableValue()
+            variable_value.variable_id = variable.id  # type: ignore[attr-defined]
+            variable_value.value = value  # type: ignore[attr-defined]
+            variable_value.is_default = is_default  # type: ignore[attr-defined]
+            db.session.add(variable_value)
         db.session.commit()
         return jsonify(variable.to_dict(include_values=True)), 201
     except Exception as e:
