@@ -87,10 +87,6 @@ export default {
     isVisible: {
       type: Boolean,
       default: false
-    },
-    currentUser: {
-      type: Object,
-      required: true
     }
   },
   
@@ -132,7 +128,6 @@ export default {
         const reviewData = {
           topic_id: this.topic.id,
           reviewer_id: parseInt(this.selectedReviewer),
-          requested_by: this.currentUser.id,
           priority: this.priority,
           message: this.message
         }
@@ -283,34 +278,8 @@ export default {
   margin-top: 1.5rem;
 }
 
-.btn {
-  padding: 0.5rem 1rem;
-  border-radius: 4px;
-  font-size: 0.9rem;
-  cursor: pointer;
-  border: none;
-}
-
-.btn-secondary {
-  background: #f3f4f6;
-  color: #374151;
-}
-
-.btn-secondary:hover {
-  background: #e5e7eb;
-}
-
-.btn-primary {
-  background: #3b82f6;
-  color: white;
-}
-
-.btn-primary:hover:not(:disabled) {
-  background: #2563eb;
-}
-
-.btn-primary:disabled {
-  background: #9ca3af;
+.btn:disabled {
+  opacity: 0.6;
   cursor: not-allowed;
 }
 </style>

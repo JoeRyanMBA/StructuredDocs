@@ -187,7 +187,7 @@ a:hover {
   border: 1px solid var(--primary-deep-teal) !important; /* Override Bootstrap */
 }
 
-.btn-primary:hover, .primary-btn:hover {
+.btn-primary:hover:not(:disabled), .primary-btn:hover:not(:disabled) {
   background-color: var(--primary-medium-teal);
   border-color: var(--primary-medium-teal) !important;
   transform: translateY(-2px);
@@ -200,7 +200,7 @@ a:hover {
   border: 1px solid var(--border-light-gray) !important; /* Override Bootstrap */
 }
 
-.btn-secondary:hover, .secondary-btn:hover {
+.btn-secondary:hover:not(:disabled), .secondary-btn:hover:not(:disabled) {
   background-color: var(--extended-seafoam-green);
   border-color: var(--extended-seafoam-green) !important;
   transform: translateY(-2px);
@@ -473,15 +473,15 @@ a.btn > .bi {
 }
 
 /* Consistent hover effects for all buttons */
-.btn-primary:hover, .primary-btn:hover,
-.btn-primary.btn-sm:hover, .primary-btn.btn-sm:hover {
+.btn-primary:hover:not(:disabled), .primary-btn:hover:not(:disabled),
+.btn-primary.btn-sm:hover:not(:disabled), .primary-btn.btn-sm:hover:not(:disabled) {
   background-color: var(--primary-medium-teal);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);
 }
 
-.btn-secondary:hover, .secondary-btn:hover,
-.btn-secondary.btn-sm:hover, .secondary-btn.btn-sm:hover {
+.btn-secondary:hover:not(:disabled), .secondary-btn:hover:not(:disabled),
+.btn-secondary.btn-sm:hover:not(:disabled), .secondary-btn.btn-sm:hover:not(:disabled) {
   background-color: var(--extended-seafoam-green);
   transform: translateY(-2px);
   box-shadow: var(--shadow-sm);

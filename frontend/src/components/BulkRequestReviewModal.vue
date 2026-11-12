@@ -81,10 +81,6 @@ export default {
       type: Boolean,
       default: false,
     },
-    currentUser: {
-      type: Object,
-      required: true,
-    },
   },
 
   emits: ['close', 'bulk-review-requested'],
@@ -132,7 +128,6 @@ export default {
         const payload = {
           topic_ids: this.topics.map(t => t.id),
           reviewer_id: parseInt(this.selectedReviewer),
-          requested_by: this.currentUser?.id,
           priority: this.priority,
           message: this.message,
         }
@@ -209,11 +204,6 @@ export default {
 
 .form-actions { display: flex; flex-wrap: wrap; gap: 10px; justify-content: flex-end; margin-top: 20px; }
 
-.btn { padding: 8px 16px; border-radius: 4px; font-size: 14px; cursor: pointer; border: none; font-weight: 500; line-height: 1.5; box-sizing: border-box; display: inline-block; }
 .form-actions .btn-primary { white-space: normal; text-align: center; }
 .btn:disabled { opacity: 0.6; cursor: not-allowed; }
-.btn-secondary { background: #f3f4f6; color: #374151; }
-.btn-secondary:hover { background: #e5e7eb; }
-.btn-primary { background: #3b82f6; color: #fff; }
-.btn-primary:hover:not(:disabled) { background: #2563eb; }
 </style>

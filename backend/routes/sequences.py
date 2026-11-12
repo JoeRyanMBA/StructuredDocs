@@ -9,6 +9,7 @@ from sqlalchemy import inspect, text
 from ..extensions import limiter
 from ..services.review_sequences import create_review_token
 from ..utils.email_service import email_service
+from ..utils.review_identity import current_review_stakeholder
 
 sequences_bp = Blueprint('sequences', __name__, url_prefix='/api/sequences')
 
@@ -160,17 +161,11 @@ def create_review_sequence():
         if existing_sequence:
             return jsonify({'error': 'Topic already has an active review sequence'}), 400
         
-        # Determine requester stakeholder (author) for generated Review rows
-        requester_id = data.get('created_by')
-        requester = Stakeholder.query.get(requester_id) if requester_id else None
-
-        # Fallback: use first reviewer as requester if provided requester is invalid/missing
-        if not requester:
-            first_reviewer_id = data['reviewers'][0].get('reviewer_id')
-            requester = Stakeholder.query.get(first_reviewer_id) if first_reviewer_id else None
-
-        if not requester:
-            return jsonify({'error': 'Unable to resolve requester stakeholder for this sequence'}), 400
+        requester, error = current_review_stakeholder(create=True)
+        if error:
+            return error
+        if requester is None:
+            raise RuntimeError('Requester stakeholder was not resolved')
 
         sequence_name = (data.get('name') or '').strip() or f"Review Sequence for Topic {data['topic_id']}"
 
@@ -397,6 +392,7 @@ def advance_sequence(sequence_id):
             return jsonify({'error': 'Current step not found'}), 404
         
         # Mark current step as completed if it has a review
+        current_review = None
         if current_step.review_id:
             current_review = Review.query.get(current_step.review_id)
             if current_review and current_review.status != 'completed':
@@ -423,8 +419,10 @@ def advance_sequence(sequence_id):
         # Create review for next step
         data = request.get_json() or {}
         requester = Stakeholder.query.get(sequence.created_by) if sequence.created_by else None
-        if not requester:
-            requester = Stakeholder.query.filter(Stakeholder.can_review == True).order_by(Stakeholder.id.asc()).first()
+        if not requester and current_review:
+            requester = Stakeholder.query.get(current_review.requested_by)
+            if requester:
+                sequence.created_by = requester.id
         if not requester:
             return jsonify({'error': 'Unable to resolve requester stakeholder for this sequence'}), 400
 
