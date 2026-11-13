@@ -245,8 +245,8 @@ class EmailService:
         priority_color = priority_colors.get(priority or 'medium', '#008C9E')
 
         topics_html = ''.join(
-            f'<li style="padding:4px 0;">{i + 1}. {title}</li>'
-            for i, title in enumerate(topic_titles)
+            f'<li style="padding:4px 0;">{title}</li>'
+            for title in topic_titles
         )
 
         message_block = (
