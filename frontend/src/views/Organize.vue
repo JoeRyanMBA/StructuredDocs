@@ -348,6 +348,7 @@
       :collection-id="variableModalData?.collectionId"
       :variables-info="variableModalData?.variablesInfo"
       :unresolved-variables="variableModalData?.unresolvedVariables"
+      :publish-on-configure="pendingPublishAction?.type !== 'configure-only'"
       @close="closeVariableModal"
       @variables-configured="onVariablesConfigured"
     />
@@ -1527,7 +1528,7 @@ export default {
       try {
         const data = await apiGet(`/api/variables/collections/${collectionId}/publish-setup`)
         const variablesInfo = (data.variables_in_content||[]).map(v => ({
-          id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection
+          id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection, is_resolved: v.is_resolved
         }))
         // Always open the modal for consistency with Publish flow; show toast when none
         if (!variablesInfo.length) { toast.success('No variables required for this collection') }
