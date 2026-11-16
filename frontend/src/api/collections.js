@@ -1,4 +1,10 @@
 import { apiRequest, apiPost } from './base.js'
+import axiosInstance from './axiosInstance'
+
+export async function publishCollection(collectionId) {
+  const { data } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
+  return data
+}
 
 export function getCollectionVariablePreview(collectionId) {
   return apiPost(`/api/variables/collections/${collectionId}/preview`, {})
