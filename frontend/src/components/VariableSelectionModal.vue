@@ -117,7 +117,7 @@
             class="btn btn-primary" 
             @click="saveAndPublish" 
             :disabled="!canPublish || saving">
-            {{ saving && saveMode==='publish' ? 'Configuring...' : 'Configure & Publish' }}
+            {{ primaryActionLabel }}
           </button>
         </div>
       </div>
@@ -155,6 +155,10 @@ export default {
     unresolvedVariables: {
       type: Array,
       default: () => []
+    },
+    publishOnConfigure: {
+      type: Boolean,
+      default: true
     }
   },
   
@@ -177,6 +181,10 @@ export default {
   },
   
   computed: {
+    primaryActionLabel() {
+      if (this.saving) return this.publishOnConfigure ? 'Configuring...' : 'Saving...'
+      return this.publishOnConfigure ? 'Configure & Publish' : 'Save Configuration'
+    },
     canPublish() {
       // Check if all required variables have selections
       return this.variablesInfo && this.variablesInfo.length > 0 && 
