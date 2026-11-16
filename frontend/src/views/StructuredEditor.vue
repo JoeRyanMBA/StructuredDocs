@@ -1,8 +1,18 @@
 <template>
   <div class="structured-editor-view">
     <h2>Organize Collections & Topics</h2>
+    <details>
+      <summary>Audience tags for publishing</summary>
+      <p>Include snippets matching the selected tags. Untagged snippets are always included.</p>
+      <label v-for="tag in audienceTags" :key="tag.id">
+        <input v-model="selectedTagIds" type="checkbox" :value="Number(tag.id)" />
+        {{ tag.name }}
+      </label>
+    </details>
     <collection-tree
       :tree="treeData"
+      :audience-tag-ids="selectedTagIds"
+      :before-publish="saveTree"
       @update="treeData = $event"
     />
     <button @click="saveTree" class="btn btn-primary">Save Structure</button>
@@ -12,6 +22,7 @@
 <script>
 import { ref, onMounted } from 'vue'
 import { getCollections, saveCollections } from '@/api/collections'
+import { getAudienceTags } from '@/api/topics'
 import CollectionTree from '@/components/CollectionTree.vue'
 import { toast } from '@/composables/useToast'
 
@@ -19,23 +30,35 @@ export default {
   components: { CollectionTree },
   setup() {
     const treeData = ref([])
+    const audienceTags = ref([])
+    const selectedTagIds = ref([])
 
     const load = async () => {
       treeData.value = await getCollections()
     }
-    onMounted(load)
+    onMounted(async () => {
+      await load()
+      try {
+        audienceTags.value = await getAudienceTags()
+      } catch (error) {
+        console.error('Failed to load audience tags:', error)
+        toast.error('Failed to load audience tags. Reload before publishing audience-specific content.')
+      }
+    })
 
     const saveTree = async () => {
       try {
         await saveCollections(treeData.value)
         toast.success('Structure saved!')
+        return true
       } catch (e) {
         console.error(e)
         toast.error('Failed to save structure')
+        return false
       }
     }
 
-    return { treeData, saveTree }
+    return { treeData, saveTree, audienceTags, selectedTagIds }
   }
 }
 </script>

@@ -29,7 +29,15 @@ describe('Collection workspace', () => {
       collectionTopics = savedTree
       req.reply({ success: true })
     }).as('saveCollection')
-    cy.intercept('POST', '/api/collections/5/publish', { id: 20 }).as('publish')
+    cy.intercept('POST', '/api/collections/5/publish', { publication_id: 20 }).as('publish')
+    cy.intercept('GET', '/api/publications/20/export/mobile-kb*', {
+      headers: { 'content-type': 'text/html' },
+      body: '<!doctype html><html><body>Field Guide</body></html>',
+    }).as('exportKb')
+    cy.intercept('GET', '/api/publications/20/export/pdf*', {
+      headers: { 'content-type': 'application/pdf' },
+      body: '%PDF-1.4\nField Guide',
+    }).as('exportPdf')
     cy.intercept('GET', '/api/topics', { topics: Object.values(topics) })
     cy.intercept('GET', '/api/topics/usage-summary', {
       1: { collections: [{ id: 5, name: 'Field Guide' }, { id: 6, name: 'Office Guide' }] },
@@ -124,16 +132,19 @@ describe('Collection workspace', () => {
     cy.screenshot('collection-workspace-mobile')
   })
 
-  it('passes the selected audience tags to HTML export', () => {
-    cy.get('.audience-settings summary').should('contain', 'Preview with audience tags').click()
-    cy.get('.audience-settings').should('contain', 'This does not assign tags to topics.')
-    cy.contains('.audience-options label', 'Field staff').find('input').check()
-    cy.contains('button', 'Save & Export HTML').click()
-    cy.wait('@saveCollection')
-    cy.wait('@publish')
-    cy.location('search').should('contain', 'tag_ids=7')
-    cy.get('.audience-bar input').should('be.checked')
-  })
+  for (const [label, exportAlias] of [['knowledge base', '@exportKb'], ['PDF', '@exportPdf']]) {
+    it(`saves and downloads a ${label} with selected audience tags without leaving the collection`, () => {
+      cy.get('.audience-settings summary').should('contain', 'Preview with audience tags').click()
+      cy.get('.audience-settings').should('contain', 'This does not assign tags to topics.')
+      cy.contains('.audience-options label', 'Field staff').find('input').check()
+      cy.contains('button', `Publish as ${label}`).click()
+      cy.wait('@saveCollection')
+      cy.wait('@publish')
+      cy.wait(exportAlias).its('request.query.tag_ids').should('equal', '7')
+      cy.location('pathname').should('equal', '/organize/5')
+      cy.contains('button', `Publish as ${label}`).should('not.be.disabled')
+    })
+  }
 
   function fillDraft(title) {
     cy.get('.topic-editor #title').type(title)

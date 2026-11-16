@@ -29,41 +29,46 @@
         <!-- Conditionally show Publish for this collection -->
         <div v-if="element.topics && element.topics.length" class="publish-buttons">
           <button
-            @click="openVariableConfigurator(element.id, $event)"
+            @click="openVariableConfigurator(element.id)"
+            :disabled="publishing"
             class="publish-btn configure-vars"
             title="Configure variables before publishing"
           >
             ⚙️ Configure Variables
           </button>
           <button
-            @click="goPublishHtml(element.id, $event)"
+            @click="publishCollection(element.id, 'html', { filename: element.name, tagIds: [...audienceTagIds], beforePublish })"
+            :disabled="publishing"
             class="publish-btn publish-html"
           >
-            🔗 Save & Export HTML
+            {{ publishing ? 'Publishing...' : '🔗 Publish as knowledge base' }}
           </button>
           <button
-            @click="goPublishPdf(element.id, $event)"
+            @click="publishCollection(element.id, 'pdf', { filename: element.name, tagIds: [...audienceTagIds], beforePublish })"
+            :disabled="publishing"
             class="publish-btn publish-pdf"
           >
-            📋 Save & Export PDF
+            {{ publishing ? 'Publishing...' : '📋 Publish as PDF' }}
           </button>
         </div>
         <div v-else-if="!element.topics || element.topics.length === 0" class="empty-collection">
           <em>No topics in this collection</em>
           <div class="publish-buttons">
             <button
-              @click="goPublishHtml(element.id, $event)"
+              @click="publishCollection(element.id, 'html', { filename: element.name, tagIds: [...audienceTagIds], beforePublish })"
+              :disabled="publishing"
               class="publish-btn-disabled"
-              title="This will create an empty HTML publication"
+              title="Save the collection and download a knowledge base"
             >
-              🔗 Save & Export Empty HTML
+              {{ publishing ? 'Publishing...' : '🔗 Publish as knowledge base' }}
             </button>
             <button
-              @click="goPublishPdf(element.id, $event)"
+              @click="publishCollection(element.id, 'pdf', { filename: element.name, tagIds: [...audienceTagIds], beforePublish })"
+              :disabled="publishing"
               class="publish-btn-disabled"
-              title="This will create an empty PDF publication"
+              title="Save the collection and download a PDF"
             >
-              📋 Save & Export Empty PDF
+              {{ publishing ? 'Publishing...' : '📋 Publish as PDF' }}
             </button>
           </div>
         </div>
@@ -72,6 +77,8 @@
         <collection-tree
           v-if="element.children && element.children.length"
           :tree="element.children || []"
+          :audience-tag-ids="audienceTagIds"
+          :before-publish="beforePublish"
           @update="children => onChildUpdate(element.id, children)"
         />
       </div>
@@ -86,7 +93,7 @@
     :unresolved-variables="variableModalData?.unresolvedVariables"
     :publish-on-configure="pendingPublishAction?.type !== 'configure-only'"
     @close="closeVariableModal"
-    @variables-configured="onVariablesConfigured"
+    @variables-configured="completeCollectionPublish"
   />
   </div>
 </template>
@@ -94,10 +101,8 @@
 <script>
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
-import axiosInstance from '@/api/axiosInstance'
 import { getCollections, getDocuments } from '@/api/collections.js'
-import { apiGet } from '@/api/base'
-import { toast } from '@/composables/useToast'
+import { useCollectionPublishing } from '@/composables/useCollectionPublishing'
 import VariableSelectionModal from './VariableSelectionModal.vue'
 
 export default {
@@ -109,17 +114,20 @@ export default {
   },
   props: {
     tree: { type: Array, required: false, default: () => [] },
+    audienceTagIds: { type: Array, default: () => [] },
+    beforePublish: { type: Function, default: null },
   },
   emits: ['update'],
+
+  setup() {
+    return useCollectionPublishing()
+  },
 
   data(){
     return {
       localTree: JSON.parse(JSON.stringify(this.tree ?? [])),
       recentCols: [],
-      recentDocs: [],
-      showVariableModal: false,
-      variableModalData: null,
-      pendingPublishAction: null
+      recentDocs: []
     }
   },
   watch: {
@@ -132,29 +140,6 @@ export default {
   },
 
   methods: {
-    async openVariableConfigurator(collectionId, event) {
-      const btn = event?.target
-      if (btn) { btn.disabled = true; btn.textContent = 'Loading…' }
-      try {
-        const data = await apiGet(`/api/variables/collections/${collectionId}/publish-setup`)
-        // Translate variables_in_content to modal expected shape (variablesInfo)
-        const variablesInfo = (data.variables_in_content||[]).map(v => ({
-          id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection, is_resolved: v.is_resolved
-        }))
-        // Always open the modal for consistency; still inform when none
-        if (!variablesInfo.length) {
-          toast.success('No variables required for this collection')
-        }
-        this.pendingPublishAction = { type: 'configure-only', collectionId, button: btn }
-        this.variableModalData = { collectionId, variablesInfo, unresolvedVariables: (data.variables_in_content||[]).filter(v=>!v.is_resolved).map(v=>v.slug) }
-        this.showVariableModal = true
-      } catch(e) {
-        console.error(e)
-        toast.error(e.message)
-      } finally {
-        if (btn) { btn.disabled = false; btn.textContent = '⚙️ Configure Variables' }
-      }
-    },
     onDrag() {
       this.$emit('update', this.localTree)
     },
@@ -192,137 +177,6 @@ export default {
       } catch (err) {
         console.error('Failed to fetch documents:', err)
       }
-    },
-
-    async goPublishHtml(collectionId, event) {
-      const button = event?.target
-      if (button) {
-        button.disabled = true
-        button.textContent = 'Publishing...'
-      }
-
-      try {
-        console.log(`Publishing HTML for collection ${collectionId}`)
-        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
-        console.log('Publication created:', result)
-        this.$router.push({ name: 'PublishMobileKB' })
-        
-      } catch (error) {
-        const errorData = error?.response?.data
-        if (error?.response?.status === 400 && errorData?.requires_variable_selection) {
-          this.pendingPublishAction = { type: 'html', collectionId, button }
-          this.showVariableModal = true
-          this.variableModalData = {
-            collectionId,
-            variablesInfo: errorData.variables_info,
-            unresolvedVariables: errorData.unresolved_variables
-          }
-          return
-        }
-        console.error('Error publishing collection:', error)
-        toast.error(`Error publishing collection: ${errorData?.message || errorData?.error || error.message}`)
-        
-        // Reset button state
-        if (button) {
-          button.disabled = false
-          button.textContent = button.classList.contains('publish-btn-disabled') 
-            ? '🔗 Publish Empty HTML' 
-            : '🔗 Publish HTML'
-        }
-      }
-    },
-
-    async goPublishPdf(collectionId, event) {
-      const button = event?.target
-      if (button) {
-        button.disabled = true
-        button.textContent = 'Publishing...'
-      }
-
-      try {
-        console.log(`Publishing PDF for collection ${collectionId}`)
-        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
-        console.log('Publication created:', result)
-        this.$router.push({ name: 'PublishPDF' })
-        
-      } catch (error) {
-        const errorData = error?.response?.data
-        if (error?.response?.status === 400 && errorData?.requires_variable_selection) {
-          this.pendingPublishAction = { type: 'pdf', collectionId, button }
-          this.showVariableModal = true
-          this.variableModalData = {
-            collectionId,
-            variablesInfo: errorData.variables_info,
-            unresolvedVariables: errorData.unresolved_variables
-          }
-          return
-        }
-        console.error('Error publishing collection:', error)
-        toast.error(`Error publishing collection: ${errorData?.message || errorData?.error || error.message}`)
-        
-        // Reset button state
-        if (button) {
-          button.disabled = false
-          button.textContent = button.classList.contains('publish-btn-disabled') 
-            ? '📋 Publish Empty PDF' 
-            : '📋 Publish PDF'
-        }
-      }
-    },
-    
-    closeVariableModal() {
-      this.showVariableModal = false
-      this.variableModalData = null
-      
-      // Reset button state for pending action
-      if (this.pendingPublishAction && this.pendingPublishAction.button) {
-        const button = this.pendingPublishAction.button
-        button.disabled = false
-        button.textContent = this.pendingPublishAction.type === 'html' 
-          ? (button.classList.contains('publish-btn-disabled') ? '🔗 Publish Empty HTML' : '🔗 Publish HTML')
-          : (button.classList.contains('publish-btn-disabled') ? '📋 Publish Empty PDF' : '📋 Publish PDF')
-      }
-      
-      this.pendingPublishAction = null
-    },
-    
-    async onVariablesConfigured(data) {
-      if (!this.pendingPublishAction) return
-      
-      const { type, collectionId } = this.pendingPublishAction
-      
-      try {
-        if (type === 'configure-only') {
-          toast.success('Variables configured. You can now publish HTML or PDF.')
-          return
-        }
-        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
-        console.log('Publication created after variable configuration:', result)
-        
-        // Navigate to appropriate page
-        if (type === 'html') {
-          this.$router.push({ name: 'PublishMobileKB' })
-        } else {
-          this.$router.push({ name: 'PublishPDF' })
-        }
-        
-        toast.success('Collection published successfully!')
-        
-      } catch (error) {
-        console.error('Error publishing after variable configuration:', error)
-        toast.error(`Error publishing collection: ${error?.response?.data?.message || error?.response?.data?.error || error.message}`)
-        
-        // Reset button state
-        if (this.pendingPublishAction.button) {
-          const button = this.pendingPublishAction.button
-          button.disabled = false
-          button.textContent = type === 'html' 
-            ? (button.classList.contains('publish-btn-disabled') ? '🔗 Publish Empty HTML' : '🔗 Publish HTML')
-            : (button.classList.contains('publish-btn-disabled') ? '📋 Publish Empty PDF' : '📋 Publish PDF')
-        }
-      }
-      
-      this.pendingPublishAction = null
     }
   }
 }

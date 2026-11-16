@@ -76,7 +76,7 @@ Select **Spell Check** in the editor toolbar to turn the editor's spellcheck on 
 
 Select **Preview** above the editor to see rendered content. If the topic contains audience-specific snippets, select audience tags in the preview controls to check the matching version. Return to Markdown or WYSIWYG to continue editing.
 
-On a collection's organize page, **Preview with audience tags** previews matching snippets across the collection; it does not assign tags to topics. The selection is also passed to HTML export.
+On a collection's organize page, **Preview with audience tags** previews matching snippets across the collection; it does not assign tags to topics. The selection is also used when publishing a knowledge base or PDF.
 
 ### Normalize pasted Word line breaks
 
@@ -234,15 +234,19 @@ Open **Admin > Button Catalog** to browse examples of application buttons and th
 
 ## Publish a collection
 
-Open **Collections > Publish** to manage publication snapshots made from collection content. Before exporting, check the content and audience tags. Refresh a publication after source topics change so the export includes the latest saved content.
+From a collection's organize page, choose **Publish as knowledge base** or **Publish as PDF**. This saves the collection, creates or updates its publication snapshot, and downloads the chosen format without a separate export step. Save or discard any unfinished topic edits first. If prompted, configure the required variables; publishing then continues automatically.
+
+Select **Preview with audience tags** before publishing to include matching tagged snippets. Untagged snippets are always included; topic tags do not exclude whole topics. In the collections-and-topics structure editor, use **Audience tags for publishing**.
+
+Open **Collections > Publish** to manage saved publications. Exporting an existing publication reuses its saved snapshot without republishing the collection. Refresh it explicitly when you want later topic edits included. Republishing updates the existing snapshot; it does not preserve a version history.
 
 ### Publish a knowledge base
 
-Create or open a publication for the collection, save its snapshot, and open the publication dashboard. Choose **Export KB** for the publication, or use the mobile knowledge-base page to preview, refresh, and download a knowledge base. Audience tags control which tagged snippets are included.
+Choose **Publish as knowledge base** on the collection to save its snapshot and download the HTML knowledge base. For an existing snapshot, choose **Export KB** on the publication dashboard, or use the mobile knowledge-base page to preview, refresh, and download it. Audience tags control which tagged snippets are included.
 
 ### Publish a PDF document
 
-From the publication dashboard, choose **Export PDF** for a publication. You can also use **Save & Export PDF** from a collection's organize page where available. Preview or refresh the publication first if its source topics have changed.
+Choose **Publish as PDF** on the collection to save its snapshot and download the PDF. For an existing snapshot, choose **Export PDF** on the publication dashboard. Preview or refresh that publication first if its source topics have changed.
 
 Images that are too large for a PDF content page are scaled down proportionally to fit.
 
