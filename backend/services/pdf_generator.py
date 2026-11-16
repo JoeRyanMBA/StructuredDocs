@@ -1203,13 +1203,26 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
 
     base_styles = config.get_base_styles()
 
-    def _make_story(anchor_pages):
+    def _make_story(anchor_pages, doc):
         """Build and return the complete story list.
 
         anchor_pages: dict mapping anchor_id → actual page number collected from a
         prior dry-run build.  Pass an empty dict on the first (measurement) pass.
         """
         story = []
+        content_frame = next(
+            template.frames[0]
+            for template in doc.pageTemplates
+            if template.id == 'normal_page'
+        )
+
+        def fit_image(width, height, bottom_padding=0):
+            scale = min(
+                1,
+                content_frame._aW / width,
+                (content_frame._aH - bottom_padding) / height,
+            )
+            return width * scale, height * scale
     
         story.append(NextPageTemplate('title_page'))
         # Create styles using configuration
@@ -1468,10 +1481,15 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                         layout['text'] = following.strip()
                                         paragraph_index += 1
                             try:
+                                width, height = fit_image(
+                                    int(layout['width']),
+                                    int(layout['height']),
+                                    bottom_padding=3 if layout.get('mode') == 'float' else 0,
+                                )
                                 image = Image(
                                     layout['src'],
-                                    width=int(layout['width']),
-                                    height=int(layout['height'])
+                                    width=width,
+                                    height=height,
                                 )
                                 layout_text = _pdf_sanitize_text(layout.get('text', '').strip())
                                 if layout_text and layout.get('mode') == 'overlay':
@@ -1486,8 +1504,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                     story.append(_OverlayImageFlowable(
                                         image,
                                         Paragraph(layout_text, overlay_style),
-                                        int(layout['width']),
-                                        int(layout['height']),
+                                        width,
+                                        height,
                                         image_on_top=bool(layout.get('image_on_top'))
                                     ))
                                 elif layout_text and layout.get('mode') == 'float':
@@ -1522,7 +1540,8 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                             img_src = ''
                             try:
                                 _, img_src, img_w, img_h = para.split(':', 3)
-                                story.append(Image(img_src, width=int(img_w), height=int(img_h)))
+                                width, height = fit_image(int(img_w), int(img_h))
+                                story.append(Image(img_src, width=width, height=height))
                             except Exception as exc:
                                 _pdf_warning(
                                     'PDF failed to create standalone image flowable '
@@ -1655,14 +1674,14 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         dry_buf = io.BytesIO()
         dry_doc = _make_doc(dry_buf)
         dry_doc.afterFlowable = _capture_anchors
-        dry_doc.build(_make_story(anchor_pages))
+        dry_doc.build(_make_story(anchor_pages, dry_doc))
     except Exception as _e:
         current_app.logger.debug(f"DEBUG: PDF dry-run pass failed (page numbers may be estimates): {_e}")
 
     buffer = io.BytesIO()
     doc = _make_doc(buffer)
     try:
-        doc.build(_make_story(anchor_pages))
+        doc.build(_make_story(anchor_pages, doc))
     finally:
         shutil.rmtree(_pdf_temp_dir, ignore_errors=True)
     buffer.seek(0)

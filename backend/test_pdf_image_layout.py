@@ -4,6 +4,7 @@ import sys
 from types import SimpleNamespace
 from unittest.mock import Mock
 
+import pytest
 from flask import Flask
 from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
@@ -390,6 +391,50 @@ def test_image_layout_flowables_build_pdf(tmp_path):
 
     assert output_path.exists()
     assert os.path.getsize(output_path) > 0
+
+
+@pytest.mark.parametrize('style', ['', 'float: left', 'position: absolute'])
+@pytest.mark.parametrize('config_type', ['default', 'corporate', 'academic', 'compact', 'organization'])
+def test_pdf_export_fits_tall_images_on_a_page(tmp_path, monkeypatch, style, config_type):
+    image_path = tmp_path / 'tall.png'
+    PILImage.new('RGB', (254, 4312), 'blue').save(image_path)
+    small_image_path = _image_path(tmp_path)
+    images = []
+
+    def record_image(*args, **kwargs):
+        image = Image(*args, **kwargs)
+        images.append(image)
+        return image
+
+    monkeypatch.setattr(pdf_generator, 'Image', record_image)
+    monkeypatch.setattr(
+        pdf_generator,
+        'get_export_branding_settings',
+        lambda: {'pdf_cover_background': '__none__'},
+    )
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{
+        'id': 1,
+        'title': 'Topic',
+        'content': (
+            f'<img src="{image_path}" style="{style}"> Image text\n\n'
+            f'<img src="{small_image_path}">'
+        ),
+        'children': [],
+    }]
+
+    with Flask(__name__).app_context():
+        pdf = pdf_generator.generate_pdf(publication, tree, config_type)
+
+    assert pdf.getvalue().startswith(b'%PDF')
+    assert b'/Subtype /Image' in pdf.getvalue()
+    tall_images = [image for image in images if image.filename == str(image_path)]
+    small_images = [image for image in images if image.filename == small_image_path]
+    assert tall_images and small_images
+    for image in tall_images:
+        assert 0 < image.drawHeight < 4312
+        assert image.drawWidth / image.drawHeight == pytest.approx(254 / 4312)
+    assert all((image.drawWidth, image.drawHeight) == (120, 80) for image in small_images)
 
 
 def test_overlay_paragraphs_collect_until_structural_content(tmp_path):
