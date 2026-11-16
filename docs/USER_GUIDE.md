@@ -244,6 +244,8 @@ Create or open a publication for the collection, save its snapshot, and open the
 
 From the publication dashboard, choose **Export PDF** for a publication. You can also use **Save & Export PDF** from a collection's organize page where available. Preview or refresh the publication first if its source topics have changed.
 
+Images that are too large for a PDF content page are scaled down proportionally to fit.
+
 ### Manage publications
 
 In **Collections > Publish**, use the publication list to preview, edit, refresh, or export a publication as a knowledge base or PDF. A saved snapshot represents the content selected at that time; refresh it to pull in later topic changes. Available exports depend on the installation.
