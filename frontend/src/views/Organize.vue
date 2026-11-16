@@ -156,48 +156,53 @@
             
             <!-- Show publish buttons for the current collection -->
             <div v-if="currentCollection.topics && currentCollection.topics.length" class="publish-buttons">
-              <button class="primary-btn" @click="saveChanges" :disabled="saving">
+              <button class="primary-btn" @click="saveChanges" :disabled="saving || publishing">
                 <span v-if="saving"><i class="bi bi-arrow-clockwise spin" aria-hidden="true"></i> Saving…</span>
                 <span v-else><i class="bi bi-floppy" aria-hidden="true"></i> Save</span>
               </button>
               <button
-                @click="openVariableConfigurator(currentCollection.id, $event)"
+                @click="openVariableConfigurator(currentCollection.id)"
+                :disabled="saving || publishing"
                 class="publish-btn configure-vars"
                 title="Configure variables before publishing"
               >⚙️ Configure Variables</button>
               <button
-                @click="goPublishHtml(currentCollection.id, $event)"
+                @click="publishCurrentCollection('html')"
+                :disabled="saving || publishing"
                 class="publish-btn publish-html"
               >
-                🔗 Save & Export HTML
+                {{ publishing ? 'Publishing...' : '🔗 Publish as knowledge base' }}
               </button>
               <button
-                @click="goPublishPdf(currentCollection.id, $event)"
+                @click="publishCurrentCollection('pdf')"
+                :disabled="saving || publishing"
                 class="publish-btn publish-pdf"
               >
-                📋 Save & Export PDF
+                {{ publishing ? 'Publishing...' : '📋 Publish as PDF' }}
               </button>
             </div>
             <div v-else class="empty-collection">
               <em>No topics in this collection</em>
               <div class="publish-buttons">
-                <button class="primary-btn" @click="saveChanges" :disabled="saving">
+                <button class="primary-btn" @click="saveChanges" :disabled="saving || publishing">
                   <span v-if="saving"><i class="bi bi-arrow-clockwise spin" aria-hidden="true"></i> Saving…</span>
                   <span v-else><i class="bi bi-floppy" aria-hidden="true"></i> Save</span>
                 </button>
                 <button
-                  @click="goPublishHtml(currentCollection.id, $event)"
+                  @click="publishCurrentCollection('html')"
+                  :disabled="saving || publishing"
                   class="publish-btn-disabled"
-                  title="This will create an empty HTML publication"
+                  title="Save the collection and download a knowledge base"
                 >
-                  🔗 Save & Export Empty HTML
+                  {{ publishing ? 'Publishing...' : '🔗 Publish as knowledge base' }}
                  </button>
                 <button
-                  @click="goPublishPdf(currentCollection.id, $event)"
+                  @click="publishCurrentCollection('pdf')"
+                  :disabled="saving || publishing"
                   class="publish-btn-disabled"
-                  title="This will create an empty PDF publication"
+                  title="Save the collection and download a PDF"
                 >
-                  📋 Save & Export Empty PDF
+                  {{ publishing ? 'Publishing...' : '📋 Publish as PDF' }}
                 </button>
               </div>
             </div>
@@ -211,7 +216,7 @@
         :attach-topic="attachCreatedTopic"
         :can-create-child="activeTopicDepth !== null && activeTopicDepth < 4"
         :empty-collection="!currentCollection.topics?.length"
-        :collection-busy="saving"
+        :collection-busy="saving || publishing"
         @selected="onPaneSelected"
         @saved="onPaneSaved"
         @audience-change="audienceTagIds = $event"
@@ -359,8 +364,7 @@
 import CollectionTree from '@/components/CollectionTree.vue'
 import TopicItem from '@/components/TopicItem.vue'
 import draggable from 'vuedraggable'
-import axiosInstance from '@/api/axiosInstance'
-import { apiGet } from '@/api/base'
+import { useCollectionPublishing } from '@/composables/useCollectionPublishing'
 import { getCollections, getCollection, saveCollections } from '@/api/collections.js'
 import { getProjects } from '@/api/projects.js'
 import { getTopics, getTopicTagsMap } from '@/api/topics.js' // You may need to implement this
@@ -381,6 +385,9 @@ export default {
     }
   },
   components: { CollectionTree, TopicItem, draggable, VariableSelectionModal, TagEditor, OrganizeTopicNode, CollectionTopicPane, HelpIcon },
+  setup() {
+    return useCollectionPublishing()
+  },
   provide() {
     return { organizeView: this }
   },
@@ -414,9 +421,6 @@ export default {
       },
   /* Snapshot of last saved state for unsaved-changes detection */
       lastSavedSnapshot: null
-      , showVariableModal: false
-      , variableModalData: null
-      , pendingPublishAction: null
       , tagFilter: ''
       , topicSearch: ''
       , topicTagsMap: {}
@@ -1433,133 +1437,22 @@ export default {
       }
     },
 
-    // Add publish methods from CollectionTree
-    async goPublishHtml(collectionId, event) {
-      if (this.$refs.topicPane?.hasUnsavedChanges()) {
-        toast.error('Save or discard your topic edits before exporting.')
-        return
-      }
-      await this.saveChanges()
-      if (this.isDirty()) return
-      const button = event?.target
-      if (button) {
-        button.disabled = true
-        button.textContent = 'Publishing...'
-      }
-
-      try {
-        console.log(`Publishing HTML for collection ${collectionId}`)
-        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
-        console.log('Publication created:', result)
-        this.$router.push({ name: 'PublishMobileKB', query: { collection: String(collectionId), tag_ids: this.audienceTagIds.map(String) } })
-        
-      } catch (error) {
-        const errorData = error?.response?.data
-        if (error?.response?.status === 400 && errorData?.requires_variable_selection) {
-          this.pendingPublishAction = { type: 'html', collectionId, button }
-          this.variableModalData = {
-            collectionId,
-            variablesInfo: errorData.variables_info,
-            unresolvedVariables: errorData.unresolved_variables
+    async publishCurrentCollection(type) {
+      await this.publishCollection(this.currentCollection.id, type, {
+        filename: this.currentCollection.name,
+        tagIds: [...this.audienceTagIds],
+        beforePublish: async () => {
+          if (this.$refs.topicPane?.hasUnsavedChanges()) {
+            toast.error('Save or discard your topic edits before publishing.')
+            return false
           }
-          this.showVariableModal = true
-          return
-        }
-        console.error('Error publishing collection:', error)
-  toast.error(`Error publishing collection: ${errorData?.message || errorData?.error || error.message}`)
-        
-        if (button) {
-          button.disabled = false
-          button.textContent = '🔗 Save & Export HTML'
-        }
-      }
-    },
-
-    async goPublishPdf(collectionId, event) {
-      const button = event?.target
-      if (button) {
-        button.disabled = true
-        button.textContent = 'Publishing...'
-      }
-
-      try {
-        console.log(`Publishing PDF for collection ${collectionId}`)
-        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
-        console.log('Publication created:', result)
-        this.$router.push({ name: 'PublishPDF' })
-        
-      } catch (error) {
-        const errorData = error?.response?.data
-        if (error?.response?.status === 400 && errorData?.requires_variable_selection) {
-          this.pendingPublishAction = { type: 'pdf', collectionId, button }
-          this.variableModalData = {
-            collectionId,
-            variablesInfo: errorData.variables_info,
-            unresolvedVariables: errorData.unresolved_variables
-          }
-          this.showVariableModal = true
-          return
-        }
-        console.error('Error publishing collection:', error)
-  toast.error(`Error publishing collection: ${errorData?.message || errorData?.error || error.message}`)
-        
-        if (button) {
-          button.disabled = false
-          button.textContent = '📋 Save & Export PDF'
-        }
-      }
-  },
-    closeVariableModal() {
-      if (this.pendingPublishAction?.button) {
-        const btn = this.pendingPublishAction.button
-        const type = this.pendingPublishAction.type
-        btn.disabled = false
-        if (type === 'html') btn.textContent = '🔗 Save & Export HTML'
-        else if (type === 'pdf') btn.textContent = '📋 Save & Export PDF'
-        else if (type === 'configure-only') btn.textContent = '⚙️ Configure Variables'
-      }
-      this.showVariableModal = false
-      this.variableModalData = null
-      this.pendingPublishAction = null
-    },
-    async openVariableConfigurator(collectionId, event) {
-      const btn = event?.target
-      if (btn) { btn.disabled = true; btn.textContent = 'Loading…' }
-      try {
-        const data = await apiGet(`/api/variables/collections/${collectionId}/publish-setup`)
-        const variablesInfo = (data.variables_in_content||[]).map(v => ({
-          id: v.id, slug: v.slug, name: v.name, description: v.description, values: v.values, current_selection: v.current_selection, is_resolved: v.is_resolved
-        }))
-        // Always open the modal for consistency with Publish flow; show toast when none
-        if (!variablesInfo.length) { toast.success('No variables required for this collection') }
-        this.pendingPublishAction = { type: 'configure-only', collectionId, button: btn }
-        this.variableModalData = { collectionId, variablesInfo, unresolvedVariables: (data.variables_in_content||[]).filter(v=>!v.is_resolved).map(v=>v.slug) }
-        this.showVariableModal = true
-      } catch(e) {
-        toast.error(e.message)
-      } finally {
-        if (btn) { btn.disabled = false; btn.textContent = '⚙️ Configure Variables' }
-      }
+          return await this.saveChanges()
+        },
+      })
     },
     async onVariablesConfigured() {
-      if (!this.pendingPublishAction) return
-      const { type, collectionId } = this.pendingPublishAction
-      try {
-        if (type === 'configure-only') {
-          await this.$refs.topicPane?.loadContext()
-          toast.success('Variables configured. You can now publish HTML or PDF.')
-          return
-        }
-        const { data: result } = await axiosInstance.post(`/api/collections/${collectionId}/publish`, {})
-        toast.success('Collection published successfully!')
-        if (type === 'html') this.$router.push({ name: 'PublishMobileKB', query: { collection: String(collectionId), tag_ids: this.audienceTagIds.map(String) } })
-        else this.$router.push({ name: 'PublishPDF' })
-      } catch (e) {
-        console.error(e)
-        toast.error(e?.response?.data?.message || e?.response?.data?.error || e.message)
-      } finally {
-        this.closeVariableModal()
-      }
+      await this.completeCollectionPublish()
+      await this.$refs.topicPane?.loadContext()
     },
     // Indent topic (make it a child of the previous sibling)
     indentTopic(topic) {
