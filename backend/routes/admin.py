@@ -13,7 +13,7 @@ import xml.etree.ElementTree as ET
 from typing import Any
 from PIL import Image, UnidentifiedImageError
 from werkzeug.utils import secure_filename
-from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
+from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL, get_brand_asset_filename
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -132,7 +132,7 @@ def _clear_branding_asset_references(filename: str) -> list[str]:
         current = (get_setting(key, '') or '').strip()
         if not current:
             continue
-        current_name = os.path.basename(current)
+        current_name = get_brand_asset_filename(current)
         if current_name == candidate or current == candidate:
             set_setting(key, '')
             cleared.append(key)
@@ -151,7 +151,7 @@ def _branding_asset_usage_map() -> dict[str, list[str]]:
         current_val = (rows_by_key.get(key) or default_val or '').strip()
         if not current_val or current_val == NO_COVER_BACKGROUND_SENTINEL:
             continue
-        basename = os.path.basename(current_val)
+        basename = get_brand_asset_filename(current_val)
         if basename and _allowed_branding_file(basename):
             usage_map.setdefault(basename, []).append(key)
     return usage_map
@@ -960,19 +960,6 @@ def delete_export_branding_asset(filename):
         return jsonify({'error': 'Invalid filename'}), 400
     if not _allowed_branding_file(candidate):
         return jsonify({'error': 'Unsupported file type'}), 400
-
-    # Prevent deleting assets currently selected in persisted branding settings.
-    image_keys = list(EXPORT_BRANDING_IMAGE_KEYS)
-    in_use_rows = (
-        SystemSetting.query
-        .filter(SystemSetting.key.in_(image_keys), SystemSetting.value == candidate)
-        .all()
-    )
-    if in_use_rows:
-        return jsonify({
-            'error': 'Image is currently used by export branding settings',
-            'in_use_by': [row.key for row in in_use_rows],
-        }), 409
 
     assets_dir = _branding_backgrounds_dir()
     target_path = os.path.join(assets_dir, candidate)
