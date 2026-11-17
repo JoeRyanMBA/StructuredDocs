@@ -10,12 +10,20 @@
       <div class="settings-grid">
         <div class="setting-row" v-for="key in orderedKeys" :key="key">
           <div class="setting-label">
-            <label v-if="key === 'export_pdf_cover_text_alignment' || key === 'export_pdf_cover_text_color'" class="label-title" :for="key">{{ labelFor(key) }}</label>
+            <label v-if="key === 'export_pdf_cover_logo_placement' || key === 'export_pdf_cover_text_alignment' || key === 'export_pdf_cover_text_color'" class="label-title" :for="key">{{ labelFor(key) }}</label>
             <div v-else class="label-title">{{ labelFor(key) }}</div>
             <div class="label-help">{{ descriptionFor(key) }}</div>
           </div>
           <div class="setting-input-stack">
-            <select v-if="key === 'export_pdf_cover_text_alignment'" :id="key" v-model="edits[key]" class="setting-input">
+            <select v-if="key === 'export_pdf_cover_logo_placement'" :id="key" v-model="edits[key]" class="setting-input">
+              <option value="top-left">Top Left</option>
+              <option value="top-center">Top Center</option>
+              <option value="top-right">Top Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="bottom-center">Bottom Center</option>
+              <option value="bottom-right">Bottom Right</option>
+            </select>
+            <select v-else-if="key === 'export_pdf_cover_text_alignment'" :id="key" v-model="edits[key]" class="setting-input">
               <option value="right">Right</option>
               <option value="center">Center</option>
             </select>
@@ -254,6 +262,7 @@ import { resolveSelectedPublicationId } from '@/utils/publicationSelection'
 const BRANDING_KEYS = [
   'export_brand_name',
   'export_pdf_title_logo',
+  'export_pdf_cover_logo_placement',
   'export_pdf_footer_logo',
   'export_pdf_cover_background',
   'export_pdf_cover_text_alignment',
@@ -266,6 +275,7 @@ const BRANDING_KEYS = [
 const LABELS = {
   export_brand_name: 'Brand Name',
   export_pdf_title_logo: 'PDF Title Logo',
+  export_pdf_cover_logo_placement: 'PDF Cover Logo Placement',
   export_pdf_footer_logo: 'PDF Footer Logo',
   export_pdf_cover_background: 'PDF Cover Background',
   export_pdf_cover_text_alignment: 'PDF Cover Text Alignment',
@@ -289,6 +299,7 @@ const PLACEHOLDERS = {
 const DEFAULT_VALUES = {
   export_brand_name: 'StructuredDocs',
   export_pdf_title_logo: 'Title_Page_Logo.png',
+  export_pdf_cover_logo_placement: 'bottom-left',
   export_pdf_footer_logo: 'Footer_Logo.png',
   export_pdf_cover_background: 'SC Cover Background.png',
   export_pdf_cover_text_alignment: 'right',
@@ -802,6 +813,7 @@ export default {
     },
     applyTemplate(template) {
       Object.assign(this.edits, {
+        export_pdf_cover_logo_placement: DEFAULT_VALUES.export_pdf_cover_logo_placement,
         export_pdf_cover_text_alignment: DEFAULT_VALUES.export_pdf_cover_text_alignment,
         export_pdf_cover_text_color: DEFAULT_VALUES.export_pdf_cover_text_color,
         ...template.settings,
