@@ -61,9 +61,15 @@ def _link_published_topics(text, topic_anchors):
         return text
 
     def anchor_for_href(href):
+        try:
+            parsed_href = urlsplit(href)
+        except ValueError:
+            return None
+        if parsed_href.scheme or parsed_href.netloc:
+            return None
         topic_match = re.fullmatch(
             r'/topics/(\d+)/edit/?',
-            urlsplit(href).path,
+            parsed_href.path,
             re.IGNORECASE,
         )
         return topic_anchors.get(topic_match.group(1)) if topic_match else None
