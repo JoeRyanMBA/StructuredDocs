@@ -153,6 +153,29 @@ Inside each folder:
 - instance
 - docker-compose.single.yml
 
+Uploaded branding images default to `instance/branding` on the host, through
+the existing `./instance:/app/instance` mount. Keep this mount writable by
+the container's `appuser` and include it in backups. If the stack already
+sets `EXPORT_BRANDING_ASSETS_DIR`, that setting still takes precedence;
+its path must also be on a persistent mount.
+
+Before the first redeploy with this change, copy any uploads still in the
+old container's `/app/backend/static/backgrounds` directory. From the affected
+environment directory, use the existing app container ID and copy its files
+to a backup directory:
+
+```bash
+mkdir -p backups/branding-before-redeploy
+docker cp <app-container-id>:/app/backend/static/backgrounds/. backups/branding-before-redeploy/
+```
+
+Restore the uploaded `branding_…` files (keeping their original filenames)
+to `instance/branding`, or to the host directory backing the configured
+`EXPORT_BRANDING_ASSETS_DIR`. Ensure `appuser` can read and write that directory.
+Keeping the filenames lets existing branding settings find the images again.
+If the old container is already gone and no backup exists, re-upload and
+reselect the images after the fix is deployed.
+
 ## 4. Environment variable files
 
 Start from templates:

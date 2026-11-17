@@ -62,6 +62,9 @@ RUN useradd --create-home --shell /bin/bash appuser && \
     chown -R appuser:appuser /app
 USER appuser
 
+# The VPS stacks persist /app/instance across container replacement.
+ENV EXPORT_BRANDING_ASSETS_DIR=/app/instance/branding
+
 # Health check
 HEALTHCHECK --interval=30s --timeout=10s --start-period=5s --retries=3 \
     CMD curl -f http://localhost:8080/api/health || exit 1
