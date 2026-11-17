@@ -100,6 +100,9 @@
                     @error="handleAssetPreviewError(asset.name)"
                   />
                   <span class="asset-thumb-name">{{ asset.name }}</span>
+                  <span v-if="assetPreviewErrors[normalizeAssetBasename(asset.name)]" class="asset-empty-note error-text" role="status">
+                    {{ assetPreviewErrors[normalizeAssetBasename(asset.name)] }}
+                  </span>
                   <div v-if="assetUsageSummary(asset)" class="asset-used-by">{{ assetUsageSummary(asset) }}</div>
                 </button>
                 <button
@@ -309,6 +312,7 @@ export default {
       uploadingAssetKeys: {},
       deletingAssetNames: {},
       assetPreviewUrls: {},
+      assetPreviewErrors: {},
       pendingAssetPreviews: {},
       showUnusedOnlyByKey: IMAGE_SETTING_KEYS.reduce((acc, settingKey) => {
         acc[settingKey] = false
@@ -477,17 +481,21 @@ export default {
         ...this.pendingAssetPreviews,
         [name]: true,
       }
+      delete this.assetPreviewErrors[name]
 
       try {
         const blob = await fetchExportBrandingAssetBlob(name)
-        if (!blob) return
+        if (!blob) throw new Error('Empty image response')
         const objectUrl = URL.createObjectURL(blob)
+        if (this.assetPreviewUrls[name]) {
+          URL.revokeObjectURL(this.assetPreviewUrls[name])
+        }
         this.assetPreviewUrls = {
           ...this.assetPreviewUrls,
           [name]: objectUrl,
         }
-      } catch (_) {
-        // Ignore per-file preview failures; list loading remains available.
+      } catch (err) {
+        this.assetPreviewErrors[name] = toFriendlyAuthError(err, 'Could not load preview. Reload the page to retry.')
       } finally {
         const next = { ...this.pendingAssetPreviews }
         delete next[name]
@@ -614,9 +622,11 @@ export default {
     handleAssetPreviewError(filename) {
       const basename = this.normalizeAssetBasename(filename)
       if (!basename) return
+      if (this.assetPreviewUrls[basename]) {
+        URL.revokeObjectURL(this.assetPreviewUrls[basename])
+      }
       delete this.assetPreviewUrls[basename]
-      // A failed preview fetch should not remove a valid uploaded asset from the list.
-      // Keep the asset until the full list refresh confirms the file is actually missing.
+      this.assetPreviewErrors[basename] = 'This file cannot be displayed as an image. Re-upload the original image file.'
     },
     normalizeHexColor(value, fallback) {
       const trimmed = (value || '').trim()
