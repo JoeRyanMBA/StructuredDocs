@@ -16,6 +16,20 @@ import threading
 _cache: dict[str, str] = {}
 _cache_lock = threading.Lock()
 
+# Branding is read by PDF/HTML export workers and changed from the admin page.
+# A process-local cache cannot be invalidated reliably across Gunicorn workers.
+UNCACHED_SETTINGS = {
+    'export_brand_name',
+    'export_pdf_title_logo',
+    'export_pdf_footer_logo',
+    'export_pdf_cover_background',
+    'export_html_logo',
+    'export_html_primary_color',
+    'export_html_accent_color',
+    'export_branding_hidden_assets',
+    'export_branding_templates',
+}
+
 # Defaults used when no DB row exists yet
 DEFAULTS: dict[str, tuple[str, str]] = {
     # key: (default_value, human description)
@@ -37,17 +51,20 @@ DEFAULTS: dict[str, tuple[str, str]] = {
 
 def get_setting(key: str, default: str | None = None) -> str:
     """Return the current value for *key*, querying DB on cache miss."""
-    with _cache_lock:
-        if key in _cache:
-            return _cache[key]
+    use_cache = key not in UNCACHED_SETTINGS
+    if use_cache:
+        with _cache_lock:
+            if key in _cache:
+                return _cache[key]
 
     # Cache miss — query DB inside app context
     try:
         from ..models import SystemSetting
         row = SystemSetting.query.filter_by(key=key).first()
         if row:
-            with _cache_lock:
-                _cache[key] = row.value
+            if use_cache:
+                with _cache_lock:
+                    _cache[key] = row.value
             return row.value
     except Exception:
         pass
@@ -69,8 +86,12 @@ def set_setting(key: str, value: str) -> None:
         db.session.add(row)
     db.session.commit()
 
-    with _cache_lock:
-        _cache[key] = value
+    if key not in UNCACHED_SETTINGS:
+        with _cache_lock:
+            _cache[key] = value
+    else:
+        with _cache_lock:
+            _cache.pop(key, None)
 
 
 def seed_defaults() -> None:

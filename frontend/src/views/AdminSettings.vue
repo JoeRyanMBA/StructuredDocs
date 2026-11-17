@@ -32,6 +32,7 @@
             <div v-if="isImageSetting(key)" class="image-controls">
               <select
                 class="setting-input"
+                :value="edits[key] || ''"
                 :disabled="isCoverBackgroundKey(key) && isNoCoverBackgroundEnabled()"
                 @change="applyAssetSelection(key, $event.target.value)"
               >
