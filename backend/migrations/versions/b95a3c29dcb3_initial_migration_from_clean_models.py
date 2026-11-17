@@ -9,6 +9,182 @@ from alembic import op
 import sqlalchemy as sa
 
 
+# A pre-Alembic database may already contain the complete baseline schema.
+_BASELINE_COLUMNS = {
+    'import_documents': {
+        'id', 'filename', 'source_type', 'status', 'review_step', 'created_at',
+        'reviewed_at', 'reviewer',
+    },
+    'links': {
+        'id', 'title', 'url', 'description', 'reference_code', 'link_type',
+        'is_internal', 'is_active', 'created_at', 'updated_at', 'created_by',
+    },
+    'notifications': {'id', 'user_id', 'title', 'message', 'link', 'type', 'date', 'read'},
+    'projects': {
+        'id', 'name', 'description', 'status', 'start_date', 'target_completion',
+        'created_at', 'updated_at',
+    },
+    'publications': {'id', 'title', 'description', 'created_at'},
+    'stakeholders': {
+        'id', 'name', 'email', 'title', 'organization', 'department', 'phone',
+        'expertise_areas', 'bio', 'active', 'created_at', 'updated_at',
+    },
+    'topics': {'id', 'title', 'content', 'frontmatter', 'status', 'created_at', 'updated_at'},
+    'users': {'id', 'name', 'email', 'password_hash', 'role', 'active', 'created_at'},
+    'collections': {
+        'id', 'name', 'description', 'form_number', 'parent_id', 'project_id',
+        'position', 'created_at', 'updated_at',
+    },
+    'import_images': {
+        'id', 'document_id', 'filename', 'original_name', 'public_url', 'backend_path',
+        'frontend_path', 'width', 'height', 'format', 'file_size', 'mime_type',
+        'created_at',
+    },
+    'import_items': {'id', 'document_id', 'heading_order', 'title', 'content', 'committed_topic'},
+    'project_milestones': {
+        'id', 'project_id', 'name', 'description', 'date', 'status',
+        'completion_date', 'created_at',
+    },
+    'project_stakeholders': {
+        'id', 'project_id', 'stakeholder_id', 'role', 'can_review', 'notes',
+        'created_at',
+    },
+    'publication_nodes': {'id', 'publication_id', 'topic_id', 'parent_id', 'position'},
+    'topic_links': {'id', 'topic_id', 'link_id', 'context', 'position', 'created_at'},
+    'collection_topic_tree': {'collection_id', 'topic_id', 'parent_topic_id', 'position'},
+    'tasks': {
+        'id', 'title', 'description', 'status', 'priority', 'due_date', 'completed_at',
+        'project_id', 'collection_id', 'topic_id', 'assigned_to', 'created_by', 'tags',
+        'created_at', 'updated_at',
+    },
+}
+_BASELINE_PRIMARY_KEYS = {
+    **{table: {'id'} for table in _BASELINE_COLUMNS},
+    'collection_topic_tree': set(),
+}
+_BASELINE_UNIQUE_CONSTRAINTS = {
+    'links': {('reference_code',)},
+    'stakeholders': {('email',)},
+    'users': {('email',)},
+    'collections': {('form_number',)},
+    'project_stakeholders': {('project_id', 'stakeholder_id')},
+    'topic_links': {('topic_id', 'link_id')},
+}
+_BASELINE_FOREIGN_KEYS = {
+    'collections': {
+        (('parent_id',), 'collections', ('id',)),
+        (('project_id',), 'projects', ('id',)),
+    },
+    'import_images': {(('document_id',), 'import_documents', ('id',))},
+    'import_items': {
+        (('committed_topic',), 'topics', ('id',)),
+        (('document_id',), 'import_documents', ('id',)),
+    },
+    'project_milestones': {(('project_id',), 'projects', ('id',))},
+    'project_stakeholders': {
+        (('project_id',), 'projects', ('id',)),
+        (('stakeholder_id',), 'stakeholders', ('id',)),
+    },
+    'publication_nodes': {
+        (('parent_id',), 'publication_nodes', ('id',)),
+        (('publication_id',), 'publications', ('id',)),
+        (('topic_id',), 'topics', ('id',)),
+    },
+    'topic_links': {
+        (('link_id',), 'links', ('id',)),
+        (('topic_id',), 'topics', ('id',)),
+    },
+    'collection_topic_tree': {
+        (('collection_id',), 'collections', ('id',)),
+        (('parent_topic_id',), 'topics', ('id',)),
+        (('topic_id',), 'topics', ('id',)),
+    },
+    'tasks': {
+        (('collection_id',), 'collections', ('id',)),
+        (('project_id',), 'projects', ('id',)),
+        (('topic_id',), 'topics', ('id',)),
+    },
+}
+_BASELINE_ENUMS = {
+    'source_type_enum': {'word', 'markdown'},
+    'import_status_enum': {'staging', 'approved', 'rejected'},
+    'import_review_step': {'pending', 'sme_approved', 'final_approved'},
+    'link_type_enum': {
+        'form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other',
+    },
+    'project_status': {'planning', 'active', 'review', 'completed', 'on_hold'},
+    'topic_status': {
+        'draft', 'pending_review', 'published', 'rejected', 'archived',
+    },
+    'user_role': {'author', 'reviewer', 'admin'},
+    'milestone_status': {'planned', 'in-progress', 'completed', 'overdue'},
+    'stakeholder_role': {'project_manager', 'subject_matter_expert', 'reviewer', 'stakeholder', 'sponsor'},
+    'task_status': {'todo', 'in_progress', 'review', 'completed', 'cancelled'},
+    'task_priority': {'low', 'medium', 'high', 'urgent'},
+}
+_BASELINE_ENUM_COLUMNS = {
+    'import_documents': {
+        'source_type': 'source_type_enum',
+        'status': 'import_status_enum',
+        'review_step': 'import_review_step',
+    },
+    'links': {'link_type': 'link_type_enum'},
+    'projects': {'status': 'project_status'},
+    'topics': {'status': 'topic_status'},
+    'users': {'role': 'user_role'},
+    'project_milestones': {'status': 'milestone_status'},
+    'project_stakeholders': {'role': 'stakeholder_role'},
+    'tasks': {'status': 'task_status', 'priority': 'task_priority'},
+}
+
+
+def _baseline_schema_is_present(bind):
+    inspector = sa.inspect(bind)
+    if not set(_BASELINE_COLUMNS).issubset(inspector.get_table_names()):
+        return False
+
+    for table, expected_columns in _BASELINE_COLUMNS.items():
+        existing_columns = {column['name'] for column in inspector.get_columns(table)}
+        if not expected_columns.issubset(existing_columns):
+            return False
+        primary_key = set(inspector.get_pk_constraint(table).get('constrained_columns') or [])
+        if primary_key != _BASELINE_PRIMARY_KEYS[table]:
+            return False
+        existing_unique = {
+            tuple(constraint['column_names'])
+            for constraint in inspector.get_unique_constraints(table)
+        }
+        if not _BASELINE_UNIQUE_CONSTRAINTS.get(table, set()).issubset(existing_unique):
+            return False
+        existing_foreign_keys = {
+            (
+                tuple(constraint['constrained_columns']),
+                constraint['referred_table'],
+                tuple(constraint['referred_columns']),
+            )
+            for constraint in inspector.get_foreign_keys(table)
+        }
+        if not _BASELINE_FOREIGN_KEYS.get(table, set()).issubset(existing_foreign_keys):
+            return False
+
+    if bind.dialect.name == 'postgresql':
+        enums = {enum['name']: set(enum['labels']) for enum in inspector.get_enums()}
+        if any(
+            not labels.issubset(enums.get(name, set()))
+            for name, labels in _BASELINE_ENUMS.items()
+        ):
+            return False
+        for table, columns in _BASELINE_ENUM_COLUMNS.items():
+            types = {column['name']: column['type'] for column in inspector.get_columns(table)}
+            if any(
+                getattr(types.get(column), 'name', None) != enum
+                for column, enum in columns.items()
+            ):
+                return False
+
+    return True
+
+
 # revision identifiers, used by Alembic.
 revision = 'b95a3c29dcb3'
 down_revision = None
@@ -17,6 +193,17 @@ depends_on = None
 
 
 def upgrade():
+    bind = op.get_bind()
+    existing_tables = set(sa.inspect(bind).get_table_names())
+    baseline_tables = set(_BASELINE_COLUMNS)
+    if existing_tables & baseline_tables:
+        if _baseline_schema_is_present(bind):
+            return
+        raise RuntimeError(
+            'The initial migration found a partial pre-existing schema. '
+            'Reconcile the database schema before applying this revision.'
+        )
+
     # ### commands auto generated by Alembic - please adjust! ###
     op.create_table('import_documents',
     sa.Column('id', sa.Integer(), nullable=False),

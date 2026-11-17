@@ -115,11 +115,6 @@ def install_dependencies():
         print("❌ All installation methods failed")
         return False
 
-# Try to install dependencies before importing
-if not install_dependencies():
-    print("❌ Cannot proceed without Python dependencies")
-    sys.exit(1)
-
 # Now safe to import - do this inside the function to avoid module-level import
 def run_migrations():
     # Import here, after dependencies are guaranteed to be installed
@@ -134,35 +129,31 @@ def run_migrations():
         print("🗄️ Running database migrations...")
         
         try:
-            # Only run db.create_all() if this looks like a fresh database (avoid masking drift)
             inspector = db.inspect(db.engine)
             existing_tables = inspector.get_table_names()
-            if not existing_tables:
-                print("📭 No tables detected – initializing with db.create_all() before migrations...")
+            migrations_dir = os.path.join(os.path.dirname(__file__), 'backend', 'migrations')
+            versions_dir = os.path.join(migrations_dir, 'versions')
+            has_migrations = os.path.isdir(versions_dir) and bool(os.listdir(versions_dir))
+
+            if not existing_tables and not has_migrations:
+                print("📭 No tables or migrations detected – initializing with db.create_all()...")
                 db.create_all()
                 print("✅ Base tables created via create_all()")
+            elif not existing_tables:
+                print("📭 No tables detected – Alembic migrations will initialize the database")
             else:
                 print(f"ℹ️ Detected {len(existing_tables)} existing tables – skipping create_all() to preserve migration integrity")
             
-            # Set the correct migrations directory path
-            import os
-            migrations_dir = os.path.join(os.path.dirname(__file__), 'backend', 'migrations')
-            
-            # Check if migrations directory exists and has versions
-            if os.path.exists(migrations_dir):
-                versions_dir = os.path.join(migrations_dir, 'versions')
-                if os.path.exists(versions_dir) and os.listdir(versions_dir):
-                    print(f"📁 Found migrations in: {migrations_dir}")
-                    # Try to run migrations
-                    try:
-                        upgrade(directory=migrations_dir, revision='heads')
-                        print("✅ Database migrations completed")
-                    except Exception as mig_e:
-                        print(f"⚠️ Migration issue (may be already up to date): {mig_e}")
-                else:
-                    print("⚠️ No migration versions found - using db.create_all() only")
+            if has_migrations:
+                print(f"📁 Found migrations in: {migrations_dir}")
+                try:
+                    upgrade(directory=migrations_dir, revision='heads')
+                    print("✅ Database migrations completed")
+                except Exception as mig_e:
+                    print(f"❌ Migration error: {mig_e}")
+                    return False
             else:
-                print("⚠️ Migrations directory not found - using db.create_all() only")
+                print("⚠️ No migration versions found - using db.create_all() only")
             
             # Schema drift audit & hot-fix section
             print("🔍 Auditing schema for expected columns (hot-fix path)...")
@@ -348,5 +339,8 @@ def run_migrations():
     return True
 
 if __name__ == "__main__":
+    if not install_dependencies():
+        print("❌ Cannot proceed without Python dependencies")
+        sys.exit(1)
     success = run_migrations()
     sys.exit(0 if success else 1)
