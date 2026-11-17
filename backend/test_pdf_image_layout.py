@@ -449,6 +449,53 @@ def test_pdf_cover_image_fills_page_without_distortion(tmp_path, image_size):
     assert 2 * y + height == pytest.approx(page_height)
 
 
+@pytest.mark.parametrize('template_class, footer_y', [
+    (pdf_generator.HeaderDocTemplate, 73.355932),
+    (pdf_generator.BackgroundImageDocTemplate, 67.355932),
+])
+@pytest.mark.parametrize('placement, expected_x', [
+    (None, 18),
+    ('top-left', 18),
+    ('top-center', 234),
+    ('top-right', 450),
+    ('bottom-center', 234),
+    ('bottom-right', 450),
+])
+def test_pdf_cover_logo_placement(tmp_path, monkeypatch, template_class, footer_y, placement, expected_x):
+    logo = tmp_path / 'cover-logo.png'
+    PILImage.new('RGB', (177, 100), 'blue').save(logo)
+    settings = {'export_pdf_title_logo': str(logo)}
+    if placement is not None:
+        settings['export_branding_templates'] = json.dumps([
+            {'name': 'Cover', 'settings': {'export_pdf_cover_logo_placement': placement}},
+        ])
+    monkeypatch.setattr(export_branding, 'get_setting', lambda key, default: settings.get(key, default))
+    branding = export_branding.get_export_branding_settings('Cover' if placement else '')
+    output = BytesIO()
+    doc = template_class(
+        output, publication=SimpleNamespace(id=1, form_number='1'), branding=branding, pagesize=letter,
+    )
+    canvas = Canvas(output, pagesize=letter)
+    doc.add_title_page_with_footer(canvas, doc)
+
+    page = canvas.getCurrentPageContent()
+    transform = re.search(r'^(.+) cm\n/FormXob\.\S+ Do$', page, re.M)
+    assert transform is not None
+    width, _, _, height, x, y = map(float, transform[1].split())
+    assert width == pytest.approx(144)
+    assert x == pytest.approx(expected_x)
+    footer = re.search(r'([\d.]+) Tm \(Form: 1\)', page)
+    assert footer is not None
+    assert float(footer[1]) == pytest.approx(footer_y, abs=0.001)
+    if placement and placement.startswith('top-'):
+        assert y + height == pytest.approx(letter[1] - 18, abs=0.001)
+    elif placement:
+        assert y >= footer_y + 9
+        assert y + height < letter[1] / 2
+    else:
+        assert y == pytest.approx(18)
+
+
 @pytest.mark.parametrize(
     'default_alignment, default_color, template, with_background, centered, expected_colors',
     [

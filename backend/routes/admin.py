@@ -16,6 +16,8 @@ from werkzeug.utils import secure_filename
 from ..services.export_branding import (
     HEX_COLOR_RE,
     NO_COVER_BACKGROUND_SENTINEL,
+    PDF_COVER_LOGO_PLACEMENT_KEY,
+    PDF_COVER_LOGO_PLACEMENTS,
     PDF_COVER_TEXT_ALIGNMENT_KEY,
     PDF_COVER_TEXT_ALIGNMENTS,
     PDF_COVER_TEXT_COLOR_KEY,
@@ -816,6 +818,9 @@ def update_settings():
             continue
         if key == PDF_COVER_TEXT_COLOR_KEY and value and not HEX_COLOR_RE.fullmatch(value):
             errors.append("PDF cover text color must be a six-digit hex color (e.g. #112E51) or blank.")
+            continue
+        if key == PDF_COVER_LOGO_PLACEMENT_KEY and value not in PDF_COVER_LOGO_PLACEMENTS:
+            errors.append(f"PDF cover logo placement must be one of: {', '.join(PDF_COVER_LOGO_PLACEMENTS)}.")
             continue
         try:
             set_setting(key, value)

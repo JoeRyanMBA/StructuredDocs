@@ -21,6 +21,7 @@ _cache_lock = threading.Lock()
 UNCACHED_SETTINGS = {
     'export_brand_name',
     'export_pdf_title_logo',
+    'export_pdf_cover_logo_placement',
     'export_pdf_footer_logo',
     'export_pdf_cover_background',
     'export_pdf_cover_text_alignment',
@@ -41,6 +42,7 @@ DEFAULTS: dict[str, tuple[str, str]] = {
     'max_upload_size_mb':         ('20',           'Max upload file size in megabytes'),
     'export_brand_name':          ('StructuredDocs', 'Brand name shown in PDF and HTML exports'),
     'export_pdf_title_logo':      ('Title_Page_Logo.png', 'PDF title page logo (filename in backend/static/backgrounds or absolute path)'),
+    'export_pdf_cover_logo_placement': ('bottom-left', 'Placement of the logo on the PDF cover only'),
     'export_pdf_footer_logo':     ('Footer_Logo.png', 'PDF footer logo (filename in backend/static/backgrounds or absolute path)'),
     'export_pdf_cover_background':('SC Cover Background.png', 'Default PDF cover background image (filename in backend/static/backgrounds or absolute path)'),
     'export_pdf_cover_text_alignment': ('right', 'Horizontal alignment of the PDF cover title and subtitle'),

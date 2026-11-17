@@ -43,10 +43,11 @@ after(() => {
   delete globalThis.brandingPreviewTest
 })
 
-test('cover text alignment and color can be saved as a template without changing the defaults', async context => {
+test('cover styling and logo placement can be saved as a template without changing the defaults', async context => {
   const key = 'export_pdf_cover_text_alignment'
   const colorKey = 'export_pdf_cover_text_color'
-  const saved = { [key]: 'right', [colorKey]: '', export_branding_templates: '[]' }
+  const placementKey = 'export_pdf_cover_logo_placement'
+  const saved = { [key]: 'right', [colorKey]: '', [placementKey]: 'bottom-left', export_branding_templates: '[]' }
   const update = context.mock.method(globalThis.brandingPreviewTest, 'updateAdminSettings', async entries => {
     entries.forEach(({ key, value }) => { saved[key] = value })
   })
@@ -60,6 +61,10 @@ test('cover text alignment and color can be saved as a template without changing
     assert.equal(alignment.value, 'right')
     alignment.value = 'center'
     alignment.dispatchEvent(new dom.window.Event('change'))
+    const placement = container.querySelector(`#${placementKey}`)
+    assert.equal(placement.value, 'bottom-left')
+    placement.value = 'top-center'
+    placement.dispatchEvent(new dom.window.Event('change'))
 
     vm.templateName = 'Centered cover'
     vm.templateVariableValue = 'Acme'
@@ -77,13 +82,16 @@ test('cover text alignment and color can be saved as a template without changing
     assert.deepEqual(update.mock.calls[0].arguments[0].map(entry => entry.key), ['export_branding_templates'])
     assert.equal(saved[key], 'right')
     assert.equal(saved[colorKey], '')
+    assert.equal(saved[placementKey], 'bottom-left')
     const [template] = vm.brandingTemplates
     assert.equal(template.settings[key], 'center')
     assert.equal(template.settings[colorKey], '#112E51')
+    assert.equal(template.settings[placementKey], 'top-center')
     vm.applyTemplate(template)
     await nextTick()
     assert.equal(alignment.value, 'center')
     assert.equal(color.value, '#112E51')
+    assert.equal(placement.value, 'top-center')
   } finally {
     app.unmount()
     container.remove()
