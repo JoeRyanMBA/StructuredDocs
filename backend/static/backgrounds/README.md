@@ -17,6 +17,12 @@ a six-digit hex color (for example, `#112E51`), or leave it blank to use white
 on covers with a background image and the default text colors on plain covers.
 You can save the color as a default or as part of a branding template.
 
+**PDF Cover Logo Placement** moves the cover logo to the left, center, or
+right at the top or bottom of the page. **Bottom Left** preserves the
+existing layout. Bottom Center and Bottom Right place the logo just above
+the cover footer text. Save the placement as a default or as part of a
+branding template. It does not move the footer logo on later pages.
+
 The Export Branding Settings uploader validates image contents, not just file
 extensions. Existing files that contain placeholder text or corrupt image data
 cannot produce thumbnails; re-upload the original image and select the new asset.

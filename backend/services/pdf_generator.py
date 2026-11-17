@@ -30,7 +30,12 @@ from reportlab.pdfgen import canvas
 from backend.pdf_config import PDFConfig, CorporateConfig, AcademicConfig, CompactConfig, OrganizationConfig
 from backend.utils.storage import resolve_local_storage_root
 from backend.utils.image_registry import normalize_stale_temp_image_refs_in_tree
-from .export_branding import get_export_branding_settings, resolve_brand_asset_path, NO_COVER_BACKGROUND_SENTINEL
+from .export_branding import (
+    DEFAULT_PDF_COVER_LOGO_PLACEMENT,
+    NO_COVER_BACKGROUND_SENTINEL,
+    get_export_branding_settings,
+    resolve_brand_asset_path,
+)
 
 
 
@@ -587,6 +592,39 @@ def _consume_markdown_table(lines, start_index):
     return table_rows, i
 
 
+_COVER_LOGO_INSET = 0.25 * inch
+_COVER_LOGO_WIDTH = 2 * inch
+_COVER_LOGO_HEIGHT = _COVER_LOGO_WIDTH / 1.77
+
+
+def _draw_cover_logo(canvas, pagesize, branding, footer_text_y):
+    try:
+        logo_path = _resolve_pdf_renderable_image_path(branding.get('pdf_title_logo', ''))
+        if not logo_path or not os.path.exists(logo_path):
+            return
+
+        vertical, horizontal = branding.get('pdf_cover_logo_placement', DEFAULT_PDF_COVER_LOGO_PLACEMENT).split('-')
+        page_width, page_height = pagesize
+        x = {
+            'left': _COVER_LOGO_INSET,
+            'center': (page_width - _COVER_LOGO_WIDTH) / 2,
+            'right': page_width - _COVER_LOGO_INSET - _COVER_LOGO_WIDTH,
+        }[horizontal]
+        y = _COVER_LOGO_INSET
+        if vertical == 'top':
+            y = page_height - _COVER_LOGO_INSET - _COVER_LOGO_HEIGHT
+        elif horizontal != 'left':
+            # Clear the centered brand name and right-aligned form details.
+            y = footer_text_y + 10
+
+        canvas.drawImage(
+            logo_path, x, y, width=_COVER_LOGO_WIDTH, height=_COVER_LOGO_HEIGHT,
+            preserveAspectRatio=True, mask='auto',
+        )
+    except (OSError, ValueError) as exc:
+        _pdf_warning(f"Could not draw PDF cover logo: {exc}")
+
+
 class BackgroundImageDocTemplate(BaseDocTemplate):
     """Custom document template that supports background images, headers and footers on pages"""
     
@@ -691,36 +729,11 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
         """Add footer for title page with Organization logo"""
         try:
             canvas.saveState()
-            page_width, page_height = self.pagesize
-            
-            # Logo positioning - 0.25" from left and bottom edges of page
-            logo_x = 0.25 * inch  # 0.25" from left edge of page
-            logo_y = 0.25 * inch  # 0.25" from bottom edge of page
-            logo_width = 2.0 * inch  # Title page logo should be 2" wide
-            logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
-            
-            # Add Organization logo (positioned at left edge)
-            title_logo_path = _resolve_pdf_renderable_image_path(
-                self.branding.get('pdf_title_logo', '')
-            )
-            if os.path.exists(title_logo_path):
-                try:
-                    canvas.drawImage(
-                        title_logo_path,
-                        logo_x, logo_y,
-                        width=logo_width,
-                        height=logo_height,
-                        preserveAspectRatio=True,
-                        mask='auto'  # Enable transparency support
-                    )
-                except:
-                    _pdf_debug("Warning: Could not load title page logo")
-            
-            # Set font for footer text
+            page_width, _ = self.pagesize
+            footer_text_y = _COVER_LOGO_INSET + _COVER_LOGO_HEIGHT - 32
+            _draw_cover_logo(canvas, self.pagesize, self.branding, footer_text_y)
+
             canvas.setFont("Helvetica", 10)
-            
-            # Footer text positioning - move up one row to align better with visual top of logo
-            footer_text_y = logo_y + logo_height - 32  # Move text down about 14 more points
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
             # Top row: Organization name (centered) and form number (right)
@@ -997,36 +1010,11 @@ class HeaderDocTemplate(BaseDocTemplate):
         """Add footer for title page with Organization logo"""
         try:
             canvas.saveState()
-            page_width, page_height = self.pagesize
-            
-            # Logo positioning - 0.25" from left and bottom edges of page
-            logo_x = 0.25 * inch  # 0.25" from left edge of page
-            logo_y = 0.25 * inch  # 0.25" from bottom edge of page
-            logo_width = 2.0 * inch  # Title page logo should be 2" wide
-            logo_height = logo_width / 1.77  # Maintain proper 1.77:1 aspect ratio
-            
-            # Add Organization logo (positioned at left edge)
-            title_logo_path = _resolve_pdf_renderable_image_path(
-                self.branding.get('pdf_title_logo', '')
-            )
-            if os.path.exists(title_logo_path):
-                try:
-                    canvas.drawImage(
-                        title_logo_path,
-                        logo_x, logo_y,
-                        width=logo_width,
-                        height=logo_height,
-                        preserveAspectRatio=True,
-                        mask='auto'  # Enable transparency support
-                    )
-                except:
-                    _pdf_debug("Warning: Could not load title page logo")
-            
-            # Set font for footer text
+            page_width, _ = self.pagesize
+            footer_text_y = _COVER_LOGO_INSET + _COVER_LOGO_HEIGHT - 26
+            _draw_cover_logo(canvas, self.pagesize, self.branding, footer_text_y)
+
             canvas.setFont("Helvetica", 9)
-            
-            # Footer text positioning - move up one row to align better with visual top of logo
-            footer_text_y = logo_y + logo_height - 26  # Move text down about 14 more points
             right_margin_x = page_width - 0.5 * inch  # Use 0.5" right margin
             
             # Top row: "StructuredDocs" (centered) and revision date (right)
