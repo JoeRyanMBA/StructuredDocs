@@ -1,6 +1,21 @@
 # Background Images Directory
 
 This directory contains background images that can be used for PDF title pages.
+The background fills the title page edge to edge without changing the margins
+for text or other pages. If the image and page have different aspect ratios,
+the image is scaled proportionally and cropped around the center. Match the
+page's aspect ratio to keep the entire image visible.
+
+Under **Export Branding Settings**, set **PDF Cover Text Alignment** to
+**Center** to center the title and subtitle horizontally, with or without a
+background image. **Right** preserves the original layout. Save the settings
+to change the default, or save the current branding as a template to set the
+alignment for publications using that template without changing the default.
+
+**PDF Cover Text Color** sets the color of both the title and subtitle. Enter
+a six-digit hex color (for example, `#112E51`), or leave it blank to use white
+on covers with a background image and the default text colors on plain covers.
+You can save the color as a default or as part of a branding template.
 
 The Export Branding Settings uploader validates image contents, not just file
 extensions. Existing files that contain placeholder text or corrupt image data

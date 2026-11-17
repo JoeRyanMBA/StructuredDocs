@@ -19,6 +19,7 @@ import mistune
 from reportlab.lib.pagesizes import letter, A4
 from reportlab.lib.styles import getSampleStyleSheet, ParagraphStyle
 from reportlab.lib.units import inch
+from reportlab.lib.utils import ImageReader
 from reportlab.platypus import SimpleDocTemplate, Paragraph, Spacer, PageBreak, Table, TableStyle, Image, ImageAndFlowables, NextPageTemplate, Flowable
 from reportlab.platypus.flowables import AnchorFlowable
 from reportlab.lib import colors
@@ -642,22 +643,30 @@ class BackgroundImageDocTemplate(BaseDocTemplate):
     
     def add_title_page_with_footer(self, canvas, doc):
         """Add background image and footer to title page"""
-        # Add background image
         if self.background_image_path and os.path.exists(self.background_image_path):
+            canvas.saveState()
             try:
-                canvas.saveState()
                 page_width, page_height = self.pagesize
+                image = ImageReader(self.background_image_path)
+                image_width, image_height = image.getSize()
+                scale = max(page_width / image_width, page_height / image_height)
+                width, height = image_width * scale, image_height * scale
+
+                page_bounds = canvas.beginPath()
+                page_bounds.rect(0, 0, page_width, page_height)
+                canvas.clipPath(page_bounds, stroke=0, fill=0)
                 canvas.drawImage(
-                    self.background_image_path,
-                    0, 0,
-                    width=page_width,
-                    height=page_height,
-                    preserveAspectRatio=True,
+                    image,
+                    (page_width - width) / 2,
+                    (page_height - height) / 2,
+                    width=width,
+                    height=height,
                     mask='auto'
                 )
+            except (OSError, ValueError) as exc:
+                _pdf_warning(f"Could not draw PDF title-page background: {exc}")
+            finally:
                 canvas.restoreState()
-            except Exception as e:
-                _pdf_debug(f"Warning: Could not add background image: {e}")
         
         # Add title page footer
         self.add_title_footer(canvas, doc)
@@ -1288,52 +1297,32 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
         title_style = config.create_title_style(base_styles)
         subtitle_style = config.create_subtitle_style(base_styles)
     
-        # Title page content - move title down about 1" and align to right margin
+        center_cover_text = branding.get('pdf_cover_text_alignment') == 'center'
+        cover_text_style = {
+            'alignment': TA_CENTER if center_cover_text else TA_RIGHT,
+            'leftIndent': 0,
+            'rightIndent': 0 if center_cover_text else -0.5 * inch,
+        }
         story.append(Spacer(1, 84))  # Move down ~1" (72pt)
-    
-        if background_image_path and os.path.exists(background_image_path):
-            # For background image docs, use white text for visibility on blue background
-            enhanced_title_style = ParagraphStyle(
-                'EnhancedTitle',
-                parent=title_style,
-                textColor=colors.white,  # White text for visibility on blue background
-                fontSize=title_style.fontSize + 4,  # Make title larger
-                leading=title_style.fontSize + 8,
-                alignment=TA_RIGHT,  # Right-align title
-                leftIndent=0,  # No left indent for full right alignment
-                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-            )
-            enhanced_subtitle_style = ParagraphStyle(
-                'EnhancedSubtitle',
-                parent=subtitle_style,
-                textColor=colors.white,  # White text for visibility on blue background
-                fontSize=subtitle_style.fontSize + 3,
-                alignment=TA_RIGHT,  # Right-align subtitle
-                leftIndent=0,  # No left indent for full right alignment
-                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-            )
-            story.append(Paragraph(publication.title, enhanced_title_style))
-            if publication.description:
-                story.append(Paragraph(publication.description, enhanced_subtitle_style))
-        else:
-            # Regular title page without background - also right-aligned
-            enhanced_title_style = ParagraphStyle(
-                'EnhancedTitle',
-                parent=title_style,
-                alignment=TA_RIGHT,  # Right-align title
-                leftIndent=0,  # No left indent for full right alignment
-                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-            )
-            enhanced_subtitle_style = ParagraphStyle(
-                'EnhancedSubtitle',
-                parent=subtitle_style,
-                alignment=TA_RIGHT,  # Right-align subtitle
-                leftIndent=0,  # No left indent for full right alignment
-                rightIndent=-0.5 * inch,  # Position 0.5" from page edge (not margin)
-            )
-            story.append(Paragraph(publication.title, enhanced_title_style))
-            if publication.description:
-                story.append(Paragraph(publication.description, enhanced_subtitle_style))
+
+        enhanced_title_style = ParagraphStyle('EnhancedTitle', parent=title_style, **cover_text_style)
+        enhanced_subtitle_style = ParagraphStyle('EnhancedSubtitle', parent=subtitle_style, **cover_text_style)
+        if isinstance(doc, BackgroundImageDocTemplate):
+            enhanced_title_style.textColor = colors.white
+            enhanced_title_style.fontSize = title_style.fontSize + 4
+            enhanced_title_style.leading = title_style.fontSize + 8
+            enhanced_subtitle_style.textColor = colors.white
+            enhanced_subtitle_style.fontSize = subtitle_style.fontSize + 3
+
+        cover_text_color = branding.get('pdf_cover_text_color')
+        if cover_text_color:
+            custom_color = colors.HexColor(cover_text_color)
+            enhanced_title_style.textColor = custom_color
+            enhanced_subtitle_style.textColor = custom_color
+
+        story.append(Paragraph(publication.title, enhanced_title_style))
+        if publication.description:
+            story.append(Paragraph(publication.description, enhanced_subtitle_style))
     
         # Page break to TOC (switches to TOC page template)
         story.append(NextPageTemplate('toc_page'))
