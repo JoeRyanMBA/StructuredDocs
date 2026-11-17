@@ -27,6 +27,33 @@ def _image_path(tmp_path):
     return str(path)
 
 
+@pytest.mark.parametrize(
+    'link_markup',
+    [
+        '<a href="/topics/4/edit">Create a project</a>',
+        '[Create a project](/topics/4/edit)',
+    ],
+)
+def test_published_topic_links_in_numbered_lists_use_pdf_anchors(link_markup):
+    tree = [
+        {
+            'id': 42,
+            'topic_id': 4,
+            'children': [{'id': 81, 'topic_id': 8, 'children': []}],
+        },
+    ]
+    topic_anchors = pdf_generator._collect_topic_anchors(tree)
+
+    paragraphs = convert_markdown_to_pdf_paragraphs(
+        f'<ol><li>{link_markup}.</li></ol>',
+        topic_anchors=topic_anchors,
+    )
+
+    assert paragraphs == [
+        '__ORDERED__1__:<link href="#node_42">Create a project</link>.'
+    ]
+
+
 def test_default_pdf_palette_uses_neutral_heading_colors():
     heading_keys = ('h1_color', 'h2_color', 'h3_color', 'h4_color', 'h5_color')
 
