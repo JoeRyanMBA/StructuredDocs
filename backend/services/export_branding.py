@@ -1,6 +1,7 @@
 import os
 import re
 import json
+from urllib.parse import unquote
 from typing import Dict
 
 from ..utils.settings import get_setting
@@ -19,6 +20,18 @@ DEFAULT_BRANDING: Dict[str, str] = {
     "html_primary_color": "#005a9c",
     "html_accent_color": "#112E51",
 }
+
+
+def get_brand_asset_filename(value: str) -> str:
+    """Return the basename represented by a branding setting value."""
+    candidate = (value or "").strip()
+    admin_asset_prefix = "/api/admin/export-branding/assets/"
+    if candidate.startswith(admin_asset_prefix):
+        candidate = candidate[len(admin_asset_prefix):].split("?", 1)[0].split("#", 1)[0]
+        if candidate.endswith("/preview"):
+            candidate = candidate[:-len("/preview")]
+        candidate = unquote(candidate)
+    return os.path.basename(candidate)
 
 
 def _normalize_hex_color(value: str, fallback: str) -> str:
@@ -45,6 +58,11 @@ def resolve_brand_asset_path(value: str, fallback_filename: str = "") -> str:
         return ""
     if not candidate:
         return ""
+
+    if candidate.startswith("/api/admin/export-branding/assets/"):
+        candidate = get_brand_asset_filename(candidate)
+        if not candidate:
+            return ""
 
     if os.path.isabs(candidate) and os.path.exists(candidate):
         return candidate
