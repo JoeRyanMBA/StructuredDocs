@@ -13,11 +13,17 @@ NO_COVER_BACKGROUND_SENTINEL = "__none__"
 PDF_COVER_TEXT_ALIGNMENT_KEY = "export_pdf_cover_text_alignment"
 PDF_COVER_TEXT_ALIGNMENTS = ("right", "center")
 PDF_COVER_TEXT_COLOR_KEY = "export_pdf_cover_text_color"
+PDF_COVER_LOGO_PLACEMENT_KEY = "export_pdf_cover_logo_placement"
+DEFAULT_PDF_COVER_LOGO_PLACEMENT = "bottom-left"
+PDF_COVER_LOGO_PLACEMENTS = (
+    "top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right",
+)
 
 
 DEFAULT_BRANDING: Dict[str, str] = {
     "brand_name": "StructuredDocs",
     "pdf_title_logo": "Title_Page_Logo.png",
+    "pdf_cover_logo_placement": DEFAULT_PDF_COVER_LOGO_PLACEMENT,
     "pdf_footer_logo": "Footer_Logo.png",
     "pdf_cover_background": "SC Cover Background.png",
     "pdf_cover_text_alignment": "right",
@@ -133,6 +139,7 @@ def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
     values = {
         "export_brand_name": get_setting("export_brand_name", DEFAULT_BRANDING["brand_name"]),
         "export_pdf_title_logo": get_setting("export_pdf_title_logo", DEFAULT_BRANDING["pdf_title_logo"]),
+        PDF_COVER_LOGO_PLACEMENT_KEY: get_setting(PDF_COVER_LOGO_PLACEMENT_KEY, DEFAULT_PDF_COVER_LOGO_PLACEMENT),
         "export_pdf_footer_logo": get_setting("export_pdf_footer_logo", DEFAULT_BRANDING["pdf_footer_logo"]),
         "export_pdf_cover_background": get_setting("export_pdf_cover_background", DEFAULT_BRANDING["pdf_cover_background"]),
         PDF_COVER_TEXT_ALIGNMENT_KEY: get_setting(PDF_COVER_TEXT_ALIGNMENT_KEY, DEFAULT_BRANDING["pdf_cover_text_alignment"]),
@@ -148,12 +155,18 @@ def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
     )
     if selected_template:
         # Older templates retain their original cover styling.
+        values[PDF_COVER_LOGO_PLACEMENT_KEY] = DEFAULT_PDF_COVER_LOGO_PLACEMENT
         values[PDF_COVER_TEXT_ALIGNMENT_KEY] = DEFAULT_BRANDING["pdf_cover_text_alignment"]
         values[PDF_COVER_TEXT_COLOR_KEY] = DEFAULT_BRANDING["pdf_cover_text_color"]
         values.update({
             key: value for key, value in selected_template.get("settings", {}).items()
             if key in values
         })
+
+    cover_logo_placement = values[PDF_COVER_LOGO_PLACEMENT_KEY]
+    if cover_logo_placement not in PDF_COVER_LOGO_PLACEMENTS:
+        logging.getLogger(__name__).warning("Invalid PDF cover logo placement; using Bottom Left")
+        cover_logo_placement = DEFAULT_PDF_COVER_LOGO_PLACEMENT
 
     cover_text_alignment = values[PDF_COVER_TEXT_ALIGNMENT_KEY]
     if cover_text_alignment not in PDF_COVER_TEXT_ALIGNMENTS:
@@ -194,6 +207,7 @@ def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
     return {
         "brand_name": brand_name,
         "pdf_title_logo": pdf_title_logo,
+        "pdf_cover_logo_placement": cover_logo_placement,
         "pdf_footer_logo": pdf_footer_logo,
         "pdf_cover_background": pdf_cover_background,
         "pdf_cover_text_alignment": cover_text_alignment,
