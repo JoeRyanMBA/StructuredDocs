@@ -13,7 +13,14 @@ import xml.etree.ElementTree as ET
 from typing import Any
 from PIL import Image, UnidentifiedImageError
 from werkzeug.utils import secure_filename
-from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL, get_brand_asset_filename
+from ..services.export_branding import (
+    HEX_COLOR_RE,
+    NO_COVER_BACKGROUND_SENTINEL,
+    PDF_COVER_TEXT_ALIGNMENT_KEY,
+    PDF_COVER_TEXT_ALIGNMENTS,
+    PDF_COVER_TEXT_COLOR_KEY,
+    get_brand_asset_filename,
+)
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -803,6 +810,12 @@ def update_settings():
         value = str(item.get('value', '')).strip()
         if not key or key not in DEFAULTS:
             errors.append(f"Unknown setting key: {key!r}")
+            continue
+        if key == PDF_COVER_TEXT_ALIGNMENT_KEY and value not in PDF_COVER_TEXT_ALIGNMENTS:
+            errors.append("PDF cover text alignment must be 'right' or 'center'.")
+            continue
+        if key == PDF_COVER_TEXT_COLOR_KEY and value and not HEX_COLOR_RE.fullmatch(value):
+            errors.append("PDF cover text color must be a six-digit hex color (e.g. #112E51) or blank.")
             continue
         try:
             set_setting(key, value)
