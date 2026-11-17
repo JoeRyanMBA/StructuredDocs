@@ -28,14 +28,10 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column(
-        'review_tokens',
-        sa.Column('last_accessed_at', sa.DateTime(), nullable=True)
-    )
-    op.add_column(
-        'review_batch_tokens',
-        sa.Column('last_accessed_at', sa.DateTime(), nullable=True)
-    )
+    for table in ('review_tokens', 'review_batch_tokens'):
+        columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns(table)}
+        if 'last_accessed_at' not in columns:
+            op.add_column(table, sa.Column('last_accessed_at', sa.DateTime(), nullable=True))
 
 
 def downgrade():

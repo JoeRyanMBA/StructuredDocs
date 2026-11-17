@@ -115,11 +115,6 @@ def install_dependencies():
         print("❌ All installation methods failed")
         return False
 
-# Try to install dependencies before importing
-if not install_dependencies():
-    print("❌ Cannot proceed without Python dependencies")
-    sys.exit(1)
-
 # Now safe to import - do this inside the function to avoid module-level import
 def run_migrations():
     # Import here, after dependencies are guaranteed to be installed
@@ -153,12 +148,8 @@ def run_migrations():
                 versions_dir = os.path.join(migrations_dir, 'versions')
                 if os.path.exists(versions_dir) and os.listdir(versions_dir):
                     print(f"📁 Found migrations in: {migrations_dir}")
-                    # Try to run migrations
-                    try:
-                        upgrade(directory=migrations_dir, revision='heads')
-                        print("✅ Database migrations completed")
-                    except Exception as mig_e:
-                        print(f"⚠️ Migration issue (may be already up to date): {mig_e}")
+                    upgrade(directory=migrations_dir, revision='heads')
+                    print("✅ Database migrations completed")
                 else:
                     print("⚠️ No migration versions found - using db.create_all() only")
             else:
@@ -348,5 +339,8 @@ def run_migrations():
     return True
 
 if __name__ == "__main__":
+    if not install_dependencies():
+        print("❌ Cannot proceed without Python dependencies")
+        sys.exit(1)
     success = run_migrations()
     sys.exit(0 if success else 1)
