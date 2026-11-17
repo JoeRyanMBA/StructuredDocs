@@ -7,6 +7,7 @@ extensions. Existing files that contain placeholder text or corrupt image data
 cannot produce thumbnails; re-upload the original image and select the new asset.
 Preview failures are shown on the asset card without removing the file or changing
 saved branding settings.
+SVG uploads containing XML entity declarations are rejected.
 
 ## Usage
 

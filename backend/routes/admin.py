@@ -9,8 +9,9 @@ from sqlalchemy import func, select, text
 from datetime import datetime, timedelta
 import os
 import json
-import xml.etree.ElementTree as ET
 from typing import Any
+from defusedxml import ElementTree as ET
+from defusedxml.common import DefusedXmlException
 from PIL import Image, UnidentifiedImageError
 from werkzeug.utils import secure_filename
 from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL
@@ -879,13 +880,13 @@ def upload_export_branding_asset():
 
     try:
         if os.path.splitext(file.filename)[1].lower() == '.svg':
-            root = ET.parse(file.stream).getroot()
+            root = ET.fromstring(file.stream.read())
             if root.tag not in ('svg', '{http://www.w3.org/2000/svg}svg'):
                 raise ValueError('Expected an SVG document')
         else:
             with Image.open(file.stream) as image:
                 image.verify()
-    except (UnidentifiedImageError, OSError, SyntaxError, ValueError, Image.DecompressionBombError) as exc:
+    except (UnidentifiedImageError, OSError, SyntaxError, ValueError, DefusedXmlException, Image.DecompressionBombError) as exc:
         current_app.logger.warning('Rejected invalid branding image %r: %s', file.filename, exc)
         return jsonify({'error': 'File is not a valid image. Upload the original image file.'}), 400
     finally:
