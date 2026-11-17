@@ -18,7 +18,9 @@ depends_on = None
 
 def upgrade():
     # Add division column to stakeholders table
-    op.add_column('stakeholders', sa.Column('division', sa.String(200), nullable=True))
+    columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns('stakeholders')}
+    if 'division' not in columns:
+        op.add_column('stakeholders', sa.Column('division', sa.String(200), nullable=True))
 
 
 def downgrade():

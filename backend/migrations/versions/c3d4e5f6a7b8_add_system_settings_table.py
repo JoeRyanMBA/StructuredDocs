@@ -15,6 +15,8 @@ depends_on = None
 
 
 def upgrade():
+    if sa.inspect(op.get_bind()).has_table('system_settings'):
+        return
     op.create_table(
         'system_settings',
         sa.Column('id', sa.Integer(), primary_key=True),

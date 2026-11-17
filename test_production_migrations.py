@@ -1,14 +1,122 @@
 import importlib
+import os
 import sys
 from contextlib import nullcontext
+from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock
+from uuid import uuid4
 
+import pytest
 import sqlalchemy as sa
 from alembic.migration import MigrationContext
 from alembic.operations import Operations
 
 import run_migrations_production
+
+
+@pytest.fixture
+def postgres_migration_app():
+    url = os.environ.get("TEST_POSTGRES_URL")
+    if not url:
+        pytest.skip("Set TEST_POSTGRES_URL to run PostgreSQL migration regressions")
+
+    from flask import Flask
+    from backend.extensions import db, migrate
+    from backend import models  # noqa: F401
+
+    schema = f"migration_test_{uuid4().hex}"
+    engine = sa.create_engine(url)
+    with engine.begin() as connection:
+        connection.execute(sa.schema.CreateSchema(schema))
+    app = Flask(__name__)
+    app.config.update(
+        SQLALCHEMY_DATABASE_URI=url,
+        SQLALCHEMY_ENGINE_OPTIONS={"connect_args": {"options": f"-csearch_path={schema}"}},
+    )
+    db.init_app(app)
+    migrate.init_app(app, db)
+    try:
+        with app.app_context():
+            db.create_all()
+            try:
+                yield db
+            finally:
+                db.session.remove()
+                db.engine.dispose()
+    finally:
+        with engine.begin() as connection:
+            connection.execute(sa.schema.DropSchema(schema, cascade=True))
+        engine.dispose()
+
+
+@pytest.mark.parametrize("recorded_base", [False, True])
+def test_postgres_upgrade_replays_legacy_schema_without_data_loss(
+    postgres_migration_app, recorded_base
+):
+    from flask_migrate import upgrade
+
+    db = postgres_migration_app
+    directory = str(Path(__file__).parent / "backend" / "migrations")
+    with db.engine.begin() as connection:
+        connection.execute(sa.text(
+            "INSERT INTO publications (id, title) VALUES (1, 'Existing publication')"
+        ))
+        connection.execute(sa.text(
+            "INSERT INTO topics (id, title, status) VALUES (1, 'Approved topic', 'approved')"
+        ))
+        connection.execute(sa.text(
+            "INSERT INTO system_settings (key, value) VALUES ('export_html_logo', 'existing.svg')"
+        ))
+        connection.execute(sa.text("ALTER TABLE publications DROP COLUMN branding_template_name"))
+        connection.execute(sa.text("ALTER TABLE users DROP COLUMN last_seen"))
+        if recorded_base:
+            connection.execute(sa.text(
+                "CREATE TABLE alembic_version (version_num VARCHAR(32) PRIMARY KEY)"
+            ))
+            connection.execute(sa.text(
+                "INSERT INTO alembic_version VALUES ('b95a3c29dcb3')"
+            ))
+
+    upgrade(directory=directory, revision="heads")
+    upgrade(directory=directory, revision="heads")
+
+    with db.engine.connect() as connection:
+        assert connection.execute(sa.text(
+            "SELECT title, branding_template_name FROM publications WHERE id = 1"
+        )).one() == ("Existing publication", None)
+        assert connection.execute(sa.text(
+            "SELECT title, status FROM topics WHERE id = 1"
+        )).one() == ("Approved topic", "approved")
+        assert connection.execute(sa.text(
+            "SELECT value FROM system_settings WHERE key = 'export_html_logo'"
+        )).scalar_one() == "existing.svg"
+        assert "last_seen" in {
+            column["name"] for column in sa.inspect(connection).get_columns("users")
+        }
+        assert connection.execute(sa.text(
+            "SELECT version_num FROM alembic_version"
+        )).scalars().all() == ["20261112_remove_variable_scope"]
+
+
+def test_initial_postgres_migration_reuses_existing_enum_types(postgres_migration_app):
+    db = postgres_migration_app
+    migration = importlib.import_module(
+        "backend.migrations.versions.b95a3c29dcb3_initial_migration_from_clean_models"
+    )
+    with db.engine.begin() as connection:
+        connection.execute(sa.text("DROP TABLE import_documents CASCADE"))
+        with Operations.context(MigrationContext.configure(connection)):
+            migration.upgrade()
+            migration.upgrade()
+        connection.execute(sa.text(
+            "INSERT INTO import_documents "
+            "(filename, source_type, status, review_step, created_at) "
+            "VALUES ('original.docx', 'word', 'staging', 'pending', CURRENT_TIMESTAMP)"
+        ))
+        assert connection.execute(sa.text(
+            "SELECT filename FROM import_documents"
+        )).scalar_one() == "original.docx"
 
 
 def test_migration_failure_stops_before_schema_repairs(monkeypatch, capsys):

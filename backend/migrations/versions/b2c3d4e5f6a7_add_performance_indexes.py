@@ -15,28 +15,28 @@ depends_on = None
 
 def upgrade():
     # Collections
-    op.create_index('ix_collections_parent_id', 'collections', ['parent_id'])
-    op.create_index('ix_collections_project_id', 'collections', ['project_id'])
-    op.create_index('ix_collections_archived', 'collections', ['archived'])
+    op.create_index('ix_collections_parent_id', 'collections', ['parent_id'], if_not_exists=True)
+    op.create_index('ix_collections_project_id', 'collections', ['project_id'], if_not_exists=True)
+    op.create_index('ix_collections_archived', 'collections', ['archived'], if_not_exists=True)
 
     # Topics
-    op.create_index('ix_topics_created_at', 'topics', ['created_at'])
-    op.create_index('ix_topics_status', 'topics', ['status'])
-    op.create_index('ix_topics_updated_at', 'topics', ['updated_at'])
+    op.create_index('ix_topics_created_at', 'topics', ['created_at'], if_not_exists=True)
+    op.create_index('ix_topics_status', 'topics', ['status'], if_not_exists=True)
+    op.create_index('ix_topics_updated_at', 'topics', ['updated_at'], if_not_exists=True)
 
     # Publications
-    op.create_index('ix_publications_created_at', 'publications', ['created_at'])
-    op.create_index('ix_publications_title', 'publications', ['title'])
+    op.create_index('ix_publications_created_at', 'publications', ['created_at'], if_not_exists=True)
+    op.create_index('ix_publications_title', 'publications', ['title'], if_not_exists=True)
 
     # Publication nodes
-    op.create_index('ix_pub_nodes_publication_id', 'publication_nodes', ['publication_id'])
-    op.create_index('ix_pub_nodes_parent_id', 'publication_nodes', ['parent_id'])
+    op.create_index('ix_pub_nodes_publication_id', 'publication_nodes', ['publication_id'], if_not_exists=True)
+    op.create_index('ix_pub_nodes_parent_id', 'publication_nodes', ['parent_id'], if_not_exists=True)
 
     # Reviews
-    op.create_index('ix_reviews_topic_id', 'reviews', ['topic_id'])
-    op.create_index('ix_reviews_status', 'reviews', ['status'])
-    op.create_index('ix_reviews_reviewer_id', 'reviews', ['reviewer_id'])
-    op.create_index('ix_reviews_requested_at', 'reviews', ['requested_at'])
+    op.create_index('ix_reviews_topic_id', 'reviews', ['topic_id'], if_not_exists=True)
+    op.create_index('ix_reviews_status', 'reviews', ['status'], if_not_exists=True)
+    op.create_index('ix_reviews_reviewer_id', 'reviews', ['reviewer_id'], if_not_exists=True)
+    op.create_index('ix_reviews_requested_at', 'reviews', ['requested_at'], if_not_exists=True)
 
 
 def downgrade():

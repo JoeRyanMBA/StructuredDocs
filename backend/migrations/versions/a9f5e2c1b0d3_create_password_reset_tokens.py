@@ -17,6 +17,8 @@ depends_on = None
 
 
 def upgrade() -> None:
+    if sa.inspect(op.get_bind()).has_table('password_reset_tokens'):
+        return
     op.create_table(
         'password_reset_tokens',
         sa.Column('id', sa.Integer(), primary_key=True, nullable=False),
