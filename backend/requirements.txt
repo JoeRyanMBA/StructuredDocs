@@ -3,6 +3,7 @@ Flask-SQLAlchemy
 Flask-Migrate
 Flask-CORS
 python-docx
+defusedxml>=0.7.1
 Flask
 reportlab
 psutil

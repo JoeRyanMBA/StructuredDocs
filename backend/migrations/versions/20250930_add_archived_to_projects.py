@@ -14,9 +14,11 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column('projects', sa.Column('archived', sa.Boolean(), nullable=False, server_default='0'))
+    columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns('projects')}
+    if 'archived' not in columns:
+        op.add_column('projects', sa.Column('archived', sa.Boolean(), nullable=False, server_default=sa.false()))
     # Ensure existing rows default
-    op.execute("UPDATE projects SET archived = 0 WHERE archived IS NULL;")
+    op.execute("UPDATE projects SET archived = FALSE WHERE archived IS NULL;")
 
 
 def downgrade():

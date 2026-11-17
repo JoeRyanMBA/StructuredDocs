@@ -14,8 +14,10 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.create_table(
-        'variables',
+    metadata = sa.MetaData()
+    metadata.reflect(bind=op.get_bind(), only=['collections'], resolve_fks=False)
+    sa.Table(
+        'variables', metadata,
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('name', sa.String(length=120), nullable=False),
         sa.Column('slug', sa.String(length=120), nullable=False, unique=True),
@@ -25,8 +27,8 @@ def upgrade():
         sa.Column('updated_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
     )
 
-    op.create_table(
-        'variable_values',
+    sa.Table(
+        'variable_values', metadata,
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('variable_id', sa.Integer(), sa.ForeignKey('variables.id', ondelete='CASCADE'), nullable=False),
         sa.Column('value', sa.String(length=500), nullable=False),
@@ -35,8 +37,8 @@ def upgrade():
         sa.UniqueConstraint('variable_id', 'value', name='uq_variable_value')
     )
 
-    op.create_table(
-        'collection_variable_selections',
+    sa.Table(
+        'collection_variable_selections', metadata,
         sa.Column('id', sa.Integer(), primary_key=True),
         sa.Column('collection_id', sa.Integer(), sa.ForeignKey('collections.id', ondelete='CASCADE'), nullable=False),
         sa.Column('variable_id', sa.Integer(), sa.ForeignKey('variables.id', ondelete='CASCADE'), nullable=False),
@@ -44,6 +46,12 @@ def upgrade():
         sa.Column('locked', sa.Boolean(), server_default='0', nullable=False),
         sa.Column('created_at', sa.DateTime(), server_default=sa.text('(CURRENT_TIMESTAMP)'), nullable=False),
         sa.UniqueConstraint('collection_id', 'variable_id', name='uq_collection_variable')
+    )
+    metadata.create_all(
+        bind=op.get_bind(), checkfirst=True,
+        tables=[metadata.tables[name] for name in (
+            'variables', 'variable_values', 'collection_variable_selections',
+        )],
     )
 
 

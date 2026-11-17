@@ -131,8 +131,10 @@ jobs:
             printf 'IMAGE_TAG=%s\n' "$IMAGE_TAG" > "$IMAGE_TAG_ENV_FILE"
             if docker compose version >/dev/null 2>&1 && docker info >/dev/null 2>&1; then
               DC=(docker compose)
+              DOCKER=(docker)
             elif sudo -n docker compose -f docker-compose.single.yml --env-file .env ps >/dev/null 2>&1; then
               DC=(sudo -n docker compose)
+              DOCKER=(sudo -n docker)
             else
               echo "Docker Compose requires direct access or passwordless sudo."
               exit 1
@@ -145,6 +147,9 @@ jobs:
             }
             export IMAGE_TAG="${IMAGE_TAG}"
             compose config -q
+            "${DOCKER[@]}" image prune -a -f \
+              --filter "label=com.docker.compose.project=staging"
+            "${DOCKER[@]}" builder prune -f --filter "until=168h"
             if ! grep -Fq "${STAGING_PORT}:8080" docker-compose.single.yml; then
               echo "Staging app is not published on port ${STAGING_PORT}."
               exit 1

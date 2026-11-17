@@ -44,6 +44,70 @@ def _color_hex(color) -> str:
         return '#000000'
 
 
+def _collect_topic_anchors(nodes):
+    """Map topic IDs to the publication-node anchors used in the PDF."""
+    anchors = {}
+    for node in nodes:
+        topic_id = node.get('topic_id')
+        node_id = node.get('id')
+        if topic_id is not None and node_id is not None:
+            anchors[str(topic_id)] = f'node_{node_id}'
+        anchors.update(_collect_topic_anchors(node.get('children') or []))
+    return anchors
+
+
+def _link_published_topics(text, topic_anchors):
+    if not topic_anchors:
+        return text
+
+    def anchor_for_href(href):
+        try:
+            parsed_href = urlsplit(href)
+        except ValueError:
+            return None
+        if parsed_href.scheme or parsed_href.netloc:
+            return None
+        topic_match = re.fullmatch(
+            r'/topics/(\d+)/edit/?',
+            parsed_href.path,
+            re.IGNORECASE,
+        )
+        return topic_anchors.get(topic_match.group(1)) if topic_match else None
+
+    def replace_topic_link(match):
+        href_match = re.search(
+            r'\bhref\s*=\s*(["\'])(.*?)\1',
+            match.group('attrs'),
+            re.IGNORECASE | re.DOTALL,
+        )
+        if not href_match:
+            return match.group(0)
+
+        anchor_id = anchor_for_href(href_match.group(2))
+        if not anchor_id:
+            return match.group(0)
+        return f'<link href="#{anchor_id}">{match.group("content")}</link>'
+
+    text = re.sub(
+        r'<a\b(?P<attrs>[^>]*)>(?P<content>.*?)</a\s*>',
+        replace_topic_link,
+        text,
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    def replace_markdown_topic_link(match):
+        anchor_id = anchor_for_href(match.group(2))
+        if not anchor_id:
+            return match.group(0)
+        return f'<link href="#{anchor_id}">{match.group(1)}</link>'
+
+    return re.sub(
+        r'\[([^\]]+)\]\(([^)]+)\)',
+        replace_markdown_topic_link,
+        text,
+    )
+
+
 # ReportLab-safe text sanitization: strip unsupported tags and fix entities
 def _pdf_sanitize_text(s: str) -> str:
     if not s:
@@ -1139,6 +1203,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
     """Generate PDF document from publication tree with configurable formatting and optional background image"""
     normalize_stale_temp_image_refs_in_tree(tree)
     _pdf_temp_dir = tempfile.mkdtemp(prefix='sd_pdf_imgs_')
+    topic_anchors = _collect_topic_anchors(tree)
 
     # Ensure config_type is always defined
     if not config_type:
@@ -1439,6 +1504,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                     content_paragraphs = convert_markdown_to_pdf_paragraphs(
                         sanitized_content,
                         temp_dir=_pdf_temp_dir,
+                        topic_anchors=topic_anchors,
                     )
                     layout_image_count = sum(
                         item.startswith('__PDF_LAYOUT_IMG__:') for item in content_paragraphs
@@ -1728,7 +1794,7 @@ def _download_image_for_pdf(url: str, temp_dir: str) -> str:
         return ''
 
 
-def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
+def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
     """Convert markdown-like text to PDF paragraphs with better hierarchy support"""
     if not text:
         return [""]
@@ -1832,7 +1898,8 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
         """Normalize inline markdown within list item text for ReportLab rendering."""
         if not item_text:
             return ''
-        return _pdf_sanitize_text(_format_inline_markdown_for_pdf(item_text.strip()))
+        linked_text = _link_published_topics(item_text.strip(), topic_anchors)
+        return _pdf_sanitize_text(_format_inline_markdown_for_pdf(linked_text))
     
     i = 0
     while i < len(lines):
@@ -1964,6 +2031,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None):
             
             # Handle basic markdown formatting within text
             formatted_line = stripped
+            formatted_line = _link_published_topics(formatted_line, topic_anchors)
             # Bold text
             formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_line)
             # Italic text
