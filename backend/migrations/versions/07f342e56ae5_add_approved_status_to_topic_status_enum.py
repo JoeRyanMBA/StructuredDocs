@@ -51,7 +51,6 @@ def upgrade():
     else:
         # On PostgreSQL and others, do nothing here; a later migration updates the enum properly.
         pass
-    op.execute("ALTER TABLE topics_temp RENAME TO topics")
 
 
 def downgrade():

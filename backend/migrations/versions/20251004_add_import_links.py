@@ -14,14 +14,21 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
+    if sa.inspect(op.get_bind()).has_table('import_links'):
+        return
     # Create import_links table
+    link_type = sa.Enum('form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other', name='link_type_enum')
+    if op.get_bind().dialect.name == 'postgresql':
+        from sqlalchemy.dialects.postgresql import ENUM
+        link_type = ENUM(*link_type.enums, name=link_type.name, create_type=False)
+        link_type.create(op.get_bind(), checkfirst=True)
     op.create_table('import_links',
         sa.Column('id', sa.Integer(), nullable=False),
         sa.Column('document_id', sa.Integer(), nullable=False),
         sa.Column('title', sa.String(length=200), nullable=False),
         sa.Column('url', sa.String(length=512), nullable=False),
         sa.Column('description', sa.Text(), nullable=True),
-        sa.Column('link_type', sa.Enum('form', 'document', 'website', 'policy', 'procedure', 'regulation', 'other', name='link_type_enum'), nullable=False),
+        sa.Column('link_type', link_type, nullable=False),
         sa.Column('is_internal', sa.Boolean(), nullable=False),
         sa.Column('context', sa.Text(), nullable=True),
         sa.Column('position_in_document', sa.Integer(), nullable=True),
