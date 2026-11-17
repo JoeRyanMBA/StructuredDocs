@@ -10,11 +10,26 @@
       <div class="settings-grid">
         <div class="setting-row" v-for="key in orderedKeys" :key="key">
           <div class="setting-label">
-            <div class="label-title">{{ labelFor(key) }}</div>
+            <label v-if="key === 'export_pdf_cover_logo_placement' || key === 'export_pdf_cover_text_alignment' || key === 'export_pdf_cover_text_color'" class="label-title" :for="key">{{ labelFor(key) }}</label>
+            <div v-else class="label-title">{{ labelFor(key) }}</div>
             <div class="label-help">{{ descriptionFor(key) }}</div>
           </div>
           <div class="setting-input-stack">
+            <select v-if="key === 'export_pdf_cover_logo_placement'" :id="key" v-model="edits[key]" class="setting-input">
+              <option value="top-left">Top Left</option>
+              <option value="top-center">Top Center</option>
+              <option value="top-right">Top Right</option>
+              <option value="bottom-left">Bottom Left</option>
+              <option value="bottom-center">Bottom Center</option>
+              <option value="bottom-right">Bottom Right</option>
+            </select>
+            <select v-else-if="key === 'export_pdf_cover_text_alignment'" :id="key" v-model="edits[key]" class="setting-input">
+              <option value="right">Right</option>
+              <option value="center">Center</option>
+            </select>
             <input
+              v-else
+              :id="key === 'export_pdf_cover_text_color' ? key : undefined"
               v-model="edits[key]"
               class="setting-input"
               type="text"
@@ -65,7 +80,7 @@
             <div v-if="isImageSetting(key) && selectedAssetMissingForKey(key)" class="asset-empty-note error-text">
               Selected image file was not found in uploaded assets. Re-upload it or choose another image.
             </div>
-            <div v-if="key.startsWith('export_pdf_') && key !== 'export_pdf_cover_background'" class="asset-empty-note">
+            <div v-if="isImageSetting(key) && key.startsWith('export_pdf_') && !isCoverBackgroundKey(key)" class="asset-empty-note">
               PDF title/footer logos should use JPG or PNG files for reliable rendering. SVG is best reserved for the HTML logo.
             </div>
             <div v-if="isImageSetting(key)" class="asset-filter-row">
@@ -219,7 +234,7 @@
       <div class="actions-row">
         <button class="btn btn-secondary reset-branding-btn" :disabled="saving" @click="resetBrandingDefaults">Reset Branding Defaults</button>
         <button class="btn btn-secondary" :disabled="saving" @click="reload">Discard Changes</button>
-        <button class="btn btn-primary" :disabled="saving" @click="save">
+        <button class="btn btn-primary" :disabled="saving" @click="save()">
           <span v-if="saving">Saving...</span>
           <span v-else>Save Settings</span>
         </button>
@@ -247,8 +262,11 @@ import { resolveSelectedPublicationId } from '@/utils/publicationSelection'
 const BRANDING_KEYS = [
   'export_brand_name',
   'export_pdf_title_logo',
+  'export_pdf_cover_logo_placement',
   'export_pdf_footer_logo',
   'export_pdf_cover_background',
+  'export_pdf_cover_text_alignment',
+  'export_pdf_cover_text_color',
   'export_html_logo',
   'export_html_primary_color',
   'export_html_accent_color',
@@ -257,8 +275,11 @@ const BRANDING_KEYS = [
 const LABELS = {
   export_brand_name: 'Brand Name',
   export_pdf_title_logo: 'PDF Title Logo',
+  export_pdf_cover_logo_placement: 'PDF Cover Logo Placement',
   export_pdf_footer_logo: 'PDF Footer Logo',
   export_pdf_cover_background: 'PDF Cover Background',
+  export_pdf_cover_text_alignment: 'PDF Cover Text Alignment',
+  export_pdf_cover_text_color: 'PDF Cover Text Color',
   export_html_logo: 'HTML Header Logo',
   export_html_primary_color: 'HTML Primary Color',
   export_html_accent_color: 'HTML Accent Color',
@@ -269,6 +290,7 @@ const PLACEHOLDERS = {
   export_pdf_title_logo: 'Title_Page_Logo.png',
   export_pdf_footer_logo: 'Footer_Logo.png',
   export_pdf_cover_background: 'SC Cover Background.png',
+  export_pdf_cover_text_color: 'e.g. #112E51',
   export_html_logo: 'https://example.com/logo.png or company_logo.png',
   export_html_primary_color: '#005a9c',
   export_html_accent_color: '#112E51',
@@ -277,8 +299,11 @@ const PLACEHOLDERS = {
 const DEFAULT_VALUES = {
   export_brand_name: 'StructuredDocs',
   export_pdf_title_logo: 'Title_Page_Logo.png',
+  export_pdf_cover_logo_placement: 'bottom-left',
   export_pdf_footer_logo: 'Footer_Logo.png',
   export_pdf_cover_background: 'SC Cover Background.png',
+  export_pdf_cover_text_alignment: 'right',
+  export_pdf_cover_text_color: '',
   export_html_logo: '',
   export_html_primary_color: '#005a9c',
   export_html_accent_color: '#112E51',
@@ -772,22 +797,34 @@ export default {
       const variableValue = this.templateVariableValue.trim()
       if (!name || !variableValue) return
       const settings = Object.fromEntries(this.orderedKeys.map(key => [key, this.edits[key] ?? '']))
+      const coverTextColor = settings.export_pdf_cover_text_color.trim()
+      const normalizedColor = this.normalizeHexColor(coverTextColor, '')
+      if (coverTextColor && !normalizedColor) {
+        this.saveSuccess = false
+        this.saveError = 'PDF cover text color must be a six-digit hex color (e.g. #112E51) or blank.'
+        return
+      }
+      settings.export_pdf_cover_text_color = normalizedColor
       const templates = this.brandingTemplates.filter(template => template.name !== name)
       templates.push({ name, variable_value: variableValue, settings })
-      this.edits.export_branding_templates = JSON.stringify(templates)
       this.templateName = ''
       this.templateVariableValue = ''
-      await this.save()
+      await this.save([{ key: 'export_branding_templates', value: JSON.stringify(templates) }])
     },
     applyTemplate(template) {
-      Object.assign(this.edits, template.settings || {})
+      Object.assign(this.edits, {
+        export_pdf_cover_logo_placement: DEFAULT_VALUES.export_pdf_cover_logo_placement,
+        export_pdf_cover_text_alignment: DEFAULT_VALUES.export_pdf_cover_text_alignment,
+        export_pdf_cover_text_color: DEFAULT_VALUES.export_pdf_cover_text_color,
+        ...template.settings,
+      })
       this.saveSuccess = false
       this.saveError = null
     },
     async deleteTemplate(name) {
       if (!window.confirm(`Delete branding template "${name}"?`)) return
-      this.edits.export_branding_templates = JSON.stringify(this.brandingTemplates.filter(template => template.name !== name))
-      await this.save()
+      const templates = this.brandingTemplates.filter(template => template.name !== name)
+      await this.save([{ key: 'export_branding_templates', value: JSON.stringify(templates) }])
     },
     syncSelectedPublication() {
       this.selectedPublicationId = resolveSelectedPublicationId(this.selectedPublicationId, this.publications, this.publicationSearch)
@@ -806,12 +843,11 @@ export default {
       await this.loadBrandingAssets()
       return true
     },
-    async save() {
+    async save(payload = this.buildPayload(this.edits)) {
       this.saving = true
       this.saveError = null
       this.saveSuccess = false
       try {
-        const payload = this.buildPayload(this.edits)
         await this.persistPayload(payload)
       } catch (err) {
         this.saveError = toFriendlyAuthError(err, 'Failed to save admin settings.')

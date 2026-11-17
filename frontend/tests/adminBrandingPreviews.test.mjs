@@ -15,12 +15,14 @@ const { createApp, compile, nextTick } = await import('vue')
 globalThis.brandingPreviewTest = {
   fetchExportBrandingAssetBlob: async () => new Blob(['image']),
   toFriendlyAuthError: (error, fallback) => error.message || fallback,
+  updateAdminSettings: async () => {},
 }
 const source = await readFile(new URL('../src/views/AdminSettings.vue', import.meta.url), 'utf8')
 const { descriptor } = parse(source)
 const script = `
   const { toFriendlyAuthError } = globalThis.brandingPreviewTest;
   const fetchExportBrandingAssetBlob = (...args) => globalThis.brandingPreviewTest.fetchExportBrandingAssetBlob(...args);
+  const updateAdminSettings = (...args) => globalThis.brandingPreviewTest.updateAdminSettings(...args);
   ${descriptor.script.content.replace(/^import[\s\S]*?from ['"][^'"]+['"]\s*/gm, '')}
 `
 const { default: settings } = await import(`data:text/javascript;base64,${Buffer.from(script).toString('base64')}`)
@@ -39,6 +41,61 @@ function mountSettings() {
 after(() => {
   dom.window.close()
   delete globalThis.brandingPreviewTest
+})
+
+test('cover styling and logo placement can be saved as a template without changing the defaults', async context => {
+  const key = 'export_pdf_cover_text_alignment'
+  const colorKey = 'export_pdf_cover_text_color'
+  const placementKey = 'export_pdf_cover_logo_placement'
+  const saved = { [key]: 'right', [colorKey]: '', [placementKey]: 'bottom-left', export_branding_templates: '[]' }
+  const update = context.mock.method(globalThis.brandingPreviewTest, 'updateAdminSettings', async entries => {
+    entries.forEach(({ key, value }) => { saved[key] = value })
+  })
+  const { app, vm, container } = mountSettings()
+  try {
+    context.mock.method(vm, 'reload', async () => { vm.edits = { ...saved } })
+    context.mock.method(vm, 'loadBrandingAssets', async () => {})
+    await vm.reload()
+    await nextTick()
+    const alignment = container.querySelector(`#${key}`)
+    assert.equal(alignment.value, 'right')
+    alignment.value = 'center'
+    alignment.dispatchEvent(new dom.window.Event('change'))
+    const placement = container.querySelector(`#${placementKey}`)
+    assert.equal(placement.value, 'bottom-left')
+    placement.value = 'top-center'
+    placement.dispatchEvent(new dom.window.Event('change'))
+
+    vm.templateName = 'Centered cover'
+    vm.templateVariableValue = 'Acme'
+    const color = container.querySelector(`#${colorKey}`)
+    color.value = 'blue'
+    color.dispatchEvent(new dom.window.Event('input'))
+    await vm.saveTemplate()
+    assert.match(vm.saveError, /six-digit hex color/)
+    assert.equal(update.mock.calls.length, 0)
+
+    color.value = '#112E51'
+    color.dispatchEvent(new dom.window.Event('input'))
+    await vm.saveTemplate()
+
+    assert.deepEqual(update.mock.calls[0].arguments[0].map(entry => entry.key), ['export_branding_templates'])
+    assert.equal(saved[key], 'right')
+    assert.equal(saved[colorKey], '')
+    assert.equal(saved[placementKey], 'bottom-left')
+    const [template] = vm.brandingTemplates
+    assert.equal(template.settings[key], 'center')
+    assert.equal(template.settings[colorKey], '#112E51')
+    assert.equal(template.settings[placementKey], 'top-center')
+    vm.applyTemplate(template)
+    await nextTick()
+    assert.equal(alignment.value, 'center')
+    assert.equal(color.value, '#112E51')
+    assert.equal(placement.value, 'top-center')
+  } finally {
+    app.unmount()
+    container.remove()
+  }
 })
 
 test('invalid image previews show recovery instructions and preserve the asset and selection', async context => {

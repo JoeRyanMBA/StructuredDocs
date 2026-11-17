@@ -14,7 +14,16 @@ from defusedxml import ElementTree as ET
 from defusedxml.common import DefusedXmlException
 from PIL import Image, UnidentifiedImageError
 from werkzeug.utils import secure_filename
-from ..services.export_branding import NO_COVER_BACKGROUND_SENTINEL, get_brand_asset_filename
+from ..services.export_branding import (
+    HEX_COLOR_RE,
+    NO_COVER_BACKGROUND_SENTINEL,
+    PDF_COVER_LOGO_PLACEMENT_KEY,
+    PDF_COVER_LOGO_PLACEMENTS,
+    PDF_COVER_TEXT_ALIGNMENT_KEY,
+    PDF_COVER_TEXT_ALIGNMENTS,
+    PDF_COVER_TEXT_COLOR_KEY,
+    get_brand_asset_filename,
+)
 
 admin_bp = Blueprint('admin', __name__, url_prefix='/api/admin')
 
@@ -804,6 +813,15 @@ def update_settings():
         value = str(item.get('value', '')).strip()
         if not key or key not in DEFAULTS:
             errors.append(f"Unknown setting key: {key!r}")
+            continue
+        if key == PDF_COVER_TEXT_ALIGNMENT_KEY and value not in PDF_COVER_TEXT_ALIGNMENTS:
+            errors.append("PDF cover text alignment must be 'right' or 'center'.")
+            continue
+        if key == PDF_COVER_TEXT_COLOR_KEY and value and not HEX_COLOR_RE.fullmatch(value):
+            errors.append("PDF cover text color must be a six-digit hex color (e.g. #112E51) or blank.")
+            continue
+        if key == PDF_COVER_LOGO_PLACEMENT_KEY and value not in PDF_COVER_LOGO_PLACEMENTS:
+            errors.append(f"PDF cover logo placement must be one of: {', '.join(PDF_COVER_LOGO_PLACEMENTS)}.")
             continue
         try:
             set_setting(key, value)

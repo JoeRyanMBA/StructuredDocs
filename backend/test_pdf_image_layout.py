@@ -1,6 +1,9 @@
 import base64
+import json
 import os
+import re
 import sys
+from io import BytesIO
 from types import SimpleNamespace
 from unittest.mock import Mock
 
@@ -9,9 +12,11 @@ from flask import Flask
 from PIL import Image as PILImage
 from reportlab.lib.pagesizes import letter
 from reportlab.lib.styles import getSampleStyleSheet
+from reportlab.pdfgen.canvas import Canvas
 from reportlab.platypus import Image, ImageAndFlowables, Paragraph, SimpleDocTemplate
 
 import backend.services.pdf_generator as pdf_generator
+from backend.services import export_branding
 from backend.pdf_config import PDFConfig
 from backend.services.pdf_generator import (
     _OverlayImageFlowable,
@@ -418,6 +423,143 @@ def test_image_layout_flowables_build_pdf(tmp_path):
 
     assert output_path.exists()
     assert os.path.getsize(output_path) > 0
+
+
+@pytest.mark.parametrize('image_size', [(612, 792), (100, 100), (100, 200)])
+def test_pdf_cover_image_fills_page_without_distortion(tmp_path, image_size):
+    image_path = tmp_path / 'cover.png'
+    PILImage.new('RGB', image_size, 'blue').save(image_path)
+    output = BytesIO()
+    doc = pdf_generator.BackgroundImageDocTemplate(
+        output, background_image_path=str(image_path), pagesize=letter,
+    )
+    canvas = Canvas(output, pagesize=letter)
+
+    doc.add_title_page_with_footer(canvas, doc)
+
+    image_transform = re.search(r'^(.+) cm\n/FormXob\.\S+ Do$', canvas.getCurrentPageContent(), re.M)
+    assert image_transform is not None
+    width, _, _, height, x, y = map(float, image_transform[1].split())
+    page_width, page_height = letter
+    assert width >= page_width
+    assert height >= page_height
+    assert min(width / page_width, height / page_height) == pytest.approx(1)
+    assert width / height == pytest.approx(image_size[0] / image_size[1])
+    assert 2 * x + width == pytest.approx(page_width)
+    assert 2 * y + height == pytest.approx(page_height)
+
+
+@pytest.mark.parametrize('template_class, footer_y', [
+    (pdf_generator.HeaderDocTemplate, 73.355932),
+    (pdf_generator.BackgroundImageDocTemplate, 67.355932),
+])
+@pytest.mark.parametrize('placement, expected_x', [
+    (None, 18),
+    ('top-left', 18),
+    ('top-center', 234),
+    ('top-right', 450),
+    ('bottom-center', 234),
+    ('bottom-right', 450),
+])
+def test_pdf_cover_logo_placement(tmp_path, monkeypatch, template_class, footer_y, placement, expected_x):
+    logo = tmp_path / 'cover-logo.png'
+    PILImage.new('RGB', (177, 100), 'blue').save(logo)
+    settings = {'export_pdf_title_logo': str(logo)}
+    if placement is not None:
+        settings['export_branding_templates'] = json.dumps([
+            {'name': 'Cover', 'settings': {'export_pdf_cover_logo_placement': placement}},
+        ])
+    monkeypatch.setattr(export_branding, 'get_setting', lambda key, default: settings.get(key, default))
+    branding = export_branding.get_export_branding_settings('Cover' if placement else '')
+    output = BytesIO()
+    doc = template_class(
+        output, publication=SimpleNamespace(id=1, form_number='1'), branding=branding, pagesize=letter,
+    )
+    canvas = Canvas(output, pagesize=letter)
+    doc.add_title_page_with_footer(canvas, doc)
+
+    page = canvas.getCurrentPageContent()
+    transform = re.search(r'^(.+) cm\n/FormXob\.\S+ Do$', page, re.M)
+    assert transform is not None
+    width, _, _, height, x, y = map(float, transform[1].split())
+    assert width == pytest.approx(144)
+    assert x == pytest.approx(expected_x)
+    footer = re.search(r'([\d.]+) Tm \(Form: 1\)', page)
+    assert footer is not None
+    assert float(footer[1]) == pytest.approx(footer_y, abs=0.001)
+    if placement and placement.startswith('top-'):
+        assert y + height == pytest.approx(letter[1] - 18, abs=0.001)
+    elif placement:
+        assert y >= footer_y + 9
+        assert y + height < letter[1] / 2
+    else:
+        assert y == pytest.approx(18)
+
+
+@pytest.mark.parametrize(
+    'default_alignment, default_color, template, with_background, centered, expected_colors',
+    [
+        (None, None, None, False, False, ('#222222', '#4a4a4a')),
+        ('center', '005a9c', None, False, True, ('#005a9c', '#005a9c')),
+        ('right', '#ffffff', {
+            'export_pdf_cover_text_alignment': 'center',
+            'export_pdf_cover_text_color': '#112e51',
+        }, True, True, ('#112e51', '#112e51')),
+        ('center', '#005a9c', {}, True, False, ('#ffffff', '#ffffff')),
+    ],
+)
+def test_pdf_cover_text_style(
+    tmp_path, monkeypatch, default_alignment, default_color, template, with_background, centered, expected_colors,
+):
+    settings = {'export_pdf_cover_background': '__none__'}
+    if with_background:
+        settings['export_pdf_cover_background'] = _image_path(tmp_path)
+    if default_alignment:
+        settings['export_pdf_cover_text_alignment'] = default_alignment
+    if default_color is not None:
+        settings['export_pdf_cover_text_color'] = default_color
+    if template is not None:
+        settings['export_branding_templates'] = json.dumps([{'name': 'Test', 'settings': template}])
+    monkeypatch.setattr(export_branding, 'get_setting', lambda key, default: settings.get(key, default))
+    title, subtitle = 'Cover test title', 'Cover test subtitle'
+    publication = SimpleNamespace(
+        id=1, title=title, description=subtitle, form_number='1',
+        branding_template_name='Test' if template is not None else '',
+    )
+    tree = [{'id': 1, 'title': 'Topic', 'content': 'Body text', 'children': []}]
+    text_edges = {}
+    text_colors = {}
+    draw_on = Paragraph.drawOn
+
+    def record_cover_text(paragraph, canvas, x, y, _sW=0):
+        before = len(canvas.getCurrentPageContent())
+        draw_on(paragraph, canvas, x, y, _sW)
+        if canvas.getPageNumber() == 1 and paragraph.text in (title, subtitle):
+            emitted = canvas.getCurrentPageContent()[before:]
+            offset = re.search(r'([\d.]+) 0 Td \(', emitted)
+            assert offset is not None
+            left = x + float(offset[1])
+            style = paragraph.style
+            width = canvas.stringWidth(paragraph.text, style.fontName, style.fontSize)
+            text_edges[paragraph.text] = (left, left + width)
+            fill = re.search(r'^([\d.]+ [\d.]+ [\d.]+) rg$', emitted, re.M)
+            assert fill is not None
+            text_colors[paragraph.text] = tuple(map(float, fill[1].split()))
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_cover_text)
+    with Flask(__name__).app_context():
+        pdf = pdf_generator.generate_pdf(publication, tree)
+
+    assert pdf.getvalue().startswith(b'%PDF')
+    assert set(text_edges) == {title, subtitle}
+    for text, expected_color in zip((title, subtitle), expected_colors):
+        rgb = tuple(int(expected_color[i:i + 2], 16) / 255 for i in (1, 3, 5))
+        assert text_colors[text] == pytest.approx(rgb, abs=1e-6)
+    for left, right in text_edges.values():
+        if centered:
+            assert (left + right) / 2 == pytest.approx(letter[0] / 2, abs=0.01)
+        else:
+            assert right == pytest.approx(570, abs=0.01)
 
 
 @pytest.mark.parametrize('style', ['', 'float: left', 'position: absolute'])

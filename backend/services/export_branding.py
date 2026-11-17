@@ -1,6 +1,7 @@
 import os
 import re
 import json
+import logging
 from urllib.parse import unquote
 from typing import Dict
 
@@ -9,13 +10,24 @@ from ..utils.settings import get_setting
 
 HEX_COLOR_RE = re.compile(r"^#?[0-9A-Fa-f]{6}$")
 NO_COVER_BACKGROUND_SENTINEL = "__none__"
+PDF_COVER_TEXT_ALIGNMENT_KEY = "export_pdf_cover_text_alignment"
+PDF_COVER_TEXT_ALIGNMENTS = ("right", "center")
+PDF_COVER_TEXT_COLOR_KEY = "export_pdf_cover_text_color"
+PDF_COVER_LOGO_PLACEMENT_KEY = "export_pdf_cover_logo_placement"
+DEFAULT_PDF_COVER_LOGO_PLACEMENT = "bottom-left"
+PDF_COVER_LOGO_PLACEMENTS = (
+    "top-left", "top-center", "top-right", "bottom-left", "bottom-center", "bottom-right",
+)
 
 
 DEFAULT_BRANDING: Dict[str, str] = {
     "brand_name": "StructuredDocs",
     "pdf_title_logo": "Title_Page_Logo.png",
+    "pdf_cover_logo_placement": DEFAULT_PDF_COVER_LOGO_PLACEMENT,
     "pdf_footer_logo": "Footer_Logo.png",
     "pdf_cover_background": "SC Cover Background.png",
+    "pdf_cover_text_alignment": "right",
+    "pdf_cover_text_color": "",
     "html_logo": "",
     "html_primary_color": "#005a9c",
     "html_accent_color": "#112E51",
@@ -127,8 +139,11 @@ def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
     values = {
         "export_brand_name": get_setting("export_brand_name", DEFAULT_BRANDING["brand_name"]),
         "export_pdf_title_logo": get_setting("export_pdf_title_logo", DEFAULT_BRANDING["pdf_title_logo"]),
+        PDF_COVER_LOGO_PLACEMENT_KEY: get_setting(PDF_COVER_LOGO_PLACEMENT_KEY, DEFAULT_PDF_COVER_LOGO_PLACEMENT),
         "export_pdf_footer_logo": get_setting("export_pdf_footer_logo", DEFAULT_BRANDING["pdf_footer_logo"]),
         "export_pdf_cover_background": get_setting("export_pdf_cover_background", DEFAULT_BRANDING["pdf_cover_background"]),
+        PDF_COVER_TEXT_ALIGNMENT_KEY: get_setting(PDF_COVER_TEXT_ALIGNMENT_KEY, DEFAULT_BRANDING["pdf_cover_text_alignment"]),
+        PDF_COVER_TEXT_COLOR_KEY: get_setting(PDF_COVER_TEXT_COLOR_KEY, DEFAULT_BRANDING["pdf_cover_text_color"]),
         "export_html_logo": get_setting("export_html_logo", DEFAULT_BRANDING["html_logo"]),
         "export_html_primary_color": get_setting("export_html_primary_color", DEFAULT_BRANDING["html_primary_color"]),
         "export_html_accent_color": get_setting("export_html_accent_color", DEFAULT_BRANDING["html_accent_color"]),
@@ -139,10 +154,29 @@ def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
         None,
     )
     if selected_template:
+        # Older templates retain their original cover styling.
+        values[PDF_COVER_LOGO_PLACEMENT_KEY] = DEFAULT_PDF_COVER_LOGO_PLACEMENT
+        values[PDF_COVER_TEXT_ALIGNMENT_KEY] = DEFAULT_BRANDING["pdf_cover_text_alignment"]
+        values[PDF_COVER_TEXT_COLOR_KEY] = DEFAULT_BRANDING["pdf_cover_text_color"]
         values.update({
             key: value for key, value in selected_template.get("settings", {}).items()
             if key in values
         })
+
+    cover_logo_placement = values[PDF_COVER_LOGO_PLACEMENT_KEY]
+    if cover_logo_placement not in PDF_COVER_LOGO_PLACEMENTS:
+        logging.getLogger(__name__).warning("Invalid PDF cover logo placement; using Bottom Left")
+        cover_logo_placement = DEFAULT_PDF_COVER_LOGO_PLACEMENT
+
+    cover_text_alignment = values[PDF_COVER_TEXT_ALIGNMENT_KEY]
+    if cover_text_alignment not in PDF_COVER_TEXT_ALIGNMENTS:
+        logging.getLogger(__name__).warning("Invalid PDF cover text alignment; using Right")
+        cover_text_alignment = DEFAULT_BRANDING["pdf_cover_text_alignment"]
+
+    raw_cover_text_color = values[PDF_COVER_TEXT_COLOR_KEY]
+    cover_text_color = _normalize_hex_color(raw_cover_text_color, "") if isinstance(raw_cover_text_color, str) else ""
+    if raw_cover_text_color != "" and not cover_text_color:
+        logging.getLogger(__name__).warning("Invalid PDF cover text color; using the default cover colors")
 
     brand_name = str(values["export_brand_name"] or "").strip()
     if not brand_name:
@@ -173,8 +207,11 @@ def get_export_branding_settings(template_name: str = "") -> Dict[str, str]:
     return {
         "brand_name": brand_name,
         "pdf_title_logo": pdf_title_logo,
+        "pdf_cover_logo_placement": cover_logo_placement,
         "pdf_footer_logo": pdf_footer_logo,
         "pdf_cover_background": pdf_cover_background,
+        "pdf_cover_text_alignment": cover_text_alignment,
+        "pdf_cover_text_color": cover_text_color,
         "html_logo": str(values["export_html_logo"] or "").strip(),
         "html_primary_color": html_primary_color,
         "html_accent_color": html_accent_color,
