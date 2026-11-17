@@ -21,6 +21,8 @@ from ..services.export_branding import (
     PDF_COVER_TEXT_ALIGNMENT_KEY,
     PDF_COVER_TEXT_ALIGNMENTS,
     PDF_COVER_TEXT_COLOR_KEY,
+    PDF_COVER_TEXT_VERTICAL_ALIGNMENT_KEY,
+    PDF_COVER_TEXT_VERTICAL_ALIGNMENTS,
     get_brand_asset_filename,
 )
 
@@ -815,6 +817,9 @@ def update_settings():
             continue
         if key == PDF_COVER_TEXT_ALIGNMENT_KEY and value not in PDF_COVER_TEXT_ALIGNMENTS:
             errors.append("PDF cover text alignment must be 'right' or 'center'.")
+            continue
+        if key == PDF_COVER_TEXT_VERTICAL_ALIGNMENT_KEY and value not in PDF_COVER_TEXT_VERTICAL_ALIGNMENTS:
+            errors.append("PDF cover text vertical alignment must be 'top' or 'center'.")
             continue
         if key == PDF_COVER_TEXT_COLOR_KEY and value and not HEX_COLOR_RE.fullmatch(value):
             errors.append("PDF cover text color must be a six-digit hex color (e.g. #112E51) or blank.")

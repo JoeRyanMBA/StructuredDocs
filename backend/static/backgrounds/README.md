@@ -12,6 +12,10 @@ background image. **Right** preserves the original layout. Save the settings
 to change the default, or save the current branding as a template to set the
 alignment for publications using that template without changing the default.
 
+**PDF Cover Text Vertical Alignment** controls where the title and subtitle
+sit on the page. **Top** preserves the original layout. **Center** centers
+them together vertically, independently of their horizontal alignment.
+
 **PDF Cover Text Color** sets the color of both the title and subtitle. Enter
 a six-digit hex color (for example, `#112E51`), or leave it blank to use white
 on covers with a background image and the default text colors on plain covers.
