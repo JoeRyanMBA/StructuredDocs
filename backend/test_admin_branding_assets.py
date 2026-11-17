@@ -8,6 +8,7 @@ from PIL import Image
 from backend.extensions import db, jwt
 from backend.models import SystemSetting, User
 from backend.routes.admin import admin_bp
+from backend.services.export_branding import get_export_branding_settings, resolve_brand_asset_path
 from backend.utils import settings
 
 
@@ -76,3 +77,53 @@ def test_branding_upload_round_trips_valid_images(branding_client, format):
     preview = client.get(response.json['url'], headers=headers)
     assert preview.status_code == 200
     assert preview.data == content
+
+
+def test_branding_settings_ignore_stale_worker_cache(branding_client):
+    _, _, assets_dir = branding_client
+    (assets_dir / 'current-logo.png').write_bytes(b'logo')
+    row = SystemSetting(key='export_html_logo', value='current-logo.png', description='')
+    db.session.add(row)
+    db.session.commit()
+    settings._cache['export_html_logo'] = 'stale-logo.png'
+
+    branding = get_export_branding_settings()
+
+    assert branding['html_logo'] == 'current-logo.png'
+
+
+def test_branding_asset_resolver_accepts_admin_preview_url(branding_client):
+    _, _, assets_dir = branding_client
+    expected = assets_dir / 'Company Logo.png'
+    expected.write_bytes(b'logo')
+
+    resolved = resolve_brand_asset_path(
+        '/api/admin/export-branding/assets/Company%20Logo.png/preview'
+    )
+
+    assert resolved == str(expected)
+
+
+@pytest.mark.parametrize('setting_value', [
+    'selected.png',
+    '/api/admin/export-branding/assets/selected.png/preview',
+])
+def test_deleting_in_use_branding_asset_clears_setting(branding_client, setting_value):
+    client, headers, assets_dir = branding_client
+    (assets_dir / 'selected.png').write_bytes(b'logo')
+    db.session.add(SystemSetting(
+        key='export_html_logo',
+        value=setting_value,
+        description='',
+    ))
+    db.session.commit()
+
+    response = client.delete(
+        '/api/admin/export-branding/assets/selected.png',
+        headers=headers,
+    )
+
+    assert response.status_code == 200
+    assert response.json['cleared_settings'] == ['export_html_logo']
+    assert not (assets_dir / 'selected.png').exists()
+    assert SystemSetting.query.filter_by(key='export_html_logo').one().value == ''
