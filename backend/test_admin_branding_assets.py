@@ -40,6 +40,8 @@ def branding_client(tmp_path, monkeypatch):
     ('logo.png', b'fakepngdata'),
     ('logo.svg', b'<not-svg/>'),
     ('logo.svg', b'<svg'),
+    ('logo.svg', b'<!DOCTYPE svg [<!ENTITY x "expanded">]><svg>&x;</svg>'),
+    ('logo.svg', b'<!DOCTYPE svg [<!ENTITY x SYSTEM "file:///etc/passwd">]><svg>&x;</svg>'),
 ])
 def test_branding_upload_rejects_invalid_images(branding_client, filename, content):
     client, headers, assets_dir = branding_client
@@ -52,6 +54,17 @@ def test_branding_upload_rejects_invalid_images(branding_client, filename, conte
     assert 'valid image' in response.json['error']
     assert list(assets_dir.iterdir()) == []
     assert SystemSetting.query.filter_by(key='export_html_logo').first() is None
+
+
+def test_branding_upload_accepts_svg_doctype_without_entities(branding_client):
+    client, headers, assets_dir = branding_client
+    content = b'<!DOCTYPE svg><svg xmlns="http://www.w3.org/2000/svg"/>'
+    response = client.post('/api/admin/export-branding/upload', headers=headers, data={
+        'file': (io.BytesIO(content), 'logo.svg'),
+    })
+
+    assert response.status_code == 200
+    assert (assets_dir / response.json['filename']).read_bytes() == content
 
 
 @pytest.mark.parametrize('format', ['PNG', 'JPEG', 'GIF', 'BMP', 'WEBP', 'SVG'])

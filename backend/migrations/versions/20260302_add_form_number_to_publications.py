@@ -14,7 +14,9 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('publications', sa.Column('form_number', sa.String(length=100), nullable=True))
+    columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns('publications')}
+    if 'form_number' not in columns:
+        op.add_column('publications', sa.Column('form_number', sa.String(length=100), nullable=True))
 
 
 def downgrade():

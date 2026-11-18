@@ -19,11 +19,15 @@ depends_on = None
 def upgrade():
     bind = op.get_bind()
     dialect = bind.dialect.name
+    columns = {c['name'] for c in sa.inspect(bind).get_columns('stakeholders')}
 
     # Add can_review first (simple boolean)
-    op.add_column('stakeholders', sa.Column('can_review', sa.Boolean(), nullable=False, server_default='1'))
+    if 'can_review' not in columns:
+        op.add_column('stakeholders', sa.Column('can_review', sa.Boolean(), nullable=False, server_default='1'))
 
     # Add role column; on Postgres reuse existing enum type "stakeholder_role" created by project_stakeholders
+    if 'role' in columns:
+        return
     if dialect == 'postgresql':
         from sqlalchemy.dialects import postgresql
         role_enum = postgresql.ENUM(name='stakeholder_role', create_type=False)

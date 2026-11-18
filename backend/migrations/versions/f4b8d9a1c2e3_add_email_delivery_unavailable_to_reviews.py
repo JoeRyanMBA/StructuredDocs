@@ -17,10 +17,12 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column(
-        'reviews',
-        sa.Column('email_delivery_unavailable', sa.Boolean(), nullable=False, server_default=sa.text('0'))
-    )
+    columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns('reviews')}
+    if 'email_delivery_unavailable' not in columns:
+        op.add_column(
+            'reviews',
+            sa.Column('email_delivery_unavailable', sa.Boolean(), nullable=False, server_default=sa.false())
+        )
 
 
 def downgrade():

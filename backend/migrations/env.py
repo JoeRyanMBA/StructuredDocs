@@ -4,6 +4,7 @@ import os
 import sys
 from flask import current_app
 from alembic import context
+import sqlalchemy as sa
 
 # Add project root to sys.path
 project_root = os.path.abspath(os.path.join(os.path.dirname(__file__), '..', '..'))
@@ -91,6 +92,29 @@ def run_migrations_online():
     connectable = get_engine()
 
     with connectable.connect() as connection:
+        if connection.dialect.name == 'postgresql':
+            # Historical descriptive revision IDs exceed Alembic's 32-character default.
+            with connection.begin():
+                version_table = sa.Table(
+                    conf_args.get('version_table', 'alembic_version'),
+                    sa.MetaData(),
+                    sa.Column('version_num', sa.String(128), primary_key=True),
+                    schema=conf_args.get('version_table_schema'),
+                )
+                version_table.create(connection, checkfirst=True)
+                columns = sa.inspect(connection).get_columns(
+                    version_table.name, schema=version_table.schema
+                )
+                version_type = next(c['type'] for c in columns if c['name'] == 'version_num')
+                if (
+                    isinstance(version_type, sa.String)
+                    and version_type.length is not None
+                    and version_type.length < 128
+                ):
+                    table_name = connection.dialect.identifier_preparer.format_table(version_table)
+                    connection.execute(sa.text(
+                        f'ALTER TABLE {table_name} ALTER COLUMN version_num TYPE VARCHAR(128)'
+                    ))
         context.configure(
             connection=connection,
             target_metadata=target_metadata,
