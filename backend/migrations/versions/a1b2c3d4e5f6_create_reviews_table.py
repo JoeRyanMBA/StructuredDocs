@@ -17,6 +17,8 @@ depends_on = None
 
 
 def upgrade():
+    if sa.inspect(op.get_bind()).has_table('reviews'):
+        return
     # Create enums if needed by using sa.Enum in column definitions
     op.create_table(
         'reviews',

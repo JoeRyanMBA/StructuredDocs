@@ -3,6 +3,7 @@ Flask-SQLAlchemy==3.1.1
 Flask-Migrate==4.1.0
 Flask-CORS==6.0.2
 python-docx==1.2.0
+defusedxml==0.7.1
 beautifulsoup4==4.14.2
 mistune==3.3.3
 Flask==3.1.3

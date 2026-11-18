@@ -435,6 +435,20 @@ does not exist`, the database is missing the column added by
 omit startup). Do not drop tables, recreate the database, or stamp migrations
 as applied to bypass this error.
 
+If startup reports `type "source_type_enum" already exists`, the database may
+have been initialized by `db.create_all()` without matching Alembic history.
+Use the updated migrations, which reuse existing tables, columns, indexes and
+enum types while still applying missing changes. They also widen PostgreSQL's
+Alembic revision column for the repository's longer revision IDs. Do not delete
+existing enum types or stamp `heads` to suppress the failure.
+
+The PostgreSQL regression checks use a separate temporary schema per test:
+```bash
+TEST_POSTGRES_URL=postgresql://localhost/structureddocs_test \
+  python -m pytest -q test_production_migrations.py
+```
+Use a test database whose user can create and drop schemas.
+
 ### Can't log in after restart
 If `SECRET_KEY` or `JWT_SECRET_KEY` are not set (or were changed), all existing JWT tokens are invalidated. Ensure these are set to fixed values in your `.env` file — not generated randomly on each start.
 

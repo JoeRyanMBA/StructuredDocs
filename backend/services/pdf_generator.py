@@ -70,15 +70,16 @@ def _format_pdf_links(text, topic_anchors):
             parsed = urlsplit(href)
         except ValueError:
             return None
-        topic_match = re.fullmatch(
-            r'/topics/(\d+)/edit/?',
-            parsed.path,
-            re.IGNORECASE,
-        )
-        if topic_match and topic_anchors:
-            anchor = topic_anchors.get(topic_match.group(1))
-            if anchor:
-                return f'#{anchor}'
+        if not parsed.scheme and not parsed.netloc:
+            topic_match = re.fullmatch(
+                r'/topics/(\d+)/edit/?',
+                parsed.path,
+                re.IGNORECASE,
+            )
+            if topic_match and topic_anchors:
+                anchor = topic_anchors.get(topic_match.group(1))
+                if anchor:
+                    return f'#{anchor}'
         if parsed.scheme in ('http', 'https') and parsed.hostname:
             return escape(href, quote=True).replace('*', '&#42;').replace('`', '&#96;')
         return None

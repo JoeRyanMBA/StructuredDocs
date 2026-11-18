@@ -11,8 +11,11 @@ branch_labels = None
 depends_on = None
 
 def upgrade():
-    op.add_column('publication_nodes', sa.Column('title_snapshot', sa.String(length=200), nullable=True))
-    op.add_column('publication_nodes', sa.Column('content_snapshot', sa.Text(), nullable=True))
+    columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns('publication_nodes')}
+    if 'title_snapshot' not in columns:
+        op.add_column('publication_nodes', sa.Column('title_snapshot', sa.String(length=200), nullable=True))
+    if 'content_snapshot' not in columns:
+        op.add_column('publication_nodes', sa.Column('content_snapshot', sa.Text(), nullable=True))
 
 def downgrade():
     op.drop_column('publication_nodes', 'title_snapshot')

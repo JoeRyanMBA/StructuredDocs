@@ -14,9 +14,13 @@ depends_on = None
 
 
 def upgrade():
-    op.add_column('notifications', sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'))
-    op.add_column('notifications', sa.Column('target_audience', sa.String(64), nullable=True))
-    op.add_column('notifications', sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.func.now()))
+    columns = {c['name'] for c in sa.inspect(op.get_bind()).get_columns('notifications')}
+    if 'is_active' not in columns:
+        op.add_column('notifications', sa.Column('is_active', sa.Boolean(), nullable=False, server_default='true'))
+    if 'target_audience' not in columns:
+        op.add_column('notifications', sa.Column('target_audience', sa.String(64), nullable=True))
+    if 'created_at' not in columns:
+        op.add_column('notifications', sa.Column('created_at', sa.DateTime(), nullable=True, server_default=sa.func.now()))
 
 
 def downgrade():
