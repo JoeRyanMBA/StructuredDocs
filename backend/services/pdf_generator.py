@@ -1798,7 +1798,10 @@ def _html_lists_to_pdf_markdown(text):
     def render_list(tag, depth=0):
         start = tag.get('start', '1')
         number = int(start) if isinstance(start, str) and re.fullmatch(r'-?\d+', start) else 1
-        for item in tag.find_all('li', recursive=False):
+        for item in tag.find_all(['li', 'ol', 'ul'], recursive=False):
+            if item.name in ('ol', 'ul'):
+                yield from render_list(item, depth + 1)
+                continue
             nested = item.find_all(['ol', 'ul'], recursive=False)
             for child in nested:
                 child.extract()
