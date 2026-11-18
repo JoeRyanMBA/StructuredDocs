@@ -80,7 +80,7 @@ def _format_pdf_links(text, topic_anchors):
             if anchor:
                 return f'#{anchor}'
         if parsed.scheme in ('http', 'https') and parsed.hostname:
-            return escape(href, quote=True)
+            return escape(href, quote=True).replace('*', '&#42;').replace('`', '&#96;')
         return None
 
     def replace_html_link(match):
