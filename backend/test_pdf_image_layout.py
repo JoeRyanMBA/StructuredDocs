@@ -110,6 +110,66 @@ def test_pdf_nested_lists_preserve_indentation_and_numbering(monkeypatch, conten
     assert items[grandchild] > items[child] > items[parent]
 
 
+@pytest.mark.parametrize('container_markup', [
+    (
+        '<ol><li data-list-level="1">Parent item</li></ol>\n'
+        '<p>{image}</p>\n'
+        '<ol><li data-list-level="2" style="margin-left:1.5rem">'
+        'Child item</li></ol>'
+    ),
+    (
+        '1. Parent item\n'
+        '{image}\n'
+        '    1. Child item'
+    ),
+])
+def test_image_between_list_levels_preserves_child_depth(tmp_path, container_markup):
+    image_path = _image_path(tmp_path)
+    image_tag = f'<img src="{image_path}" alt="Example">'
+    paragraphs = convert_markdown_to_pdf_paragraphs(
+        container_markup.format(image=image_tag)
+    )
+
+    assert paragraphs[0] == '__ORDERED__1__:Parent item'
+    assert any(item.startswith('__PDF_IMG__:') for item in paragraphs)
+    assert paragraphs[-1] == '__ORDERED__1__1__:Child item'
+
+
+def test_image_between_list_levels_renders_child_as_nested_list(monkeypatch, tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        '<ol><li data-list-level="1">Parent item</li></ol>'
+        f'<p><img src="{image_path}" alt="Example"></p>'
+        '<ol><li data-list-level="2" style="margin-left:1.5rem;'
+        'list-style-type:lower-alpha">Child item</li></ol>'
+    )
+    positions = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        if paragraph.getPlainText() in (
+            '1.\xa0\xa0Parent item',
+            'a.\xa0\xa0Child item',
+        ):
+            positions[paragraph.getPlainText()] = paragraph.style.leftIndent
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(
+        pdf_generator,
+        'get_export_branding_settings',
+        lambda: {'pdf_cover_background': '__none__'},
+    )
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    assert set(positions) == {'1.\xa0\xa0Parent item', 'a.\xa0\xa0Child item'}
+    assert positions['a.\xa0\xa0Child item'] > positions['1.\xa0\xa0Parent item']
+
+
 def test_nested_html_list_keeps_explicit_numbers_and_parent_sequence():
     content = (
         '<ol start="7"><li>Parent<ol start="3"><li>Child</li>'

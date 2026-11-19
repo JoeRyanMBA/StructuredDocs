@@ -1886,6 +1886,11 @@ def _download_image_for_pdf(url: str, temp_dir: str) -> str:
 
 
 _PDF_LIST_ITEM = re.compile(r'^([ \t]*)([-*]|-?\d+\.)[ \t]+(.*)$')
+_PDF_IMAGE_ONLY_LINE = re.compile(
+    r'^(?:(?:<img\b[^>]*>)|(?:!\[[^\]]*\]\([^)]+\)))'
+    r'(?:\s*(?:(?:<img\b[^>]*>)|(?:!\[[^\]]*\]\([^)]+\))))*$',
+    flags=re.IGNORECASE | re.DOTALL,
+)
 
 
 def _pdf_ordered_list_marker(value, depth):
@@ -2155,7 +2160,10 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
         line = lines[i]
         stripped = line.strip()
         list_item = _PDF_LIST_ITEM.fullmatch(line)
-        if stripped and not list_item:
+        # A block image inserted between a parent and child list item is not the
+        # end of the list. Keep the indentation stack so the child remains
+        # nested after the image is emitted as its own flowable.
+        if stripped and not list_item and not _PDF_IMAGE_ONLY_LINE.fullmatch(stripped):
             list_indents.clear()
 
         table_rows, next_index = _consume_markdown_table(lines, i)
