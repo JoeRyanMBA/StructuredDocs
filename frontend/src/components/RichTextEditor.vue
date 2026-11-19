@@ -1969,7 +1969,7 @@ export default {
     restoreSelection() {
       const el = this.$refs.editorEl
       if (!el || !this._savedRange) return false
-      el.focus()
+      el.focus({ preventScroll: true })
       const sel = window.getSelection()
       if (!sel) return false
       sel.removeAllRanges()
