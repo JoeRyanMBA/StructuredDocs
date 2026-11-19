@@ -211,6 +211,7 @@ class _OverlayImageFlowable(Flowable):
         padding=8,
         image_on_top=False,
         image_opacity=1,
+        image_alignment='left',
     ):
         super().__init__()
         self.image = image
@@ -220,15 +221,37 @@ class _OverlayImageFlowable(Flowable):
         self.padding = padding
         self.image_on_top = image_on_top
         self.image_opacity = max(0, min(1, image_opacity))
+        self.image_alignment = image_alignment
 
     def wrap(self, available_width, available_height):
-        self.width = min(self.image_width, available_width)
-        self.height = self.image_height
+        self.width = available_width
         text_width = max(1, self.width - (self.padding * 2))
         self.text_width_used, self.text_height = self.paragraph.wrap(
-            text_width, self.height - (self.padding * 2)
+            text_width, available_height
         )
+        self.height = max(self.image_height, self.text_height + (self.padding * 2))
         return self.width, self.height
+
+    def split(self, available_width, available_height):
+        if self.image_height > available_height:
+            return []
+        text_width = max(1, available_width - (self.padding * 2))
+        parts = self.paragraph.split(text_width, available_height - (self.padding * 2))
+        if len(parts) < 2:
+            return []
+        return [
+            _OverlayImageFlowable(
+                self.image if index == 0 else None,
+                part,
+                self.image_width,
+                self.image_height if index == 0 else 0,
+                padding=self.padding,
+                image_on_top=self.image_on_top,
+                image_opacity=self.image_opacity,
+                image_alignment=self.image_alignment,
+            )
+            for index, part in enumerate(parts)
+        ]
 
     def draw(self):
         text_y = max(self.padding, self.height - self.padding - self.text_height)
@@ -240,14 +263,21 @@ class _OverlayImageFlowable(Flowable):
             self._draw_image()
 
     def _draw_image(self):
+        if self.image is None:
+            return
+        image_x = {
+            'left': 0,
+            'center': (self.width - self.image_width) / 2,
+            'right': self.width - self.image_width,
+        }.get(self.image_alignment, 0)
         if self.image_opacity >= 1:
-            self.image.drawOn(self.canv, 0, 0)
+            self.image.drawOn(self.canv, image_x, self.height - self.image_height)
             return
 
         self.canv.saveState()
         try:
             self.canv.setFillAlpha(self.image_opacity)
-            self.image.drawOn(self.canv, 0, 0)
+            self.image.drawOn(self.canv, image_x, self.height - self.image_height)
         finally:
             self.canv.restoreState()
 
@@ -1604,6 +1634,7 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                         image_opacity=float(
                                             layout.get('image_opacity', 1)
                                         ),
+                                        image_alignment=layout.get('side', 'left'),
                                     )
                                     overlay.hAlign = {
                                         'left': 'LEFT',
