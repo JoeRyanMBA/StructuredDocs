@@ -79,6 +79,39 @@ def test_web_links_in_paragraphs_and_bullets_create_pdf_annotations(monkeypatch)
 
 
 @pytest.mark.parametrize('content', [
+    'Body text\n\n- Bullet item\n    - Nested bullet\n\n1. Numbered item',
+    '<p>Body text</p><ul><li>Bullet item<ul><li>Nested bullet</li></ul></li></ul>'
+    '<ol><li>Numbered item</li></ol>',
+])
+def test_pdf_first_level_lists_are_indented_from_body(monkeypatch, content):
+    positions = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        text = paragraph.getPlainText()
+        if text in ('Body text', '•\xa0\xa0Bullet item', '•\xa0\xa0Nested bullet', '1.\xa0\xa0Numbered item'):
+            positions[text] = (x + paragraph.style.leftIndent + paragraph.style.firstLineIndent, paragraph.style)
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(pdf_generator, 'get_export_branding_settings', lambda: {'pdf_cover_background': '__none__'})
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    body = positions['Body text'][0]
+    bullet, bullet_style = positions['•\xa0\xa0Bullet item']
+    nested, _ = positions['•\xa0\xa0Nested bullet']
+    numbered, numbered_style = positions['1.\xa0\xa0Numbered item']
+    assert bullet == pytest.approx(body + PDFConfig.INDENTS['list_indent'])
+    assert numbered == pytest.approx(bullet)
+    assert nested == pytest.approx(bullet + PDFConfig.INDENTS['content_per_level'])
+    assert bullet_style.firstLineIndent < 0
+    assert numbered_style.firstLineIndent < 0
+
+
+@pytest.mark.parametrize('content', [
     '1. Parent\n    1. Child\n    2. Next child\n        - Grandchild\n2. Next parent',
     '<ol><li>Parent<ol><li>Child</li><li>Next child<ul><li>Grandchild</li></ul></li></ol></li>'
     '<li>Next parent</li></ol>',
@@ -434,6 +467,69 @@ def test_watermark_text_is_top_aligned_over_image():
 
     paragraph.drawOn.assert_called_once_with(canvas, 8, 162)
     canvas.setFillAlpha.assert_called_once_with(0.18)
+
+
+def test_watermark_reserves_space_for_text_taller_than_image():
+    image = Mock()
+    paragraph = Mock()
+    paragraph.wrap.return_value = (84, 180)
+    canvas = Mock()
+    flowable = _OverlayImageFlowable(image, paragraph, 100, 80, padding=8)
+
+    assert flowable.wrap(100, 300) == (100, 196)
+    flowable.canv = canvas
+    flowable.draw()
+
+    image.drawOn.assert_called_once_with(canvas, 0, 116)
+    paragraph.drawOn.assert_called_once_with(canvas, 8, 8)
+
+
+@pytest.mark.parametrize('alignment, image_x', [('left', 0), ('center', 100), ('right', 200)])
+def test_watermark_uses_page_width_and_preserves_image_alignment(alignment, image_x):
+    image = Mock()
+    paragraph = Mock()
+    paragraph.wrap.return_value = (284, 30)
+    canvas = Mock()
+    flowable = _OverlayImageFlowable(
+        image, paragraph, 100, 80, padding=8, image_alignment=alignment,
+    )
+
+    assert flowable.wrap(300, 400) == (300, 80)
+    paragraph.wrap.assert_called_once_with(284, 400)
+    flowable.canv = canvas
+    flowable.draw()
+
+    image.drawOn.assert_called_once_with(canvas, image_x, 0)
+
+
+def test_watermark_text_can_continue_across_pdf_pages(monkeypatch, tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        f'<p><img src="{image_path}" data-sd-image-wrapping="watermark" '
+        'width="120" height="80"></p>'
+        f'<p>{"Long watermark text " * 1000}</p>'
+        '<ul><li>Following list item</li></ul>'
+    )
+    overlay_pages = []
+    draw = _OverlayImageFlowable.draw
+
+    def record_overlay(flowable):
+        overlay_pages.append((flowable.canv.getPageNumber(), flowable.image is not None))
+        return draw(flowable)
+
+    monkeypatch.setattr(_OverlayImageFlowable, 'draw', record_overlay)
+    monkeypatch.setattr(pdf_generator, 'get_export_branding_settings', lambda: {'pdf_cover_background': '__none__'})
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+    with Flask(__name__).app_context():
+        pdf = pdf_generator.generate_pdf(publication, tree)
+
+    assert pdf.getvalue().startswith(b'%PDF')
+    assert len(overlay_pages) > 1
+    assert overlay_pages[0][1] is True
+    image_pages = [page for page, has_image in overlay_pages if has_image]
+    assert len(set(image_pages)) == 1
+    assert any(not has_image and page > image_pages[0] for page, has_image in overlay_pages)
 
 
 def test_wrapped_editor_image_respects_saved_size_option(tmp_path):
