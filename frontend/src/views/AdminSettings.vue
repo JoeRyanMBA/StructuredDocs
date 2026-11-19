@@ -10,8 +10,7 @@
       <div class="settings-grid">
         <div class="setting-row" v-for="key in orderedKeys" :key="key">
           <div class="setting-label">
-            <label v-if="key === 'export_pdf_cover_logo_placement' || key === 'export_pdf_cover_text_alignment' || key === 'export_pdf_cover_text_color'" class="label-title" :for="key">{{ labelFor(key) }}</label>
-            <div v-else class="label-title">{{ labelFor(key) }}</div>
+            <label class="label-title" :for="key">{{ labelFor(key) }}</label>
             <div class="label-help">{{ descriptionFor(key) }}</div>
           </div>
           <div class="setting-input-stack">
@@ -27,9 +26,13 @@
               <option value="right">Right</option>
               <option value="center">Center</option>
             </select>
+            <select v-else-if="key === 'export_pdf_cover_text_vertical_alignment'" :id="key" v-model="edits[key]" class="setting-input">
+              <option value="top">Top</option>
+              <option value="center">Center</option>
+            </select>
             <input
               v-else
-              :id="key === 'export_pdf_cover_text_color' ? key : undefined"
+              :id="key"
               v-model="edits[key]"
               class="setting-input"
               type="text"
@@ -266,6 +269,7 @@ const BRANDING_KEYS = [
   'export_pdf_footer_logo',
   'export_pdf_cover_background',
   'export_pdf_cover_text_alignment',
+  'export_pdf_cover_text_vertical_alignment',
   'export_pdf_cover_text_color',
   'export_html_logo',
   'export_html_primary_color',
@@ -279,6 +283,7 @@ const LABELS = {
   export_pdf_footer_logo: 'PDF Footer Logo',
   export_pdf_cover_background: 'PDF Cover Background',
   export_pdf_cover_text_alignment: 'PDF Cover Text Alignment',
+  export_pdf_cover_text_vertical_alignment: 'PDF Cover Text Vertical Alignment',
   export_pdf_cover_text_color: 'PDF Cover Text Color',
   export_html_logo: 'HTML Header Logo',
   export_html_primary_color: 'HTML Primary Color',
@@ -303,6 +308,7 @@ const DEFAULT_VALUES = {
   export_pdf_footer_logo: 'Footer_Logo.png',
   export_pdf_cover_background: 'SC Cover Background.png',
   export_pdf_cover_text_alignment: 'right',
+  export_pdf_cover_text_vertical_alignment: 'top',
   export_pdf_cover_text_color: '',
   export_html_logo: '',
   export_html_primary_color: '#005a9c',
@@ -815,6 +821,7 @@ export default {
       Object.assign(this.edits, {
         export_pdf_cover_logo_placement: DEFAULT_VALUES.export_pdf_cover_logo_placement,
         export_pdf_cover_text_alignment: DEFAULT_VALUES.export_pdf_cover_text_alignment,
+        export_pdf_cover_text_vertical_alignment: DEFAULT_VALUES.export_pdf_cover_text_vertical_alignment,
         export_pdf_cover_text_color: DEFAULT_VALUES.export_pdf_cover_text_color,
         ...template.settings,
       })
