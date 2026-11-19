@@ -264,7 +264,7 @@ export default {
   },
   computed: {
     symbolLogoSrc() {
-  return `${import.meta.env.BASE_URL}assets/StructuredDocsLogoSymbol.svg`
+      return `${import.meta.env.BASE_URL}StructuredDocsLogoSymbol.svg`
     }
   },
   methods: {
@@ -272,7 +272,7 @@ export default {
       this.symbolLogoLoaded = true
     },
     onSymbolError(e) {
-  const fallback = `${import.meta.env.BASE_URL}assets/StructuredDocs_logo.svg`
+      const fallback = `${import.meta.env.BASE_URL}StructuredDocs_logo.svg`
       if (e && e.target && e.target.src !== fallback) {
         e.target.src = fallback
       }
