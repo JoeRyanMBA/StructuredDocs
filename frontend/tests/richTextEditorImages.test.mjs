@@ -138,8 +138,9 @@ test('image sizing distinguishes content width from original image width', () =>
   assert.equal(image.dataset.sdImageSize, 'full')
 
   instance.applyImageOption('size', 'original')
-  assert.equal(image.style.width, '')
+  assert.equal(image.style.width, '1280px')
   assert.equal(image.dataset.sdImageSize, 'original')
+  assert.match(updates.at(-1), /style="[^"]*width: 1280px/)
 })
 
 test('selected image alt text can be added, edited, cleared, and persisted', () => {
