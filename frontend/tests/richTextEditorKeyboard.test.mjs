@@ -72,6 +72,28 @@ test('Tab inserts a tab in the WYSIWYG topic editor without leaving it', () => {
   assert.match(updates.at(-1), /Topic\t text/)
 })
 
+test('restoring the saved selection does not scroll the editor into view', () => {
+  const { editor, instance } = createEditorHarness()
+  const text = editor.querySelector('p').firstChild
+  const range = document.createRange()
+  range.setStart(text, 5)
+  range.collapse(true)
+  window.getSelection().removeAllRanges()
+  window.getSelection().addRange(range)
+  instance.saveSelection()
+
+  let focusOptions
+  editor.focus = options => {
+    focusOptions = options
+  }
+  window.getSelection().removeAllRanges()
+
+  assert.equal(instance.restoreSelection(), true)
+  assert.deepEqual(focusOptions, { preventScroll: true })
+  assert.equal(window.getSelection().anchorNode, text)
+  assert.equal(window.getSelection().anchorOffset, 5)
+})
+
 test('toolbar underlines the selected text', () => {
   const { editor, instance } = createEditorHarness()
   const text = editor.querySelector('p').firstChild
