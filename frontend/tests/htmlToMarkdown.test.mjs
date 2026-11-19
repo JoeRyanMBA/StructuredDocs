@@ -94,6 +94,25 @@ test('htmlToMarkdown preserves image preset and custom resize dimensions', () =>
   assert.match(custom, /data-sd-image-size="custom"/)
 })
 
+test('htmlToMarkdown preserves content-width and intrinsic-image size modes', () => {
+  const contentWidth = htmlToMarkdown(
+    '<img src="/image.png" style="width:50%;height:auto;max-width:100%" data-sd-image-size="50%">'
+  )
+  const intrinsicWidth = htmlToMarkdown(
+    '<img src="/image.png" style="width:320px;height:auto;max-width:100%" data-sd-image-size="intrinsic-25%">'
+  )
+
+  assert.match(contentWidth, /style="width:50%; height:auto; max-width:100%"/)
+  assert.match(contentWidth, /data-sd-image-size="50%"/)
+  assert.match(intrinsicWidth, /style="width:320px; height:auto; max-width:100%"/)
+  assert.match(intrinsicWidth, /data-sd-image-size="intrinsic-25%"/)
+
+  const wrappedOriginal = htmlToMarkdown(
+    '<img src="/image.png" style="float:left;max-width:min(45%, 320px)" data-sd-image-size="original">'
+  )
+  assert.match(wrappedOriginal, /max-width:min\(45%, 320px\)/)
+})
+
 test('htmlToMarkdown preserves explicitly empty image alt text', () => {
   const markdown = htmlToMarkdown('<img src="/images/decorative.png" alt="">')
 

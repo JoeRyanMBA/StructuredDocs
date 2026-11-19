@@ -117,9 +117,20 @@
           ⤢ <span class="toolbar-dropdown__caret">▾</span>
         </button>
         <div v-show="activeImageMenu === 'size'" class="dropdown-content" @click.stop>
-          <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'original').toString()" @click="applyImageOption('size', 'original')">Original size</button>
-          <button v-for="size in ['25%', '50%', '75%']" :key="size" type="button" class="dropdown-item" :aria-pressed="(imageContext.size === size).toString()" @click="applyImageOption('size', size)">{{ size }}</button>
-          <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'full').toString()" @click="applyImageOption('size', 'full')">Full width</button>
+          <span class="rte-image-size-heading">Content width</span>
+          <button v-for="size in ['25%', '50%', '75%']" :key="size" type="button" class="dropdown-item" :aria-pressed="(imageContext.size === size).toString()" @click="applyImageOption('size', size)">{{ size }} of content width</button>
+          <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'full').toString()" @click="applyImageOption('size', 'full')">Full content width</button>
+          <div class="dropdown-divider"></div>
+          <span class="rte-image-size-heading">Original image</span>
+          <button
+            v-for="size in ['25%', '50%', '75%']"
+            :key="`intrinsic-${size}`"
+            type="button"
+            class="dropdown-item"
+            :aria-pressed="(imageContext.size === `intrinsic-${size}`).toString()"
+            @click="applyImageOption('size', `intrinsic-${size}`)"
+          >{{ size }} of original size</button>
+          <button type="button" class="dropdown-item" :aria-pressed="(imageContext.size === 'original').toString()" @click="applyImageOption('size', 'original')">100% (original size)</button>
         </div>
       </div>
       <div :class="['dropdown', 'toolbar-dropdown', { 'is-open': activeImageMenu === 'alignment' }]">
@@ -320,10 +331,11 @@ export default {
       }
     },
     imageSizeLabel(size) {
-      if (size === 'full') return 'Full width'
-      if (size === 'original') return 'Original size'
+      if (size === 'full') return 'Full content width'
+      if (size === 'original') return 'Original size (100%)'
       if (size === 'custom') return 'Custom size'
-      return size
+      if (size?.startsWith('intrinsic-')) return `${size.slice('intrinsic-'.length)} of original size`
+      return size ? `${size} of content width` : 'Original size (100%)'
     },
     imageWrappingLabel(wrapping) {
       if (wrapping === 'text-left') return 'Text left'
@@ -358,7 +370,9 @@ export default {
         altText: image.getAttribute('alt') || '',
         size: image.dataset.sdImageSize || (image.style.width === '100%'
           ? 'full'
-          : image.style.width ? 'custom' : 'original'),
+          : ['25%', '50%', '75%'].includes(image.style.width)
+            ? image.style.width
+            : image.style.width ? 'custom' : 'original'),
         alignment: image.dataset.sdImageAlignment || (image.style.marginLeft === 'auto' && image.style.marginRight === 'auto'
           ? 'center'
           : image.style.marginLeft === 'auto' ? 'right' : 'left'),
@@ -501,6 +515,20 @@ export default {
           image.style.width = '100%'
         } else if (['25%', '50%', '75%'].includes(size)) {
           image.style.width = size
+        } else if (size?.startsWith('intrinsic-')) {
+          const percentage = Number.parseInt(size.slice('intrinsic-'.length), 10)
+          const applyIntrinsicWidth = () => {
+            if (!image.isConnected || image.dataset.sdImageSize !== size || image.naturalWidth <= 0) return
+            image.style.width = `${Math.max(1, Math.round(image.naturalWidth * percentage / 100))}px`
+          }
+          applyIntrinsicWidth()
+          if (image.naturalWidth <= 0) {
+            image.addEventListener('load', () => {
+              applyIntrinsicWidth()
+              this.refreshImageContext()
+              this.emitUpdate()
+            }, { once: true })
+          }
         } else {
           image.style.removeProperty('width')
         }
@@ -2047,6 +2075,16 @@ export default {
   box-shadow: 0 0 0 1px #173f6f;
   cursor: nwse-resize;
   touch-action: none;
+}
+
+.rte-image-size-heading {
+  display: block;
+  padding: 0.35rem 0.75rem 0.2rem;
+  color: #495057;
+  font-size: 0.72rem;
+  font-weight: 700;
+  letter-spacing: 0.02em;
+  text-transform: uppercase;
 }
 
 .rte-toolbar {
