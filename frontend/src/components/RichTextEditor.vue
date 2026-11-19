@@ -515,8 +515,11 @@ export default {
           image.style.width = '100%'
         } else if (['25%', '50%', '75%'].includes(size)) {
           image.style.width = size
-        } else if (size?.startsWith('intrinsic-')) {
-          const percentage = Number.parseInt(size.slice('intrinsic-'.length), 10)
+        } else if (size === 'original' || size?.startsWith('intrinsic-')) {
+          image.style.removeProperty('width')
+          const percentage = size === 'original'
+            ? 100
+            : Number.parseInt(size.slice('intrinsic-'.length), 10)
           const applyIntrinsicWidth = () => {
             if (!image.isConnected || image.dataset.sdImageSize !== size || image.naturalWidth <= 0) return
             image.style.width = `${Math.max(1, Math.round(image.naturalWidth * percentage / 100))}px`
@@ -529,8 +532,6 @@ export default {
               this.emitUpdate()
             }, { once: true })
           }
-        } else {
-          image.style.removeProperty('width')
         }
       }
       image.style.maxWidth = ['text-left', 'text-right'].includes(wrapping) && size === 'original'
