@@ -12,6 +12,7 @@ import shutil
 import subprocess
 from urllib.parse import urlsplit
 from datetime import datetime
+from html import escape, unescape
 from pathlib import Path
 import requests as _http
 from bs4 import BeautifulSoup
@@ -62,25 +63,28 @@ def _collect_topic_anchors(nodes):
     return anchors
 
 
-def _link_published_topics(text, topic_anchors):
-    if not topic_anchors:
-        return text
-
-    def anchor_for_href(href):
+def _format_pdf_links(text, topic_anchors):
+    def pdf_href(href):
+        href = unescape(href).strip()
         try:
-            parsed_href = urlsplit(href)
+            parsed = urlsplit(href)
         except ValueError:
             return None
-        if parsed_href.scheme or parsed_href.netloc:
-            return None
-        topic_match = re.fullmatch(
-            r'/topics/(\d+)/edit/?',
-            parsed_href.path,
-            re.IGNORECASE,
-        )
-        return topic_anchors.get(topic_match.group(1)) if topic_match else None
+        if not parsed.scheme and not parsed.netloc:
+            topic_match = re.fullmatch(
+                r'/topics/(\d+)/edit/?',
+                parsed.path,
+                re.IGNORECASE,
+            )
+            if topic_match and topic_anchors:
+                anchor = topic_anchors.get(topic_match.group(1))
+                if anchor:
+                    return f'#{anchor}'
+        if parsed.scheme in ('http', 'https') and parsed.hostname:
+            return escape(href, quote=True).replace('*', '&#42;').replace('`', '&#96;')
+        return None
 
-    def replace_topic_link(match):
+    def replace_html_link(match):
         href_match = re.search(
             r'\bhref\s*=\s*(["\'])(.*?)\1',
             match.group('attrs'),
@@ -89,27 +93,27 @@ def _link_published_topics(text, topic_anchors):
         if not href_match:
             return match.group(0)
 
-        anchor_id = anchor_for_href(href_match.group(2))
-        if not anchor_id:
+        href = pdf_href(href_match.group(2))
+        if not href:
             return match.group(0)
-        return f'<link href="#{anchor_id}">{match.group("content")}</link>'
+        return f'<link href="{href}">{match.group("content")}</link>'
 
     text = re.sub(
         r'<a\b(?P<attrs>[^>]*)>(?P<content>.*?)</a\s*>',
-        replace_topic_link,
+        replace_html_link,
         text,
         flags=re.IGNORECASE | re.DOTALL,
     )
 
-    def replace_markdown_topic_link(match):
-        anchor_id = anchor_for_href(match.group(2))
-        if not anchor_id:
+    def replace_markdown_link(match):
+        href = pdf_href(match.group(2))
+        if not href:
             return match.group(0)
-        return f'<link href="#{anchor_id}">{match.group(1)}</link>'
+        return f'<link href="{href}">{match.group(1)}</link>'
 
     return re.sub(
-        r'\[([^\]]+)\]\(([^)]+)\)',
-        replace_markdown_topic_link,
+        r'(?<!!)\[([^\]]+)\]\(([^)]+)\)',
+        replace_markdown_link,
         text,
     )
 
@@ -1297,8 +1301,6 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             'leftIndent': 0,
             'rightIndent': 0 if center_cover_text else -0.5 * inch,
         }
-        story.append(Spacer(1, 84))  # Move down ~1" (72pt)
-
         enhanced_title_style = ParagraphStyle('EnhancedTitle', parent=title_style, **cover_text_style)
         enhanced_subtitle_style = ParagraphStyle('EnhancedSubtitle', parent=subtitle_style, **cover_text_style)
         if isinstance(doc, BackgroundImageDocTemplate):
@@ -1314,9 +1316,29 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
             enhanced_title_style.textColor = custom_color
             enhanced_subtitle_style.textColor = custom_color
 
-        story.append(Paragraph(publication.title, enhanced_title_style))
+        cover_text = [Paragraph(publication.title, enhanced_title_style)]
         if publication.description:
-            story.append(Paragraph(publication.description, enhanced_subtitle_style))
+            cover_text.append(Paragraph(publication.description, enhanced_subtitle_style))
+
+        cover_offset = 84
+        if branding.get('pdf_cover_text_vertical_alignment') == 'center':
+            title_frame = next(
+                template.frames[0] for template in doc.pageTemplates if template.id == 'title_page'
+            )
+            block_height = sum(p.wrap(title_frame._aW, title_frame._aH)[1] for p in cover_text)
+            if len(cover_text) == 2:
+                gap = (cover_text[0].getSpaceAfter(), cover_text[1].getSpaceBefore())
+                block_height += max(gap) if title_frame._oASpace else sum(gap)
+            # Center on the physical page, but keep the block within the cover frame if it fits.
+            frame_top = title_frame._y2 - title_frame._topPadding
+            desired_top = (doc.pagesize[1] + block_height) / 2
+            offset = frame_top - desired_top - cover_text[0].getSpaceBefore()
+            max_offset = title_frame._aH - block_height - cover_text[0].getSpaceBefore()
+            cover_offset = max(0, min(offset, max_offset))
+
+        if cover_offset:
+            story.append(Spacer(1, cover_offset))
+        story.extend(cover_text)
     
         # Page break to TOC (switches to TOC page template)
         story.append(NextPageTemplate('toc_page'))
@@ -1658,26 +1680,25 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                 current_app.logger.debug('PDF: failed to render table sentinel')
                             continue
                         # Bullet list item — use hanging-indent bullet style
-                        if para.startswith('__BULLET__:'):
+                        bullet = re.fullmatch(r'__BULLET__(?:(\d+)__)?:(.*)', para, re.DOTALL)
+                        if bullet:
                             # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
-                            bullet_text = '•&nbsp;&nbsp;' + para[len('__BULLET__:'):]
-                            bullet_style = config.create_bullet_style(base_styles, level)
+                            bullet_text = '•&nbsp;&nbsp;' + bullet.group(2)
+                            bullet_style = config.create_bullet_style(base_styles, max(1, level) + int(bullet.group(1) or 0))
                             try:
                                 story.append(Paragraph(bullet_text, bullet_style))
-                            except Exception:
-                                pass
+                            except ValueError:
+                                current_app.logger.exception('PDF: could not render bullet list item')
                             continue
                         # Numbered list item — use hanging-indent numbered style
-                        if re.match(r'^__ORDERED__\d+__:', para):
-                            m = re.match(r'^__ORDERED__(\d+)__:(.*)', para, re.DOTALL)
-                            if m:
-                                # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
-                                num_text = f'{m.group(1)}.&nbsp;&nbsp;{m.group(2)}'
-                                num_style = config.create_numbered_style(base_styles, level)
-                                try:
-                                    story.append(Paragraph(num_text, num_style))
-                                except Exception:
-                                    pass
+                        numbered = re.fullmatch(r'__ORDERED__(-?\d+)__(?:(\d+)__)?:(.*)', para, re.DOTALL)
+                        if numbered:
+                            num_text = f'{numbered.group(1)}.&nbsp;&nbsp;{numbered.group(3)}'
+                            num_style = config.create_numbered_style(base_styles, max(1, level) + int(numbered.group(2) or 0))
+                            try:
+                                story.append(Paragraph(num_text, num_style))
+                            except ValueError:
+                                current_app.logger.exception('PDF: could not render numbered list item')
                             continue
                         # Create content style that matches the hierarchy level
                         level_content_style = config.create_content_style(base_styles, level)
@@ -1771,6 +1792,49 @@ def _download_image_for_pdf(url: str, temp_dir: str) -> str:
         return ''
 
 
+_PDF_LIST_ITEM = re.compile(r'^([ \t]*)([-*]|-?\d+\.)[ \t]+(.*)$')
+
+
+def _html_lists_to_pdf_markdown(text):
+    def render_list(tag, depth=0):
+        start = tag.get('start', '1')
+        number = int(start) if isinstance(start, str) and re.fullmatch(r'-?\d+', start) else 1
+        for item in tag.find_all(['li', 'ol', 'ul'], recursive=False):
+            if item.name in ('ol', 'ul'):
+                yield from render_list(item, depth + 1)
+                continue
+            nested = item.find_all(['ol', 'ul'], recursive=False)
+            for child in nested:
+                child.extract()
+            value = item.get('value')
+            if isinstance(value, str) and re.fullmatch(r'-?\d+', value):
+                number = int(value)
+            marker = f'{number}.' if tag.name == 'ol' else '-'
+            body = re.sub(r'\s*\n\s*', ' ', item.decode_contents()).strip()
+            if body:
+                yield f'{"    " * depth}{marker} {body}'
+            number += 1
+            for child in nested:
+                yield from render_list(child, depth + 1)
+
+    pieces = []
+    depth = start = cursor = 0
+    for token in re.finditer(r'</?(?:ol|ul)\b[^>]*>', text, re.IGNORECASE):
+        if not token.group().startswith('</'):
+            if depth == 0:
+                start = token.start()
+            depth += 1
+        elif depth:
+            depth -= 1
+            if depth == 0:
+                tag = BeautifulSoup(text[start:token.end()], 'html.parser').find(['ol', 'ul'])
+                if tag is not None:
+                    pieces.extend((text[cursor:start], '\n', '\n'.join(render_list(tag)), '\n'))
+                    cursor = token.end()
+    pieces.append(text[cursor:])
+    return ''.join(pieces)
+
+
 def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
     """Convert markdown-like text to PDF paragraphs with better hierarchy support"""
     if not text:
@@ -1798,16 +1862,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
             '\n' + '#' * _lvl + r' \1\n',
             safe_text, flags=re.IGNORECASE | re.DOTALL
         )
-    # Convert ordered lists to numbered markdown items
-    def _convert_ol_block(m):
-        items = re.findall(r'<li[^>]*>(.*?)</li>', m.group(1), re.IGNORECASE | re.DOTALL)
-        return '\n' + '\n'.join(f'{i + 1}. {item.strip()}' for i, item in enumerate(items)) + '\n'
-    safe_text = re.sub(r'<ol[^>]*>(.*?)</ol>', _convert_ol_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
-    # Convert unordered lists to markdown bullet items
-    def _convert_ul_block(m):
-        items = re.findall(r'<li[^>]*>(.*?)</li>', m.group(1), re.IGNORECASE | re.DOTALL)
-        return '\n' + '\n'.join(f'- {item.strip()}' for item in items) + '\n'
-    safe_text = re.sub(r'<ul[^>]*>(.*?)</ul>', _convert_ul_block, safe_text, flags=re.IGNORECASE | re.DOTALL)
+    safe_text = _html_lists_to_pdf_markdown(safe_text)
     # Strip any stray <li> tags not caught above
     safe_text = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', safe_text, flags=re.IGNORECASE | re.DOTALL)
     # Strip table tags (extract text content only — ReportLab has no table flowable here)
@@ -1843,8 +1898,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
         stripped_line = line.lstrip()
         is_structural_line = (
             stripped_line.startswith(('#', '|'))
-            or bool(re.match(r'^[-*]\s+', stripped_line))
-            or bool(re.match(r'^\d+\.\s+', stripped_line))
+            or bool(_PDF_LIST_ITEM.match(line))
         )
         if not is_structural_line:
             return line
@@ -1862,9 +1916,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
     lines = safe_text.split('\n')
     paragraphs = []
     current_paragraph = []
-    in_list = False
-    list_items = []
-    list_type = None  # 'bullet' or 'ordered'
+    list_indents = []
     
     # Utility to escape ampersands that are not part of known entities
     def escape_unescaped_ampersands(s: str) -> str:
@@ -1875,29 +1927,22 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
         """Normalize inline markdown within list item text for ReportLab rendering."""
         if not item_text:
             return ''
-        linked_text = _link_published_topics(item_text.strip(), topic_anchors)
+        linked_text = _format_pdf_links(item_text.strip(), topic_anchors)
         return _pdf_sanitize_text(_format_inline_markdown_for_pdf(linked_text))
     
     i = 0
     while i < len(lines):
         line = lines[i]
         stripped = line.strip()
+        list_item = _PDF_LIST_ITEM.fullmatch(line)
+        if stripped and not list_item:
+            list_indents.clear()
 
         table_rows, next_index = _consume_markdown_table(lines, i)
         if table_rows:
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            if in_list and list_items:
-                if list_type == 'ordered':
-                    for num, item in list_items:
-                        paragraphs.append(f'__ORDERED__{num}__:{item}')
-                else:
-                    for item in list_items:
-                        paragraphs.append(f'__BULLET__:{item}')
-                list_items = []
-                list_type = None
-                in_list = False
             paragraphs.append(f'__TABLE__:{json.dumps(table_rows)}')
             i = next_index
             continue
@@ -1908,17 +1953,6 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            if in_list:
-                # Create a proper list paragraph
-                if list_type == 'ordered':
-                    for num, item in list_items:
-                        paragraphs.append(f'__ORDERED__{num}__:{item}')
-                else:
-                    for item in list_items:
-                        paragraphs.append(f'__BULLET__:{item}')
-                list_items = []
-                list_type = None
-                in_list = False
             
             # Convert markdown headers to styled headings with appropriate font sizes
             header_level = len(stripped) - len(stripped.lstrip('#'))
@@ -1939,76 +1973,32 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
                 paragraphs.append(f'<font face="Helvetica-Bold" size="{font_size}"><b>{header_text}</b></font>')
             
             
-        # Handle bullet points and create proper lists
-        elif re.match(r'^-\s+', stripped) or re.match(r'^\*\s+', stripped):
+        elif list_item:
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            if in_list and list_type == 'ordered' and list_items:
-                # switching from ordered to bullet — flush ordered first
-                for num, item in list_items:
-                    paragraphs.append(f'__ORDERED__{num}__:{item}')
-                list_items = []
-            bullet_text = re.sub(r'^[-\*]\s+', '', stripped, count=1)
-            bullet_text = format_list_item_text(bullet_text)
-            list_items.append(bullet_text)
-            list_type = 'bullet'
-            in_list = True
-            
-        # Handle numbered lists
-        elif re.match(r'^\d+\. ', stripped):
-            if current_paragraph:
-                paragraphs.append(' '.join(current_paragraph))
-                current_paragraph = []
-            if in_list and list_type == 'bullet' and list_items:
-                # switching from bullet to ordered — flush bullets first
-                for item in list_items:
-                    paragraphs.append(f'__BULLET__:{item}')
-                list_items = []
-            dot_pos = stripped.index('. ')
-            num = int(stripped[:dot_pos])
-            numbered_text = stripped[dot_pos + 2:].strip()
-            numbered_text = format_list_item_text(numbered_text)
-            list_items.append((num, numbered_text))
-            list_type = 'ordered'
-            in_list = True
+            whitespace, marker, body = list_item.groups()
+            indent = len(whitespace.expandtabs(4))
+            while list_indents and indent < list_indents[-1]:
+                list_indents.pop()
+            if not list_indents or indent > list_indents[-1]:
+                list_indents.append(indent)
+            depth = len(list_indents) - 1
+            suffix = f'{depth}__' if depth else ''
+            prefix = f'__ORDERED__{marker[:-1]}__' if marker.endswith('.') else '__BULLET__'
+            paragraphs.append(f'{prefix}{suffix}:{format_list_item_text(body)}')
             
         # Handle empty lines (paragraph breaks)
         elif not stripped:
             if current_paragraph:
                 paragraphs.append(' '.join(current_paragraph))
                 current_paragraph = []
-            if in_list:
-                # Finish the current list
-                if list_items:
-                    if list_type == 'ordered':
-                        for num, item in list_items:
-                            paragraphs.append(f'__ORDERED__{num}__:{item}')
-                    else:
-                        for item in list_items:
-                            paragraphs.append(f'__BULLET__:{item}')
-                    list_items = []
-                list_type = None
-                in_list = False
                 
         # Regular text
         else:
-            if in_list:
-                # Finish the current list first
-                if list_items:
-                    if list_type == 'ordered':
-                        for num, item in list_items:
-                            paragraphs.append(f'__ORDERED__{num}__:{item}')
-                    else:
-                        for item in list_items:
-                            paragraphs.append(f'__BULLET__:{item}')
-                    list_items = []
-                list_type = None
-                in_list = False
-            
             # Handle basic markdown formatting within text
             formatted_line = stripped
-            formatted_line = _link_published_topics(formatted_line, topic_anchors)
+            formatted_line = _format_pdf_links(formatted_line, topic_anchors)
             # Bold text
             formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_line)
             # Italic text
@@ -2024,8 +2014,7 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
             formatted_line = re.sub(r'</?div[^>]*>', '', formatted_line)
             formatted_line = re.sub(r'</?span[^>]*>', '', formatted_line)
             formatted_line = re.sub(r'</?p[^>]*>', '', formatted_line)
-            # Convert <a href="...">text</a> to "text (url)" so the destination is
-            # visible in the PDF; then strip any remaining bare <a> tags (anchors etc.)
+            # Keep destinations visible for links that could not become PDF links.
             formatted_line = re.sub(
                 r'<a\s[^>]*href="([^"]*)"[^>]*>(.*?)</a>',
                 lambda m: f'{m.group(2)} ({m.group(1)})',
@@ -2229,13 +2218,6 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
     # Add any remaining content
     if current_paragraph:
         paragraphs.append(' '.join(current_paragraph))
-    if in_list and list_items:
-        if list_type == 'ordered':
-            for num, item in list_items:
-                paragraphs.append(f'__ORDERED__{num}__:{item}')
-        else:
-            for item in list_items:
-                paragraphs.append(f'__BULLET__:{item}')
     
     return [p for p in paragraphs if p.strip()]
 

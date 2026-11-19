@@ -59,6 +59,70 @@ def test_published_topic_links_in_numbered_lists_use_pdf_anchors(link_markup):
     ]
 
 
+def test_web_links_in_paragraphs_and_bullets_create_pdf_annotations(monkeypatch):
+    url = 'https://example.com/docs?guide=pdf&lang=en'
+    markdown = f'- [Import Guide]({url})\n\nSee <a href="{url.replace("&", "&amp;")}">the guide</a>.'
+    paragraphs = convert_markdown_to_pdf_paragraphs(markdown)
+    escaped_url = url.replace('&', '&amp;')
+    assert paragraphs == [
+        f'__BULLET__:<link href="{escaped_url}">Import Guide</link>',
+        f'See <link href="{escaped_url}">the guide</link>.',
+    ]
+
+    monkeypatch.setattr(pdf_generator, 'get_export_branding_settings', lambda: {'pdf_cover_background': '__none__'})
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': markdown, 'children': []}]
+    with Flask(__name__).app_context():
+        pdf = pdf_generator.generate_pdf(publication, tree)
+
+    assert pdf.getvalue().count(f'/URI ({url})'.encode()) == 2
+
+
+@pytest.mark.parametrize('content', [
+    '1. Parent\n    1. Child\n    2. Next child\n        - Grandchild\n2. Next parent',
+    '<ol><li>Parent<ol><li>Child</li><li>Next child<ul><li>Grandchild</li></ul></li></ol></li>'
+    '<li>Next parent</li></ol>',
+])
+def test_pdf_nested_lists_preserve_indentation_and_numbering(monkeypatch, content):
+    items = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        style = paragraph.style
+        if style.name.startswith(('BulletItem', 'NumberedItem')):
+            items[paragraph.getPlainText()] = x + style.leftIndent + style.firstLineIndent
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(pdf_generator, 'get_export_branding_settings', lambda: {'pdf_cover_background': '__none__'})
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    parent, child, next_child, grandchild, next_parent = (
+        '1.\xa0\xa0Parent', '1.\xa0\xa0Child', '2.\xa0\xa0Next child',
+        '•\xa0\xa0Grandchild', '2.\xa0\xa0Next parent',
+    )
+    assert list(items) == [parent, child, next_child, grandchild, next_parent]
+    assert items[parent] == pytest.approx(items[next_parent])
+    assert items[child] == pytest.approx(items[next_child])
+    assert items[grandchild] > items[child] > items[parent]
+
+
+def test_nested_html_list_keeps_explicit_numbers_and_parent_sequence():
+    content = (
+        '<ol start="7"><li>Parent<ol start="3"><li>Child</li>'
+        '<li value="9">Another child</li></ol></li><li>Next parent</li></ol>'
+    )
+    assert convert_markdown_to_pdf_paragraphs(content) == [
+        '__ORDERED__7__:Parent',
+        '__ORDERED__3__1__:Child',
+        '__ORDERED__9__1__:Another child',
+        '__ORDERED__8__:Next parent',
+    ]
+
+
 def test_default_pdf_palette_uses_neutral_heading_colors():
     heading_keys = ('h1_color', 'h2_color', 'h3_color', 'h4_color', 'h5_color')
 
@@ -560,6 +624,49 @@ def test_pdf_cover_text_style(
             assert (left + right) / 2 == pytest.approx(letter[0] / 2, abs=0.01)
         else:
             assert right == pytest.approx(570, abs=0.01)
+
+
+@pytest.mark.parametrize('template, with_subtitle, centered', [
+    (None, False, True),
+    ({'export_pdf_cover_text_vertical_alignment': 'center'}, True, True),
+    ({}, True, False),
+])
+def test_pdf_cover_vertical_alignment(tmp_path, monkeypatch, template, with_subtitle, centered):
+    title = 'A cover title long enough to wrap onto multiple lines'
+    subtitle = 'A subtitle that should stay with the title and wrap across multiple lines as well' if with_subtitle else ''
+    settings = {
+        'export_pdf_cover_background': '__none__',
+        'export_pdf_cover_text_vertical_alignment': 'center',
+    }
+    if template is not None:
+        settings['export_branding_templates'] = json.dumps([{'name': 'Cover', 'settings': template}])
+        settings['export_pdf_cover_background'] = _image_path(tmp_path)
+    monkeypatch.setattr(export_branding, 'get_setting', lambda key, default: settings.get(key, default))
+    publication = SimpleNamespace(
+        id=1, title=title, description=subtitle, form_number='1',
+        branding_template_name='Cover' if template is not None else '',
+    )
+    tree = [{'id': 1, 'title': 'Topic', 'content': 'Body text', 'children': []}]
+    bounds = {}
+    draw_on = Paragraph.drawOn
+
+    def record_position(paragraph, canvas, x, y, _sW=0):
+        if paragraph.text in (title, subtitle):
+            bounds[paragraph.text] = (y, y + paragraph.height, canvas.getPageNumber(), len(paragraph.blPara.lines))
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_position)
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    assert bounds[title][3] > 1
+    assert all(page == 1 for _, _, page, _ in bounds.values())
+    top = bounds[title][1]
+    if centered:
+        bottom = bounds[subtitle if with_subtitle else title][0]
+        assert (top + bottom) / 2 == pytest.approx(letter[1] / 2)
+    else:
+        assert top == pytest.approx(626.4)  # Unchanged cover header offset
 
 
 @pytest.mark.parametrize('style', ['', 'float: left', 'position: absolute'])
