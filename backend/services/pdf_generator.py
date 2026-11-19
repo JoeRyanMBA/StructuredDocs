@@ -202,7 +202,16 @@ def _describe_pdf_image_source(src: str) -> str:
 class _OverlayImageFlowable(Flowable):
     """Draw an image first and a paragraph over it at the same coordinates."""
 
-    def __init__(self, image, paragraph, width, height, padding=8, image_on_top=False):
+    def __init__(
+        self,
+        image,
+        paragraph,
+        width,
+        height,
+        padding=8,
+        image_on_top=False,
+        image_opacity=1,
+    ):
         super().__init__()
         self.image = image
         self.paragraph = paragraph
@@ -210,6 +219,7 @@ class _OverlayImageFlowable(Flowable):
         self.image_height = height
         self.padding = padding
         self.image_on_top = image_on_top
+        self.image_opacity = max(0, min(1, image_opacity))
 
     def wrap(self, available_width, available_height):
         self.width = min(self.image_width, available_width)
@@ -223,11 +233,23 @@ class _OverlayImageFlowable(Flowable):
     def draw(self):
         text_y = max(self.padding, self.height - self.padding - self.text_height)
         if not self.image_on_top:
-            self.image.drawOn(self.canv, 0, 0)
+            self._draw_image()
             self.paragraph.drawOn(self.canv, self.padding, text_y)
         else:
             self.paragraph.drawOn(self.canv, self.padding, text_y)
+            self._draw_image()
+
+    def _draw_image(self):
+        if self.image_opacity >= 1:
             self.image.drawOn(self.canv, 0, 0)
+            return
+
+        self.canv.saveState()
+        try:
+            self.canv.setFillAlpha(self.image_opacity)
+            self.image.drawOn(self.canv, 0, 0)
+        finally:
+            self.canv.restoreState()
 
 
 def _encode_pdf_layout_marker(payload):
@@ -248,6 +270,13 @@ def _collect_overlay_paragraphs(paragraphs, start_index):
     overlay_paragraphs = []
     while start_index < len(paragraphs):
         paragraph = paragraphs[start_index].strip()
+        indented = re.fullmatch(
+            r'__PDF_INDENT__\d+(?:\.\d+)?__:(.*)',
+            paragraph,
+            re.DOTALL,
+        )
+        if indented:
+            paragraph = indented.group(1).strip()
         if (
             not paragraph
             or paragraph.startswith('__')
@@ -1566,13 +1595,22 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                                         rightIndent=0,
                                         spaceAfter=0,
                                     )
-                                    story.append(_OverlayImageFlowable(
+                                    overlay = _OverlayImageFlowable(
                                         image,
                                         Paragraph(layout_text, overlay_style),
                                         width,
                                         height,
-                                        image_on_top=bool(layout.get('image_on_top'))
-                                    ))
+                                        image_on_top=bool(layout.get('image_on_top')),
+                                        image_opacity=float(
+                                            layout.get('image_opacity', 1)
+                                        ),
+                                    )
+                                    overlay.hAlign = {
+                                        'left': 'LEFT',
+                                        'center': 'CENTER',
+                                        'right': 'RIGHT',
+                                    }.get(layout.get('side'), 'LEFT')
+                                    story.append(overlay)
                                 elif layout_text and layout.get('mode') == 'float':
                                     float_style = ParagraphStyle(
                                         f'FloatContent{level}',
@@ -1679,12 +1717,25 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                             except Exception:
                                 current_app.logger.debug('PDF: failed to render table sentinel')
                             continue
+                        keep_with_next = (
+                            paragraph_index < len(content_paragraphs)
+                            and content_paragraphs[paragraph_index].startswith(
+                                ('__PDF_IMG__:', '__PDF_LAYOUT_IMG__:')
+                            )
+                        )
                         # Bullet list item — use hanging-indent bullet style
                         bullet = re.fullmatch(r'__BULLET__(?:(\d+)__)?:(.*)', para, re.DOTALL)
                         if bullet:
                             # Use &nbsp; so ReportLab's XML parser doesn't collapse the spaces
                             bullet_text = '•&nbsp;&nbsp;' + bullet.group(2)
-                            bullet_style = config.create_bullet_style(base_styles, max(1, level) + int(bullet.group(1) or 0))
+                            bullet_style = ParagraphStyle(
+                                f'BulletItemBeforeImage{paragraph_index}',
+                                parent=config.create_bullet_style(
+                                    base_styles,
+                                    max(1, level) + int(bullet.group(1) or 0),
+                                ),
+                                keepWithNext=keep_with_next,
+                            )
                             try:
                                 story.append(Paragraph(bullet_text, bullet_style))
                             except ValueError:
@@ -1693,15 +1744,57 @@ def generate_pdf(publication, tree, config_type='default', background_image_path
                         # Numbered list item — use hanging-indent numbered style
                         numbered = re.fullmatch(r'__ORDERED__(-?\d+)__(?:(\d+)__)?:(.*)', para, re.DOTALL)
                         if numbered:
-                            num_text = f'{numbered.group(1)}.&nbsp;&nbsp;{numbered.group(3)}'
-                            num_style = config.create_numbered_style(base_styles, max(1, level) + int(numbered.group(2) or 0))
+                            list_depth = int(numbered.group(2) or 0)
+                            marker = _pdf_ordered_list_marker(
+                                numbered.group(1),
+                                list_depth,
+                            )
+                            num_text = f'{marker}.&nbsp;&nbsp;{numbered.group(3)}'
+                            num_style = ParagraphStyle(
+                                f'NumberedItemBeforeImage{paragraph_index}',
+                                parent=config.create_numbered_style(
+                                    base_styles,
+                                    max(1, level) + list_depth,
+                                    marker=f'{marker}.',
+                                ),
+                                keepWithNext=keep_with_next,
+                            )
                             try:
                                 story.append(Paragraph(num_text, num_style))
                             except ValueError:
                                 current_app.logger.exception('PDF: could not render numbered list item')
                             continue
+                        indented = re.fullmatch(
+                            r'__PDF_INDENT__(\d+(?:\.\d+)?)__:(.*)',
+                            para,
+                            re.DOTALL,
+                        )
+                        if indented:
+                            base_indented_style = config.create_content_style(base_styles, level)
+                            indented_style = ParagraphStyle(
+                                f'IndentedContent{level}',
+                                parent=base_indented_style,
+                                leftIndent=(
+                                    base_indented_style.leftIndent
+                                    + float(indented.group(1))
+                                ),
+                                keepWithNext=keep_with_next,
+                            )
+                            try:
+                                story.append(Paragraph(indented.group(2), indented_style))
+                            except Exception:
+                                current_app.logger.debug(
+                                    f"PDF: skipped unparseable indented paragraph {para!r}"
+                                )
+                            continue
                         # Create content style that matches the hierarchy level
                         level_content_style = config.create_content_style(base_styles, level)
+                        if keep_with_next:
+                            level_content_style = ParagraphStyle(
+                                f'ContentBeforeImage{paragraph_index}',
+                                parent=level_content_style,
+                                keepWithNext=True,
+                            )
                         try:
                             story.append(Paragraph(para, level_content_style))
                         except Exception:
@@ -1795,27 +1888,110 @@ def _download_image_for_pdf(url: str, temp_dir: str) -> str:
 _PDF_LIST_ITEM = re.compile(r'^([ \t]*)([-*]|-?\d+\.)[ \t]+(.*)$')
 
 
+def _pdf_ordered_list_marker(value, depth):
+    """Format a list number to match the editor's four ordered-list levels."""
+    number = int(value)
+    if depth % 4 == 0:
+        return str(number)
+
+    def alphabetic(raw):
+        result = ''
+        current = raw
+        while current > 0:
+            current, remainder = divmod(current - 1, 26)
+            result = chr(65 + remainder) + result
+        return result or '?'
+
+    def roman(raw):
+        values = (
+            (1000, 'm'), (900, 'cm'), (500, 'd'), (400, 'cd'),
+            (100, 'c'), (90, 'xc'), (50, 'l'), (40, 'xl'),
+            (10, 'x'), (9, 'ix'), (5, 'v'), (4, 'iv'), (1, 'i'),
+        )
+        remaining = max(1, raw)
+        result = ''
+        for amount, numeral in values:
+            count, remaining = divmod(remaining, amount)
+            result += numeral * count
+        return result
+
+    level = depth % 4
+    if level == 1:
+        return alphabetic(number).lower()
+    if level == 2:
+        return roman(number)
+    return alphabetic(number)
+
+
 def _html_lists_to_pdf_markdown(text):
     def render_list(tag, depth=0):
         start = tag.get('start', '1')
-        number = int(start) if isinstance(start, str) and re.fullmatch(r'-?\d+', start) else 1
+        counters = {
+            depth: int(start)
+            if isinstance(start, str) and re.fullmatch(r'-?\d+', start)
+            else 1
+        }
         for item in tag.find_all(['li', 'ol', 'ul'], recursive=False):
             if item.name in ('ol', 'ul'):
                 yield from render_list(item, depth + 1)
                 continue
+
+            item_depth = depth
+            data_level = item.get('data-list-level')
+            style = str(item.get('style') or '')
+            list_style_match = re.search(
+                r'(?:^|;)\s*list-style-type\s*:\s*([^;]+)',
+                style,
+                re.IGNORECASE,
+            )
+            list_style = (
+                list_style_match.group(1).strip().lower()
+                if list_style_match
+                else ''
+            )
+            level_from_style = {
+                'decimal': 1,
+                'lower-alpha': 2,
+                'lower-roman': 3,
+                'upper-alpha': 4,
+            }.get(list_style)
+            margin_match = re.search(
+                r'(?:^|;)\s*margin-left\s*:\s*(\d+(?:\.\d+)?)'
+                r'\s*(px|rem|em)?',
+                style,
+                re.IGNORECASE,
+            )
+            if isinstance(data_level, str) and data_level.isdigit():
+                item_depth = max(0, int(data_level) - 1)
+            elif level_from_style:
+                item_depth = level_from_style - 1
+            elif margin_match:
+                margin = float(margin_match.group(1))
+                unit = (margin_match.group(2) or 'px').lower()
+                pixels = margin if unit == 'px' else margin * 16
+                item_depth = max(0, round(pixels / 24))
+
             nested = item.find_all(['ol', 'ul'], recursive=False)
             for child in nested:
                 child.extract()
             value = item.get('value')
             if isinstance(value, str) and re.fullmatch(r'-?\d+', value):
-                number = int(value)
-            marker = f'{number}.' if tag.name == 'ol' else '-'
+                counters[item_depth] = int(value)
+            else:
+                counters.setdefault(item_depth, 1)
+            marker = (
+                f'{counters[item_depth]}.'
+                if tag.name == 'ol'
+                else '-'
+            )
             body = re.sub(r'\s*\n\s*', ' ', item.decode_contents()).strip()
             if body:
-                yield f'{"    " * depth}{marker} {body}'
-            number += 1
+                yield f'{"    " * item_depth}{marker} {body}'
+            counters[item_depth] += 1
+            for deeper_depth in [key for key in counters if key > item_depth]:
+                del counters[deeper_depth]
             for child in nested:
-                yield from render_list(child, depth + 1)
+                yield from render_list(child, item_depth + 1)
 
     pieces = []
     depth = start = cursor = 0
@@ -1833,6 +2009,49 @@ def _html_lists_to_pdf_markdown(text):
                     cursor = token.end()
     pieces.append(text[cursor:])
     return ''.join(pieces)
+
+
+def _html_indented_paragraphs_to_pdf_markers(text):
+    """Preserve the paragraph indentation emitted by the rich-text editor."""
+    paragraph_re = re.compile(
+        r'<p\b(?P<attrs>[^>]*)>(?P<body>.*?)</p>',
+        flags=re.IGNORECASE | re.DOTALL,
+    )
+
+    def replace_paragraph(match):
+        style_match = re.search(
+            r'\bstyle\s*=\s*(["\'])(.*?)\1',
+            match.group('attrs'),
+            flags=re.IGNORECASE | re.DOTALL,
+        )
+        if not style_match:
+            return match.group(0)
+
+        indent_match = re.search(
+            r'(?:^|;)\s*margin-left\s*:\s*'
+            r'(\d+(?:\.\d+)?)\s*(px|pt|in|cm|mm|em|rem)?'
+            r'\s*(?:!important)?(?=\s*(?:;|$))',
+            style_match.group(2),
+            flags=re.IGNORECASE,
+        )
+        if not indent_match:
+            return match.group(0)
+
+        value = float(indent_match.group(1))
+        unit = (indent_match.group(2) or 'px').lower()
+        points = {
+            'px': value * 0.75,
+            'pt': value,
+            'in': value * inch,
+            'cm': value * inch / 2.54,
+            'mm': value * inch / 25.4,
+            'em': value * 12,
+            'rem': value * 12,
+        }[unit]
+        body = re.sub(r'\s*\n\s*', ' ', match.group('body')).strip()
+        return f'__PDF_INDENT__{points:g}__:{body}\n'
+
+    return paragraph_re.sub(replace_paragraph, text)
 
 
 def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
@@ -1867,9 +2086,10 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
     safe_text = re.sub(r'<li[^>]*>(.*?)</li>', r'- \1\n', safe_text, flags=re.IGNORECASE | re.DOTALL)
     # Strip table tags (extract text content only — ReportLab has no table flowable here)
     safe_text = re.sub(r'</?(?:table|thead|tbody|tfoot|tr|th|td|caption)[^>]*>', '\n', safe_text, flags=re.IGNORECASE)
-    # Strip <p> wrappers, preserving inner content with a trailing newline
+    safe_text = _html_indented_paragraphs_to_pdf_markers(safe_text)
+    # Strip <p> wrappers, preserving paragraph boundaries.
     safe_text = re.sub(r'<p[^>]*>', '', safe_text, flags=re.IGNORECASE)
-    safe_text = re.sub(r'</p>', '\n', safe_text, flags=re.IGNORECASE)
+    safe_text = re.sub(r'</p>', '\n\n', safe_text, flags=re.IGNORECASE)
 
     def flatten_image_tag(match):
         image_tag = match.group(0)
@@ -1996,8 +2216,21 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
                 
         # Regular text
         else:
+            indent_match = re.fullmatch(
+                r'__PDF_INDENT__(\d+(?:\.\d+)?)__:(.*)',
+                stripped,
+                flags=re.DOTALL,
+            )
+            paragraph_indent = float(indent_match.group(1)) if indent_match else 0
+            if indent_match:
+                if current_paragraph:
+                    paragraphs.append(' '.join(current_paragraph))
+                    current_paragraph = []
+                formatted_line = indent_match.group(2).strip()
+            else:
+                formatted_line = stripped
+
             # Handle basic markdown formatting within text
-            formatted_line = stripped
             formatted_line = _format_pdf_links(formatted_line, topic_anchors)
             # Bold text
             formatted_line = re.sub(r'\*\*(.*?)\*\*', r'<b>\1</b>', formatted_line)
@@ -2067,14 +2300,35 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
                         img_tag,
                         re.IGNORECASE | re.DOTALL,
                     )
+                    wrapping_match = re.search(
+                        r'\bdata-sd-image-wrapping\s*=\s*(["\'])(.*?)\1',
+                        img_tag,
+                        re.IGNORECASE | re.DOTALL,
+                    )
+                    alignment_match = re.search(
+                        r'\bdata-sd-image-alignment\s*=\s*(["\'])(.*?)\1',
+                        img_tag,
+                        re.IGNORECASE | re.DOTALL,
+                    )
                     style = style_match.group(1).lower() if style_match else ''
                     image_class = class_match.group(1).lower() if class_match else ''
                     image_size = image_size_match.group(2).lower() if image_size_match else ''
+                    image_wrapping = (
+                        wrapping_match.group(2).lower() if wrapping_match else ''
+                    )
+                    image_alignment = (
+                        alignment_match.group(2).lower() if alignment_match else ''
+                    )
                     float_match = re.search(r'\bfloat\s*:\s*(left|right)', style)
                     z_index_match = re.search(r'\bz-index\s*:\s*(-?\d+)', style)
+                    opacity_match = re.search(
+                        r'(?:^|;)\s*opacity\s*:\s*(\d+(?:\.\d+)?)',
+                        style,
+                    )
                     is_overlay = bool(
                         re.search(r'\bposition\s*:\s*(absolute|fixed)', style)
                         or re.search(r'\b(z-index|overlay)\b', image_class)
+                        or image_wrapping == 'watermark'
                     )
                     
                     # Build clean img tag with only supported attributes
@@ -2150,8 +2404,15 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
                             'width': w,
                             'height': h,
                             'mode': 'overlay' if is_overlay else 'float',
-                            'side': float_match.group(1) if float_match else 'right',
+                            'side': (
+                                float_match.group(1)
+                                if float_match
+                                else image_alignment or 'right'
+                            ),
                             'image_on_top': bool(z_index_match and int(z_index_match.group(1)) > 0),
+                            'image_opacity': (
+                                float(opacity_match.group(1)) if opacity_match else 1
+                            ),
                             'text': '',
                         }) + ' '
                     # Return a sentinel so the caller can emit a standalone Image flowable
@@ -2210,8 +2471,13 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
             formatted_line = _pdf_sanitize_text(formatted_line)
             # Clean up extra whitespace and empty content
             formatted_line = formatted_line.strip()
-            if formatted_line:  # Only add non-empty lines
-                current_paragraph.append(formatted_line)
+            if formatted_line:
+                if paragraph_indent:
+                    paragraphs.append(
+                        f'__PDF_INDENT__{paragraph_indent:g}__:{formatted_line}'
+                    )
+                else:
+                    current_paragraph.append(formatted_line)
 
         i += 1
     
