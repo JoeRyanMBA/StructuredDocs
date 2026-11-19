@@ -101,7 +101,7 @@ def test_pdf_nested_lists_preserve_indentation_and_numbering(monkeypatch, conten
         pdf_generator.generate_pdf(publication, tree)
 
     parent, child, next_child, grandchild, next_parent = (
-        '1.\xa0\xa0Parent', '1.\xa0\xa0Child', '2.\xa0\xa0Next child',
+        '1.\xa0\xa0Parent', 'a.\xa0\xa0Child', 'b.\xa0\xa0Next child',
         '•\xa0\xa0Grandchild', '2.\xa0\xa0Next parent',
     )
     assert list(items) == [parent, child, next_child, grandchild, next_parent]
@@ -123,12 +123,129 @@ def test_nested_html_list_keeps_explicit_numbers_and_parent_sequence():
     ]
 
 
+def test_pdf_preserves_adjacent_indented_html_paragraphs(monkeypatch):
+    content = (
+        '<p style="margin-left: 40px">The wrapping options are:</p>'
+        '<p style="margin-left: 40px"><strong>Above and below.</strong> '
+        'No text will appear on either side of the image.</p>'
+        '<p style="margin-left: 40px"><strong>Text left of image.</strong> '
+        'Text will only appear to the left of the image.</p>'
+        '<p style="margin-left: 40px"><strong>Watermark.</strong> '
+        'Text appears on top of the image.</p>'
+    )
+
+    assert convert_markdown_to_pdf_paragraphs(content) == [
+        '__PDF_INDENT__30__:The wrapping options are:',
+        '__PDF_INDENT__30__:<b>Above and below.</b> No text will appear on either side of the image.',
+        '__PDF_INDENT__30__:<b>Text left of image.</b> Text will only appear to the left of the image.',
+        '__PDF_INDENT__30__:<b>Watermark.</b> Text appears on top of the image.',
+    ]
+
+    rendered = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        plain_text = paragraph.getPlainText()
+        if plain_text.startswith(('The wrapping options', 'Above and below.')):
+            rendered[plain_text] = paragraph.style.leftIndent
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(
+        pdf_generator,
+        'get_export_branding_settings',
+        lambda: {'pdf_cover_background': '__none__'},
+    )
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    assert len(rendered) == 2
+    assert all(indent == pytest.approx(30) for indent in rendered.values())
+
+
+def test_pdf_keeps_explanatory_paragraph_with_following_image(monkeypatch, tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        '<p>The next image illustrates the selected wrapping option.</p>'
+        f'<p><img src="{image_path}" width="120" height="80"></p>'
+    )
+    keep_with_next = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        if paragraph.getPlainText().startswith('The next image illustrates'):
+            keep_with_next['value'] = paragraph.style.keepWithNext
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(
+        pdf_generator,
+        'get_export_branding_settings',
+        lambda: {'pdf_cover_background': '__none__'},
+    )
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    assert keep_with_next == {'value': 1}
+
+
 def test_default_pdf_palette_uses_neutral_heading_colors():
     heading_keys = ('h1_color', 'h2_color', 'h3_color', 'h4_color', 'h5_color')
 
     for key in heading_keys:
         heading_color = PDFConfig.COLORS[key]
         assert heading_color.red == heading_color.green == heading_color.blue
+
+
+def test_flat_editor_ordered_list_levels_preserve_numbering_and_depth(monkeypatch):
+    content = (
+        '<ol>'
+        '<li data-list-level="1" style="list-style-type: decimal">First</li>'
+        '<li data-list-level="2" style="margin-left: 1.5rem; list-style-type: lower-alpha">Child A</li>'
+        '<li data-list-level="2" style="margin-left: 1.5rem; list-style-type: lower-alpha">Child B</li>'
+        '<li data-list-level="3" style="margin-left: 3rem; list-style-type: lower-roman">Grandchild</li>'
+        '<li data-list-level="1" style="list-style-type: decimal">Second</li>'
+        '</ol>'
+    )
+
+    assert convert_markdown_to_pdf_paragraphs(content) == [
+        '__ORDERED__1__:First',
+        '__ORDERED__1__1__:Child A',
+        '__ORDERED__2__1__:Child B',
+        '__ORDERED__1__2__:Grandchild',
+        '__ORDERED__2__:Second',
+    ]
+
+    positions = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        positions[paragraph.getPlainText()] = paragraph.style.leftIndent
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(
+        pdf_generator,
+        'get_export_branding_settings',
+        lambda: {'pdf_cover_background': '__none__'},
+    )
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    assert '1.\xa0\xa0First' in positions
+    assert 'a.\xa0\xa0Child A' in positions
+    assert 'b.\xa0\xa0Child B' in positions
+    assert 'i.\xa0\xa0Grandchild' in positions
+    assert positions['a.\xa0\xa0Child A'] > positions['1.\xa0\xa0First']
+    assert positions['i.\xa0\xa0Grandchild'] > positions['a.\xa0\xa0Child A']
 
 
 def test_image_layout_markers_preserve_float_and_overlay_text(tmp_path):
@@ -241,14 +358,22 @@ def test_watermark_text_is_top_aligned_over_image():
     image = Mock()
     paragraph = Mock()
     paragraph.wrap.return_value = (84, 30)
-    flowable = _OverlayImageFlowable(image, paragraph, 100, 200, padding=8)
+    canvas = Mock()
+    flowable = _OverlayImageFlowable(
+        image,
+        paragraph,
+        100,
+        200,
+        padding=8,
+        image_opacity=0.18,
+    )
     flowable.wrap(100, 200)
-    canvas = object()
     flowable.canv = canvas
 
     flowable.draw()
 
     paragraph.drawOn.assert_called_once_with(canvas, 8, 162)
+    canvas.setFillAlpha.assert_called_once_with(0.18)
 
 
 def test_wrapped_editor_image_respects_saved_size_option(tmp_path):
@@ -732,3 +857,74 @@ def test_overlay_paragraphs_collect_until_structural_content(tmp_path):
     assert payload['mode'] == 'overlay'
     assert text == 'First paragraph with <b>inline formatting</b>.<br/><br/>Second paragraph.'
     assert paragraphs[next_index].startswith('<font face="Helvetica-Bold"')
+
+
+def test_watermark_collects_following_indented_editor_paragraphs(tmp_path):
+    image_path = _image_path(tmp_path)
+    content = (
+        f'<p><img src="{image_path}" data-sd-image-wrapping="watermark" '
+        'data-sd-image-alignment="center" '
+        'style="position:absolute;z-index:-1;top:0;left:50%;'
+        'transform:translateX(-50%);opacity:0.18;width:120px" '
+        'width="120" height="80"></p>'
+        '<p style="margin-left: 40px">Watermark text.</p>'
+        '<p style="margin-left: 40px">More explanatory text.</p>'
+        '<p>Next section paragraph.</p>'
+    )
+    paragraphs = convert_markdown_to_pdf_paragraphs(content)
+    marker_index = next(
+        index for index, item in enumerate(paragraphs)
+        if item.startswith('__PDF_LAYOUT_IMG__:')
+    )
+    payload = _decode_pdf_layout_marker(paragraphs[marker_index])
+
+    text, next_index = _collect_overlay_paragraphs(
+        paragraphs,
+        marker_index + 1,
+    )
+
+    assert payload['side'] == 'center'
+    assert payload['image_opacity'] == pytest.approx(0.18)
+    assert text == 'Watermark text.<br/><br/>More explanatory text.<br/><br/>Next section paragraph.'
+    assert next_index == len(paragraphs)
+
+
+@pytest.mark.parametrize(
+    'image_style',
+    [
+        'float: left',
+        'position: absolute; z-index: -1; opacity: 0.18',
+    ],
+)
+def test_pdf_keeps_explanatory_text_with_wrapped_images(
+    monkeypatch,
+    tmp_path,
+    image_style,
+):
+    image_path = _image_path(tmp_path)
+    content = (
+        '<p>The image demonstrates the selected layout.</p>'
+        f'<img src="{image_path}" style="{image_style}" '
+        'width="120" height="80"> Image details.'
+    )
+    keep_with_next = {}
+    draw_on = Paragraph.drawOn
+
+    def record_paragraph(paragraph, canvas, x, y, _sW=0):
+        if paragraph.getPlainText().startswith('The image demonstrates'):
+            keep_with_next['value'] = paragraph.style.keepWithNext
+        return draw_on(paragraph, canvas, x, y, _sW)
+
+    monkeypatch.setattr(Paragraph, 'drawOn', record_paragraph)
+    monkeypatch.setattr(
+        pdf_generator,
+        'get_export_branding_settings',
+        lambda: {'pdf_cover_background': '__none__'},
+    )
+    publication = SimpleNamespace(id=1, title='Guide', description='', form_number='1')
+    tree = [{'id': 1, 'title': 'Topic', 'content': content, 'children': []}]
+
+    with Flask(__name__).app_context():
+        pdf_generator.generate_pdf(publication, tree)
+
+    assert keep_with_next == {'value': 1}

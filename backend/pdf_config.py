@@ -218,14 +218,18 @@ class PDFConfig:
         )
 
     @classmethod
-    def create_numbered_style(cls, base_styles, level=0):
+    def create_numbered_style(cls, base_styles, level=0, marker='1.'):
         """Create numbered list item style with hanging indent"""
         from reportlab.pdfbase.pdfmetrics import stringWidth
         base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
         # Measure the exact rendered width of a single-digit number prefix so
         # wrapped lines align precisely with the text that follows the number.
         # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
-        num_hang = stringWidth('1.\xa0\xa0', cls.FONTS['body'], cls.FONT_SIZES['body'])
+        num_hang = stringWidth(
+            f'{marker}\xa0\xa0',
+            cls.FONTS['body'],
+            cls.FONT_SIZES['body'],
+        )
 
         return ParagraphStyle(
             f'NumberedItem{level}',
