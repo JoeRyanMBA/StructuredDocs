@@ -411,6 +411,27 @@ def test_pdf_image_flowable_prefers_css_width_over_legacy_dimensions(tmp_path):
         assert int(height) == int(80 * expected_width / 120)
 
 
+def test_original_image_pixels_are_converted_to_pdf_points(tmp_path):
+    image_path = tmp_path / 'original-size.png'
+    PILImage.new('RGB', (400, 200), 'blue').save(image_path)
+
+    for content in (
+        f'<img src="{image_path}" data-sd-image-size="original">',
+        (
+            f'<img src="{image_path}" data-sd-image-size="original" '
+            'style="width:400px;height:200px">'
+        ),
+    ):
+        paragraphs = convert_markdown_to_pdf_paragraphs(content)
+        marker = next(
+            item for item in paragraphs if item.startswith('__PDF_IMG__:')
+        )
+        _, _src, width, height = marker.split(':', 3)
+
+        assert int(width) == 300
+        assert int(height) == 150
+
+
 def test_absolute_app_image_url_resolves_from_local_storage(tmp_path, monkeypatch):
     image_path = tmp_path / 'inserted-image.png'
     PILImage.new('RGB', (120, 80), 'blue').save(image_path)

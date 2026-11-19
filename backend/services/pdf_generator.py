@@ -2358,7 +2358,13 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
                             style,
                             re.IGNORECASE,
                         )
-                        if style_width_match:
+                        if float_match and image_size == 'original':
+                            # The editor's original-size float is capped at 320 CSS pixels
+                            # or 45% of the content column, whichever is smaller.
+                            max_float_width = min(int(MAX_WIDTH * 0.45), int(320 * 0.75))
+                            w = min(int(natural_w * 0.75), max_float_width)
+                            h = int(natural_h * w / natural_w)
+                        elif style_width_match:
                             css_width = float(style_width_match.group(1))
                             unit = (style_width_match.group(2) or 'px').lower()
                             if unit == '%':
@@ -2377,17 +2383,19 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
                         elif image_size in ('25%', '50%', '75%'):
                             w = int(MAX_WIDTH * float(image_size.rstrip('%')) / 100)
                             h = int(natural_h * w / natural_w)
-                        elif float_match and image_size == 'original':
-                            # The editor's original-size float uses max-width: min(45%, 320px).
-                            max_float_width = min(int(MAX_WIDTH * 0.45), int(320 * 0.75))
-                            w = min(natural_w, max_float_width)
-                            h = int(natural_h * w / natural_w)
                         elif width_match:
                             try:
                                 w = int(width_match.group(2))
-                                h = int(height_match.group(2)) if height_match else int(natural_h * w / natural_w)
+                                h = (
+                                    int(height_match.group(2))
+                                    if height_match
+                                    else int(natural_h * w / natural_w)
+                                )
                             except (ValueError, ZeroDivisionError):
                                 w, h = natural_w, natural_h
+                        elif image_size == 'original':
+                            w = int(natural_w * 0.75)
+                            h = int(natural_h * 0.75)
                         else:
                             w, h = natural_w, natural_h
                         if w > MAX_WIDTH and w > 0:
