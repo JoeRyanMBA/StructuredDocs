@@ -146,7 +146,7 @@ Choose **Collection**, select one document, then provide the destination project
 
 Choose **Create Collection** to import several files as a new collection. Select the destination project and enter the collection name and unique ID, then select multiple source files. Each selected file becomes a topic in that collection.
 
-For supported formats, image handling, hierarchy, and troubleshooting, see the [Import Guide](import-guide.md).
+For supported formats, image handling, hierarchy, and troubleshooting, see the [Import Guide](https://github.com/JoeRyanMBA/StructuredDocs/blob/main/docs/import-guide.md).
 
 ## Conduct a review
 
@@ -174,7 +174,7 @@ Open **Reviews > Tasks** to see your review work:
 
 The app matches your account to a stakeholder using your email address. If no matching stakeholder exists, sending a review creates one without granting review permission. An administrator can create or update your stakeholder if you need to receive reviews. Older reviews that were attributed to the wrong requester cannot be automatically reassigned.
 
-See the [Review Workflow Guide](REVIEW_WORKFLOW_GUIDE.md) for additional workflow details.
+See the [Review Workflow Guide](https://github.com/JoeRyanMBA/StructuredDocs/blob/main/docs/REVIEW_WORKFLOW_GUIDE.md) for additional workflow details.
 
 ## Using administrative features
 
@@ -248,7 +248,7 @@ Choose **Publish as knowledge base** on the collection to save its snapshot and 
 
 Choose **Publish as PDF** on the collection to save its snapshot and download the PDF. For an existing snapshot, choose **Export PDF** on the publication dashboard. Preview or refresh that publication first if its source topics have changed.
 
-Images that are too large for a PDF content page are scaled down proportionally to fit.
+Nested lists retain their indentation and numbering in PDF exports. Images that are too large for a PDF content page are scaled down proportionally to fit.
 
 ### Manage publications
 
@@ -300,6 +300,6 @@ Read the feedback, update and save the topics, then resubmit them for review if 
 
 ## Related documentation
 
-- [Import Guide](import-guide.md)
-- [Review Workflow Guide](REVIEW_WORKFLOW_GUIDE.md)
-- [Documentation Hub](README.md)
+- [Import Guide](https://github.com/JoeRyanMBA/StructuredDocs/blob/main/docs/import-guide.md)
+- [Review Workflow Guide](https://github.com/JoeRyanMBA/StructuredDocs/blob/main/docs/REVIEW_WORKFLOW_GUIDE.md)
+- [Documentation Hub](https://github.com/JoeRyanMBA/StructuredDocs/blob/main/docs/README.md)
