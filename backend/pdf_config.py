@@ -198,7 +198,7 @@ class PDFConfig:
     def create_bullet_style(cls, base_styles, level=0):
         """Create bullet list item style with hanging indent"""
         from reportlab.pdfbase.pdfmetrics import stringWidth
-        base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        base_indent = cls.INDENTS['list_indent'] + max(0, (level - 1) * cls.INDENTS['content_per_level'])
         # Measure the exact rendered width of the bullet prefix so wrapped lines
         # align precisely with the text that follows the bullet.
         # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
@@ -221,7 +221,7 @@ class PDFConfig:
     def create_numbered_style(cls, base_styles, level=0, marker='1.'):
         """Create numbered list item style with hanging indent"""
         from reportlab.pdfbase.pdfmetrics import stringWidth
-        base_indent = max(0, (level - 1) * cls.INDENTS['content_per_level'])
+        base_indent = cls.INDENTS['list_indent'] + max(0, (level - 1) * cls.INDENTS['content_per_level'])
         # Measure the exact rendered width of a single-digit number prefix so
         # wrapped lines align precisely with the text that follows the number.
         # Use \xa0 (non-breaking space) to match the &nbsp; used in rendering.
