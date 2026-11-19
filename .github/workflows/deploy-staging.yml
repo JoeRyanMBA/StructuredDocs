@@ -55,11 +55,14 @@ jobs:
           SSH_OPTS=(
             -i ~/.ssh/id_ed25519
             -p "$PORT"
+            -o ConnectionAttempts=3
+            -o ConnectTimeout=10
             -o ServerAliveInterval=30
             -o ServerAliveCountMax=10
           )
-          ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
-            "STAGING_DIR='${STAGING_DIR}' bash -s" <<'EOF'
+          check_staging_configuration() {
+            ssh "${SSH_OPTS[@]}" "${VPS_USER}@${VPS_HOST}" \
+              "STAGING_DIR='${STAGING_DIR}' bash -s" <<'EOF'
             set -euo pipefail
             [[ -d "$STAGING_DIR" && -w "$STAGING_DIR" ]] || {
               echo "Missing or unwritable $STAGING_DIR."
@@ -84,6 +87,20 @@ jobs:
               exit 1
             fi
           EOF
+          }
+          for attempt in 1 2 3; do
+            if check_staging_configuration; then
+              exit 0
+            else
+              status=$?
+            fi
+            [[ "$status" -eq 255 ]] || exit "$status"
+            if [[ "$attempt" -lt 3 ]]; then
+              echo "SSH connection failed (attempt $attempt/3); retrying."
+              sleep "$((attempt * 5))"
+            fi
+          done
+          exit 1
 
       - name: Sync source and deploy staging stack
         env:
@@ -97,10 +114,12 @@ jobs:
           SSH_OPTS=(
             -i ~/.ssh/id_ed25519
             -p "$PORT"
+            -o ConnectionAttempts=3
+            -o ConnectTimeout=10
             -o ServerAliveInterval=30
             -o ServerAliveCountMax=10
           )
-          SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
+          SSH_COMMAND="ssh -i $HOME/.ssh/id_ed25519 -p $PORT -o ConnectionAttempts=3 -o ConnectTimeout=10 -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
           rsync -az --delete --omit-dir-times --no-perms -e "$SSH_COMMAND" \
             --exclude '.git' \
             --exclude '.github' \
