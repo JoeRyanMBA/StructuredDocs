@@ -117,6 +117,31 @@ test('image size presets persist percentage widths in emitted HTML', () => {
   }
 })
 
+test('image sizing distinguishes content width from original image width', () => {
+  const { image, instance, updates } = createEditorHarness()
+  Object.defineProperty(image, 'naturalWidth', { configurable: true, value: 1280 })
+
+  instance.onEditorClick({ target: image })
+  instance.applyImageOption('size', '50%')
+  assert.equal(image.style.width, '50%')
+  assert.equal(image.dataset.sdImageSize, '50%')
+
+  instance.applyImageOption('size', 'intrinsic-25%')
+  assert.equal(image.style.width, '320px')
+  assert.equal(image.dataset.sdImageSize, 'intrinsic-25%')
+  assert.equal(image.style.maxWidth, '100%')
+  assert.equal(image.style.height, 'auto')
+  assert.match(updates.at(-1), /data-sd-image-size="intrinsic-25%"/)
+
+  instance.applyImageOption('size', 'full')
+  assert.equal(image.style.width, '100%')
+  assert.equal(image.dataset.sdImageSize, 'full')
+
+  instance.applyImageOption('size', 'original')
+  assert.equal(image.style.width, '')
+  assert.equal(image.dataset.sdImageSize, 'original')
+})
+
 test('selected image alt text can be added, edited, cleared, and persisted', () => {
   const { editor, image, instance, updates } = createEditorHarness()
   image.setAttribute('alt', 'Original description')
