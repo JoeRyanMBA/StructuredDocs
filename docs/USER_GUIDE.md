@@ -236,13 +236,13 @@ Open **Admin > Button Catalog** to browse examples of application buttons and th
 
 From a collection's organize page, choose **Publish as knowledge base** or **Publish as PDF**. This saves the collection, creates or updates its publication snapshot, and downloads the chosen format without a separate export step. Save or discard any unfinished topic edits first. If prompted, configure the required variables; publishing then continues automatically.
 
-Select **Preview with audience tags** before publishing to include matching tagged snippets. Untagged snippets are always included; topic tags do not exclude whole topics. In the collections-and-topics structure editor, use **Audience tags for publishing**.
+Select **Preview with audience tags** before publishing. Tagged topics and snippets are included in exports only when they match at least one selected tag; untagged topics and snippets are always included. With no tags selected, tagged content is excluded. If a topic is excluded, its eligible children are promoted to the nearest included parent. The collection topic preview filters snippets but still shows all topics. In the collections-and-topics structure editor, use **Audience tags for publishing**.
 
-Open **Collections > Publish** to manage saved publications. Exporting an existing publication reuses its saved snapshot without republishing the collection. Refresh it explicitly when you want later topic edits included. Republishing updates the existing snapshot; it does not preserve a version history.
+Open **Collections > Publish** to manage saved publications. Exporting an existing publication reuses its saved content snapshot without republishing the collection, but applies current topic and snippet tag assignments at export time. Refresh it explicitly when you want later topic edits included. Republishing updates the existing snapshot; it does not preserve a version history.
 
 ### Publish a knowledge base
 
-Choose **Publish as knowledge base** on the collection to save its snapshot and download the HTML knowledge base. For an existing snapshot, choose **Export KB** on the publication dashboard, or use the mobile knowledge-base page to preview, refresh, and download it. Audience tags control which tagged snippets are included.
+Choose **Publish as knowledge base** on the collection to save its snapshot and download the HTML knowledge base. For an existing snapshot, choose **Export KB** on the publication dashboard, or use the mobile knowledge-base page to preview, refresh, and download it. Audience tags control which tagged topics and snippets are included.
 
 ### Publish a PDF document
 

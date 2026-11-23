@@ -16,7 +16,7 @@
         </label>
         <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
       </div>
-      <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the export.</span>
+      <span class="audience-hint">Tagged topics and snippets are included only when they match a selected audience. Untagged content is always included.</span>
     </div>
 
     <div v-if="recentPublishedPublications.length" class="recent-section">
