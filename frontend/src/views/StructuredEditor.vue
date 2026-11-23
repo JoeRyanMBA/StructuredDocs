@@ -3,7 +3,7 @@
     <h2>Organize Collections & Topics</h2>
     <details>
       <summary>Audience tags for publishing</summary>
-      <p>Include snippets matching the selected tags. Untagged snippets are always included.</p>
+      <p>Include topics and snippets matching the selected tags. Untagged topics and snippets are always included.</p>
       <label v-for="tag in audienceTags" :key="tag.id">
         <input v-model="selectedTagIds" type="checkbox" :value="Number(tag.id)" />
         {{ tag.name }}
