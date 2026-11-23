@@ -32,7 +32,12 @@
           <div v-if="selectedNode" class="content-inner">
             <h3 class="content-title">{{ selectedNode.title }}</h3>
             <!-- eslint-disable-next-line vue/no-v-html -->
-            <div class="content-body" v-html="renderedContent"></div>
+            <div v-if="previewLoading" class="content-body" role="status">Rendering preview...</div>
+            <div v-else-if="previewError" class="content-body preview-error" role="alert">
+              {{ previewError }}
+              <button type="button" @click="renderSelectedContent">Retry</button>
+            </div>
+            <div v-else class="content-body" v-html="renderedContent"></div>
           </div>
           <div v-else class="content-empty">
             Select a topic from the list to preview its content.
@@ -50,7 +55,7 @@
           </label>
           <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
         </div>
-        <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the export.</span>
+        <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the preview and export.</span>
       </div>
 
       <div class="actions">
@@ -65,10 +70,12 @@
 </template>
 
 <script>
-import { marked } from 'marked'
 import { apiGet } from '@/api/base'
+import { getSnippet } from '@/api/snippets'
 import { downloadMobileKnowledgeBase, downloadPublicationPdf, getPublication, previewMobileKnowledgeBase } from '@/api/publications'
 import PublicationNodeView from '@/components/PublicationNodeView.vue'
+import { renderCollectionTopic } from '@/utils/collectionPreview'
+import { sanitizeHtml } from '@/utils/sanitize'
 
 export default {
   name: 'PublicationView',
@@ -84,15 +91,19 @@ export default {
       loading:        true,
       error:          null,
       allTags:        [],
-      selectedTagIds: []
+      selectedTagIds: [],
+      renderedContent: '',
+      previewLoading: false,
+      previewError: null,
+      previewRequestId: 0
     }
   },
-  computed: {
-    renderedContent() {
-      if (!this.selectedNode?.content) return ''
-      // Strip Pandoc image-size attributes before parsing
-      const md = this.selectedNode.content.replace(/(\!\[[^\]]*\]\([^)]+\))\{[^}]*\}/g, '$1')
-      return marked.parse(md)
+  watch: {
+    selectedTagIds: {
+      deep: true,
+      handler() {
+        this.renderSelectedContent()
+      }
     }
   },
   async created() {
@@ -108,12 +119,16 @@ export default {
       // Auto-select the first topic so the panel is never empty
       if (this.tree.length) this._autoSelectFirst(this.tree)
       this.allTags = Array.isArray(tagsData) ? tagsData : (tagsData.tags || [])
+      await this.renderSelectedContent()
     } catch (err) {
       console.error('Error loading publication:', err)
       this.error = 'Failed to load publication'
     } finally {
       this.loading = false
     }
+  },
+  beforeUnmount() {
+    this.previewRequestId++
   },
   methods: {
     _autoSelectFirst(nodes) {
@@ -122,6 +137,34 @@ export default {
     },
     selectNode(node) {
       this.selectedNode = node
+      this.renderSelectedContent()
+    },
+    async renderSelectedContent() {
+      const requestId = ++this.previewRequestId
+      this.previewError = null
+      if (!this.selectedNode?.content) {
+        this.renderedContent = ''
+        this.previewLoading = false
+        return
+      }
+
+      this.previewLoading = true
+      try {
+        const html = await renderCollectionTopic(this.selectedNode.content, {
+          document,
+          getSnippet,
+          tagIds: this.selectedTagIds,
+          sanitize: sanitizeHtml
+        })
+        if (requestId === this.previewRequestId) this.renderedContent = html
+      } catch (err) {
+        if (requestId === this.previewRequestId) {
+          this.renderedContent = ''
+          this.previewError = err.message || 'Failed to render topic preview'
+        }
+      } finally {
+        if (requestId === this.previewRequestId) this.previewLoading = false
+      }
     },
     _tagParams() {
       return this.selectedTagIds.map(id => `tag_ids=${id}`).join('&')
