@@ -162,12 +162,12 @@ async function _requestWithAuth(endpoint, options = {}, _isRetry = false) {
   const token = getStoredAccessToken();
   const defaultOptions = {
     credentials: 'include',
+    ...options,
     headers: {
       'Content-Type': 'application/json',
       ...(token ? { 'Authorization': `Bearer ${token}` } : {}),
       ...options.headers,
     },
-    ...options,
   };
 
   const response = await fetch(url, defaultOptions);
