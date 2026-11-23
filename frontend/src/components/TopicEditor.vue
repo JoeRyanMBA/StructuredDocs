@@ -53,7 +53,7 @@
         <!-- Tags -->
         <div v-if="topicId" class="form-group tags-group">
           <label>Tags</label>
-          <TagEditor entity-type="topic" :entity-id="Number(topicId)" />
+          <TagEditor ref="topicTagEditor" entity-type="topic" :entity-id="Number(topicId)" />
         </div>
 
         <div class="editor-controls-row">
@@ -1454,6 +1454,10 @@ export default {
           title: this.title,
           content: contentWithUploadedImages,
           frontmatter: this.frontmatter
+        }
+
+        if (this.topicId) {
+          await this.$refs.topicTagEditor?.flush()
         }
         
         console.log('[saveTopic] Sending payload:', {
