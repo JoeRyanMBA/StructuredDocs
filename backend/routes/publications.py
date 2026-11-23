@@ -85,6 +85,46 @@ def _select_publication_content(content_snapshot, topic_content):
     return content_snapshot or topic_content or ''
 
 
+def _export_tree(pub, tag_ids, serialize_node):
+    selected = {int(tag_id) for tag_id in tag_ids}
+    topic_ids = {node.topic_id for node in pub.nodes}
+    topic_tags = {}
+    if topic_ids:
+        assignments = EntityTag.query.filter(
+            EntityTag.entity_type == 'topic', EntityTag.entity_id.in_(topic_ids)
+        ).all()
+        for assignment in assignments:
+            topic_tags.setdefault(assignment.entity_id, set()).add(assignment.tag_id)
+
+    def walk(nodes):
+        result = []
+        for node in sorted(nodes, key=lambda item: item.position):
+            children = walk(node.children)
+            assigned = topic_tags.get(node.topic_id, set())
+            if assigned and not assigned.intersection(selected):
+                result.extend(children)
+            else:
+                result.append(serialize_node(node, children))
+        return result
+
+    return walk([node for node in pub.nodes if node.parent_id is None])
+
+
+def _serialize_mobile_node(node, children, tag_ids):
+    title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
+    content = _select_publication_content(
+        node.content_snapshot, node.topic.content if node.topic else ''
+    )
+    return {
+        'id': node.id,
+        'topic_id': node.topic_id,
+        'title': title or 'Untitled',
+        'content': resolve_snippets(content, tag_ids) or '',
+        'position': node.position,
+        'children': children,
+    }
+
+
 pubs_bp = Blueprint(
     'publications',
     __name__,
@@ -196,25 +236,7 @@ def export_mobile_knowledge_base(pub_id):
     pub = Publication.query.get_or_404(pub_id)
     tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
 
-    # Build the hierarchical structure
-    def serialize_node(node):
-        # Prefer snapshots captured at publish time; fallback to current topic
-        title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
-        content = node.content_snapshot or (node.topic.content if node.topic else '')
-        content = resolve_snippets(content, tag_ids)
-        return {
-            'id': node.id,
-            'topic_id': node.topic_id,
-            'title': title or 'Untitled',
-            'content': content or '',
-            'position': node.position,
-            'children': sorted([serialize_node(c) for c in node.children],
-                             key=lambda x: x['position'])
-        }
-    
-    top_nodes = [n for n in pub.nodes if n.parent_id is None]
-    tree = sorted([serialize_node(n) for n in top_nodes],
-                  key=lambda x: x['position'])
+    tree = _export_tree(pub, tag_ids, lambda node, children: _serialize_mobile_node(node, children, tag_ids))
     
     # Generate mobile-optimized HTML
     html_content = generate_mobile_kb_html(pub, tree)
@@ -231,24 +253,7 @@ def preview_mobile_knowledge_base(pub_id):
     pub = Publication.query.get_or_404(pub_id)
     tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
 
-    # Build the hierarchical structure (same as export)
-    def serialize_node(node):
-        title = node.title_snapshot or (node.topic.title if node.topic else 'Untitled')
-        content = node.content_snapshot or (node.topic.content if node.topic else '')
-        content = resolve_snippets(content, tag_ids)
-        return {
-            'id': node.id,
-            'topic_id': node.topic_id,
-            'title': title or 'Untitled',
-            'content': content or '',
-            'position': node.position,
-            'children': sorted([serialize_node(c) for c in node.children],
-                             key=lambda x: x['position'])
-        }
-    
-    top_nodes = [n for n in pub.nodes if n.parent_id is None]
-    tree = sorted([serialize_node(n) for n in top_nodes],
-                  key=lambda x: x['position'])
+    tree = _export_tree(pub, tag_ids, lambda node, children: _serialize_mobile_node(node, children, tag_ids))
     
     # Generate mobile-optimized HTML
     html_content = generate_mobile_kb_html(pub, tree)
@@ -289,11 +294,11 @@ def export_pdf(pub_id):
         if config_type not in valid_configs:
             config_type = 'default'
 
-        # Audience tag IDs for snippet filtering
+        # Audience tag IDs for topic and snippet filtering
         tag_ids = [t for t in request.args.getlist('tag_ids') if str(t).isdigit()]
 
         # Build the hierarchical structure
-        def serialize_node(node):
+        def serialize_node(node, children):
             # Prefer snapshots captured at publish time; fall back to live topic
             title = None
             content = None
@@ -326,12 +331,10 @@ def export_pdf(pub_id):
                 'title': title if (title is not None and title != '') else 'Untitled',
                 'content': content or '',
                 'position': node.position,
-                'children': sorted([serialize_node(c) for c in node.children], key=lambda x: x['position'])
+                'children': children
             }
         
-        top_nodes = [n for n in pub.nodes if n.parent_id is None]
-        tree = sorted([serialize_node(n) for n in top_nodes],
-                      key=lambda x: x['position'])
+        tree = _export_tree(pub, tag_ids, serialize_node)
         
         # Generate PDF with specified configuration and optional background image
         pdf_buffer = generate_pdf(pub, tree, config_type, background_image_path)
