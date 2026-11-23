@@ -39,6 +39,9 @@
         </ul>
       </div>
     </div>
+    <p v-if="saveError" class="tag-error" role="alert">
+      {{ saveError }} <button type="button" @click="retrySave">Retry</button>
+    </p>
   </div>
 </template>
 
@@ -60,6 +63,8 @@ export default {
       open: false,
       highlightIndex: -1,
       loading: false,
+      saveQueue: null,
+      saveError: '',
     }
   },
   computed: {
@@ -101,23 +106,56 @@ export default {
       } catch { this.allTags = [] }
     },
     async save() {
-      await apiRequest(`/api/tags/entity/${this.entityType}/${this.entityId}`, {
-        method: 'PUT',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ tag_ids: [...this.assignedIds] }),
+      const saveRequest = (this.saveQueue || Promise.resolve()).catch(() => {}).then(async () => {
+        await apiRequest(`/api/tags/entity/${this.entityType}/${this.entityId}`, {
+          method: 'PUT',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ tag_ids: [...this.assignedIds] }),
+        })
+        this.saveError = ''
+        this.$emit('change', this.assignedTags)
       })
-      this.$emit('change', this.assignedTags)
+      this.saveQueue = saveRequest
+      try {
+        await saveRequest
+      } catch (error) {
+        this.saveError = `Failed to save tags: ${error.message}`
+        throw error
+      }
+    },
+    async flush() {
+      if (!this.saveQueue) return
+      try {
+        await this.saveQueue
+      } catch {
+        await this.save()
+      }
+    },
+    async retrySave() {
+      try {
+        await this.save()
+      } catch {
+        // The error remains visible for another retry.
+      }
     },
     async addTag(tag) {
       if (!this.assignedIds.has(tag.id)) {
         this.assignedTags.push(tag)
-        await this.save()
+        try {
+          await this.save()
+        } catch {
+          // Keep the selection visible so it can be retried.
+        }
       }
       this.close()
     },
     async removeTag(tagId) {
       this.assignedTags = this.assignedTags.filter(t => t.id !== tagId)
-      await this.save()
+      try {
+        await this.save()
+      } catch {
+        // Keep the selection visible so it can be retried.
+      }
     },
     async createAndAdd() {
       const name = this.query.trim()
@@ -161,6 +199,8 @@ export default {
 
 <style scoped>
 .tag-editor { display: inline-block; width: 100%; }
+.tag-error { color: #b02a37; font-size: 0.8rem; margin: 0.25rem 0 0; }
+.tag-error button { background: none; border: 0; color: inherit; cursor: pointer; text-decoration: underline; }
 
 .tag-chips {
   display: flex;
