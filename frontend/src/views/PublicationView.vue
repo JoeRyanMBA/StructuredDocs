@@ -55,7 +55,7 @@
           </label>
           <span v-if="allTags.length === 0" class="no-tags-hint">No tags defined yet.</span>
         </div>
-        <span class="audience-hint">Only snippets tagged with the selected audiences will be included in the preview and export.</span>
+        <span class="audience-hint">The topic preview shows all topics and matching snippets. Exports and the mobile KB preview include tagged topics and snippets only when they match a selected audience; untagged content is always included.</span>
       </div>
 
       <div class="actions">
