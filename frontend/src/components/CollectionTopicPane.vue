@@ -41,7 +41,7 @@
     </div>
     <details v-if="!editing" class="audience-settings">
       <summary>Preview with audience tags <span v-if="selectedTagIds.length">({{ selectedTagIds.length }})</span></summary>
-      <p>Choose tags to preview matching snippets across this collection. This does not assign tags to topics. The selection is also used when publishing a knowledge base or PDF.</p>
+      <p>Choose tags to preview matching snippets. This does not assign tags to topics. When publishing a knowledge base or PDF, tagged topics and snippets are included only if they match a selected tag; untagged content is always included.</p>
       <div class="audience-options">
         <label v-for="tag in tags" :key="tag.id">
           <input v-model="selectedTagIds" type="checkbox" :value="Number(tag.id)" /> {{ tag.name }}
