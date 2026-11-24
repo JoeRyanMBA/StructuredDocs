@@ -735,61 +735,26 @@ p { color: #666; }
             print(f"⚠️ Email service configuration failed: {e}")
             # Don't fail the app for email issues
         
-        # Create admin user if it doesn't exist (for production deployment)
+        # Seed default system settings (safe no-op if table doesn't exist yet)
         try:
-            from backend.models import User
-            from werkzeug.security import generate_password_hash
-            from sqlalchemy import func
-            
-            admin_email = 'admin@example.com'
-            admin_password = '[REMOVED_FROM_HISTORY]'
-            
-            # Check if admin user exists
-            try:
-                admin_user = User.query.filter(func.lower(User.email) == admin_email.lower()).first()
-                if not admin_user:
-                    # Create admin user
-                    admin_user = User(
-                        name='Admin User',
-                        email=admin_email,
-                        password_hash=generate_password_hash(admin_password),
-                        role='admin',
-                        active=True
-                    )
-                    db.session.add(admin_user)
-                    db.session.commit()
-                    print(f"✅ Created admin user: {admin_email}")
-                else:
-                    print(f"✅ Admin user already exists: {admin_email}")
-            except Exception as db_error:
-                print(f"⚠️ Database query failed (tables may not exist yet): {db_error}")
-                print("ℹ️ This is normal during first deployment - migrations will create tables")
-                # Don't fail here, just log the error
+            from .utils.settings import seed_defaults
+            seed_defaults()
+            # Apply persisted max upload size to Flask config
+            from .utils.settings import get_setting
+            _size_mb = int(get_setting('max_upload_size_mb', '20'))
+            app.config['MAX_CONTENT_LENGTH'] = _size_mb * 1024 * 1024
+        except Exception as _seed_err:
+            print(f"⚠️ Could not seed system settings: {_seed_err}")
 
-            # Seed default system settings (safe no-op if table doesn't exist yet)
-            try:
-                from .utils.settings import seed_defaults
-                seed_defaults()
-                # Apply persisted max upload size to Flask config
-                from .utils.settings import get_setting
-                _size_mb = int(get_setting('max_upload_size_mb', '20'))
-                app.config['MAX_CONTENT_LENGTH'] = _size_mb * 1024 * 1024
-            except Exception as _seed_err:
-                print(f"⚠️ Could not seed system settings: {_seed_err}")
-
-            # Seed help-link descriptions (creates missing rows, backfills empty descriptions)
-            try:
-                from .utils.seed_help_links import seed_help_links
-                from .models import HelpLink
-                _hl_created, _hl_updated, _hl_skipped = seed_help_links(db, HelpLink)
-                if _hl_created or _hl_updated:
-                    print(f"✅ Help links seeded: {_hl_created} created, {_hl_updated} updated, {_hl_skipped} skipped")
-            except Exception as _hl_err:
-                print(f"⚠️ Could not seed help links: {_hl_err}")
-                
-        except Exception as e:
-            print(f"⚠️ Could not create admin user: {e}")
-            # Don't fail the app for admin user creation issues
+        # Seed help-link descriptions (creates missing rows, backfills empty descriptions)
+        try:
+            from .utils.seed_help_links import seed_help_links
+            from .models import HelpLink
+            _hl_created, _hl_updated, _hl_skipped = seed_help_links(db, HelpLink)
+            if _hl_created or _hl_updated:
+                print(f"✅ Help links seeded: {_hl_created} created, {_hl_updated} updated, {_hl_skipped} skipped")
+        except Exception as _hl_err:
+            print(f"⚠️ Could not seed help links: {_hl_err}")
         
         # Import and register blueprints (skippable for migrations/CLI)
         print("🔧 Starting blueprint registration...")
