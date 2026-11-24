@@ -55,6 +55,9 @@ jobs:
         run: |
           set -euo pipefail
           : "${VPS_USER:?VPS_USER secret is required}"
+          [[ "$VPS_USER" == "deploy" ]] || { echo "VPS_USER does not match the configured deploy account."; exit 1; }
+          [[ "$VPS_HOST" == "95.216.122.195" ]] || { echo "VPS_HOST does not match the configured VPS."; exit 1; }
+          [[ "${VPS_PORT:-22}" == "30333" ]] || { echo "VPS_PORT does not match the configured SSH port."; exit 1; }
           PORT="${VPS_PORT:-22}"
           SSH_CMD="ssh -i $HOME/.ssh/id_ed25519 -p $PORT -o ServerAliveInterval=30 -o ServerAliveCountMax=10"
 
