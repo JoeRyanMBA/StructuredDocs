@@ -13,6 +13,55 @@ from alembic.migration import MigrationContext
 from alembic.operations import Operations
 
 import run_migrations_production
+from backend import create_admin
+
+
+def _configure_startup_without_blueprints(monkeypatch, database_path):
+    monkeypatch.setenv("DATABASE_URL", f"sqlite:///{database_path}")
+    monkeypatch.setenv("SECRET_KEY", "test-secret")
+    monkeypatch.setenv("JWT_SECRET_KEY", "test-jwt-secret")
+    monkeypatch.setenv("SKIP_BLUEPRINTS", "1")
+    monkeypatch.delenv("ENABLE_BLUEPRINTS", raising=False)
+    monkeypatch.delenv("ENABLE_BLUEPRINTS_FILE", raising=False)
+
+
+def test_create_app_does_not_seed_default_admin(monkeypatch, tmp_path):
+    from backend.app import create_app
+    from backend.models import User
+
+    _configure_startup_without_blueprints(monkeypatch, tmp_path / "startup.db")
+    app = create_app()
+
+    with app.app_context():
+        assert User.query.filter_by(email="admin@example.com").first() is None
+        assert User.query.filter_by(role="admin").count() == 0
+
+
+def test_production_migrations_do_not_seed_default_admin(monkeypatch, tmp_path):
+    from backend.models import User
+
+    _configure_startup_without_blueprints(monkeypatch, tmp_path / "migrations.db")
+    upgrade = Mock()
+    monkeypatch.setitem(
+        sys.modules,
+        "flask_migrate",
+        SimpleNamespace(upgrade=upgrade),
+    )
+
+    assert run_migrations_production.run_migrations() is True
+    app = importlib.import_module("backend.app").create_app()
+    with app.app_context():
+        assert User.query.filter_by(email="admin@example.com").first() is None
+        assert User.query.filter_by(role="admin").count() == 0
+
+
+def test_create_admin_requires_explicit_credentials(monkeypatch):
+    monkeypatch.delenv("ADMIN_EMAIL", raising=False)
+    monkeypatch.delenv("ADMIN_PASSWORD_FILE", raising=False)
+    monkeypatch.setattr(sys, "argv", ["create_admin.py"])
+
+    with pytest.raises(SystemExit, match="--email or ADMIN_EMAIL is required"):
+        create_admin.main()
 
 
 @pytest.fixture
