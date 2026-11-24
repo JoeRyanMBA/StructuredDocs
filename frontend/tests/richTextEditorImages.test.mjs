@@ -189,3 +189,10 @@ test('drag resizing stores a custom width and maintains image aspect ratio', () 
   assert.match(updates.at(-1), /data-sd-image-size="custom"/)
   assert.match(updates.at(-1), /width: 240px/)
 })
+
+test('image formatting menus visually distinguish the active option', () => {
+  const styles = descriptor.styles.map((style) => style.content).join('\n')
+
+  assert.match(styles, /\.rte-toolbar \.dropdown-item\[aria-pressed="true"\]\s*{[^}]*background:/s)
+  assert.match(styles, /\.rte-toolbar \.dropdown-item\[aria-pressed="true"\]\s*{[^}]*font-weight:\s*600/s)
+})
