@@ -49,7 +49,7 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_USER: deploy
         run: |
           set -euo pipefail
           : "${VPS_USER:?VPS_USER secret is required}"
@@ -91,7 +91,7 @@ jobs:
         env:
           VPS_HOST: ${{ secrets.VPS_HOST }}
           VPS_PORT: ${{ secrets.VPS_PORT }}
-          VPS_USER: ${{ secrets.VPS_USER }}
+          VPS_USER: deploy
           IMAGE_TAG: staging-${{ github.sha }}
         run: |
           set -euo pipefail
