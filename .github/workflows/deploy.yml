@@ -29,6 +29,8 @@ jobs:
           chmod 700 ~/.ssh
           printf '%s\n' "$VPS_SSH_KEY" > ~/.ssh/id_ed25519
           chmod 600 ~/.ssh/id_ed25519
+          ssh-keygen -y -f ~/.ssh/id_ed25519 >/dev/null
+          echo "Deployment key fingerprint: $(ssh-keygen -lf ~/.ssh/id_ed25519 | awk '{print $2}')"
 
       - name: Configure known_hosts
         env:
