@@ -2,8 +2,8 @@
 Idempotent admin seeding script.
 
 Usage examples:
-  python backend/create_admin.py --email admin@example.com --password 'StrongPass123'
-  ADMIN_EMAIL=admin@example.com ADMIN_PASSWORD='StrongPass123' python backend/create_admin.py
+  python backend/create_admin.py --email owner@example.com
+  ADMIN_EMAIL=owner@example.com ADMIN_PASSWORD_FILE=/secure/path python backend/create_admin.py
 
 Notes:
 - Run from the repo root or any dir; this script adjusts sys.path to import backend.*
@@ -11,6 +11,7 @@ Notes:
 """
 
 import argparse
+import getpass
 import os
 import sys
 
@@ -68,18 +69,31 @@ def create_admin_user(email: str, password: str, name: str = "Admin User") -> No
 
 def main():
     parser = argparse.ArgumentParser(description="Create or update an admin user.")
-    parser.add_argument("--email", default=os.getenv("ADMIN_EMAIL", "admin@example.com"))
-    parser.add_argument("--password", default=os.getenv("ADMIN_PASSWORD", "password"))
+    parser.add_argument("--email", default=os.getenv("ADMIN_EMAIL"))
+    parser.add_argument(
+        "--password-file",
+        default=os.getenv("ADMIN_PASSWORD_FILE"),
+        help="Path to a file containing the admin password; the file is never echoed.",
+    )
     parser.add_argument("--name", default=os.getenv("ADMIN_NAME", "Admin User"))
     args = parser.parse_args()
 
-    # Basic validation
     if not args.email:
-        raise SystemExit("--email is required")
-    if not args.password:
-        print("⚠️  Empty password provided; user will have no password set.")
+        raise SystemExit("--email or ADMIN_EMAIL is required")
 
-    create_admin_user(args.email, args.password, args.name)
+    if args.password_file:
+        try:
+            with open(args.password_file, encoding="utf-8") as password_file:
+                password = password_file.read().rstrip("\r\n")
+        except OSError as exc:
+            raise SystemExit(f"Unable to read password file: {exc}") from exc
+    else:
+        password = getpass.getpass("New admin password: ")
+
+    if not password:
+        raise SystemExit("Password cannot be empty")
+
+    create_admin_user(args.email, password, args.name)
 
 
 if __name__ == "__main__":

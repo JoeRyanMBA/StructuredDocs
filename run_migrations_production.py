@@ -307,29 +307,6 @@ def run_migrations():
             else:
                 print("🧮 Schema audit passed – no remaining required columns missing")
             
-            # Try to create admin user
-            from backend.models import User
-            from werkzeug.security import generate_password_hash
-            from sqlalchemy import func
-            
-            admin_email = 'admin@example.com'
-            admin_password = '[REMOVED_FROM_HISTORY]'
-            
-            existing_admin = User.query.filter(func.lower(User.email) == admin_email.lower()).first()
-            if not existing_admin:
-                admin_user = User(
-                    name='Admin User',
-                    email=admin_email,
-                    password_hash=generate_password_hash(admin_password),
-                    role='admin',
-                    active=True
-                )
-                db.session.add(admin_user)
-                db.session.commit()
-                print(f"✅ Created admin user: {admin_email}")
-            else:
-                print(f"✅ Admin user already exists: {admin_email}")
-                
         except Exception as e:
             print(f"❌ Migration error: {e}")
             import traceback
