@@ -2335,6 +2335,17 @@ export default {
   background: #f8f9fa;
 }
 
+.rte-toolbar .dropdown-item[aria-pressed="true"] {
+  background: #e7f0fa;
+  box-shadow: inset 3px 0 0 #205493;
+  color: #173f6f;
+  font-weight: 600;
+}
+
+.rte-toolbar .dropdown-item[aria-pressed="true"]:hover {
+  background: #dbe9f7;
+}
+
 .rte-toolbar .dropdown-item:first-child {
   border-radius: 4px 4px 0 0;
 }
