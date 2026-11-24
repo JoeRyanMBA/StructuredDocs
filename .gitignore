@@ -139,6 +139,17 @@ ENV/
 env.bak/
 venv.bak/
 
+# SSH private keys and common key filenames
+id_ed25519
+id_ed25519.pub
+id_rsa
+id_rsa.pub
+id_ecdsa
+id_ecdsa.pub
+.ssh/
+*.pem
+*.key
+
 # Spyder project settings
 .spyderproject
 .spyproject
