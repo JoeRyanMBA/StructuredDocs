@@ -63,21 +63,25 @@
                 </button>
                 <button 
                   v-if="user.active"
+                  type="button"
                   @click="deleteUser(user)" 
                   class="btn-icon btn-danger"
                   :disabled="user.role === 'admin' && adminCount <= 1"
                   title="Deactivate user"
+                  aria-label="Deactivate user"
                 >
-                  <i class="bi bi-trash"></i>
+                  <i class="bi bi-pause-fill" aria-hidden="true"></i>
                 </button>
                 <button 
                   v-else
+                  type="button"
                   @click="reactivateUser(user)" 
                   class="btn-icon btn-success"
                   :disabled="loading"
                   title="Reactivate user"
+                  aria-label="Reactivate user"
                 >
-                  <i class="bi bi-person-check"></i>
+                  <i class="bi bi-person-check" aria-hidden="true"></i>
                 </button>
               </div>
             </td>
