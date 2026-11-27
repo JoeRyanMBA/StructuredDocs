@@ -78,27 +78,35 @@
               <td class="actions-cell">
                 <div class="notification-actions">
                   <button
+                    type="button"
                     @click="editNotification(notification)"
-                    class="btn btn-secondary btn-sm"
+                    class="btn-icon btn-secondary"
                     title="Edit notification"
+                    aria-label="Edit notification"
                   >
-                    <i class="bi bi-pencil-square"></i> Edit
+                    <i class="bi bi-pencil-square" aria-hidden="true"></i>
                   </button>
                   <button
+                    type="button"
                     @click="toggleNotification(notification)"
-                    class="btn btn-sm"
-                    :class="notification.is_active ? 'btn-outline' : 'btn-success'"
+                    class="btn-icon"
+                    :class="notification.is_active ? 'btn-danger' : 'btn-success'"
                     :title="notification.is_active ? 'Deactivate notification' : 'Activate notification'"
+                    :aria-label="notification.is_active ? 'Deactivate notification' : 'Activate notification'"
                   >
-                    <i :class="['bi', notification.is_active ? 'bi-pause-fill' : 'bi-play-fill']"></i>
-                    {{ notification.is_active ? 'Deactivate' : 'Activate' }}
+                    <i
+                      :class="['bi', notification.is_active ? 'bi-pause-fill' : 'bi-person-check']"
+                      aria-hidden="true"
+                    ></i>
                   </button>
                   <button
+                    type="button"
                     @click="deleteNotification(notification)"
-                    class="btn btn-danger btn-sm"
+                    class="btn-icon btn-danger"
                     title="Delete notification"
+                    aria-label="Delete notification"
                   >
-                    <i class="bi bi-trash"></i> Delete
+                    <i class="bi bi-trash" aria-hidden="true"></i>
                   </button>
                 </div>
               </td>
@@ -239,7 +247,30 @@ export default {
 .type-badge.error { background-color: var(--error-light-red); color: var(--error-dark-red); }
 .status-badge.active { background-color: var(--success-light-green); color: var(--success-dark-green); }
 .status-badge.inactive { background-color: var(--extended-lavender-gray); color: var(--text-medium-gray); }
-.notification-actions { display: flex; gap: 0.5rem; flex-wrap: wrap; }
+.notification-actions { display: flex; gap: 0.5rem; align-items: center; justify-content: center; }
+.btn-icon {
+  width: 32px;
+  height: 32px;
+  padding: 0;
+  border-radius: 4px;
+  border: 1px solid transparent;
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 14px;
+  cursor: pointer;
+  transition: all 0.2s ease;
+}
+.btn-icon:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+.btn-icon.btn-secondary { background-color: #6c757d; color: #fff; }
+.btn-icon.btn-secondary:hover:not(:disabled) { background-color: #5a6268; }
+.btn-icon.btn-success { background-color: #28a745; color: #fff; }
+.btn-icon.btn-success:hover:not(:disabled) { background-color: #218838; }
+.btn-icon.btn-danger { background-color: #dc3545; color: #fff; }
+.btn-icon.btn-danger:hover:not(:disabled) { background-color: #c82333; }
 .id-cell, .date-cell { white-space: nowrap; }
 .target-cell { max-width: none; overflow-wrap: anywhere; white-space: normal; }
 .actions-cell { width: auto; }
@@ -275,13 +306,7 @@ export default {
   }
 
   .notification-actions {
-    flex-direction: column;
-    align-items: stretch;
-  }
-
-  .notification-actions .btn {
-    width: 100%;
-    justify-content: center;
+    justify-content: flex-start;
   }
 }
 </style>

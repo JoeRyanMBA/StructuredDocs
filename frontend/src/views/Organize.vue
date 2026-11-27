@@ -469,9 +469,6 @@ export default {
     },
   },
   async created() {
-    // Check if we're in edit mode
-    this.isEditMode = this.$route.query.edit === 'true'
-    
     try {
       // Load collections, topics, and topic tags in parallel
       const [collections, topics, tagsMap] = await Promise.all([

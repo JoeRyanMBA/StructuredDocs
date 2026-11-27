@@ -543,7 +543,7 @@ export default {
     },
 
     editCollection(collection) {
-      this.$router.push(`/organize/${collection.id}?edit=true`)
+      this.$router.push(`/organize/${collection.id}`)
     },
 
     navigateTo(path) {
