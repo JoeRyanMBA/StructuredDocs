@@ -64,7 +64,8 @@
 </template>
 
 <script>
-import axios from 'axios';
+import { getAdminSettings, updateAdminSettings } from '@/api/adminSettings'
+import { toFriendlyAuthError } from '@/api/base'
 
 const LABELS = {
   max_upload_size_mb:         'Max upload size (MB)',
@@ -117,11 +118,11 @@ export default {
       this.saveSuccess = false;
       this.saveError = null;
       try {
-        const { data } = await axios.get('/api/admin/settings');
-        this.settings = data;
-        this.edits = Object.fromEntries(data.map(s => [s.key, s.value]));
+        const data = await getAdminSettings();
+        this.settings = data.filter(setting => Object.hasOwn(LABELS, setting.key));
+        this.edits = Object.fromEntries(this.settings.map(s => [s.key, s.value]));
       } catch (err) {
-        this.loadError = err.response?.data?.error || 'Failed to load settings.';
+        this.loadError = toFriendlyAuthError(err, 'Failed to load settings.');
       } finally {
         this.loading = false;
       }
@@ -132,7 +133,7 @@ export default {
       this.saveSuccess = false;
       try {
         const payload = Object.entries(this.edits).map(([key, value]) => ({ key, value }));
-        const { data } = await axios.put('/api/admin/settings', payload);
+        const data = await updateAdminSettings(payload);
         if (data.errors?.length) {
           this.saveError = data.errors.join('; ');
         } else {
@@ -141,7 +142,7 @@ export default {
           await this.load();
         }
       } catch (err) {
-        this.saveError = err.response?.data?.error || 'Failed to save settings.';
+        this.saveError = toFriendlyAuthError(err, 'Failed to save settings.');
       } finally {
         this.saving = false;
       }

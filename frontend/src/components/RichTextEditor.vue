@@ -1895,6 +1895,31 @@ export default {
       this.emitUpdate()
       return true
     },
+    insertTextAtSelection(text) {
+      const editor = this.$refs.editorEl
+      if (!editor) return false
+      if (!this.restoreSelection()) editor.focus()
+
+      const selection = window.getSelection()
+      let range = selection?.rangeCount ? selection.getRangeAt(0) : null
+      if (!range || !editor.contains(range.startContainer)) {
+        range = document.createRange()
+        range.selectNodeContents(editor)
+        range.collapse(false)
+      }
+
+      const textNode = document.createTextNode(text)
+      range.deleteContents()
+      range.insertNode(textNode)
+      range.setStartAfter(textNode)
+      range.collapse(true)
+      selection?.removeAllRanges()
+      selection?.addRange(range)
+
+      this.saveSelection()
+      this.emitUpdate()
+      return true
+    },
     onKeydown(event) {
       if (this.handleTableShortcut(event)) return
       if (this.handleTableTab(event)) return
@@ -1988,6 +2013,9 @@ export default {
     },
     getEditorEl() {
       return this.$refs.editorEl
+    },
+    getSelectedText() {
+      return this.getSelectedRange()?.toString() || ''
     },
     focus() {
       this.$refs.editorEl?.focus()

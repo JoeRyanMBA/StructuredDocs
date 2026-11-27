@@ -28,6 +28,7 @@ function createEditorHarness() {
     $refs: { editorEl: editor },
     $emit: (_event, value) => updates.push(value),
   }
+
   for (const [name, method] of Object.entries(richTextEditor.methods)) {
     instance[name] = method.bind(instance)
   }
@@ -35,6 +36,24 @@ function createEditorHarness() {
 
   return { editor, image: editor.querySelector('img'), instance, updates }
 }
+
+test('text insertion replaces the saved rich-text selection and emits updated HTML', () => {
+  const { editor, instance, updates } = createEditorHarness()
+  editor.innerHTML = '<p>Hello world</p>'
+  const text = editor.querySelector('p').firstChild
+  const range = document.createRange()
+  range.setStart(text, 6)
+  range.setEnd(text, 11)
+  const selection = window.getSelection()
+  selection.removeAllRanges()
+  selection.addRange(range)
+  instance.saveSelection()
+
+  assert.equal(instance.getSelectedText(), 'world')
+  assert.equal(instance.insertTextAtSelection('{{customer_name}}'), true)
+  assert.equal(editor.textContent, 'Hello {{customer_name}}')
+  assert.match(updates.at(-1), /\{\{customer_name\}\}/)
+})
 
 test('selected images retain size, alignment, and wrapping choices in emitted HTML', () => {
   const { editor, image, instance, updates } = createEditorHarness()

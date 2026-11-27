@@ -6,6 +6,19 @@ export async function getAdminSettings() {
   return Array.isArray(data) ? data : []
 }
 
+export async function getAuditLogs(params = {}) {
+  const query = new URLSearchParams()
+  Object.entries(params).forEach(([key, value]) => {
+    if (value !== undefined && value !== null && value !== '') {
+      query.set(key, String(value))
+    }
+  })
+
+  const queryString = query.toString()
+  const suffix = queryString ? `?${queryString}` : ''
+  return apiGet(`/api/admin/audit-logs${suffix}`)
+}
+
 export async function updateAdminSettings(entries) {
   return apiPut('/api/admin/settings', entries)
 }

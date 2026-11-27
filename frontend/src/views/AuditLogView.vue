@@ -100,7 +100,8 @@
 </template>
 
 <script>
-import axios from 'axios';
+import { getAuditLogs } from '@/api/adminSettings'
+import { toFriendlyAuthError } from '@/api/base'
 import HelpIcon from '@/components/HelpIcon.vue'
 
 export default {
@@ -145,12 +146,12 @@ export default {
         if (this.filters.action) params.action = this.filters.action;
         if (this.filters.user_id) params.user_id = this.filters.user_id;
 
-        const { data } = await axios.get('/api/admin/audit-logs', { params });
+        const data = await getAuditLogs(params);
         this.entries = data.items || [];
         this.total = data.total || 0;
         this.totalPages = data.pages || 1;
       } catch (err) {
-        this.error = err.response?.data?.error || 'Failed to load audit logs.';
+        this.error = toFriendlyAuthError(err, 'Failed to load audit logs.');
       } finally {
         this.loading = false;
       }

@@ -157,6 +157,7 @@
               <button @click="openImageModal" class="toolbar-btn">🖼️ Image</button>
               <button @click="openSnippetSelector" class="toolbar-btn">📑 Insert Snippet</button>
               <button @click="openCreateSnippet" class="toolbar-btn">✂️ Create Snippet</button>
+              <button @click="openCreateVariable" class="toolbar-btn" title="Create a publish-time variable from selected text">{} Create Variable</button>
               <button
                 type="button"
                 @click.prevent.stop="toggleSpellcheck"
@@ -192,6 +193,7 @@
               <button @click="openLinkModal" class="toolbar-btn" title="Insert link" aria-label="Insert link">🔗</button>
               <button @click="openSnippetSelector" class="toolbar-btn" title="Insert snippet" aria-label="Insert snippet">📑</button>
               <button @click="openCreateSnippet" class="toolbar-btn" title="Create snippet from selection" aria-label="Create snippet">✂️</button>
+              <button @click="openCreateVariable" class="toolbar-btn" title="Create variable from selection" aria-label="Create variable from selection">{}</button>
               <button
                 type="button"
                 @click.prevent.stop="toggleSpellcheck"
@@ -553,6 +555,41 @@
       @close="showSnippetSelector = false"
     />
 
+    <!-- Create Variable Modal -->
+    <div v-if="showCreateVariableModal" class="modal-overlay" @click.self="closeCreateVariableModal">
+      <div class="modal-content variable-modal" @click.stop>
+        <div class="modal-header">
+          <h3>Create Publish-time Variable</h3>
+          <button class="close-btn" @click="closeCreateVariableModal">×</button>
+        </div>
+        <form @submit.prevent="submitCreateVariable">
+          <div class="modal-body">
+            <p class="modal-help">The selected text will be saved as the variable's default value and replaced with its token.</p>
+            <label class="form-label">Name <span class="required">*</span></label>
+            <input v-model="createVariableForm.name" type="text" class="form-control mb-3" maxlength="120" @input="handleVariableNameInput" autofocus />
+            <label class="form-label">Slug <span class="required">*</span></label>
+            <input
+              v-model="createVariableForm.slug"
+              type="text"
+              class="form-control mb-2"
+              maxlength="120"
+              @input="handleVariableSlugInput"
+            />
+            <div class="variable-token-preview">Token: <code>{{ variableTokenPreview }}</code></div>
+            <label class="form-label mt-3">Default value</label>
+            <textarea class="form-control variable-default-value" :value="createVariableValue" rows="3" readonly></textarea>
+            <div v-if="createVariableError" class="error-banner mt-3" role="alert">{{ createVariableError }}</div>
+          </div>
+          <div class="modal-footer">
+            <button type="submit" class="btn btn-primary" :disabled="createVariableSaving || !canCreateVariable">
+              {{ createVariableSaving ? 'Creating…' : 'Create & Insert' }}
+            </button>
+            <button type="button" class="btn btn-secondary" @click="closeCreateVariableModal">Cancel</button>
+          </div>
+        </form>
+      </div>
+    </div>
+
     <!-- Create Snippet Modal -->
     <div v-if="showCreateSnippetModal" class="modal-overlay" @click.self="showCreateSnippetModal = false">
       <div class="modal-content snippet-modal">
@@ -632,6 +669,8 @@ import { uploadInlineImageDataUrls } from '@/utils/uploadInlineImageDataUrls'
 import { sanitizeHtml } from '@/utils/sanitize'
 import { createSnippet, getSnippet, updateSnippet } from '@/api/snippets.js'
 import { searchTopics } from '@/api/topics.js'
+import { createVariable, getVariables, validateVariableSlug } from '@/api/variables.js'
+import { generateVariableSlug, sanitizeVariableSlug, variableToken } from '@/utils/variableTokens.js'
 import TagEditor from '@/components/TagEditor.vue'
 import SnippetSelector from '@/components/SnippetSelector.vue'
 import RichTextEditor from '@/components/RichTextEditor.vue'
@@ -728,12 +767,29 @@ export default {
   createSnippetBounds: null,
   createSnippetSaving: false,
   createSnippetError: '',
+  showCreateVariableModal: false,
+  createVariableForm: { name: '', slug: '' },
+  createVariableSlugAuto: true,
+  createVariableValue: '',
+  createVariableBounds: null,
+  createVariableSaving: false,
+  createVariableError: '',
   editSnippetData: null,
   editSnippetSaving: false,
   editSnippetError: '',
     }
   },
   computed: {
+    variableTokenPreview() {
+      return variableToken(this.createVariableForm.slug || generateVariableSlug(this.createVariableForm.name) || 'variable_name')
+    },
+    canCreateVariable() {
+      return Boolean(
+        this.createVariableForm.name.trim()
+        && /^[a-z][a-z0-9_-]*$/.test(this.createVariableForm.slug)
+        && this.createVariableValue
+      )
+    },
     currentUserData() {
       return JSON.parse(localStorage.getItem('user') || '{}')
     },
@@ -1071,7 +1127,7 @@ export default {
     },
     async loadVariables() {
       try {
-        const variables = await apiGet('/api/variables')
+        const variables = await getVariables()
         if (Array.isArray(variables)) {
           this.variableSlugs = variables.map(variable => variable.slug).sort()
           this.filteredVariables = this.variableSlugs.slice()
@@ -1157,42 +1213,110 @@ export default {
     handleInsertVariable(){
       if(!this.selectedVariableSlug) return
       const slug = this.selectedVariableSlug
-      const token = `{{${slug}}}`
-      if(this.editorMode === 'markdown'){
+      this.insertVariableToken(slug)
+      // Track recent before clearing selection
+      this.pushRecent(slug)
+      this.selectedVariableSlug = ''
+    },
+    insertVariableToken(slug, bounds = null) {
+      const token = variableToken(slug)
+      if (this.editorMode === 'markdown') {
         const ta = this.$refs.markdownEditor
-        if(ta && ta.selectionStart != null){
-          const start = ta.selectionStart
-          const end = ta.selectionEnd
-          const before = this.content.slice(0,start)
-          const after = this.content.slice(end)
-          this.content = before + token + after
-          this.$nextTick(()=>{
-            ta.focus()
-            const pos = start + token.length
-            ta.selectionStart = ta.selectionEnd = pos
-          })
-        } else {
-          this.content += token
-        }
-      } else if(this.editorMode === 'wysiwyg') {
-        const el = this.$refs.richEditor?.getEditorEl()
-        if(el){
-          const sel = window.getSelection()
-          if(sel && sel.rangeCount){
-            const range = sel.getRangeAt(0)
-            range.deleteContents()
-            range.insertNode(document.createTextNode(token))
-            range.collapse(false)
-            sel.removeAllRanges(); sel.addRange(range)
-          } else {
-            el.appendChild(document.createTextNode(token))
+        const start = bounds?.start ?? ta?.selectionStart ?? this.content.length
+        const end = bounds?.end ?? ta?.selectionEnd ?? start
+        this.content = this.content.slice(0, start) + token + this.content.slice(end)
+        this.$nextTick(() => {
+          ta?.focus()
+          if (ta) {
+            const cursor = start + token.length
+            ta.setSelectionRange(cursor, cursor)
           }
-        }
-        this.onWysiwygInput()
+        })
+      } else if (this.editorMode === 'wysiwyg') {
+        this.restoreWysiwygSelection()
+        this.$refs.richEditor?.insertTextAtSelection(token)
       }
-  // Track recent before clearing selection
-  this.pushRecent(slug)
-  this.selectedVariableSlug = ''
+    },
+    openCreateVariable() {
+      let selectedText = ''
+      this.createVariableBounds = null
+
+      if (this.editorMode === 'markdown') {
+        const ta = this.$refs.markdownEditor
+        if (ta && ta.selectionStart !== ta.selectionEnd) {
+          selectedText = this.content.slice(ta.selectionStart, ta.selectionEnd)
+          this.createVariableBounds = { start: ta.selectionStart, end: ta.selectionEnd }
+        }
+      } else if (this.editorMode === 'wysiwyg') {
+        this.captureWysiwygSelection()
+        selectedText = this.$refs.richEditor?.getSelectedText() || ''
+      }
+
+      selectedText = selectedText.trim()
+      if (!selectedText) {
+        toast.error('Highlight text before creating a variable.')
+        return
+      }
+
+      this.createVariableValue = selectedText
+      this.createVariableForm = {
+        name: selectedText.slice(0, 120),
+        slug: generateVariableSlug(selectedText),
+      }
+      this.createVariableSlugAuto = true
+      this.createVariableError = ''
+      this.showCreateVariableModal = true
+    },
+    handleVariableNameInput() {
+      if (this.createVariableSlugAuto) {
+        this.createVariableForm.slug = generateVariableSlug(this.createVariableForm.name)
+      }
+    },
+    handleVariableSlugInput() {
+      this.createVariableSlugAuto = false
+      this.createVariableForm.slug = sanitizeVariableSlug(this.createVariableForm.slug)
+    },
+    closeCreateVariableModal() {
+      if (this.createVariableSaving) return
+      this.showCreateVariableModal = false
+      this.createVariableError = ''
+      this.createVariableBounds = null
+    },
+    async submitCreateVariable() {
+      if (this.createVariableSaving || !this.canCreateVariable) return
+
+      this.createVariableSaving = true
+      this.createVariableError = ''
+      try {
+        const validation = await validateVariableSlug(this.createVariableForm.slug)
+        const slug = validation.available
+          ? (validation.slug || validation.suggested || this.createVariableForm.slug)
+          : validation.suggested
+        if (!slug) throw new Error('Could not generate a unique variable slug.')
+
+        const variable = await createVariable({
+          name: this.createVariableForm.name.trim(),
+          slug,
+          description: '',
+          initial_values: [{ value: this.createVariableValue, is_default: true }],
+        })
+        const createdSlug = variable.slug || slug
+        if (!this.variableSlugs.includes(createdSlug)) {
+          this.variableSlugs = [...this.variableSlugs, createdSlug].sort()
+          this.filterVariables()
+        }
+
+        this.insertVariableToken(createdSlug, this.createVariableBounds)
+        this.pushRecent(createdSlug)
+        this.showCreateVariableModal = false
+        this.createVariableBounds = null
+        toast.success(`Variable created: ${createdSlug}`)
+      } catch (error) {
+        console.error('Failed to create variable', error)
+        this.createVariableError = error?.message || 'Failed to create variable.'
+      } finally {
+        this.createVariableSaving = false
+      }
     },
     openVariablesAdmin(){
       if(!this.$router) return
@@ -3477,7 +3601,7 @@ export default {
   justify-content: center;
   z-index: 2000;
 }
-.snippet-modal {
+.snippet-modal, .variable-modal {
   background: #fff;
   border-radius: 8px;
   width: 540px;
@@ -3486,6 +3610,12 @@ export default {
   display: flex;
   flex-direction: column;
 }
+.variable-modal { width: 500px; max-width: 95vw; background: #fff; border-radius: 8px; }
+.variable-modal form { margin: 0; }
+.variable-token-preview { font-size: .8rem; color: #64748b; }
+.variable-default-value { resize: vertical; background: #f8fafc; }
+.modal-help { margin: 0 0 1rem; color: #64748b; font-size: .9rem; }
+.variable-modal .error-banner { padding: .6rem .75rem; color: #b91c1c; background: #fef2f2; border: 1px solid #fecaca; border-radius: 6px; }
 .modal-header {
   display: flex;
   align-items: center;
