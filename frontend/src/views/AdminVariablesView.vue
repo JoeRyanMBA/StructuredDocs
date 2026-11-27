@@ -350,7 +350,22 @@ export default {
 .admin-variables { padding:1.25rem; }
 .subtitle { color:#64748b; margin-bottom:1rem; }
 .actions-bar { display:flex; gap:.5rem; margin-bottom:1rem; align-items:center; }
-.actions-bar .btn { min-width:120px; height:36px; white-space:nowrap; }
+.actions-bar .btn {
+  display:inline-flex;
+  align-items:center;
+  justify-content:center;
+  flex:0 0 120px;
+  height:36px;
+  min-height:36px;
+  margin:0;
+  padding:.5rem 1rem;
+  box-sizing:border-box;
+  line-height:1;
+  white-space:nowrap;
+}
+.actions-bar .btn:hover,
+.actions-bar .btn:active,
+.actions-bar .btn:focus { transform:none; }
 .variables-layout { display:flex; gap:1rem; }
 .variables-list { flex:1 1 50%; overflow:auto; }
 .variable-detail { flex:1 1 50%; background:#fff; border:1px solid #e2e8f0; border-radius:8px; padding:1rem; }
