@@ -216,6 +216,31 @@ def test_nested_html_list_keeps_explicit_numbers_and_parent_sequence():
     ]
 
 
+@pytest.mark.parametrize(
+    'content',
+    [
+        (
+            'The Text features include:<br>'
+            '<strong>Bold.</strong> Apply bold formatting to the selected text.<br>'
+            '<strong>Italics.</strong> Italicize the selected text.'
+        ),
+        (
+            '<div>The Text features include:</div>'
+            '<div><strong>Bold.</strong> Apply bold formatting to the selected text.</div>'
+            '<div><strong>Italics.</strong> Italicize the selected text.</div>'
+        ),
+    ],
+)
+def test_pdf_preserves_html_line_breaks_in_editor_text(content):
+    sanitized = pdf_generator._pdf_sanitize_text(content)
+
+    assert convert_markdown_to_pdf_paragraphs(sanitized) == [
+        'The Text features include:<br/>'
+        '<b>Bold.</b> Apply bold formatting to the selected text.<br/>'
+        '<b>Italics.</b> Italicize the selected text.'
+    ]
+
+
 def test_pdf_preserves_adjacent_indented_html_paragraphs(monkeypatch):
     content = (
         '<p style="margin-left: 40px">The wrapping options are:</p>'

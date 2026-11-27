@@ -118,12 +118,31 @@ def _format_pdf_links(text, topic_anchors):
     )
 
 
+def _preserve_html_block_breaks(text: str) -> str:
+    """Keep visual HTML block boundaries as ReportLab line breaks."""
+    block_tags = r'div|section|article|header|footer|aside|main|figure|figcaption|blockquote'
+    text = re.sub(
+        rf'</\s*(?:{block_tags})\s*>',
+        '<br/>',
+        text,
+        flags=re.IGNORECASE,
+    )
+    text = re.sub(
+        rf'<\s*(?:{block_tags})\b[^>]*>',
+        '',
+        text,
+        flags=re.IGNORECASE,
+    )
+    return re.sub(r'(?:<br\s*/?>\s*)+$', '', text, flags=re.IGNORECASE)
+
+
 # ReportLab-safe text sanitization: strip unsupported tags and fix entities
 def _pdf_sanitize_text(s: str) -> str:
     if not s:
         return ''
     # Normalize line endings and non-breaking spaces
     s = s.replace('\r\n', '\n').replace('\r', '\n').replace('\u00A0', ' ')
+    s = _preserve_html_block_breaks(s)
     # Remove soft hyphen characters which can break tag parsing
     try:
         s = s.replace('\u00AD', '')
@@ -2107,9 +2126,9 @@ def convert_markdown_to_pdf_paragraphs(text, temp_dir=None, topic_anchors=None):
     # Convert <strong>/<em> to ReportLab-supported <b>/<i>
     safe_text = re.sub(r'<strong>(.*?)</strong>', r'<b>\1</b>', safe_text, flags=re.IGNORECASE | re.DOTALL)
     safe_text = re.sub(r'<em>(.*?)</em>', r'<i>\1</i>', safe_text, flags=re.IGNORECASE | re.DOTALL)
-    # Normalize HTML <br> to XHTML <br/> required by ReportLab's XML parser;
-    # then convert standalone <br/> separators to blank lines so they act as paragraph breaks.
-    safe_text = re.sub(r'<br\s*/?>', '\n', safe_text, flags=re.IGNORECASE)
+    safe_text = _preserve_html_block_breaks(safe_text)
+    # ReportLab supports XHTML line breaks inside Paragraph flowables.
+    safe_text = re.sub(r'<br\s*/?>', '<br/>', safe_text, flags=re.IGNORECASE)
     # Convert HTML headings (h1–h6) to markdown heading syntax
     for _lvl in range(6, 0, -1):
         safe_text = re.sub(
