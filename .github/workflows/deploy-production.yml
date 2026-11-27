@@ -69,7 +69,11 @@ jobs:
             "PRODUCTION_DIR='${PRODUCTION_DIR}' bash -s" <<'EOF'
             set -euo pipefail
             [[ -d "$PRODUCTION_DIR" ]] || { echo "Missing $PRODUCTION_DIR."; exit 1; }
-            [[ -w "$PRODUCTION_DIR" ]] || { echo "Cannot write to $PRODUCTION_DIR."; exit 1; }
+            [[ -w "$PRODUCTION_DIR" && -x "$PRODUCTION_DIR" ]] || {
+              echo "Cannot write to or access $PRODUCTION_DIR as $(id -un)."
+              echo "Fix the production directory permissions on the VPS; see docs/single-vps-three-stacks.md section 8."
+              exit 1
+            }
             for file in .env docker-compose.single.yml .enable_blueprints; do
               [[ -r "$PRODUCTION_DIR/$file" ]] || {
                 echo "Missing or unreadable $PRODUCTION_DIR/$file."

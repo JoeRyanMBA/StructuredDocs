@@ -342,6 +342,24 @@ Before merging the workflow change to `main`:
 5. Ensure the PostgreSQL `pg_hba.conf` permits the production Docker network subnet. A successful login from the legacy stack’s network does not prove the production stack’s subnet is allowed.
 6. Configure the GitHub `production` environment with a required reviewer before enabling automatic production deployment.
 
+The workflow connects as `deploy` and needs write and search access to the
+production directory for its source sync. If the preflight reports that the
+directory is not writable, have a VPS administrator inspect its ownership and
+parent-directory permissions (`namei -l /opt/structureddocs/production`). If
+the production directory is owned by root, grant the deployment account access
+to that directory, for example:
+
+```bash
+sudo chown deploy /opt/structureddocs/production
+sudo chmod u+rwx /opt/structureddocs/production
+```
+
+Do not recursively change ownership of the directory: `.env`, Compose
+configuration, uploads, instance files, and backups are server-managed. Ensure
+the deploy user can read the required configuration files and can write the
+source directories managed by rsync; correct any individual source directory
+permissions as needed. Then rerun the production deployment after approval.
+
 After the updated workflow is merged to `main`, wait for the production deployment to pass its health check at `http://127.0.0.1:38080/api/health`. Confirm the new app responds before changing the public route.
 
 For the current containerized Caddy setup, back up `/opt/structureddocs/app/Caddyfile`, then change only the `structureddocs.online` upstream from `app:8080` to `host.docker.internal:38080`. Validate and reload Caddy:
